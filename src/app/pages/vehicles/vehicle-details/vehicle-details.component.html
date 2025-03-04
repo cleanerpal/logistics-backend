@@ -1,0 +1,360 @@
+<div class="model-details-container">
+  <!-- Loading State -->
+  <div class="loading-state" *ngIf="loading">
+    <span class="material-icons spinning">refresh</span>
+    Loading...
+  </div>
+
+  <!-- Error State -->
+  <div class="error-state" *ngIf="error">
+    <span class="material-icons">error</span>
+    {{ error }}
+    <button class="retry-button" (click)="loadModelDetails(model?.id || '')">
+      Retry
+    </button>
+  </div>
+
+  <!-- Content -->
+  <ng-container *ngIf="!loading && !error && model">
+    <!-- Header -->
+    <header class="details-header">
+      <div class="breadcrumb">
+        <a routerLink="/vehicles">Makes</a>
+        <span class="material-icons">chevron_right</span>
+        <a routerLink="/vehicles/models">Models</a>
+        <span class="material-icons">chevron_right</span>
+        <span>{{ model.name }}</span>
+      </div>
+
+      <div class="header-content">
+        <div class="model-info">
+          <h1>{{ model.name }}</h1>
+          <div class="model-meta">
+            <span class="year-range"
+              >{{ model.yearStart }} - {{ model.yearEnd || "Present" }}</span
+            >
+            <span [class]="'status-badge ' + model.status.toLowerCase()">{{
+              model.status
+            }}</span>
+          </div>
+        </div>
+
+        <div class="header-actions" *ngIf="isAdmin">
+          <button class="edit-button">
+            <span class="material-icons">edit</span>
+            Edit
+          </button>
+          <button class="archive-button" (click)="archiveModel()">
+            <span class="material-icons">archive</span>
+            Archive
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Navigation Tabs -->
+    <nav class="tabs">
+      <button
+        *ngFor="
+          let tab of ['overview', 'specifications', 'handling', 'history']
+        "
+        [class.active]="activeTab === tab"
+        class="tab-button"
+      >
+        {{ tab | titlecase }}
+      </button>
+    </nav>
+
+    <!-- Tab Content -->
+    <div class="tab-content" [ngSwitch]="activeTab">
+      <!-- Overview Tab -->
+      <div *ngSwitchCase="'overview'" class="overview-tab">
+        <div class="image-gallery" *ngIf="hasImages">
+          <div class="main-image">
+            <button
+              class="nav-button prev"
+              (click)="previousImage()"
+              [disabled]="!hasImages"
+            >
+              <span class="material-icons">chevron_left</span>
+            </button>
+            <img
+              [src]="currentImage"
+              [alt]="model.name"
+              class="vehicle-image"
+            />
+            <button
+              class="nav-button next"
+              (click)="nextImage()"
+              [disabled]="!hasImages"
+            >
+              <span class="material-icons">chevron_right</span>
+            </button>
+          </div>
+          <div class="thumbnail-strip">
+            <img
+              *ngFor="let image of model.images; let i = index"
+              [src]="image"
+              [alt]="model.name + ' view ' + (i + 1)"
+              [class.active]="i === currentImageIndex"
+              (click)="currentImageIndex = i"
+              class="thumbnail"
+            />
+          </div>
+        </div>
+
+        <div class="stats-grid">
+          <div class="stat-card">
+            <span class="material-icons">speed</span>
+            <div class="stat-content">
+              <span class="label">Active Jobs</span>
+              <span class="value">{{ model.activeJobs }}</span>
+            </div>
+          </div>
+          <div class="stat-card">
+            <span class="material-icons">access_time</span>
+            <div class="stat-content">
+              <span class="label">Avg Transport Time</span>
+              <span class="value">{{ averageTransportTime }}h</span>
+            </div>
+          </div>
+        </div>
+
+        <div
+          class="quick-specs"
+          *ngIf="model.specifications.loadingRequirements.length > 0"
+        >
+          <h2>Special Requirements</h2>
+          <ul class="requirements-list">
+            <li *ngFor="let req of model.specifications.loadingRequirements">
+              <span class="material-icons">check_circle</span>
+              {{ req }}
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Specifications Tab -->
+      <div *ngSwitchCase="'specifications'" class="specifications-tab">
+        <div class="specs-section">
+          <h2>Dimensions</h2>
+          <div class="specs-grid">
+            <div class="spec-item">
+              <span class="label">Length</span>
+              <span class="value"
+                >{{ model.specifications.dimensions.length }} in</span
+              >
+            </div>
+            <div class="spec-item">
+              <span class="label">Width</span>
+              <span class="value"
+                >{{ model.specifications.dimensions.width }} in</span
+              >
+            </div>
+            <div class="spec-item">
+              <span class="label">Height</span>
+              <span class="value"
+                >{{ model.specifications.dimensions.height }} in</span
+              >
+            </div>
+            <div class="spec-item">
+              <span class="label">Wheelbase</span>
+              <span class="value"
+                >{{ model.specifications.dimensions.wheelbase }} in</span
+              >
+            </div>
+          </div>
+        </div>
+
+        <div class="specs-section">
+          <h2>Weight Information</h2>
+          <div class="specs-grid">
+            <div class="spec-item">
+              <span class="label">Empty Weight</span>
+              <span class="value"
+                >{{ model.specifications.weight.empty }} lbs</span
+              >
+            </div>
+            <div class="spec-item">
+              <span class="label">Max Load</span>
+              <span class="value"
+                >{{ model.specifications.weight.maxLoad }} lbs</span
+              >
+            </div>
+          </div>
+        </div>
+
+        <div class="specs-section">
+          <h2>Transport Requirements</h2>
+          <div class="requirements-list">
+            <div class="requirement-group">
+              <h3>Loading Requirements</h3>
+              <ul>
+                <li
+                  *ngFor="let req of model.specifications.loadingRequirements"
+                >
+                  <span class="material-icons">arrow_right</span>
+                  {{ req }}
+                </li>
+              </ul>
+            </div>
+            <div class="requirement-group">
+              <h3>Transport Restrictions</h3>
+              <ul>
+                <li
+                  *ngFor="
+                    let restriction of model.specifications
+                      .transportRestrictions
+                  "
+                >
+                  <span class="material-icons">warning</span>
+                  {{ restriction }}
+                </li>
+              </ul>
+            </div>
+            <div class="requirement-group">
+              <h3>Required Equipment</h3>
+              <ul>
+                <li
+                  *ngFor="
+                    let equipment of model.specifications.requiredEquipment
+                  "
+                >
+                  <span class="material-icons">construction</span>
+                  {{ equipment }}
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Handling Instructions Tab -->
+      <div *ngSwitchCase="'handling'" class="handling-tab">
+        <div class="instructions-section">
+          <h2>Loading Procedure</h2>
+          <ol class="numbered-list">
+            <li
+              *ngFor="
+                let step of model.handlingInstructions.loadingProcedure;
+                let i = index
+              "
+            >
+              <span class="step-number">{{ i + 1 }}</span>
+              {{ step }}
+            </li>
+          </ol>
+        </div>
+
+        <div class="instructions-section">
+          <h2>Securing Points</h2>
+          <ul class="securing-points">
+            <li *ngFor="let point of model.handlingInstructions.securingPoints">
+              <span class="material-icons">link</span>
+              {{ point }}
+            </li>
+          </ul>
+        </div>
+
+        <div class="instructions-grid">
+          <div class="instructions-section">
+            <h2>Special Considerations</h2>
+            <ul class="considerations-list">
+              <li
+                *ngFor="
+                  let consideration of model.handlingInstructions
+                    .specialConsiderations
+                "
+              >
+                <span class="material-icons">priority_high</span>
+                {{ consideration }}
+              </li>
+            </ul>
+          </div>
+
+          <div class="instructions-section">
+            <h2>Safety Requirements</h2>
+            <ul class="safety-list">
+              <li
+                *ngFor="
+                  let req of model.handlingInstructions.safetyRequirements
+                "
+              >
+                <span class="material-icons">shield</span>
+                {{ req }}
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="documents-section">
+          <h2>Related Documents</h2>
+          <div class="documents-grid">
+            <div class="document-card" *ngFor="let doc of model.documents">
+              <span class="material-icons">description</span>
+              <div class="document-info">
+                <span class="document-name">{{ doc.name }}</span>
+                <span class="document-meta"
+                  >{{ doc.type }} • Updated
+                  {{ doc.lastUpdated | date : "mediumDate" }}</span
+                >
+              </div>
+              <button (click)="downloadDocument(doc)" class="download-button">
+                <span class="material-icons">download</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- History Tab -->
+      <div *ngSwitchCase="'history'" class="history-tab">
+        <div class="job-history">
+          <h2>Transport History</h2>
+          <div class="table-container">
+            <table class="history-table">
+              <thead>
+                <tr>
+                  <th>Job ID</th>
+                  <th>Date</th>
+                  <th>Customer</th>
+                  <th>Distance</th>
+                  <th>Duration</th>
+                  <th>Issues</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let job of model.jobHistory">
+                  <td class="job-id">{{ job.jobId }}</td>
+                  <td>{{ job.date | date : "mediumDate" }}</td>
+                  <td>{{ job.customer }}</td>
+                  <td>{{ job.distance }} miles</td>
+                  <td>{{ job.duration }} hours</td>
+                  <td>
+                    <ul class="issues-list">
+                      <li *ngFor="let issue of job.issues">
+                        <span class="material-icons">error_outline</span>
+                        {{ issue }}
+                      </li>
+                    </ul>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="history-stats">
+          <div class="stat-card">
+            <h3>Total Jobs</h3>
+            <span class="value">{{ totalJobs }}</span>
+          </div>
+          <div class="stat-card">
+            <h3>Average Duration</h3>
+            <span class="value">{{ averageTransportTime }} hours</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </ng-container>
+</div>

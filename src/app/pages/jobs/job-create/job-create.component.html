@@ -1,0 +1,177 @@
+<!-- job-create.component.html -->
+<div class="create-job-container">
+  <div class="create-job-content">
+    <!-- Header -->
+    <div class="form-header">
+      <h1>Create Job</h1>
+      <button type="button" class="cancel-btn" (click)="onCancel()">
+        <span class="material-icons">close</span>
+        Cancel
+      </button>
+    </div>
+
+    <!-- Form -->
+    <form [formGroup]="jobForm" (ngSubmit)="onSubmit()" class="job-form">
+      <!-- Customer Information -->
+      <div class="form-section">
+        <h2>Customer Information</h2>
+        <div class="form-grid">
+          <div class="form-group full-width">
+            <label for="customerId">Customer</label>
+            <select id="customerId" formControlName="customerId">
+              <option value="">Select a customer</option>
+              <option *ngFor="let customer of customers" [value]="customer.id">
+                {{ customer.name }} - {{ customer.company }}
+              </option>
+            </select>
+            <span class="error-message">{{
+              getErrorMessage("customerId")
+            }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Vehicle Information -->
+      <div class="form-section">
+        <h2>Vehicle Information</h2>
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="vehicleMake">Make</label>
+            <select id="vehicleMake" formControlName="vehicleMake">
+              <option value="">Select make</option>
+              <option *ngFor="let make of vehicleMakes" [value]="make.name">
+                {{ make.name }}
+              </option>
+            </select>
+            <span class="error-message">{{
+              getErrorMessage("vehicleMake")
+            }}</span>
+          </div>
+
+          <div class="form-group">
+            <label for="vehicleModel">Model</label>
+            <select id="vehicleModel" formControlName="vehicleModel">
+              <option value="">Select model</option>
+              <option
+                *ngFor="let model of availableModels"
+                [value]="model.name"
+              >
+                {{ model.name }}
+              </option>
+            </select>
+            <span class="error-message">{{
+              getErrorMessage("vehicleModel")
+            }}</span>
+          </div>
+
+          <div class="form-group">
+            <label for="vehicleType">Type</label>
+            <input
+              id="vehicleType"
+              type="text"
+              formControlName="vehicleType"
+              readonly
+            />
+            <span class="error-message">{{
+              getErrorMessage("vehicleType")
+            }}</span>
+          </div>
+
+          <div class="form-group">
+            <label for="registration">Registration</label>
+            <input
+              id="registration"
+              type="text"
+              formControlName="registration"
+              style="text-transform: uppercase"
+            />
+            <span class="error-message">{{
+              getErrorMessage("registration")
+            }}</span>
+          </div>
+
+          <div class="form-group">
+            <label for="chassisNumber">Chassis Number</label>
+            <input
+              id="chassisNumber"
+              type="text"
+              formControlName="chassisNumber"
+              style="text-transform: uppercase"
+            />
+            <span class="error-message">{{
+              getErrorMessage("chassisNumber")
+            }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Location Details -->
+      <div class="form-section">
+        <h2>Location Details</h2>
+        <div class="form-grid">
+          <div class="form-group full-width">
+            <label for="collectionAddress">Collection Address</label>
+            <input
+              id="collectionAddress"
+              type="text"
+              formControlName="collectionAddress"
+            />
+            <span class="error-message">{{
+              getErrorMessage("collectionAddress")
+            }}</span>
+          </div>
+
+          <div class="form-group full-width">
+            <label for="deliveryAddress">Delivery Address</label>
+            <input
+              id="deliveryAddress"
+              type="text"
+              formControlName="deliveryAddress"
+            />
+            <span class="error-message">{{
+              getErrorMessage("deliveryAddress")
+            }}</span>
+          </div>
+
+          <div class="form-group">
+            <label for="collectionDateTime">Collection Date & Time</label>
+            <input
+              id="collectionDateTime"
+              type="datetime-local"
+              formControlName="collectionDateTime"
+            />
+            <span class="error-message">{{
+              getErrorMessage("collectionDateTime")
+            }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Assignment -->
+      <div class="form-section">
+        <h2>Assignment (Optional)</h2>
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="driverId">Driver</label>
+            <select id="driverId" formControlName="driverId">
+              <option value="">Select driver</option>
+              <option *ngFor="let driver of drivers" [value]="driver.id">
+                {{ driver.name }}
+              </option>
+            </select>
+          </div>
+
+          <div class="form-group full-width">
+            <label for="notes">Notes</label>
+            <textarea id="notes" formControlName="notes" rows="4"></textarea>
+          </div>
+        </div>
+      </div>
+
+      <!-- Submit Button -->
+      <div class="form-actions">
+        <button type="submit" class="submit-btn">Create Job</button>
+      </div>
+    </form>
+  </div>
+</div>

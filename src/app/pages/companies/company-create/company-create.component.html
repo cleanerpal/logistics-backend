@@ -1,0 +1,165 @@
+<!-- company-form.component.html -->
+<mat-card class="mat-elevation-z3">
+  <!-- Header -->
+  <div class="header-wrapper">
+    <div class="header-title">
+      <button mat-icon-button (click)="goBack()">
+        <mat-icon>arrow_back</mat-icon>
+      </button>
+      <h1>{{ isEditMode ? "Edit Company" : "New Company" }}</h1>
+    </div>
+  </div>
+
+  <!-- Form -->
+  <form
+    [formGroup]="companyForm"
+    (ngSubmit)="onSubmit()"
+    class="form-container"
+  >
+    <div class="form-section">
+      <h2 class="section-title">Company Details</h2>
+
+      <!-- Company Name -->
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Company Name</mat-label>
+        <input
+          matInput
+          formControlName="name"
+          placeholder="Enter company name"
+        />
+        <mat-error *ngIf="companyForm.get('name')?.hasError('required')">
+          Company name is required
+        </mat-error>
+      </mat-form-field>
+
+      <!-- Address -->
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Address</mat-label>
+        <textarea
+          matInput
+          formControlName="address"
+          placeholder="Enter company address"
+          rows="3"
+        >
+        </textarea>
+        <mat-error *ngIf="companyForm.get('address')?.hasError('required')">
+          Address is required
+        </mat-error>
+      </mat-form-field>
+    </div>
+
+    <div class="form-section">
+      <h2 class="section-title">Primary Driver</h2>
+
+      <!-- Driver Name -->
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Driver Name</mat-label>
+        <input
+          matInput
+          formControlName="driverName"
+          placeholder="Enter driver name"
+        />
+        <mat-error *ngIf="companyForm.get('driverName')?.hasError('required')">
+          Driver name is required
+        </mat-error>
+      </mat-form-field>
+
+      <!-- Driver Details Row -->
+      <div class="form-row">
+        <!-- Driver Number -->
+        <mat-form-field appearance="outline">
+          <mat-label>Driver Number</mat-label>
+          <input
+            matInput
+            formControlName="driverNumber"
+            placeholder="Enter driver number"
+            mask="(000) 000-0000"
+          />
+          <mat-error
+            *ngIf="companyForm.get('driverNumber')?.hasError('required')"
+          >
+            Driver number is required
+          </mat-error>
+          <mat-error
+            *ngIf="companyForm.get('driverNumber')?.hasError('pattern')"
+          >
+            Please enter a valid phone number
+          </mat-error>
+        </mat-form-field>
+
+        <!-- Driver Email -->
+        <mat-form-field appearance="outline">
+          <mat-label>Driver Email</mat-label>
+          <input
+            matInput
+            type="email"
+            formControlName="driverEmail"
+            placeholder="Enter driver email"
+          />
+          <mat-error
+            *ngIf="companyForm.get('driverEmail')?.hasError('required')"
+          >
+            Driver email is required
+          </mat-error>
+          <mat-error *ngIf="companyForm.get('driverEmail')?.hasError('email')">
+            Please enter a valid email address
+          </mat-error>
+        </mat-form-field>
+      </div>
+    </div>
+
+    <!-- Additional Details Section -->
+    <div class="form-section">
+      <h2 class="section-title">Additional Details</h2>
+
+      <div class="form-row">
+        <!-- Industry -->
+        <mat-form-field appearance="outline">
+          <mat-label>Industry</mat-label>
+          <mat-select formControlName="industry">
+            <mat-option *ngFor="let industry of industries" [value]="industry">
+              {{ industry }}
+            </mat-option>
+          </mat-select>
+          <mat-error *ngIf="companyForm.get('industry')?.hasError('required')">
+            Industry is required
+          </mat-error>
+        </mat-form-field>
+
+        <!-- Company Size -->
+        <mat-form-field appearance="outline">
+          <mat-label>Company Size</mat-label>
+          <mat-select formControlName="size">
+            <mat-option *ngFor="let size of companySizes" [value]="size">
+              {{ size }}
+            </mat-option>
+          </mat-select>
+          <mat-error *ngIf="companyForm.get('size')?.hasError('required')">
+            Company size is required
+          </mat-error>
+        </mat-form-field>
+      </div>
+    </div>
+
+    <!-- Form Actions -->
+    <div class="form-actions">
+      <button mat-stroked-button type="button" (click)="goBack()">
+        Cancel
+      </button>
+      <button
+        mat-flat-button
+        color="primary"
+        type="submit"
+        [disabled]="companyForm.invalid || isSubmitting"
+      >
+        {{
+          isSubmitting
+            ? "Saving..."
+            : isEditMode
+            ? "Update Company"
+            : "Create Company"
+        }}
+      </button>
+    </div>
+  </form>
+</mat-card>

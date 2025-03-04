@@ -1,0 +1,283 @@
+<!-- top-nav.component.html -->
+<nav class="top-nav">
+  <!-- Left Section -->
+  <div class="left-section">
+    <!-- Mobile Menu Toggle -->
+    <button mat-icon-button class="menu-button" (click)="toggleSidebar()">
+      <mat-icon>menu</mat-icon>
+    </button>
+
+    <!-- Breadcrumb Navigation -->
+    <div class="breadcrumb">
+      <span>{{ getCurrentSection() }}</span>
+      <mat-icon>chevron_right</mat-icon>
+      <span>{{ getCurrentPage() }}</span>
+    </div>
+  </div>
+
+  <!-- Right Section -->
+  <div class="right-section">
+    <!-- Search -->
+    <button
+      mat-icon-button
+      class="action-button"
+      matTooltip="Search"
+      (click)="openSearch()"
+    >
+      <mat-icon>search</mat-icon>
+    </button>
+
+    <!-- Notifications -->
+    <button
+      mat-icon-button
+      class="action-button"
+      matTooltip="Notifications"
+      [matMenuTriggerFor]="notificationsMenu"
+    >
+      <mat-icon>notifications</mat-icon>
+      <span class="notification-badge" *ngIf="hasUnreadNotifications"></span>
+    </button>
+
+    <!-- Settings -->
+    <button
+      mat-icon-button
+      class="action-button"
+      matTooltip="Settings"
+      [matMenuTriggerFor]="settingsMenu"
+    >
+      <mat-icon>settings</mat-icon>
+    </button>
+
+    <!-- User Profile -->
+    <div class="user-profile" [matMenuTriggerFor]="userMenu">
+      <div class="avatar-container">
+        <div class="avatar">
+          <mat-icon>account_circle</mat-icon>
+        </div>
+        <span class="status-indicator" [class.online]="isUserOnline"></span>
+      </div>
+      <div class="user-info">
+        <span class="user-name">{{ userName }}</span>
+        <span class="user-role">{{ userRole }}</span>
+      </div>
+      <mat-icon class="dropdown-icon">arrow_drop_down</mat-icon>
+    </div>
+  </div>
+</nav>
+
+<!-- Search Overlay -->
+<div class="search-overlay" *ngIf="isSearchOpen" (click)="closeSearch($event)">
+  <div class="search-card" (click)="$event.stopPropagation()">
+    <div class="search-header">
+      <mat-icon>search</mat-icon>
+      <input
+        #searchInput
+        type="text"
+        placeholder="Search..."
+        [(ngModel)]="searchQuery"
+        (keyup)="onSearch($event)"
+        class="search-input"
+        autofocus
+      />
+      <button mat-icon-button (click)="closeSearch($event)">
+        <mat-icon>close</mat-icon>
+      </button>
+    </div>
+
+    <div class="search-results" *ngIf="searchResults.length > 0">
+      <div class="results-header">Results</div>
+      <mat-nav-list>
+        <a
+          mat-list-item
+          *ngFor="let result of searchResults"
+          [routerLink]="result.link"
+          (click)="closeSearch($event)"
+        >
+          <mat-icon matListItemIcon>{{ result.icon }}</mat-icon>
+          <span matListItemTitle>{{ result.title }}</span>
+          <span matListItemLine>{{ result.subtitle }}</span>
+        </a>
+      </mat-nav-list>
+    </div>
+
+    <div class="no-results" *ngIf="searchQuery && !searchResults.length">
+      <mat-icon>search_off</mat-icon>
+      <p>No results found for "{{ searchQuery }}"</p>
+    </div>
+  </div>
+</div>
+
+<!-- Notifications Menu -->
+<!-- All Menu Components -->
+
+<!-- Notifications Menu -->
+<mat-menu
+  #notificationsMenu="matMenu"
+  class="notifications-menu"
+  xPosition="before"
+>
+  <div class="notifications-container">
+    <!-- Header -->
+    <div class="notification-header">
+      <div class="header-title">
+        <h3>Notifications</h3>
+        <span class="notification-count" *ngIf="hasUnreadNotifications">
+          {{ getUnreadCount() }} new
+        </span>
+      </div>
+      <button
+        mat-button
+        class="mark-read-button"
+        (click)="markAllAsRead()"
+        [disabled]="!hasUnreadNotifications"
+      >
+        Mark all as read
+      </button>
+    </div>
+
+    <!-- Content -->
+    <div class="notification-content">
+      <div class="notification-list" *ngIf="notifications.length > 0">
+        <div
+          class="notification-item"
+          *ngFor="let notification of notifications"
+          [class.unread]="!notification.read"
+          (click)="markAsRead(notification)"
+        >
+          <div class="notification-icon" [ngClass]="notification.type">
+            <mat-icon>{{ notification.icon }}</mat-icon>
+          </div>
+          <div class="notification-details">
+            <div class="notification-title">{{ notification.title }}</div>
+            <div class="notification-message" *ngIf="notification.message">
+              {{ notification.message }}
+            </div>
+            <div class="notification-time">
+              {{ notification.time | timeAgo }}
+            </div>
+          </div>
+          <button
+            mat-icon-button
+            class="delete-button"
+            (click)="deleteNotification(notification); $event.stopPropagation()"
+          >
+            <mat-icon>close</mat-icon>
+          </button>
+        </div>
+      </div>
+
+      <!-- Empty State -->
+      <div class="empty-notifications" *ngIf="notifications.length === 0">
+        <mat-icon>notifications_none</mat-icon>
+        <p>No notifications</p>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="notification-footer">
+      <button
+        mat-button
+        class="view-all-button"
+        (click)="viewAllNotifications()"
+      >
+        View All Notifications
+      </button>
+    </div>
+  </div>
+</mat-menu>
+
+<!-- Settings Menu -->
+<mat-menu #settingsMenu="matMenu" class="settings-menu" xPosition="before">
+  <div class="settings-container">
+    <button mat-menu-item (click)="openAppSettings()">
+      <mat-icon>tune</mat-icon>
+      <span>App Settings</span>
+    </button>
+    <button mat-menu-item (click)="toggleTheme()">
+      <mat-icon>{{ isDarkTheme ? "light_mode" : "dark_mode" }}</mat-icon>
+      <span>{{ isDarkTheme ? "Light Theme" : "Dark Theme" }}</span>
+    </button>
+    <mat-divider></mat-divider>
+    <button mat-menu-item (click)="openHelp()">
+      <mat-icon>help_outline</mat-icon>
+      <span>Help & Support</span>
+    </button>
+  </div>
+</mat-menu>
+
+<!-- User Menu -->
+<mat-menu #userMenu="matMenu" class="user-menu" xPosition="before">
+  <div class="user-menu-container">
+    <div class="user-menu-header">
+      <div class="menu-avatar">
+        <mat-icon>account_circle</mat-icon>
+      </div>
+      <div class="menu-user-info">
+        <span class="menu-user-name">{{ userName }}</span>
+        <span class="menu-user-email">{{ userEmail }}</span>
+      </div>
+    </div>
+
+    <mat-divider></mat-divider>
+
+    <!-- User Actions -->
+    <button mat-menu-item (click)="viewProfile()">
+      <mat-icon>person_outline</mat-icon>
+      <span>My Profile</span>
+    </button>
+    <button mat-menu-item (click)="openPreferences()">
+      <mat-icon>settings</mat-icon>
+      <span>Preferences</span>
+    </button>
+
+    <mat-divider></mat-divider>
+
+    <!-- Logout -->
+    <button mat-menu-item (click)="logout()" class="logout-button">
+      <mat-icon>exit_to_app</mat-icon>
+      <span>Sign Out</span>
+    </button>
+  </div>
+</mat-menu>
+
+<!-- Settings Menu -->
+<mat-menu #settingsMenu="matMenu" xPosition="before">
+  <button mat-menu-item (click)="openAppSettings()">
+    <mat-icon>tune</mat-icon>
+    <span>App Settings</span>
+  </button>
+  <button mat-menu-item (click)="toggleTheme()">
+    <mat-icon>{{ isDarkTheme ? "light_mode" : "dark_mode" }}</mat-icon>
+    <span>{{ isDarkTheme ? "Light Theme" : "Dark Theme" }}</span>
+  </button>
+  <mat-divider></mat-divider>
+  <button mat-menu-item (click)="openHelp()">
+    <mat-icon>help</mat-icon>
+    <span>Help & Support</span>
+  </button>
+</mat-menu>
+
+<!-- User Menu -->
+<mat-menu #userMenu="matMenu" xPosition="before">
+  <div class="user-menu-header">
+    <img [src]="userAvatar" alt="User avatar" class="menu-avatar" />
+    <div class="menu-user-info">
+      <span class="menu-user-name">{{ userName }}</span>
+      <span class="menu-user-email">{{ userEmail }}</span>
+    </div>
+  </div>
+  <mat-divider></mat-divider>
+  <button mat-menu-item (click)="viewProfile()">
+    <mat-icon>person</mat-icon>
+    <span>My Profile</span>
+  </button>
+  <button mat-menu-item (click)="openPreferences()">
+    <mat-icon>settings</mat-icon>
+    <span>Preferences</span>
+  </button>
+  <mat-divider></mat-divider>
+  <button mat-menu-item (click)="logout()" class="logout-button">
+    <mat-icon>exit_to_app</mat-icon>
+    <span>Sign Out</span>
+  </button>
+</mat-menu>

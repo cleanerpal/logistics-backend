@@ -1,0 +1,19 @@
+<!-- nav-sidebar.component.html -->
+<nav class="sidebar">
+  <div class="logo-container">
+    <img src="assets/logo/logo.png" alt="Company Logo" class="logo" />
+  </div>
+
+  <ul class="nav-list">
+    <li
+      *ngFor="let item of navItems"
+      [routerLink]="item.route"
+      routerLinkActive="active"
+      [routerLinkActiveOptions]="{ exact: true }"
+      class="nav-item"
+    >
+      <span class="material-icons nav-icon">{{ item.icon }}</span>
+      <span class="nav-label">{{ item.label }}</span>
+    </li>
+  </ul>
+</nav>
