@@ -30,5 +30,11 @@ export class NavSidebarComponent {
       route: '/vehicles',
       active: false,
     },
+    {
+      label: 'Expenses',
+      icon: 'receipt_long',
+      route: '/expenses',
+      active: false,
+    },
   ];
 }

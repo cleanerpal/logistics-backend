@@ -38,10 +38,9 @@
               (click)="applyPreviousData(selection)"
             >
               <div class="selection-header">
-                <span
-                  class="manufacturer"
-                  >{{ manufacturers.find(m => m.id === selection.manufacturerId)?.name }}</span
-                >
+                <span class="manufacturer">
+                  <!-- {{ manufacturers.find(m => m.id === selection.manufacturerId)?.name }} -->
+                </span>
                 <span class="model-name">{{ selection.name }}</span>
               </div>
               <div class="selection-details">

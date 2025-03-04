@@ -1,7 +1,5 @@
-<!-- job-create.component.html -->
-<div class="create-job-container">
+<!-- <div class="create-job-container">
   <div class="create-job-content">
-    <!-- Header -->
     <div class="form-header">
       <h1>Create Job</h1>
       <button type="button" class="cancel-btn" (click)="onCancel()">
@@ -10,9 +8,7 @@
       </button>
     </div>
 
-    <!-- Form -->
     <form [formGroup]="jobForm" (ngSubmit)="onSubmit()" class="job-form">
-      <!-- Customer Information -->
       <div class="form-section">
         <h2>Customer Information</h2>
         <div class="form-grid">
@@ -28,7 +24,6 @@
               getErrorMessage("customerId")
             }}</span>
 
-            <!-- QuickBooks sync info -->
             <div class="sync-info" *ngIf="quickbooksEnabled">
               <mat-icon>sync</mat-icon>
               <span>Customer data synced with QuickBooks</span>
@@ -37,7 +32,6 @@
         </div>
       </div>
 
-      <!-- Vehicle Information -->
       <div class="form-section">
         <h2>Vehicle Information</h2>
         <div class="form-grid">
@@ -126,7 +120,6 @@
           </div>
         </div>
 
-        <!-- Previous Selections -->
         <div class="previous-selections" *ngIf="previousSelections.length > 0">
           <h3>Previously Used Vehicles</h3>
           <div class="selection-pills">
@@ -141,7 +134,6 @@
         </div>
       </div>
 
-      <!-- Location Details -->
       <div class="form-section">
         <h2>Location Details</h2>
         <div class="form-grid">
@@ -217,7 +209,6 @@
         </div>
       </div>
 
-      <!-- Assignment -->
       <div class="form-section">
         <h2>Assignment (Optional)</h2>
         <div class="form-grid">
@@ -238,7 +229,6 @@
         </div>
       </div>
 
-      <!-- Submit Button -->
       <div class="form-actions">
         <button
           type="submit"
@@ -250,4 +240,4 @@
       </div>
     </form>
   </div>
-</div>
+</div> -->

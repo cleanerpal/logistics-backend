@@ -14,6 +14,8 @@ import { DriverDetailsComponent } from './pages/drivers/driver-details/driver-de
 import { VehicleListComponent } from './pages/vehicles/vehicle-list/vehicle-list.component';
 import { VehicleDetailsComponent } from './pages/vehicles/vehicle-details/vehicle-details.component';
 import { VehicleCreateComponent } from './pages/vehicles/vehicle-create/vehicle-create.component';
+import { ExpenseListComponent } from './pages/expenses/expense-list/expense-list.component';
+import { ExpenseCreateComponent } from './pages/expenses/expense-create/expense-create.component';
 
 const routes: Routes = [
   { path: '', redirectTo: '/dashboard', pathMatch: 'full' },
@@ -49,6 +51,13 @@ const routes: Routes = [
       { path: 'new', component: VehicleCreateComponent },
       { path: 'models', component: VehicleModelsComponent },
       { path: ':id', component: VehicleDetailsComponent },
+    ],
+  },
+  {
+    path: 'expenses',
+    children: [
+      { path: '', component: ExpenseListComponent },
+      { path: 'new', component: ExpenseCreateComponent },
     ],
   },
   { path: '**', redirectTo: '/dashboard' },

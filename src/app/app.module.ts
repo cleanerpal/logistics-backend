@@ -31,6 +31,9 @@ import { TimeAgoPipe } from './shared/pipes/time-ago.pipe';
 // Services
 import { ExpenseService } from './services/expense.service';
 import { NotificationService } from './services/notification.service';
+import { ExpenseCreateComponent } from './pages/expenses/expense-create/expense-create.component';
+import { ExpenseListComponent } from './pages/expenses/expense-list/expense-list.component';
+import { VehicleMovementComponent } from './pages/vehicles/vehicle-movement/vehicle-movement.component';
 
 @NgModule({
   declarations: [
@@ -52,6 +55,9 @@ import { NotificationService } from './services/notification.service';
     VehicleDetailsComponent,
     VehicleCreateComponent,
     ConfirmationDialogComponent,
+    ExpenseCreateComponent,
+    ExpenseListComponent,
+    VehicleMovementComponent,
     TimeAgoPipe,
   ],
   imports: [
