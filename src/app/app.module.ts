@@ -28,6 +28,10 @@ import { ConfirmationDialogComponent } from './dialogs/confirmation-dialog.compo
 import { VehicleCreateComponent } from './pages/vehicles/vehicle-create/vehicle-create.component';
 import { TimeAgoPipe } from './shared/pipes/time-ago.pipe';
 
+// Services
+import { ExpenseService } from './services/expense.service';
+import { NotificationService } from './services/notification.service';
+
 @NgModule({
   declarations: [
     AppComponent,
@@ -59,7 +63,7 @@ import { TimeAgoPipe } from './shared/pipes/time-ago.pipe';
     NgxChartsModule,
     MaterialModule,
   ],
-  providers: [provideNgxMask()],
+  providers: [provideNgxMask(), ExpenseService, NotificationService],
   bootstrap: [AppComponent],
 })
 export class AppModule {}

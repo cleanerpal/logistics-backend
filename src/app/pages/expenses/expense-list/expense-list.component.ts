@@ -14,6 +14,8 @@ import { MatCheckboxChange } from '@angular/material/checkbox';
 import { Expense, ExpenseStatus } from '../../../shared/models/expense.model';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { ExpenseService } from '../../../services/expense.service';
+import { FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { ConfirmationDialogComponent } from '../../../dialogs/confirmation-dialog.component';
 
 interface ExpenseFilters {
   status: string;
@@ -39,6 +41,7 @@ export class ExpenseListComponent implements OnInit, AfterViewInit {
   @ViewChild(MatSort) sort!: MatSort;
   @ViewChild(MatPaginator) paginator!: MatPaginator;
   @ViewChild('expenseDetailDialog') expenseDetailDialog!: TemplateRef<any>;
+  @ViewChild('rejectDialog') rejectDialog!: TemplateRef<any>;
 
   displayedColumns: string[] = [
     'id',
@@ -61,6 +64,10 @@ export class ExpenseListComponent implements OnInit, AfterViewInit {
   statusOptions = Object.values(ExpenseStatus);
   selectedExpense: Expense | null = null;
 
+  // For rejection comment
+  rejectionForm: FormGroup;
+  expenseToReject: Expense | null = null;
+
   filters: ExpenseFilters = {
     status: 'All',
     driver: 'All',
@@ -81,8 +88,13 @@ export class ExpenseListComponent implements OnInit, AfterViewInit {
     private router: Router,
     private expenseService: ExpenseService,
     private dialog: MatDialog,
-    private snackBar: MatSnackBar
-  ) {}
+    private snackBar: MatSnackBar,
+    private formBuilder: FormBuilder
+  ) {
+    this.rejectionForm = this.formBuilder.group({
+      reason: ['', Validators.required],
+    });
+  }
 
   ngOnInit(): void {
     this.loadExpenses();
@@ -202,37 +214,70 @@ export class ExpenseListComponent implements OnInit, AfterViewInit {
   }
 
   approveExpense(expense: Expense): void {
-    this.expenseService
-      .updateExpenseStatus(
-        expense.id,
-        ExpenseStatus.APPROVED,
-        { approvedBy: 'Admin User' } // In a real app, this would be the current user
-      )
-      .subscribe({
-        next: (updatedExpense: Expense) => {
-          // Update the expense in the list
-          const index = this.allExpenses.findIndex(
-            (e) => e.id === updatedExpense.id
-          );
-          if (index !== -1) {
-            this.allExpenses[index] = updatedExpense;
-            this.applyFilters();
-          }
+    // Confirm with the manager
+    const dialogRef = this.dialog.open(ConfirmationDialogComponent, {
+      width: '400px',
+      data: {
+        title: 'Approve Expense',
+        message: `Are you sure you want to approve this expense of ${this.formatCurrency(
+          expense.amount
+        )}?`,
+        confirmText: 'Approve',
+        cancelText: 'Cancel',
+      },
+    });
 
-          this.showSuccessMessage('Expense approved successfully');
-          this.dialog.closeAll();
-        },
-        error: (error: any) => {
-          this.showErrorMessage('Failed to approve expense');
-          console.error('Error approving expense:', error);
-        },
-      });
+    dialogRef.afterClosed().subscribe((result) => {
+      if (result) {
+        this.expenseService
+          .updateExpenseStatus(
+            expense.id,
+            ExpenseStatus.APPROVED,
+            { approvedBy: 'Admin User' } // In a real app, this would be the current user
+          )
+          .subscribe({
+            next: (updatedExpense: Expense) => {
+              // Update the expense in the list
+              const index = this.allExpenses.findIndex(
+                (e) => e.id === updatedExpense.id
+              );
+              if (index !== -1) {
+                this.allExpenses[index] = updatedExpense;
+                this.applyFilters();
+              }
+
+              this.showSuccessMessage('Expense approved successfully');
+              this.dialog.closeAll();
+            },
+            error: (error: any) => {
+              this.showErrorMessage('Failed to approve expense');
+              console.error('Error approving expense:', error);
+            },
+          });
+      }
+    });
   }
 
-  rejectExpense(expense: Expense): void {
+  openRejectDialog(expense: Expense): void {
+    this.expenseToReject = expense;
+    this.rejectionForm.reset({
+      reason: '',
+    });
+    this.dialog.open(this.rejectDialog, {
+      width: '400px',
+    });
+  }
+
+  confirmReject(): void {
+    if (!this.expenseToReject || this.rejectionForm.invalid) {
+      return;
+    }
+
+    const reason = this.rejectionForm.get('reason')?.value;
+
     this.expenseService
       .updateExpenseStatus(
-        expense.id,
+        this.expenseToReject.id,
         ExpenseStatus.REJECTED,
         { approvedBy: 'Admin User' } // In a real app, this would be the current user
       )
@@ -243,12 +288,16 @@ export class ExpenseListComponent implements OnInit, AfterViewInit {
             (e) => e.id === updatedExpense.id
           );
           if (index !== -1) {
+            // Update with rejection reason
+            updatedExpense.notes =
+              (updatedExpense.notes || '') + `\nRejection reason: ${reason}`;
             this.allExpenses[index] = updatedExpense;
             this.applyFilters();
           }
 
           this.showSuccessMessage('Expense rejected');
           this.dialog.closeAll();
+          this.expenseToReject = null;
         },
         error: (error: any) => {
           this.showErrorMessage('Failed to reject expense');
@@ -257,7 +306,18 @@ export class ExpenseListComponent implements OnInit, AfterViewInit {
       });
   }
 
+  rejectExpense(expense: Expense): void {
+    this.openRejectDialog(expense);
+  }
+
   updateChargeable(expense: Expense, event: MatCheckboxChange): void {
+    if (expense.status !== ExpenseStatus.APPROVED) {
+      this.showErrorMessage(
+        'Only approved expenses can be marked as chargeable'
+      );
+      return;
+    }
+
     this.expenseService
       .updateExpenseChargeableStatus(expense.id, event.checked)
       .subscribe({
@@ -289,6 +349,93 @@ export class ExpenseListComponent implements OnInit, AfterViewInit {
       style: 'currency',
       currency: 'GBP',
     }).format(amount);
+  }
+
+  getBulkApprovalCount(): number {
+    return this.filteredExpenses.filter(
+      (expense) => expense.status === ExpenseStatus.PENDING
+    ).length;
+  }
+
+  bulkApproveExpenses(): void {
+    const pendingExpenses = this.filteredExpenses.filter(
+      (expense) => expense.status === ExpenseStatus.PENDING
+    );
+
+    if (pendingExpenses.length === 0) {
+      this.showErrorMessage('No pending expenses to approve');
+      return;
+    }
+
+    // Confirm with the manager
+    const dialogRef = this.dialog.open(ConfirmationDialogComponent, {
+      width: '400px',
+      data: {
+        title: 'Bulk Approve Expenses',
+        message: `Are you sure you want to approve all ${pendingExpenses.length} pending expenses?`,
+        confirmText: 'Approve All',
+        cancelText: 'Cancel',
+      },
+    });
+
+    dialogRef.afterClosed().subscribe((result) => {
+      if (result) {
+        let approvedCount = 0;
+        let errorCount = 0;
+
+        // Process each expense one by one
+        pendingExpenses.forEach((expense) => {
+          this.expenseService
+            .updateExpenseStatus(expense.id, ExpenseStatus.APPROVED, {
+              approvedBy: 'Admin User',
+            })
+            .subscribe({
+              next: (updatedExpense: Expense) => {
+                // Update the expense in the list
+                const index = this.allExpenses.findIndex(
+                  (e) => e.id === updatedExpense.id
+                );
+                if (index !== -1) {
+                  this.allExpenses[index] = updatedExpense;
+                }
+
+                approvedCount++;
+
+                // When all done, refresh the view
+                if (approvedCount + errorCount === pendingExpenses.length) {
+                  this.applyFilters();
+                  if (errorCount === 0) {
+                    this.showSuccessMessage(
+                      `Successfully approved ${approvedCount} expenses`
+                    );
+                  } else {
+                    this.showErrorMessage(
+                      `Approved ${approvedCount} expenses, but failed to approve ${errorCount} expenses`
+                    );
+                  }
+                }
+              },
+              error: () => {
+                errorCount++;
+
+                // When all done, refresh the view
+                if (approvedCount + errorCount === pendingExpenses.length) {
+                  this.applyFilters();
+                  if (errorCount === 0) {
+                    this.showSuccessMessage(
+                      `Successfully approved ${approvedCount} expenses`
+                    );
+                  } else {
+                    this.showErrorMessage(
+                      `Approved ${approvedCount} expenses, but failed to approve ${errorCount} expenses`
+                    );
+                  }
+                }
+              },
+            });
+        });
+      }
+    });
   }
 
   private showSuccessMessage(message: string): void {

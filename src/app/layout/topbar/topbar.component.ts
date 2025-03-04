@@ -1,4 +1,3 @@
-// topbar.component.ts
 import {
   Component,
   OnInit,
@@ -6,19 +5,15 @@ import {
   ElementRef,
   Output,
   EventEmitter,
+  OnDestroy,
 } from '@angular/core';
 import { Router, NavigationEnd } from '@angular/router';
 import { filter } from 'rxjs/operators';
-
-interface Notification {
-  id: number;
-  type: 'info' | 'alert' | 'success' | 'warning';
-  icon: string;
-  title: string;
-  message?: string;
-  time: Date;
-  read: boolean;
-}
+import { Subscription } from 'rxjs';
+import {
+  NotificationService,
+  Notification,
+} from '../../services/notification.service';
 
 interface SearchResult {
   id: string;
@@ -33,7 +28,7 @@ interface SearchResult {
   templateUrl: './topbar.component.html',
   styleUrls: ['./topbar.component.scss'],
 })
-export class TopbarComponent implements OnInit {
+export class TopbarComponent implements OnInit, OnDestroy {
   @Output() menuToggled = new EventEmitter<void>();
   @ViewChild('searchInput') searchInput!: ElementRef;
 
@@ -57,43 +52,43 @@ export class TopbarComponent implements OnInit {
   currentPage = '';
 
   // Notifications
-  notifications: Notification[] = [
-    {
-      id: 1,
-      type: 'info',
-      icon: 'info',
-      title: 'System update available',
-      message: 'A new system update is available for installation',
-      time: new Date(),
-      read: false,
-    },
-    {
-      id: 2,
-      type: 'alert',
-      icon: 'warning',
-      title: 'Server load high',
-      message: 'Server CPU usage exceeds 90%',
-      time: new Date(Date.now() - 3600000),
-      read: false,
-    },
-    {
-      id: 3,
-      type: 'success',
-      icon: 'check_circle',
-      title: 'Backup completed',
-      message: 'System backup completed successfully',
-      time: new Date(Date.now() - 7200000),
-      read: true,
-    },
-  ];
+  notifications: Notification[] = [];
+  unreadCount = 0;
+  private notificationsSubscription: Subscription;
+  private unreadCountSubscription: Subscription;
 
-  constructor(private router: Router) {
+  constructor(
+    private router: Router,
+    private notificationService: NotificationService
+  ) {
     this.setupRouteListener();
+
+    // Subscribe to notifications
+    this.notificationsSubscription =
+      this.notificationService.notifications$.subscribe((notifications) => {
+        this.notifications = notifications;
+      });
+
+    // Subscribe to unread count
+    this.unreadCountSubscription =
+      this.notificationService.unreadCount$.subscribe((count) => {
+        this.unreadCount = count;
+      });
   }
 
   ngOnInit(): void {
     this.updateBreadcrumb();
     this.loadUserPreferences();
+  }
+
+  ngOnDestroy(): void {
+    // Clean up subscriptions
+    if (this.notificationsSubscription) {
+      this.notificationsSubscription.unsubscribe();
+    }
+    if (this.unreadCountSubscription) {
+      this.unreadCountSubscription.unsubscribe();
+    }
   }
 
   // Navigation Methods
@@ -186,6 +181,13 @@ export class TopbarComponent implements OnInit {
           subtitle: 'Driver management',
           link: '/drivers',
         },
+        {
+          id: '5',
+          icon: 'receipt_long',
+          title: 'Expenses',
+          subtitle: 'Manage expenses',
+          link: '/expenses',
+        },
       ].filter(
         (result) =>
           result.title.toLowerCase().includes(this.searchQuery.toLowerCase()) ||
@@ -198,33 +200,32 @@ export class TopbarComponent implements OnInit {
 
   // Notification Methods
   get hasUnreadNotifications(): boolean {
-    return this.notifications.some((notification) => !notification.read);
+    return this.unreadCount > 0;
   }
 
   getUnreadCount(): number {
-    return this.notifications.filter((notification) => !notification.read)
-      .length;
+    return this.unreadCount;
   }
 
   markAllAsRead(): void {
-    this.notifications = this.notifications.map((notification) => ({
-      ...notification,
-      read: true,
-    }));
+    this.notificationService.markAllAsRead();
   }
 
   markAsRead(notification: Notification): void {
-    notification.read = true;
+    this.notificationService.markAsRead(notification.id);
+
+    // Navigate to action URL if present
+    if (notification.actionUrl) {
+      this.router.navigateByUrl(notification.actionUrl);
+    }
+  }
+
+  deleteNotification(notification: Notification): void {
+    this.notificationService.removeNotification(notification.id);
   }
 
   viewAllNotifications(): void {
     this.router.navigate(['/notifications']);
-  }
-
-  deleteNotification(notification: Notification): void {
-    this.notifications = this.notifications.filter(
-      (n) => n.id !== notification.id
-    );
   }
 
   // Theme Methods
@@ -282,5 +283,49 @@ export class TopbarComponent implements OnInit {
     // Add your logout logic here
     console.log('Logging out...');
     this.router.navigate(['/login']);
+  }
+
+  // Get notification icon based on type
+  getNotificationIcon(type: string): string {
+    switch (type) {
+      case 'info':
+        return 'info';
+      case 'success':
+        return 'check_circle';
+      case 'warning':
+        return 'warning';
+      case 'error':
+        return 'error';
+      default:
+        return 'notifications';
+    }
+  }
+
+  // Format time for notifications
+  getTimeAgo(date: Date): string {
+    const now = new Date();
+    const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+    if (diffInSeconds < 60) {
+      return 'Just now';
+    }
+
+    const diffInMinutes = Math.floor(diffInSeconds / 60);
+    if (diffInMinutes < 60) {
+      return `${diffInMinutes} minute${diffInMinutes !== 1 ? 's' : ''} ago`;
+    }
+
+    const diffInHours = Math.floor(diffInMinutes / 60);
+    if (diffInHours < 24) {
+      return `${diffInHours} hour${diffInHours !== 1 ? 's' : ''} ago`;
+    }
+
+    const diffInDays = Math.floor(diffInHours / 24);
+    if (diffInDays < 30) {
+      return `${diffInDays} day${diffInDays !== 1 ? 's' : ''} ago`;
+    }
+
+    const diffInMonths = Math.floor(diffInDays / 30);
+    return `${diffInMonths} month${diffInMonths !== 1 ? 's' : ''} ago`;
   }
 }

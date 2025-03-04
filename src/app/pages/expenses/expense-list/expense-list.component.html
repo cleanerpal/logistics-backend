@@ -94,6 +94,19 @@
     </div>
 
     <div class="actions-group">
+      <!-- Bulk Approval Button (only visible to managers) -->
+      <button
+        *ngIf="isManager && getBulkApprovalCount() > 0"
+        mat-stroked-button
+        color="primary"
+        (click)="bulkApproveExpenses()"
+        matTooltip="Approve all pending expenses"
+        class="bulk-approve-button"
+      >
+        <mat-icon>done_all</mat-icon>
+        Approve {{ getBulkApprovalCount() }} Expenses
+      </button>
+
       <button
         mat-flat-button
         color="primary"
@@ -217,7 +230,7 @@
             <button
               mat-icon-button
               matTooltip="View Details"
-              (click)="viewExpenseDetails(expense)"
+              (click)="viewExpenseDetails(expense); $event.stopPropagation()"
             >
               <mat-icon>visibility</mat-icon>
             </button>
@@ -320,7 +333,7 @@
         </div>
         <div class="expense-info-item full-width" *ngIf="selectedExpense.notes">
           <span class="label">Notes</span>
-          <span class="value">{{ selectedExpense.notes }}</span>
+          <div class="value notes-content">{{ selectedExpense.notes }}</div>
         </div>
         <div
           class="expense-info-item full-width"
@@ -360,6 +373,41 @@
         (click)="rejectExpense(selectedExpense!)"
       >
         Reject
+      </button>
+    </mat-dialog-actions>
+  </div>
+</ng-template>
+
+<!-- Rejection Dialog -->
+<ng-template #rejectDialog>
+  <div class="rejection-dialog">
+    <h2 mat-dialog-title>Reject Expense</h2>
+    <mat-dialog-content>
+      <form [formGroup]="rejectionForm">
+        <p>Please provide a reason for rejecting this expense:</p>
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Rejection Reason</mat-label>
+          <textarea
+            matInput
+            formControlName="reason"
+            rows="3"
+            placeholder="Enter reason for rejection"
+          ></textarea>
+          <mat-error *ngIf="rejectionForm.get('reason')?.hasError('required')">
+            A reason is required for rejecting the expense
+          </mat-error>
+        </mat-form-field>
+      </form>
+    </mat-dialog-content>
+    <mat-dialog-actions align="end">
+      <button mat-button mat-dialog-close>Cancel</button>
+      <button
+        mat-raised-button
+        color="warn"
+        [disabled]="rejectionForm.invalid"
+        (click)="confirmReject()"
+      >
+        Reject Expense
       </button>
     </mat-dialog-actions>
   </div>

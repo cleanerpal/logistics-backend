@@ -1,7 +1,8 @@
 import { Injectable } from '@angular/core';
 import { Observable, of } from 'rxjs';
-import { delay } from 'rxjs/operators';
+import { delay, tap } from 'rxjs/operators';
 import { Expense, ExpenseStatus } from '../shared/models/expense.model';
+import { NotificationService } from './notification.service';
 
 @Injectable({
   providedIn: 'root',
@@ -9,7 +10,7 @@ import { Expense, ExpenseStatus } from '../shared/models/expense.model';
 export class ExpenseService {
   private expenses: Expense[] = [];
 
-  constructor() {
+  constructor(private notificationService: NotificationService) {
     // Initialize with some mock data
     this.generateMockExpenses();
   }
@@ -48,6 +49,17 @@ export class ExpenseService {
     };
 
     this.expenses.push(newExpense);
+
+    // Create notification for managers about new expense
+    this.notificationService.addNotification({
+      type: 'info',
+      title: 'New Expense Submitted',
+      message: `A new expense for ${expense.amount.toFixed(
+        2
+      )} has been submitted by ${expense.driverName}`,
+      actionUrl: '/expenses',
+    });
+
     return of(newExpense).pipe(delay(500));
   }
 
@@ -58,8 +70,9 @@ export class ExpenseService {
   ): Observable<Expense> {
     const index = this.expenses.findIndex((expense) => expense.id === id);
     if (index !== -1) {
+      const originalExpense = this.expenses[index];
       const updatedExpense = {
-        ...this.expenses[index],
+        ...originalExpense,
         status,
         approvedBy: approverInfo?.approvedBy,
         approvedDate:
@@ -67,6 +80,35 @@ export class ExpenseService {
       };
 
       this.expenses[index] = updatedExpense;
+
+      // Send notification to the driver
+      let notificationType: 'success' | 'warning';
+      let notificationTitle: string;
+      let notificationMessage: string;
+
+      if (status === ExpenseStatus.APPROVED) {
+        notificationType = 'success';
+        notificationTitle = 'Expense Approved';
+        notificationMessage = `Your expense ${
+          updatedExpense.description
+        } for ${updatedExpense.amount.toFixed(2)} has been approved`;
+      } else {
+        notificationType = 'warning';
+        notificationTitle = 'Expense Rejected';
+        notificationMessage = `Your expense ${
+          updatedExpense.description
+        } for ${updatedExpense.amount.toFixed(2)} has been rejected`;
+      }
+
+      this.notificationService.addNotification({
+        type: notificationType,
+        title: notificationTitle,
+        message: notificationMessage,
+        actionUrl: updatedExpense.jobId
+          ? `/jobs/${updatedExpense.jobId}`
+          : '/expenses',
+      });
+
       return of(updatedExpense).pipe(delay(500));
     }
 
@@ -79,12 +121,16 @@ export class ExpenseService {
   ): Observable<Expense> {
     const index = this.expenses.findIndex((expense) => expense.id === id);
     if (index !== -1) {
+      const originalExpense = this.expenses[index];
       const updatedExpense = {
-        ...this.expenses[index],
+        ...originalExpense,
         isChargeable,
       };
 
       this.expenses[index] = updatedExpense;
+
+      // No notification for chargeable status updates as this is an internal management function
+
       return of(updatedExpense).pipe(delay(500));
     }
 

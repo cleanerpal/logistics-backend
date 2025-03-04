@@ -108,9 +108,6 @@
 </div>
 
 <!-- Notifications Menu -->
-<!-- All Menu Components -->
-
-<!-- Notifications Menu -->
 <mat-menu
   #notificationsMenu="matMenu"
   class="notifications-menu"
@@ -145,7 +142,7 @@
           (click)="markAsRead(notification)"
         >
           <div class="notification-icon" [ngClass]="notification.type">
-            <mat-icon>{{ notification.icon }}</mat-icon>
+            <mat-icon>{{ getNotificationIcon(notification.type) }}</mat-icon>
           </div>
           <div class="notification-details">
             <div class="notification-title">{{ notification.title }}</div>
@@ -153,7 +150,7 @@
               {{ notification.message }}
             </div>
             <div class="notification-time">
-              {{ notification.time | timeAgo }}
+              {{ getTimeAgo(notification.timestamp) }}
             </div>
           </div>
           <button
@@ -238,46 +235,4 @@
       <span>Sign Out</span>
     </button>
   </div>
-</mat-menu>
-
-<!-- Settings Menu -->
-<mat-menu #settingsMenu="matMenu" xPosition="before">
-  <button mat-menu-item (click)="openAppSettings()">
-    <mat-icon>tune</mat-icon>
-    <span>App Settings</span>
-  </button>
-  <button mat-menu-item (click)="toggleTheme()">
-    <mat-icon>{{ isDarkTheme ? "light_mode" : "dark_mode" }}</mat-icon>
-    <span>{{ isDarkTheme ? "Light Theme" : "Dark Theme" }}</span>
-  </button>
-  <mat-divider></mat-divider>
-  <button mat-menu-item (click)="openHelp()">
-    <mat-icon>help</mat-icon>
-    <span>Help & Support</span>
-  </button>
-</mat-menu>
-
-<!-- User Menu -->
-<mat-menu #userMenu="matMenu" xPosition="before">
-  <div class="user-menu-header">
-    <img [src]="userAvatar" alt="User avatar" class="menu-avatar" />
-    <div class="menu-user-info">
-      <span class="menu-user-name">{{ userName }}</span>
-      <span class="menu-user-email">{{ userEmail }}</span>
-    </div>
-  </div>
-  <mat-divider></mat-divider>
-  <button mat-menu-item (click)="viewProfile()">
-    <mat-icon>person</mat-icon>
-    <span>My Profile</span>
-  </button>
-  <button mat-menu-item (click)="openPreferences()">
-    <mat-icon>settings</mat-icon>
-    <span>Preferences</span>
-  </button>
-  <mat-divider></mat-divider>
-  <button mat-menu-item (click)="logout()" class="logout-button">
-    <mat-icon>exit_to_app</mat-icon>
-    <span>Sign Out</span>
-  </button>
 </mat-menu>
