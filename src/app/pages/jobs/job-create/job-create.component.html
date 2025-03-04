@@ -27,6 +27,12 @@
             <span class="error-message">{{
               getErrorMessage("customerId")
             }}</span>
+
+            <!-- QuickBooks sync info -->
+            <div class="sync-info" *ngIf="quickbooksEnabled">
+              <mat-icon>sync</mat-icon>
+              <span>Customer data synced with QuickBooks</span>
+            </div>
           </div>
         </div>
       </div>
@@ -37,7 +43,11 @@
         <div class="form-grid">
           <div class="form-group">
             <label for="vehicleMake">Make</label>
-            <select id="vehicleMake" formControlName="vehicleMake">
+            <select
+              id="vehicleMake"
+              formControlName="vehicleMake"
+              (change)="updatePreviousSelections('make')"
+            >
               <option value="">Select make</option>
               <option *ngFor="let make of vehicleMakes" [value]="make.name">
                 {{ make.name }}
@@ -50,7 +60,11 @@
 
           <div class="form-group">
             <label for="vehicleModel">Model</label>
-            <select id="vehicleModel" formControlName="vehicleModel">
+            <select
+              id="vehicleModel"
+              formControlName="vehicleModel"
+              (change)="updatePreviousSelections('model')"
+            >
               <option value="">Select model</option>
               <option
                 *ngFor="let model of availableModels"
@@ -66,19 +80,19 @@
 
           <div class="form-group">
             <label for="vehicleType">Type</label>
-            <input
-              id="vehicleType"
-              type="text"
-              formControlName="vehicleType"
-              readonly
-            />
+            <select id="vehicleType" formControlName="vehicleType">
+              <option value="">Select type</option>
+              <option *ngFor="let type of vehicleTypes" [value]="type">
+                {{ type }}
+              </option>
+            </select>
             <span class="error-message">{{
               getErrorMessage("vehicleType")
             }}</span>
           </div>
 
           <div class="form-group">
-            <label for="registration">Registration</label>
+            <label for="registration">Registration (CAPS, NO SPACES)</label>
             <input
               id="registration"
               type="text"
@@ -91,7 +105,7 @@
           </div>
 
           <div class="form-group">
-            <label for="chassisNumber">Chassis Number</label>
+            <label for="chassisNumber">Chassis Number (CAPS, NO SPACES)</label>
             <input
               id="chassisNumber"
               type="text"
@@ -101,6 +115,28 @@
             <span class="error-message">{{
               getErrorMessage("chassisNumber")
             }}</span>
+          </div>
+
+          <div class="form-group">
+            <label for="shippingRef">Shipping Reference</label>
+            <input id="shippingRef" type="text" formControlName="shippingRef" />
+            <span class="error-message">{{
+              getErrorMessage("shippingRef")
+            }}</span>
+          </div>
+        </div>
+
+        <!-- Previous Selections -->
+        <div class="previous-selections" *ngIf="previousSelections.length > 0">
+          <h3>Previously Used Vehicles</h3>
+          <div class="selection-pills">
+            <div
+              *ngFor="let item of previousSelections"
+              class="selection-pill"
+              (click)="applyPreviousSelection(item)"
+            >
+              {{ item.make }} {{ item.model }} ({{ item.registration }})
+            </div>
           </div>
         </div>
       </div>
@@ -121,6 +157,18 @@
             }}</span>
           </div>
 
+          <div class="form-group">
+            <label for="collectionTown">Collection Town</label>
+            <input
+              id="collectionTown"
+              type="text"
+              formControlName="collectionTown"
+            />
+            <span class="error-message">{{
+              getErrorMessage("collectionTown")
+            }}</span>
+          </div>
+
           <div class="form-group full-width">
             <label for="deliveryAddress">Delivery Address</label>
             <input
@@ -134,6 +182,18 @@
           </div>
 
           <div class="form-group">
+            <label for="deliveryTown">Delivery Town</label>
+            <input
+              id="deliveryTown"
+              type="text"
+              formControlName="deliveryTown"
+            />
+            <span class="error-message">{{
+              getErrorMessage("deliveryTown")
+            }}</span>
+          </div>
+
+          <div class="form-group">
             <label for="collectionDateTime">Collection Date & Time</label>
             <input
               id="collectionDateTime"
@@ -143,6 +203,16 @@
             <span class="error-message">{{
               getErrorMessage("collectionDateTime")
             }}</span>
+          </div>
+
+          <div class="form-group">
+            <label for="status">Status</label>
+            <select id="status" formControlName="status">
+              <option *ngFor="let status of statusOptions" [value]="status">
+                {{ status }}
+              </option>
+            </select>
+            <span class="error-message">{{ getErrorMessage("status") }}</span>
           </div>
         </div>
       </div>
@@ -170,7 +240,13 @@
 
       <!-- Submit Button -->
       <div class="form-actions">
-        <button type="submit" class="submit-btn">Create Job</button>
+        <button
+          type="submit"
+          class="submit-btn"
+          [disabled]="!jobForm.valid || isSubmitting"
+        >
+          {{ isSubmitting ? "Creating..." : "Create Job" }}
+        </button>
       </div>
     </form>
   </div>

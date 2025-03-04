@@ -4,18 +4,11 @@ import { Router } from '@angular/router';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatDialog } from '@angular/material/dialog';
 import { ConfirmationDialogComponent } from '../../../dialogs/confirmation-dialog.component';
+import { VehicleType } from '../../../shared/models/vehicle-type.enum';
 
 interface Manufacturer {
   id: string;
   name: string;
-}
-
-enum VehicleType {
-  SEDAN = 'Sedan',
-  SUV = 'SUV',
-  TRUCK = 'Truck',
-  VAN = 'Van',
-  SPORTS = 'Sports',
 }
 
 @Component({
@@ -28,12 +21,15 @@ export class VehicleCreateComponent implements OnInit {
   currentYear = new Date().getFullYear();
   images: string[] = [];
   isSubmitting = false;
+  previousSelections: any[] = [];
 
   // Mock data - should come from a service
   manufacturers: Manufacturer[] = [
     { id: '1', name: 'Toyota' },
     { id: '2', name: 'Honda' },
     { id: '3', name: 'Ford' },
+    { id: '4', name: 'Mercedes' },
+    { id: '5', name: 'BMW' },
   ];
 
   vehicleTypes = Object.values(VehicleType);
@@ -70,6 +66,7 @@ export class VehicleCreateComponent implements OnInit {
     private dialog: MatDialog
   ) {
     this.initializeForm();
+    this.loadPreviousVehicleData();
   }
 
   ngOnInit(): void {
@@ -80,7 +77,7 @@ export class VehicleCreateComponent implements OnInit {
     this.vehicleForm = this.formBuilder.group({
       manufacturerId: ['', Validators.required],
       name: ['', Validators.required],
-      type: [VehicleType.SEDAN, Validators.required],
+      type: [VehicleType.CAR, Validators.required],
       yearStart: [
         this.currentYear,
         [
@@ -111,6 +108,42 @@ export class VehicleCreateComponent implements OnInit {
         this.vehicleForm.get('yearEnd')?.setErrors({ invalidRange: true });
       }
     });
+  }
+
+  private loadPreviousVehicleData(): void {
+    // In a real app, this would be loaded from a service
+    // For now, using mock data
+    this.previousSelections = [
+      {
+        manufacturerId: '1',
+        name: 'Corolla',
+        type: VehicleType.CAR,
+        yearStart: 2020,
+        length: 185,
+        width: 71,
+        height: 56,
+        wheelbase: 106,
+        emptyWeight: 2800,
+        maxLoad: 900,
+      },
+      {
+        manufacturerId: '3',
+        name: 'Transit',
+        type: VehicleType.VAN,
+        yearStart: 2019,
+        length: 220,
+        width: 81,
+        height: 82,
+        wheelbase: 148,
+        emptyWeight: 5200,
+        maxLoad: 2200,
+      },
+    ];
+  }
+
+  applyPreviousData(data: any): void {
+    // Update form with previously used data
+    this.vehicleForm.patchValue(data);
   }
 
   addImage(): void {

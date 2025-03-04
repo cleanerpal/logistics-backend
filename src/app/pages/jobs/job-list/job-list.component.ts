@@ -5,25 +5,20 @@ import { MatTableDataSource } from '@angular/material/table';
 import { MatSort } from '@angular/material/sort';
 import { MatPaginator } from '@angular/material/paginator';
 import { DatePipe } from '@angular/common';
+import { JobStatus } from '../../../shared/models/job-status.enum';
 
 interface Job {
   id: string;
-  creationDate: Date;
+  regNumber: string;
   customerName: string;
-  vehicle: string;
-  collectionAddress: string;
-  deliveryAddress: string;
+  collectionDate: Date;
+  collectionTown: string;
+  deliveryTown: string;
   status: JobStatus;
   driver: string;
+  shippingRef?: string;
+  notes?: string;
 }
-
-type JobStatus =
-  | 'loaded'
-  | 'allocated'
-  | 'collected'
-  | 'delivered'
-  | 'aborted'
-  | 'cancelled';
 
 interface JobFilters {
   status: string;
@@ -43,11 +38,11 @@ interface JobFilters {
 export class JobListComponent implements OnInit, AfterViewInit {
   displayedColumns: string[] = [
     'id',
-    'creationDate',
+    'regNumber',
     'customerName',
-    'vehicle',
-    'collectionAddress',
-    'deliveryAddress',
+    'collectionDate',
+    'collectionTown',
+    'deliveryTown',
     'status',
     'driver',
     'actions',
@@ -59,16 +54,8 @@ export class JobListComponent implements OnInit, AfterViewInit {
   @ViewChild(MatSort) sort!: MatSort;
   @ViewChild(MatPaginator) paginator!: MatPaginator;
 
-  statusOptions = [
-    'All',
-    'Loaded',
-    'Allocated',
-    'Collected',
-    'Delivered',
-    'Aborted',
-    'Cancelled',
-  ];
-  drivers = ['All', 'John Doe', 'Jane Smith', 'Mike Johnson'];
+  statusOptions = Object.values(JobStatus);
+  drivers = ['John Doe', 'Jane Smith', 'Mike Johnson'];
 
   filters: JobFilters = {
     status: 'All',
@@ -98,7 +85,7 @@ export class JobListComponent implements OnInit, AfterViewInit {
       // Apply status filter
       if (
         this.filters.status !== 'All' &&
-        data.status !== this.filters.status.toLowerCase().replace(' ', '-')
+        data.status !== this.filters.status
       ) {
         return false;
       }
@@ -113,7 +100,7 @@ export class JobListComponent implements OnInit, AfterViewInit {
 
       // Apply date range filter
       if (this.filters.dateRange.start && this.filters.dateRange.end) {
-        const jobDate = new Date(data.creationDate);
+        const jobDate = new Date(data.collectionDate);
         const startDate = new Date(this.filters.dateRange.start);
         const endDate = new Date(this.filters.dateRange.end);
 
@@ -126,8 +113,9 @@ export class JobListComponent implements OnInit, AfterViewInit {
       return (
         data.id.toLowerCase().includes(searchStr) ||
         data.customerName.toLowerCase().includes(searchStr) ||
-        data.collectionAddress.toLowerCase().includes(searchStr) ||
-        data.deliveryAddress.toLowerCase().includes(searchStr)
+        data.collectionTown.toLowerCase().includes(searchStr) ||
+        data.deliveryTown.toLowerCase().includes(searchStr) ||
+        data.regNumber.toLowerCase().includes(searchStr)
       );
     };
   }
@@ -150,16 +138,17 @@ export class JobListComponent implements OnInit, AfterViewInit {
         .fill(null)
         .map((_, index) => ({
           id: `JOB${String(index + 1).padStart(4, '0')}`,
-          creationDate: new Date(2024, 0, index + 1),
+          regNumber: this.generateRandomRegNumber(),
           customerName: `Customer ${index + 1}`,
-          vehicle: `Vehicle ${index + 1}`,
-          collectionAddress: `${index + 1} Collection St`,
-          deliveryAddress: `${index + 1} Delivery Ave`,
+          collectionDate: new Date(2024, 0, index + 1),
+          collectionTown: `Collection Town ${(index % 10) + 1}`,
+          deliveryTown: `Delivery Town ${(index % 8) + 1}`,
           status: this.getRandomStatus(),
-          driver:
-            this.drivers[
-              Math.floor(Math.random() * (this.drivers.length - 1)) + 1
-            ],
+          driver: this.drivers[Math.floor(Math.random() * this.drivers.length)],
+          shippingRef: `SHIP${String(
+            Math.floor(Math.random() * 10000)
+          ).padStart(4, '0')}`,
+          notes: Math.random() > 0.5 ? `Notes for job ${index + 1}` : undefined,
         }));
 
       this.dataSource.data = mockJobs;
@@ -168,19 +157,44 @@ export class JobListComponent implements OnInit, AfterViewInit {
   }
 
   private getRandomStatus(): JobStatus {
-    const statuses: JobStatus[] = [
-      'loaded',
-      'allocated',
-      'collected',
-      'delivered',
-      'aborted',
-      'cancelled',
-    ];
+    const statuses = Object.values(JobStatus);
     return statuses[Math.floor(Math.random() * statuses.length)];
   }
 
+  private generateRandomRegNumber(): string {
+    // Generate UK-style registration number (no spaces, all caps)
+    const letters1 = 'ABCDEFGHJKLMNOPRSTUVWXYZ';
+    const letters2 = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+    const numbers = '0123456789';
+
+    let reg = '';
+
+    // Two letters for area
+    reg += letters1[Math.floor(Math.random() * letters1.length)];
+    reg += letters1[Math.floor(Math.random() * letters1.length)];
+
+    // Two numbers for year
+    reg += numbers[Math.floor(Math.random() * numbers.length)];
+    reg += numbers[Math.floor(Math.random() * numbers.length)];
+
+    // Three letters for random
+    reg += letters2[Math.floor(Math.random() * letters2.length)];
+    reg += letters2[Math.floor(Math.random() * letters2.length)];
+    reg += letters2[Math.floor(Math.random() * letters2.length)];
+
+    return reg;
+  }
+
   getStatusClass(status: string): string {
-    return `status-${status}`;
+    const statusMap: Record<string, string> = {
+      [JobStatus.LOADED]: 'status-loaded',
+      [JobStatus.ALLOCATED]: 'status-allocated',
+      [JobStatus.COLLECTED]: 'status-collected',
+      [JobStatus.DELIVERED]: 'status-delivered',
+      [JobStatus.ABORTED]: 'status-aborted',
+      [JobStatus.CANCELLED]: 'status-cancelled',
+    };
+    return statusMap[status] || 'status-default';
   }
 
   createNewJob(): void {

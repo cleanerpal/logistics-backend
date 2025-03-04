@@ -4,6 +4,7 @@ import { MatTableDataSource } from '@angular/material/table';
 import { MatSort } from '@angular/material/sort';
 import { MatPaginator } from '@angular/material/paginator';
 import * as shape from 'd3-shape';
+import { JobStatus } from '../../shared/models/job-status.enum';
 
 interface TrendData {
   name: string;
@@ -23,35 +24,28 @@ interface DeliveryMetrics {
   year: PeriodMetric;
 }
 
-interface MetricCard {
-  title: string;
-  value: number;
-  type: 'unallocated' | 'deliveries' | 'active';
+interface TrendInfo {
   percentChange: number;
   increased: boolean;
 }
 
-interface UnallocatedMetrics {
-  collected: {
-    value: number;
-    percentChange: number;
-    increased: boolean;
-  };
-  notCollected: {
-    value: number;
-    percentChange: number;
-    increased: boolean;
-  };
+interface DashboardMetrics {
+  activeJobs: number;
+  unallocatedJobs: number;
+  activeJobsTrend: TrendInfo;
+  unallocatedJobsTrend: TrendInfo;
 }
 
 interface Job {
   id: string;
   customerName: string;
-  vehicleDetails: string;
-  status: 'unallocated' | 'in-progress' | 'completed';
+  regNumber: string;
+  status: string;
   driver: string;
+  collectionDate: Date;
+  collectionTown: string;
+  deliveryTown: string;
   timestamp: Date;
-  collected: boolean;
 }
 
 interface Driver {
@@ -72,8 +66,11 @@ export class DashboardComponent implements OnInit, AfterViewInit {
 
   displayedColumns: string[] = [
     'id',
+    'regNumber',
     'customerName',
-    'vehicleDetails',
+    'collectionDate',
+    'collectionTown',
+    'deliveryTown',
     'status',
     'driver',
     'actions',
@@ -85,39 +82,21 @@ export class DashboardComponent implements OnInit, AfterViewInit {
   jobs: Job[] = [];
 
   // Color scheme for charts
-  colorScheme: string = 'cool';
+  colorScheme = 'cool';
 
-  // New unallocated metrics structure
-  unallocatedMetrics: UnallocatedMetrics = {
-    collected: {
-      value: 4,
-      percentChange: 15,
-      increased: true,
-    },
-    notCollected: {
-      value: 2,
-      percentChange: 5,
-      increased: false,
-    },
-  };
-
-  // Metrics array
-  metrics: MetricCard[] = [
-    {
-      title: 'Active Jobs',
-      value: 18,
-      type: 'active',
+  // Dashboard metrics
+  metrics: DashboardMetrics = {
+    activeJobs: 18,
+    unallocatedJobs: 6,
+    activeJobsTrend: {
       percentChange: -12,
       increased: false,
     },
-    {
-      title: 'Unallocated Jobs',
-      value: 6, // Total of collected and not collected
-      type: 'unallocated',
+    unallocatedJobsTrend: {
       percentChange: 20,
       increased: true,
     },
-  ];
+  };
 
   deliveryMetrics: DeliveryMetrics = {
     week: {
@@ -161,66 +140,11 @@ export class DashboardComponent implements OnInit, AfterViewInit {
     },
   };
 
-  // Chart data
-  deliveryStatusData = [
-    { name: 'On Time', value: 65 },
-    { name: 'Delayed', value: 20 },
-    { name: 'Early', value: 15 },
-  ];
-
-  vehicleData = [
-    { name: 'Vans', value: 40 },
-    { name: 'Trucks', value: 30 },
-    { name: 'Cars', value: 20 },
-    { name: 'Bikes', value: 10 },
-  ];
-
-  peakHourData = [
-    {
-      name: 'Deliveries',
-      series: [
-        { name: '6AM', value: 10 },
-        { name: '8AM', value: 25 },
-        { name: '10AM', value: 35 },
-        { name: '12PM', value: 40 },
-        { name: '2PM', value: 30 },
-        { name: '4PM', value: 20 },
-        { name: '6PM', value: 15 },
-      ],
-    },
-  ];
-
-  driverPerformanceData = [
-    { name: 'Mike Johnson', value: 45 },
-    { name: 'Sarah Williams', value: 38 },
-    { name: 'David Brown', value: 42 },
-    { name: 'Emma Davis', value: 35 },
-    { name: 'James Wilson', value: 40 },
-  ];
-
-  customerSatisfactionData = [
-    { name: '5 Stars', value: 150 },
-    { name: '4 Stars', value: 100 },
-    { name: '3 Stars', value: 30 },
-    { name: '2 Stars', value: 15 },
-    { name: '1 Star', value: 5 },
-  ];
-
   drivers: Driver[] = [
     { name: 'Mike Johnson', available: true, lastActive: new Date() },
     { name: 'Sarah Williams', available: true, lastActive: new Date() },
     { name: 'David Brown', available: false, lastActive: new Date() },
     { name: 'Emma Davis', available: true, lastActive: new Date() },
-  ];
-
-  hourlyJobsData = [
-    { hour: '9AM', completed: 3 },
-    { hour: '10AM', completed: 5 },
-    { hour: '11AM', completed: 4 },
-    { hour: '12PM', completed: 6 },
-    { hour: '1PM', completed: 3 },
-    { hour: '2PM', completed: 4 },
-    { hour: '3PM', completed: 5 },
   ];
 
   constructor(private router: Router) {
@@ -243,6 +167,8 @@ export class DashboardComponent implements OnInit, AfterViewInit {
       switch (property) {
         case 'timestamp':
           return new Date(item.timestamp).getTime();
+        case 'collectionDate':
+          return new Date(item.collectionDate).getTime();
         default:
           return (item as any)[property];
       }
@@ -259,58 +185,85 @@ export class DashboardComponent implements OnInit, AfterViewInit {
   private loadJobs(): void {
     this.isLoading = true;
 
-    // Simulate API call with mock data
+    // Simulate API call with mock data for today's jobs
     setTimeout(() => {
       const mockJobs: Job[] = Array(8)
         .fill(null)
         .map((_, index) => ({
           id: `JOB${String(index + 1).padStart(4, '0')}`,
           customerName: `Customer ${index + 1}`,
-          vehicleDetails: `Vehicle ${String.fromCharCode(65 + (index % 4))}`,
+          regNumber: this.generateRandomRegNumber(),
           status: this.getRandomStatus(),
           driver: `Driver ${index + 1}`,
+          collectionDate: new Date(Date.now() - Math.random() * 86400000),
+          collectionTown: `Collection Town ${index + 1}`,
+          deliveryTown: `Delivery Town ${index + 1}`,
           timestamp: new Date(Date.now() - Math.random() * 86400000),
-          collected: Math.random() > 0.5,
         }));
 
       this.jobs = mockJobs;
       this.jobsDataSource.data = mockJobs;
-      this.updateUnallocatedMetrics();
+      this.updateMetrics();
       this.isLoading = false;
     }, 1000);
   }
 
-  private getRandomStatus(): 'unallocated' | 'in-progress' | 'completed' {
-    const statuses: ('unallocated' | 'in-progress' | 'completed')[] = [
-      'unallocated',
-      'in-progress',
-      'completed',
-    ];
+  private getRandomStatus(): string {
+    const statuses = Object.values(JobStatus);
     return statuses[Math.floor(Math.random() * statuses.length)];
   }
 
-  private updateUnallocatedMetrics(): void {
-    const unallocatedJobs = this.jobs.filter(
-      (job) => job.status === 'unallocated'
-    );
-    const collected = unallocatedJobs.filter((job) => job.collected);
-    const notCollected = unallocatedJobs.filter((job) => !job.collected);
+  private generateRandomRegNumber(): string {
+    // Generate UK-style registration number (no spaces, all caps)
+    const letters1 = 'ABCDEFGHJKLMNOPRSTUVWXYZ';
+    const letters2 = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+    const numbers = '0123456789';
 
-    this.unallocatedMetrics = {
-      collected: {
-        value: collected.length,
-        percentChange: this.calculatePercentChange(collected.length, 4), // Previous value hardcoded for demo
-        increased: collected.length > 4,
+    let reg = '';
+
+    // Two letters for area
+    reg += letters1[Math.floor(Math.random() * letters1.length)];
+    reg += letters1[Math.floor(Math.random() * letters1.length)];
+
+    // Two numbers for year
+    reg += numbers[Math.floor(Math.random() * numbers.length)];
+    reg += numbers[Math.floor(Math.random() * numbers.length)];
+
+    // Three letters for random
+    reg += letters2[Math.floor(Math.random() * letters2.length)];
+    reg += letters2[Math.floor(Math.random() * letters2.length)];
+    reg += letters2[Math.floor(Math.random() * letters2.length)];
+
+    return reg;
+  }
+
+  private updateMetrics(): void {
+    const activeJobs = this.jobs.filter(
+      (job) =>
+        job.status === JobStatus.ALLOCATED || job.status === JobStatus.COLLECTED
+    );
+    const unallocatedJobs = this.jobs.filter(
+      (job) => job.status === JobStatus.LOADED
+    );
+
+    this.metrics = {
+      activeJobs: activeJobs.length,
+      unallocatedJobs: unallocatedJobs.length,
+      activeJobsTrend: {
+        percentChange: this.calculatePercentChange(
+          activeJobs.length,
+          this.metrics.activeJobs
+        ),
+        increased: activeJobs.length > this.metrics.activeJobs,
       },
-      notCollected: {
-        value: notCollected.length,
-        percentChange: this.calculatePercentChange(notCollected.length, 2), // Previous value hardcoded for demo
-        increased: notCollected.length > 2,
+      unallocatedJobsTrend: {
+        percentChange: this.calculatePercentChange(
+          unallocatedJobs.length,
+          this.metrics.unallocatedJobs
+        ),
+        increased: unallocatedJobs.length > this.metrics.unallocatedJobs,
       },
     };
-
-    // Update total in metrics array
-    this.metrics[0].value = unallocatedJobs.length;
   }
 
   private calculatePercentChange(current: number, previous: number): number {
@@ -319,11 +272,11 @@ export class DashboardComponent implements OnInit, AfterViewInit {
   }
 
   // Utility Methods
-  getMetricClass(metric: MetricCard): string {
-    if (metric.type === 'unallocated' && metric.value > 5) {
-      return `metric-${metric.type} metric-red`;
+  getMetricClass(metricType: string): string {
+    if (metricType === 'unallocated' && this.metrics.unallocatedJobs > 5) {
+      return 'metric-red';
     }
-    return `metric-${metric.type}`;
+    return '';
   }
 
   getTrendClass(increased: boolean): string {
@@ -331,7 +284,15 @@ export class DashboardComponent implements OnInit, AfterViewInit {
   }
 
   getStatusClass(status: string): string {
-    return `status-${status}`;
+    const statusMap: Record<string, string> = {
+      [JobStatus.LOADED]: 'status-loaded',
+      [JobStatus.ALLOCATED]: 'status-allocated',
+      [JobStatus.COLLECTED]: 'status-collected',
+      [JobStatus.DELIVERED]: 'status-delivered',
+      [JobStatus.ABORTED]: 'status-aborted',
+      [JobStatus.CANCELLED]: 'status-cancelled',
+    };
+    return statusMap[status] || 'status-default';
   }
 
   getChartData(data: TrendData[]): any[] {

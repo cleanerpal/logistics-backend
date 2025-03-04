@@ -1,40 +1,20 @@
-import { Component, OnInit } from '@angular/core';
-import { ActivatedRoute } from '@angular/router';
+import { Component, OnInit, ElementRef, ViewChild } from '@angular/core';
+import { ActivatedRoute, Router } from '@angular/router';
+import { FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { JobStatus } from '../../../shared/models/job-status.enum';
+import { VehicleType } from '../../../shared/models/vehicle-type.enum';
+import { Expense, ExpenseStatus } from '../../../shared/models/expense.model';
+import { ExpenseService } from '../../../services/expense.service';
 
-interface Document {
-  id: string;
-  name: string;
-  description: string;
-  dateAdded: Date;
-  url: string;
-  type: 'pdf' | 'doc' | 'image';
-  fileSize?: string;
-}
-
-interface InspectionPoint {
-  id: string;
-  label: string;
-  position: {
-    x: number;
-    y: number;
-  };
-  hasIssue: boolean;
-  condition: string;
-  notes: string;
-  images: PhotoImage[];
-  severity: 'low' | 'medium' | 'high';
-  dateAdded: Date;
-  addedBy: string;
-}
-
-interface PhotoImage {
-  id: string;
-  url: string;
+interface Note {
+  author: string;
+  content: string;
+  date: Date;
 }
 
 interface Job {
   id: string;
-  status: 'unallocated' | 'in-progress' | 'completed' | 'cancelled';
+  status: JobStatus;
   currentDriver?: string;
   customer: {
     name: string;
@@ -45,21 +25,21 @@ interface Job {
   vehicle: {
     make: string;
     model: string;
-    year: number;
+    type: VehicleType;
     registration: string;
-    color: string;
-    shippingRef: string;
+    chassisNumber: string;
+    shippingRef?: string;
   };
   addresses: {
     collection: {
       street: string;
-      city: string;
+      town: string;
       postcode: string;
       instructions: string;
     };
     delivery: {
       street: string;
-      city: string;
+      town: string;
       postcode: string;
       instructions: string;
     };
@@ -70,28 +50,13 @@ interface Job {
     currentLocation: string;
     assignedDate: Date;
   };
-  currentTeam: {
-    primaryDriver: {
-      name: string;
-      phone: string;
-      role: string;
-      since: Date;
-    };
-    additionalStaff?: {
-      name: string;
-      phone: string;
-      role: string;
-      since: Date;
-    }[];
-  };
+  notes: Note[];
   timeline: {
     date: Date;
     status: string;
     description: string;
+    actor: string;
   }[];
-  documents?: Document[];
-  inspectionPoints?: { [key: string]: InspectionPoint[] };
-  additionalPhotos?: PhotoImage[];
 }
 
 @Component({
@@ -100,347 +65,327 @@ interface Job {
   styleUrls: ['./job-details.component.scss'],
 })
 export class JobDetailsComponent implements OnInit {
+  @ViewChild('fileInput') fileInput!: ElementRef;
+
   jobId: string = '';
-  activeTab: 'details' | 'timeline' | 'documents' = 'details';
-  currentView: 'front' | 'rear' | 'left' | 'right' = 'front';
-  selectedPoint: InspectionPoint | null = null;
-  selectedImage: PhotoImage | null = null;
-  isImageViewerOpen: boolean = false;
+  activeTab: 'details' | 'timeline' | 'expenses' = 'details';
+  isManager = true; // In a real app, this would be determined by user role
+  job!: Job;
+  expenses: Expense[] = [];
+  statusOptions = Object.values(JobStatus);
 
-  job: Job;
+  // Notes functionality
+  newNote: string = '';
 
-  officialDocuments: Document[] = [
-    {
-      id: 'doc1',
-      name: 'Collection Form',
-      description: 'Vehicle collection documentation and sign-off',
-      dateAdded: new Date(),
-      url: '/assets/docs/collection.pdf',
-      type: 'pdf',
-      fileSize: '1.2 MB',
-    },
-    {
-      id: 'doc2',
-      name: 'Inspection Report',
-      description: 'Pre-transport vehicle condition report',
-      dateAdded: new Date(),
-      url: '/assets/docs/inspection.pdf',
-      type: 'pdf',
-      fileSize: '2.8 MB',
-    },
-    {
-      id: 'doc3',
-      name: 'Transport Agreement',
-      description: 'Signed transport agreement and terms',
-      dateAdded: new Date(),
-      url: '/assets/docs/agreement.pdf',
-      type: 'pdf',
-      fileSize: '523 KB',
-    },
-  ];
+  // Expense functionality
+  showAddExpenseForm = false;
+  expenseForm!: FormGroup;
+  receiptFile: File | null = null;
 
-  inspectionPoints: { [key: string]: InspectionPoint[] } = {
-    front: [
-      {
-        id: 'f1',
-        label: 'Front Bumper',
-        position: { x: 50, y: 80 },
-        hasIssue: true,
-        condition: 'Minor scratch on front bumper',
-        notes: 'Surface level scratch, approximately 15cm long',
-        severity: 'low',
-        dateAdded: new Date(),
-        addedBy: 'John Smith',
-        images: [
-          {
-            id: 'img1',
-            url: '/assets/images/damage/1.jpg',
-          },
-        ],
-      },
-      {
-        id: 'f2',
-        label: 'Headlight',
-        position: { x: 35, y: 65 },
-        hasIssue: false,
-        condition: 'Good condition',
-        notes: 'No visible damage or issues',
-        severity: 'low',
-        dateAdded: new Date(),
-        addedBy: 'John Smith',
-        images: [],
-      },
-    ],
-    rear: [
-      {
-        id: 'r1',
-        label: 'Rear Bumper',
-        position: { x: 50, y: 85 },
-        hasIssue: false,
-        condition: 'Good condition',
-        notes: 'No visible damage',
-        severity: 'low',
-        dateAdded: new Date(),
-        addedBy: 'John Smith',
-        images: [],
-      },
-    ],
-    left: [
-      {
-        id: 'l1',
-        label: 'Left Door',
-        position: { x: 45, y: 50 },
-        hasIssue: true,
-        condition: 'Minor dent',
-        notes: "Small dent on driver's door",
-        severity: 'medium',
-        dateAdded: new Date(),
-        addedBy: 'John Smith',
-        images: [
-          {
-            id: 'img2',
-            url: '/assets/images/damage/2.jpg',
-          },
-        ],
-      },
-    ],
-    right: [],
-  };
-
-  additionalPhotos: PhotoImage[] = [
-    {
-      id: 'add1',
-      url: '/assets/images/damage/1.jpg',
-    },
-    {
-      id: 'add2',
-      url: '/assets/images/damage/2.jpg',
-    },
-  ];
-
-  constructor(private route: ActivatedRoute) {
-    // Initialize with base job data...
-    this.job = {
-      id: 'JOB0001',
-      status: 'in-progress',
-      currentDriver: 'Dave Wilson',
-      customer: {
-        name: 'John Smith',
-        phone: '+44 123 456 7890',
-        email: 'john.smith@email.com',
-        company: 'Smith Enterprises',
-      },
-      vehicle: {
-        make: 'Toyota',
-        model: 'Corolla',
-        year: 2022,
-        registration: 'AB12 CDE',
-        color: 'Silver',
-        shippingRef: '1234FGH',
-      },
-      addresses: {
-        collection: {
-          street: '123 Collection St',
-          city: 'London',
-          postcode: 'SW1A 1AA',
-          instructions: 'NOTES GO HERE',
-        },
-        delivery: {
-          street: '456 Delivery Rd',
-          city: 'Belfast',
-          postcode: 'BT16 1WP',
-          instructions: 'NOTES GO HERE',
-        },
-      },
-      driver: {
-        name: 'Mike Johnson',
-        phone: '+44 987 654 3210',
-        currentLocation: 'En route to delivery',
-        assignedDate: new Date(),
-      },
-      currentTeam: {
-        primaryDriver: {
-          name: 'Dave Wilson',
-          phone: '+44 777 888 9999',
-          role: 'Primary Driver',
-          since: new Date(Date.now() - 2 * 3600000),
-        },
-        additionalStaff: [
-          {
-            name: 'Sarah Palmer',
-            phone: '+44 777 666 5555',
-            role: 'Support Driver',
-            since: new Date(Date.now() - 2 * 3600000),
-          },
-        ],
-      },
-      timeline: [
-        {
-          date: new Date(),
-          status: 'In Transit',
-          description:
-            'Vehicle handed over to Dave Wilson for second leg of journey. Currently 120 miles from delivery location.',
-        },
-        {
-          date: new Date(Date.now() - 2 * 3600000),
-          status: 'Driver Change',
-          description:
-            'Scheduled driver change at Manchester depot. Mike Johnson completed first leg (186 miles).',
-        },
-        {
-          date: new Date(Date.now() - 5 * 3600000),
-          status: 'In Transit',
-          description:
-            'Journey commenced with Mike Johnson and Tom Harris. Estimated total journey time: 7 hours.',
-        },
-        {
-          date: new Date(Date.now() - 6 * 3600000),
-          status: 'Collection',
-          description:
-            'Vehicle collected from customer. All paperwork completed and verified.',
-        },
-        {
-          date: new Date(Date.now() - 24 * 3600000),
-          status: 'Assigned',
-          description:
-            'Job assigned to Mike Johnson as lead driver. Long-distance route planned with driver change.',
-        },
-      ],
-    };
+  constructor(
+    private route: ActivatedRoute,
+    private router: Router,
+    private fb: FormBuilder,
+    private expenseService: ExpenseService
+  ) {
+    this.createExpenseForm();
   }
 
   ngOnInit() {
     this.route.params.subscribe((params) => {
       this.jobId = params['id'];
-      // In real app, fetch job details here
       this.loadJobDetails(this.jobId);
+      this.loadJobExpenses(this.jobId);
+    });
+  }
+
+  private createExpenseForm(): void {
+    this.expenseForm = this.fb.group({
+      description: ['', Validators.required],
+      amount: ['', [Validators.required, Validators.min(0.01)]],
+      date: [new Date().toISOString().substring(0, 10), Validators.required],
+      notes: [''],
     });
   }
 
   loadJobDetails(jobId: string) {
-    // API call to fetch job details
-    // For now, using dummy data
-    console.log(`Loading details for job ${jobId}`);
+    // In a real app, this would be an API call
+    setTimeout(() => {
+      this.job = {
+        id: jobId,
+        status: JobStatus.ALLOCATED,
+        currentDriver: 'Mike Johnson',
+        customer: {
+          name: 'John Smith',
+          phone: '+44 123 456 7890',
+          email: 'john.smith@email.com',
+          company: 'Smith Enterprises',
+        },
+        vehicle: {
+          make: 'Toyota',
+          model: 'Corolla',
+          type: VehicleType.CAR,
+          registration: 'AB12XYZ',
+          chassisNumber: 'TYT123456789',
+          shippingRef: 'SHIP1234',
+        },
+        addresses: {
+          collection: {
+            street: '123 Collection St',
+            town: 'London',
+            postcode: 'SW1A 1AA',
+            instructions: 'Call 30 minutes before arrival',
+          },
+          delivery: {
+            street: '456 Delivery Rd',
+            town: 'Edinburgh',
+            postcode: 'EH1 1BB',
+            instructions: 'Goods entrance at rear of building',
+          },
+        },
+        driver: {
+          name: 'Mike Johnson',
+          phone: '+44 987 654 3210',
+          currentLocation: 'En route to delivery',
+          assignedDate: new Date(),
+        },
+        notes: [
+          {
+            author: 'Sarah Admin',
+            content: 'Customer requested delivery before noon.',
+            date: new Date(Date.now() - 24 * 3600000),
+          },
+          {
+            author: 'Mike Johnson',
+            content: 'Vehicle collected, everything in order.',
+            date: new Date(Date.now() - 12 * 3600000),
+          },
+        ],
+        timeline: [
+          {
+            date: new Date(Date.now() - 24 * 3600000),
+            status: JobStatus.LOADED,
+            description: 'Job created and vehicle loaded at depot',
+            actor: 'Sarah Admin',
+          },
+          {
+            date: new Date(Date.now() - 20 * 3600000),
+            status: JobStatus.ALLOCATED,
+            description: 'Job assigned to Mike Johnson',
+            actor: 'System',
+          },
+          {
+            date: new Date(Date.now() - 12 * 3600000),
+            status: JobStatus.COLLECTED,
+            description: 'Vehicle collected from depot',
+            actor: 'Mike Johnson',
+          },
+        ],
+      };
+    }, 1000);
   }
 
-  setActiveTab(tab: 'details' | 'timeline' | 'documents') {
+  loadJobExpenses(jobId: string) {
+    this.expenseService
+      .getExpensesByJob(jobId)
+      .subscribe((expenses: Expense[]) => {
+        this.expenses = expenses;
+      });
+  }
+
+  setActiveTab(tab: 'details' | 'timeline' | 'expenses') {
     this.activeTab = tab;
   }
 
   getStatusClass(status: string): string {
-    const statusMap: { [key: string]: string } = {
-      unallocated: 'status-red',
-      'in-progress': 'status-orange',
-      completed: 'status-green',
-      cancelled: 'status-gray',
+    const statusMap: Record<string, string> = {
+      [JobStatus.LOADED]: 'status-loaded',
+      [JobStatus.ALLOCATED]: 'status-allocated',
+      [JobStatus.COLLECTED]: 'status-collected',
+      [JobStatus.DELIVERED]: 'status-delivered',
+      [JobStatus.ABORTED]: 'status-aborted',
+      [JobStatus.CANCELLED]: 'status-cancelled',
     };
-    return statusMap[status] || '';
+    return statusMap[status] || 'status-default';
   }
 
   getTimelineIcon(status: string): string {
-    const iconMap: { [key: string]: string } = {
-      'In Transit': 'local_shipping',
-      'Driver Change': 'people',
-      Collection: 'location_on',
-      Assigned: 'assignment_turned_in',
-      Completed: 'check_circle',
-      Cancelled: 'cancel',
+    const iconMap: Record<string, string> = {
+      [JobStatus.LOADED]: 'inventory_2',
+      [JobStatus.ALLOCATED]: 'assignment',
+      [JobStatus.COLLECTED]: 'departure_board',
+      [JobStatus.DELIVERED]: 'check_circle',
+      [JobStatus.ABORTED]: 'error',
+      [JobStatus.CANCELLED]: 'cancel',
     };
     return iconMap[status] || 'radio_button_unchecked';
   }
 
-  setVehicleView(view: 'front' | 'rear' | 'left' | 'right') {
-    this.currentView = view;
-    this.selectedPoint = null;
+  getExpenseStatusClass(status: ExpenseStatus): string {
+    const statusMap: Record<string, string> = {
+      [ExpenseStatus.PENDING]: 'status-pending',
+      [ExpenseStatus.APPROVED]: 'status-approved',
+      [ExpenseStatus.REJECTED]: 'status-rejected',
+    };
+    return statusMap[status] || 'status-default';
   }
 
-  getCurrentViewImage(): string {
-    return `/assets/images/vehicle-${this.currentView}.png`;
+  updateJobStatus(newStatus: JobStatus): void {
+    if (this.job.status === newStatus) return;
+
+    // In a real app, this would be an API call
+    this.job.status = newStatus;
+
+    // Add to timeline
+    this.job.timeline.push({
+      date: new Date(),
+      status: newStatus,
+      description: `Status updated to ${newStatus}`,
+      actor: 'Current User', // In a real app, this would be the logged-in user
+    });
+
+    // Sort timeline by date (newest first)
+    this.job.timeline.sort((a, b) => b.date.getTime() - a.date.getTime());
   }
 
-  getViewPoints(): InspectionPoint[] {
-    return this.inspectionPoints[this.currentView] || [];
+  addNote(): void {
+    if (!this.newNote.trim()) return;
+
+    // Add the note
+    this.job.notes.push({
+      author: 'Current User', // In a real app, this would be the logged-in user
+      content: this.newNote.trim(),
+      date: new Date(),
+    });
+
+    // Clear the input
+    this.newNote = '';
   }
 
-  showInspectionDetail(point: InspectionPoint) {
-    this.selectedPoint = point;
+  editJob(): void {
+    this.router.navigate(['/jobs', this.jobId, 'edit']);
   }
 
-  async downloadDocument(doc: Document) {
-    try {
-      // In a real application, you would:
-      // 1. Make an API call to get the document
-      // 2. Handle the blob response
-      // 3. Create a download link
-      const response = await fetch(doc.url);
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = doc.name;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error('Error downloading document:', error);
-      // Handle error (show notification, etc.)
-    }
-  }
-
-  openImageViewer(image: PhotoImage) {
-    this.selectedImage = image;
-    this.isImageViewerOpen = true;
-  }
-
-  closeImageViewer() {
-    this.selectedImage = null;
-    this.isImageViewerOpen = false;
+  printJobDetails(): void {
+    window.print();
   }
 
   isLastEvent(event: any): boolean {
-    return this.job.timeline.indexOf(event) === this.job.timeline.length - 1;
+    return this.job.timeline.indexOf(event) === 0; // Timeline is sorted newest first
   }
 
-  getSeverityClass(severity: string): string {
-    const severityMap: { [key: string]: string } = {
-      low: 'severity-low',
-      medium: 'severity-medium',
-      high: 'severity-high',
-    };
-    return severityMap[severity] || '';
+  // Expense Management
+  openAddExpenseForm(): void {
+    this.showAddExpenseForm = true;
+    this.expenseForm.reset({
+      date: new Date().toISOString().substring(0, 10),
+    });
+    this.receiptFile = null;
   }
 
-  // Helper method to format file size
-  formatFileSize(bytes: number): string {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  closeAddExpenseForm(): void {
+    this.showAddExpenseForm = false;
   }
 
-  // Method to handle image upload
-  async uploadImage(event: Event, pointId?: string) {
+  triggerFileInput(): void {
+    this.fileInput.nativeElement.click();
+  }
+
+  handleFileInput(event: Event): void {
     const input = event.target as HTMLInputElement;
-    if (!input.files?.length) return;
-
-    const file = input.files[0];
-    if (!file.type.startsWith('image/')) {
-      console.error('Please upload an image file');
-      return;
+    if (input.files?.length) {
+      this.receiptFile = input.files[0];
     }
+  }
 
-    try {
-      // Here you would typically:
-      // 1. Create a FormData object
-      // 2. Send to your API
-      // 3. Update the UI with the new image
-      console.log('Uploading image...', file.name);
-      // Implement your upload logic
-    } catch (error) {
-      console.error('Error uploading image:', error);
-      // Handle error (show notification, etc.)
-    }
+  submitExpense(): void {
+    if (this.expenseForm.invalid) return;
+
+    const formValue = this.expenseForm.value;
+
+    // Create expense object
+    const expense: Omit<Expense, 'id' | 'status'> = {
+      jobId: this.jobId,
+      driverId: 'DRIVER1', // In a real app, this would be the logged-in driver's ID
+      driverName: 'Current User', // In a real app, this would be the logged-in user's name
+      description: formValue.description,
+      amount: parseFloat(formValue.amount),
+      date: new Date(formValue.date),
+      notes: formValue.notes,
+      receiptUrl: this.receiptFile
+        ? URL.createObjectURL(this.receiptFile)
+        : undefined,
+      isChargeable: false, // Initially not chargeable until approved and marked
+    };
+
+    // Save expense
+    this.expenseService
+      .createExpense(expense)
+      .subscribe((newExpense: Expense) => {
+        this.expenses.push(newExpense);
+        this.closeAddExpenseForm();
+      });
+  }
+
+  approveExpense(expense: Expense): void {
+    this.expenseService
+      .updateExpenseStatus(
+        expense.id,
+        ExpenseStatus.APPROVED,
+        { approvedBy: 'Current Manager' } // In a real app, this would be the logged-in manager
+      )
+      .subscribe((updatedExpense: Expense) => {
+        // Update expense in the list
+        const index = this.expenses.findIndex(
+          (e) => e.id === updatedExpense.id
+        );
+        if (index !== -1) {
+          this.expenses[index] = updatedExpense;
+        }
+      });
+  }
+
+  rejectExpense(expense: Expense): void {
+    this.expenseService
+      .updateExpenseStatus(
+        expense.id,
+        ExpenseStatus.REJECTED,
+        { approvedBy: 'Current Manager' } // In a real app, this would be the logged-in manager
+      )
+      .subscribe((updatedExpense: Expense) => {
+        // Update expense in the list
+        const index = this.expenses.findIndex(
+          (e) => e.id === updatedExpense.id
+        );
+        if (index !== -1) {
+          this.expenses[index] = updatedExpense;
+        }
+      });
+  }
+
+  updateExpenseChargeable(expense: Expense, isChargeable: boolean): void {
+    this.expenseService
+      .updateExpenseChargeableStatus(expense.id, isChargeable)
+      .subscribe((updatedExpense: Expense) => {
+        // Update expense in the list
+        const index = this.expenses.findIndex(
+          (e) => e.id === updatedExpense.id
+        );
+        if (index !== -1) {
+          this.expenses[index] = updatedExpense;
+        }
+      });
+  }
+
+  viewExpenseDetails(expense: Expense): void {
+    // In a real app, this might open a modal with more details
+    console.log('View expense details', expense);
+  }
+
+  formatCurrency(amount: number): string {
+    return new Intl.NumberFormat('en-GB', {
+      style: 'currency',
+      currency: 'GBP',
+    }).format(amount);
   }
 }

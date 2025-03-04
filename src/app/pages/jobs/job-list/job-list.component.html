@@ -28,6 +28,7 @@
             [(value)]="filters.status"
             (selectionChange)="applyFilters()"
           >
+            <mat-option value="All">All</mat-option>
             <mat-option *ngFor="let status of statusOptions" [value]="status">
               {{ status }}
             </mat-option>
@@ -40,6 +41,7 @@
             [(value)]="filters.driver"
             (selectionChange)="applyFilters()"
           >
+            <mat-option value="All">All</mat-option>
             <mat-option *ngFor="let driver of drivers" [value]="driver">
               {{ driver }}
             </mat-option>
@@ -114,10 +116,10 @@
         <td mat-cell *matCellDef="let job" class="job-id">{{ job.id }}</td>
       </ng-container>
 
-      <!-- Creation Date Column -->
-      <ng-container matColumnDef="creationDate">
+      <!-- Reg Column -->
+      <ng-container matColumnDef="regNumber">
         <th mat-header-cell *matHeaderCellDef mat-sort-header>Reg</th>
-        <td mat-cell *matCellDef="let job">{{ job.creationDate | date }}</td>
+        <td mat-cell *matCellDef="let job">{{ job.regNumber }}</td>
       </ng-container>
 
       <!-- Customer Name Column -->
@@ -126,24 +128,24 @@
         <td mat-cell *matCellDef="let job">{{ job.customerName }}</td>
       </ng-container>
 
-      <!-- Vehicle Column -->
-      <ng-container matColumnDef="vehicle">
+      <!-- Collection Date Column -->
+      <ng-container matColumnDef="collectionDate">
         <th mat-header-cell *matHeaderCellDef mat-sort-header>
           Collection Date
         </th>
-        <td mat-cell *matCellDef="let job">{{ job.creationDate | date }}</td>
+        <td mat-cell *matCellDef="let job">{{ job.collectionDate | date }}</td>
       </ng-container>
 
-      <!-- Collection Address Column -->
-      <ng-container matColumnDef="collectionAddress">
+      <!-- Collection Town Column -->
+      <ng-container matColumnDef="collectionTown">
         <th mat-header-cell *matHeaderCellDef>Collection Town</th>
-        <td mat-cell *matCellDef="let job">{{ job.collectionAddress }}</td>
+        <td mat-cell *matCellDef="let job">{{ job.collectionTown }}</td>
       </ng-container>
 
-      <!-- Delivery Address Column -->
-      <ng-container matColumnDef="deliveryAddress">
+      <!-- Delivery Town Column -->
+      <ng-container matColumnDef="deliveryTown">
         <th mat-header-cell *matHeaderCellDef>Delivery Town</th>
-        <td mat-cell *matCellDef="let job">{{ job.deliveryAddress }}</td>
+        <td mat-cell *matCellDef="let job">{{ job.deliveryTown }}</td>
       </ng-container>
 
       <!-- Status Column -->

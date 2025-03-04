@@ -27,6 +27,49 @@
   <!-- Form Content -->
   <div class="form-content">
     <form [formGroup]="vehicleForm">
+      <!-- Previous Selections -->
+      <section class="form-section" *ngIf="previousSelections.length > 0">
+        <h2>Previously Added Vehicles</h2>
+        <div class="previous-selections">
+          <div class="selection-grid">
+            <div
+              *ngFor="let selection of previousSelections"
+              class="selection-card"
+              (click)="applyPreviousData(selection)"
+            >
+              <div class="selection-header">
+                <span
+                  class="manufacturer"
+                  >{{ manufacturers.find(m => m.id === selection.manufacturerId)?.name }}</span
+                >
+                <span class="model-name">{{ selection.name }}</span>
+              </div>
+              <div class="selection-details">
+                <div class="detail-item">
+                  <span class="label">Type:</span>
+                  <span class="value">{{ selection.type }}</span>
+                </div>
+                <div class="detail-item">
+                  <span class="label">Year:</span>
+                  <span class="value">{{ selection.yearStart }}</span>
+                </div>
+                <div class="detail-item">
+                  <span class="label">Size:</span>
+                  <span class="value"
+                    >{{ selection.length }}L x {{ selection.width }}W x
+                    {{ selection.height }}H</span
+                  >
+                </div>
+              </div>
+              <div class="selection-action">
+                <mat-icon>content_copy</mat-icon>
+                <span>Use This Data</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <!-- Basic Information -->
       <section class="form-section">
         <h2>Basic Information</h2>
