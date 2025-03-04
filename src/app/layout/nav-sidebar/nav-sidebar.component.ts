@@ -31,9 +31,9 @@ export class NavSidebarComponent {
       active: false,
     },
     {
-      label: 'Expenses',
-      icon: 'receipt_long',
-      route: '/expenses',
+      label: 'Vehicle Movement',
+      icon: 'trending_up',
+      route: '/vehicle-movement',
       active: false,
     },
   ];
