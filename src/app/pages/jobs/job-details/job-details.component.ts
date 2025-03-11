@@ -132,7 +132,7 @@ export class JobDetailsComponent implements OnInit {
         addresses: {
           collection: {
             street: '123 Collection St',
-            town: 'London',
+            town: 'Belfast',
             postcode: 'SW1A 1AA',
             instructions: 'Call 30 minutes before arrival',
           },

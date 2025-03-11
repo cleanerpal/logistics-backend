@@ -852,8 +852,8 @@ export class VehicleListComponent implements OnInit, AfterViewInit {
         },
         {
           id: '76',
-          name: 'London Taxis International',
-          logoUrl: '/assets/images/car-logos/london_taxis_international.jpg',
+          name: 'Belfast Taxis International',
+          logoUrl: '/assets/images/car-logos/Belfast_taxis_international.jpg',
           modelCount: 49,
           activeJobs: 11,
           lastUpdated: new Date('2025-01-30T13:34:46.045392'),
