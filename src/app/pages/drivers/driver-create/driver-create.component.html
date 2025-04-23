@@ -1,4 +1,10 @@
 <mat-card class="mat-elevation-z3">
+  <!-- Loading indicator -->
+  <div class="loading-overlay" *ngIf="isSubmitting">
+    <mat-spinner diameter="40"></mat-spinner>
+    <span>{{ isEditMode ? "Updating driver..." : "Creating driver..." }}</span>
+  </div>
+
   <!-- Header -->
   <div class="header-wrapper">
     <div class="header-title">
@@ -60,6 +66,9 @@
           <mat-error *ngIf="driverForm.get('email')?.hasError('email')">
             Please enter a valid email address
           </mat-error>
+          <mat-hint *ngIf="isEditMode"
+            >Email cannot be changed after creation</mat-hint
+          >
         </mat-form-field>
 
         <!-- Phone -->
@@ -68,17 +77,37 @@
           <input
             matInput
             formControlName="phone"
-            placeholder="(000) 000-0000"
-            mask="(000) 000-0000"
+            placeholder="Enter phone number"
           />
           <mat-error *ngIf="driverForm.get('phone')?.hasError('required')">
             Phone number is required
           </mat-error>
-          <mat-error *ngIf="driverForm.get('phone')?.hasError('pattern')">
-            Please enter a valid phone number
-          </mat-error>
         </mat-form-field>
       </div>
+
+      <!-- Driver ID (optional) -->
+      <div class="form-row">
+        <mat-form-field appearance="outline">
+          <mat-label>Driver ID (Optional)</mat-label>
+          <input
+            matInput
+            formControlName="driverId"
+            placeholder="Auto-generated if left empty"
+          />
+          <mat-hint>Leave blank for auto-generated ID</mat-hint>
+        </mat-form-field>
+      </div>
+
+      <!-- Address -->
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Address</mat-label>
+        <textarea
+          matInput
+          formControlName="address"
+          placeholder="Enter address"
+          rows="3"
+        ></textarea>
+      </mat-form-field>
     </div>
 
     <div class="form-section">
@@ -88,50 +117,45 @@
       <mat-form-field appearance="outline" class="full-width">
         <mat-label>Company</mat-label>
         <mat-select formControlName="company">
+          <mat-option>None</mat-option>
           <mat-option *ngFor="let company of companies" [value]="company.id">
             {{ company.name }}
           </mat-option>
         </mat-select>
-        <mat-error *ngIf="driverForm.get('company')?.hasError('required')">
-          Company is required
-        </mat-error>
+      </mat-form-field>
+
+      <!-- Company Name (if not in dropdown) -->
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Company Name (if not in list)</mat-label>
+        <input
+          matInput
+          formControlName="companyName"
+          placeholder="Enter company name if not in dropdown"
+        />
+        <mat-hint
+          >Only fill if the company is not in the dropdown above</mat-hint
+        >
       </mat-form-field>
     </div>
 
     <div class="form-section">
       <h2 class="section-title">Driver Details</h2>
 
-      <!-- Type and Status -->
-      <div class="form-row">
-        <!-- Type -->
-        <mat-form-field appearance="outline">
-          <mat-label>Driver Type</mat-label>
-          <mat-select formControlName="type">
-            <mat-option *ngFor="let type of driverTypes" [value]="type.value">
-              {{ type.label }}
-            </mat-option>
-          </mat-select>
-          <mat-error *ngIf="driverForm.get('type')?.hasError('required')">
-            Driver type is required
-          </mat-error>
-        </mat-form-field>
-
-        <!-- Status -->
-        <mat-form-field appearance="outline">
-          <mat-label>Status</mat-label>
-          <mat-select formControlName="status">
-            <mat-option
-              *ngFor="let status of statusOptions"
-              [value]="status.value"
-            >
-              {{ status.label }}
-            </mat-option>
-          </mat-select>
-          <mat-error *ngIf="driverForm.get('status')?.hasError('required')">
-            Status is required
-          </mat-error>
-        </mat-form-field>
-      </div>
+      <!-- Status -->
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Status</mat-label>
+        <mat-select formControlName="status">
+          <mat-option
+            *ngFor="let status of statusOptions"
+            [value]="status.value"
+          >
+            {{ status.label }}
+          </mat-option>
+        </mat-select>
+        <mat-error *ngIf="driverForm.get('status')?.hasError('required')">
+          Status is required
+        </mat-error>
+      </mat-form-field>
 
       <!-- License Information -->
       <div class="form-row">
@@ -143,33 +167,34 @@
             formControlName="licenseNumber"
             placeholder="Enter license number"
           />
-          <mat-error
-            *ngIf="driverForm.get('licenseNumber')?.hasError('required')"
-          >
-            License number is required
-          </mat-error>
         </mat-form-field>
 
-        <!-- License Expiry -->
+        <!-- License Type -->
         <mat-form-field appearance="outline">
-          <mat-label>License Expiry Date</mat-label>
-          <input
-            matInput
-            [matDatepicker]="expiryPicker"
-            formControlName="licenseExpiry"
-          />
-          <mat-datepicker-toggle
-            matSuffix
-            [for]="expiryPicker"
-          ></mat-datepicker-toggle>
-          <mat-datepicker #expiryPicker></mat-datepicker>
-          <mat-error
-            *ngIf="driverForm.get('licenseExpiry')?.hasError('required')"
-          >
-            License expiry date is required
-          </mat-error>
+          <mat-label>License Type</mat-label>
+          <mat-select formControlName="licenseType">
+            <mat-option>None</mat-option>
+            <mat-option *ngFor="let type of licenseTypes" [value]="type">
+              {{ type }}
+            </mat-option>
+          </mat-select>
         </mat-form-field>
       </div>
+
+      <!-- License Expiry Date -->
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>License Expiry Date</mat-label>
+        <input
+          matInput
+          [matDatepicker]="expiryPicker"
+          formControlName="licenseExpiry"
+        />
+        <mat-datepicker-toggle
+          matSuffix
+          [for]="expiryPicker"
+        ></mat-datepicker-toggle>
+        <mat-datepicker #expiryPicker></mat-datepicker>
+      </mat-form-field>
     </div>
 
     <div class="form-section">
@@ -185,19 +210,6 @@
           rows="3"
         ></textarea>
       </mat-form-field>
-
-      <!-- Vehicle Preferences -->
-      <div class="vehicle-preferences">
-        <h3>Vehicle Preferences</h3>
-        <mat-chip-listbox formControlName="vehiclePreferences" multiple>
-          <mat-chip-option
-            *ngFor="let type of vehicleTypes"
-            [value]="type.value"
-          >
-            {{ type.label }}
-          </mat-chip-option>
-        </mat-chip-listbox>
-      </div>
     </div>
 
     <!-- Form Actions -->

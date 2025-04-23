@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { BehaviorSubject, Observable, from } from 'rxjs';
+import { BehaviorSubject, Observable, from, switchMap } from 'rxjs';
 import { catchError, map, tap } from 'rxjs/operators';
 import {
   Firestore,
@@ -163,13 +163,10 @@ export class CompanyService {
     const companyRef = doc(this.firestore, 'companies', companyId);
 
     return from(getDoc(companyRef)).pipe(
-      map((companyDoc) => {
+      switchMap((companyDoc) => {
         if (!companyDoc.exists()) {
           throw new Error('Company not found');
         }
-        return companyDoc;
-      }),
-      map((companyDoc) => {
         const updatedData = {
           ...companyData,
           updatedAt: serverTimestamp(),
@@ -211,13 +208,10 @@ export class CompanyService {
     const companyRef = doc(this.firestore, 'companies', companyId);
 
     return from(getDoc(companyRef)).pipe(
-      map((companyDoc) => {
+      switchMap((companyDoc) => {
         if (!companyDoc.exists()) {
           throw new Error('Company not found');
         }
-        return companyDoc;
-      }),
-      map(() => {
         return from(deleteDoc(companyRef)).pipe(
           map(() => {
             // Refresh the list

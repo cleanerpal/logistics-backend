@@ -146,7 +146,7 @@ export class DriverService {
       })
     ).pipe(
       switchMap((result) => {
-        const userId = result.data.uid;
+        const userId = (result.data as { uid: string }).uid;
 
         // Generate a driver ID if not provided
         const driverId =
@@ -224,7 +224,7 @@ export class DriverService {
         };
 
         // If email is being updated, update it in Auth as well
-        const currentEmail = driverDoc.data().email;
+        const currentEmail = driverDoc.data()['email'];
         if (driverData.email && driverData.email !== currentEmail) {
           // Use Cloud Functions to update the email (requires admin privileges)
           const updateEmailFunction = httpsCallable(
