@@ -26,9 +26,10 @@ interface Driver {
 }
 
 @Component({
-  selector: 'app-job-create',
-  templateUrl: './job-create.component.html',
-  styleUrls: ['./job-create.component.scss'],
+    selector: 'app-job-create',
+    templateUrl: './job-create.component.html',
+    styleUrls: ['./job-create.component.scss'],
+    standalone: false
 })
 export class JobCreateComponent implements OnInit {
   jobForm!: FormGroup;

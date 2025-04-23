@@ -26,9 +26,10 @@ interface Manufacturer {
 }
 
 @Component({
-  selector: 'app-vehicle-list',
-  templateUrl: './vehicle-list.component.html',
-  styleUrl: './vehicle-list.component.scss',
+    selector: 'app-vehicle-list',
+    templateUrl: './vehicle-list.component.html',
+    styleUrl: './vehicle-list.component.scss',
+    standalone: false
 })
 export class VehicleListComponent implements OnInit, AfterViewInit {
   // Data source and pagination

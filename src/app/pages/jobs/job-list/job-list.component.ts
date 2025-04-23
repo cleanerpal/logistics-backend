@@ -30,10 +30,11 @@ interface JobFilters {
 }
 
 @Component({
-  selector: 'app-job-list',
-  templateUrl: './job-list.component.html',
-  styleUrls: ['./job-list.component.scss'],
-  providers: [DatePipe],
+    selector: 'app-job-list',
+    templateUrl: './job-list.component.html',
+    styleUrls: ['./job-list.component.scss'],
+    providers: [DatePipe],
+    standalone: false
 })
 export class JobListComponent implements OnInit, AfterViewInit {
   displayedColumns: string[] = [

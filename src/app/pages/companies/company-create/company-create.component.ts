@@ -4,9 +4,10 @@ import { Router, ActivatedRoute } from '@angular/router';
 import { Location } from '@angular/common';
 
 @Component({
-  selector: 'app-company-create',
-  templateUrl: './company-create.component.html',
-  styleUrl: './company-create.component.scss',
+    selector: 'app-company-create',
+    templateUrl: './company-create.component.html',
+    styleUrl: './company-create.component.scss',
+    standalone: false
 })
 export class CompanyCreateComponent implements OnInit {
   companyForm: FormGroup;

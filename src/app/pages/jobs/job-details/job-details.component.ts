@@ -60,9 +60,10 @@ interface Job {
 }
 
 @Component({
-  selector: 'app-job-details',
-  templateUrl: './job-details.component.html',
-  styleUrls: ['./job-details.component.scss'],
+    selector: 'app-job-details',
+    templateUrl: './job-details.component.html',
+    styleUrls: ['./job-details.component.scss'],
+    standalone: false
 })
 export class JobDetailsComponent implements OnInit {
   @ViewChild('fileInput') fileInput!: ElementRef;

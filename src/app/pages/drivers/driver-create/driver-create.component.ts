@@ -13,9 +13,10 @@ interface Company {
 }
 
 @Component({
-  selector: 'app-driver-create',
-  templateUrl: './driver-create.component.html',
-  styleUrls: ['./driver-create.component.scss'],
+    selector: 'app-driver-create',
+    templateUrl: './driver-create.component.html',
+    styleUrls: ['./driver-create.component.scss'],
+    standalone: false
 })
 export class DriverCreateComponent implements OnInit, OnDestroy {
   driverForm: FormGroup;

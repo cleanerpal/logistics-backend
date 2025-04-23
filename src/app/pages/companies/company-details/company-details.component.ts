@@ -48,9 +48,10 @@ interface CompanyForm {
 }
 
 @Component({
-  selector: 'app-company-details',
-  templateUrl: './company-details.component.html',
-  styleUrls: ['./company-details.component.scss'],
+    selector: 'app-company-details',
+    templateUrl: './company-details.component.html',
+    styleUrls: ['./company-details.component.scss'],
+    standalone: false
 })
 export class CompanyDetailsComponent implements OnInit {
   companyId: string | null = null;

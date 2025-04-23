@@ -56,9 +56,10 @@ interface DriverFormModel {
 }
 
 @Component({
-  selector: 'app-driver-details',
-  templateUrl: './driver-details.component.html',
-  styleUrls: ['./driver-details.component.scss'],
+    selector: 'app-driver-details',
+    templateUrl: './driver-details.component.html',
+    styleUrls: ['./driver-details.component.scss'],
+    standalone: false
 })
 export class DriverDetailsComponent implements OnInit {
   driver: Driver | null = null;

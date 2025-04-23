@@ -17,9 +17,10 @@ import { ConfirmationDialogComponent } from '../../../dialogs/confirmation-dialo
 import { Driver, DriverService } from '../../../services/driver.service';
 
 @Component({
-  selector: 'app-driver-list',
-  templateUrl: './driver-list.component.html',
-  styleUrls: ['./driver-list.component.scss'],
+    selector: 'app-driver-list',
+    templateUrl: './driver-list.component.html',
+    styleUrls: ['./driver-list.component.scss'],
+    standalone: false
 })
 export class DriverListComponent implements OnInit, AfterViewInit, OnDestroy {
   displayedColumns: string[] = [
