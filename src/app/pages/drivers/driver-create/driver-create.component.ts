@@ -1,11 +1,11 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
 import { Location } from '@angular/common';
 import { MatSnackBar } from '@angular/material/snack-bar';
-
-// You would have a proper driver service in your application
-// import { DriverService } from '../../../services/driver.service';
+import { DriverService, Driver } from '../../../services/driver.service';
+import { Subscription } from 'rxjs';
+import { CompanyService } from '../../../services/company.service';
 
 interface Company {
   id: string;
@@ -17,46 +17,33 @@ interface Company {
   templateUrl: './driver-create.component.html',
   styleUrls: ['./driver-create.component.scss'],
 })
-export class DriverCreateComponent implements OnInit {
+export class DriverCreateComponent implements OnInit, OnDestroy {
   driverForm: FormGroup;
   isEditMode = false;
   isSubmitting = false;
   driverId: string | null = null;
+  driver: Driver | null = null;
+  companies: Company[] = [];
 
   // Dropdown options
-  driverTypes = [
-    { value: 'customer', label: 'Customer' },
-    { value: 'supplier', label: 'Supplier' },
-    { value: 'partner', label: 'Partner' },
-  ];
-
   statusOptions = [
     { value: 'active', label: 'Active' },
     { value: 'inactive', label: 'Inactive' },
   ];
 
-  vehicleTypes = [
-    { value: 'Car', label: 'Car' },
-    { value: 'Van', label: 'Van' },
-    { value: 'Truck', label: 'Truck' },
-    { value: 'Lorry', label: 'Lorry' },
-    { value: 'Motorbike', label: 'Motorbike' },
-  ];
+  licenseTypes = ['Class A', 'Class B', 'Class C', 'Class D', 'CDL'];
 
-  // Mock companies data - replace with actual service call in real app
-  companies: Company[] = [
-    { id: '1', name: 'Acme Corporation' },
-    { id: '2', name: 'Globex Industries' },
-    { id: '3', name: 'Wayne Enterprises' },
-    { id: '4', name: 'Stark Industries' },
-  ];
+  // Subscriptions
+  private subscriptions: Subscription[] = [];
 
   constructor(
     private fb: FormBuilder,
     private router: Router,
     private route: ActivatedRoute,
     private location: Location,
-    private snackBar: MatSnackBar // private driverService: DriverService
+    private snackBar: MatSnackBar,
+    private driverService: DriverService,
+    private companyService: CompanyService // Inject company service
   ) {
     this.driverForm = this.createForm();
   }
@@ -65,9 +52,24 @@ export class DriverCreateComponent implements OnInit {
     this.driverId = this.route.snapshot.paramMap.get('id');
     this.isEditMode = !!this.driverId;
 
+    // Load companies from the service (no hardcoded data)
+    this.loadCompanies();
+
     if (this.isEditMode) {
       this.loadDriverData();
     }
+
+    // Subscribe to loading state
+    this.subscriptions.push(
+      this.driverService.isLoading$.subscribe((loading) => {
+        this.isSubmitting = loading;
+      })
+    );
+  }
+
+  ngOnDestroy(): void {
+    // Clean up subscriptions to prevent memory leaks
+    this.subscriptions.forEach((sub) => sub.unsubscribe());
   }
 
   private createForm(): FormGroup {
@@ -75,100 +77,165 @@ export class DriverCreateComponent implements OnInit {
       firstName: ['', [Validators.required]],
       lastName: ['', [Validators.required]],
       email: ['', [Validators.required, Validators.email]],
-      phone: [
-        '',
-        [Validators.required, Validators.pattern(/^\(\d{3}\)\s\d{3}-\d{4}$/)],
-      ],
-      company: ['', [Validators.required]],
-      type: ['customer', [Validators.required]],
+      phone: ['', [Validators.required]],
+      driverId: [''],
+      company: [''],
+      companyName: [''],
       status: ['active', [Validators.required]],
-      licenseNumber: ['', [Validators.required]],
-      licenseExpiry: [null, [Validators.required]],
+      licenseNumber: [''],
+      licenseExpiry: [null],
+      licenseType: [''],
+      address: [''],
       notes: [''],
-      vehiclePreferences: [[]],
     });
   }
 
+  private loadCompanies(): void {
+    // Replace with actual service call to fetch companies from Firebase
+    this.subscriptions.push(
+      this.companyService.getAllCompanies().subscribe({
+        next: (companies) => {
+          this.companies = companies;
+        },
+        error: (error) => {
+          console.error('Error loading companies:', error);
+          this.showSnackBar('Failed to load companies', 'error');
+        },
+      })
+    );
+  }
+
   private loadDriverData(): void {
-    // In a real app, this would be an API call
-    // this.driverService.getDriver(this.driverId).subscribe(driver => {
-    //   this.driverForm.patchValue(driver);
-    // });
+    if (!this.driverId) return;
 
-    // Simulate API call with mock data
-    setTimeout(() => {
-      const mockDriver = {
-        firstName: 'John',
-        lastName: 'Doe',
-        email: 'john.doe@example.com',
-        phone: '(555) 123-4567',
-        company: '1',
-        type: 'customer',
-        status: 'active',
-        licenseNumber: 'DL12345678',
-        licenseExpiry: new Date('2025-12-31'),
-        notes: 'Experienced driver with clean record',
-        vehiclePreferences: ['Car', 'Van'],
-      };
+    this.subscriptions.push(
+      this.driverService.getDriverById(this.driverId).subscribe({
+        next: (driver) => {
+          this.driver = driver;
 
-      this.driverForm.patchValue(mockDriver);
-    }, 1000);
+          if (this.driver) {
+            // Format date if it exists
+            let licenseExpiry = null;
+            if (this.driver.licenseExpiry) {
+              licenseExpiry = this.driver.licenseExpiry.toDate();
+            }
+
+            this.driverForm.patchValue({
+              firstName: this.driver.firstName,
+              lastName: this.driver.lastName,
+              email: this.driver.email,
+              phone: this.driver.phone,
+              driverId: this.driver.driverId,
+              company: this.driver.companyId,
+              companyName: this.driver.companyName,
+              status: this.driver.status,
+              licenseNumber: this.driver.licenseNumber,
+              licenseExpiry: licenseExpiry,
+              licenseType: this.driver.licenseType,
+              address: this.driver.address,
+              notes: this.driver.notes,
+            });
+
+            // Disable email field in edit mode, as changing it requires special Firebase Auth operations
+            this.driverForm.get('email')?.disable();
+          }
+        },
+        error: (error) => {
+          console.error('Error loading driver:', error);
+          this.showSnackBar('Failed to load driver data', 'error');
+        },
+      })
+    );
   }
 
   onSubmit(): void {
     if (this.driverForm.invalid) {
+      this.markFormGroupTouched(this.driverForm);
       return;
     }
 
-    this.isSubmitting = true;
-    const formData = this.driverForm.value;
+    const formData = this.driverForm.getRawValue(); // Get values including disabled fields
 
-    if (this.isEditMode) {
+    // Prepare driver data
+    const driverData: Partial<Driver> = {
+      firstName: formData.firstName,
+      lastName: formData.lastName,
+      email: formData.email,
+      phone: formData.phone,
+      driverId: formData.driverId || `DRV-${Date.now().toString().slice(-6)}`,
+      companyId: formData.company,
+      companyName:
+        formData.companyName ||
+        this.companies.find((c) => c.id === formData.company)?.name,
+      status: formData.status,
+      licenseNumber: formData.licenseNumber,
+      licenseType: formData.licenseType,
+      address: formData.address,
+      notes: formData.notes,
+      role: 'driver',
+    };
+
+    // Add license expiry if provided
+    if (formData.licenseExpiry) {
+      driverData.licenseExpiry = formData.licenseExpiry;
+    }
+
+    if (this.isEditMode && this.driverId) {
       // Update existing driver
-      // this.driverService.updateDriver(this.driverId, formData).subscribe(
-      //   () => this.handleSuccess('Driver updated successfully'),
-      //   error => this.handleError(error)
-      // );
-
-      // Simulate API call
-      setTimeout(() => {
-        console.log('Updating driver:', formData);
-        this.handleSuccess('Driver updated successfully');
-      }, 1500);
+      this.subscriptions.push(
+        this.driverService.updateDriver(this.driverId, driverData).subscribe({
+          next: () => {
+            this.showSnackBar('Driver updated successfully', 'success');
+            this.router.navigate(['/drivers']);
+          },
+          error: (error) => {
+            console.error('Error updating driver:', error);
+            this.showSnackBar('Failed to update driver', 'error');
+          },
+        })
+      );
     } else {
       // Create new driver
-      // this.driverService.createDriver(formData).subscribe(
-      //   () => this.handleSuccess('Driver created successfully'),
-      //   error => this.handleError(error)
-      // );
-
-      // Simulate API call
-      setTimeout(() => {
-        console.log('Creating driver:', formData);
-        this.handleSuccess('Driver created successfully');
-      }, 1500);
+      this.subscriptions.push(
+        this.driverService.createDriver(driverData).subscribe({
+          next: () => {
+            this.showSnackBar('Driver created successfully', 'success');
+            this.router.navigate(['/drivers']);
+          },
+          error: (error) => {
+            console.error('Error creating driver:', error);
+            this.showSnackBar('Failed to create driver', 'error');
+          },
+        })
+      );
     }
   }
 
-  private handleSuccess(message: string): void {
-    this.isSubmitting = false;
-    this.snackBar.open(message, 'Close', {
-      duration: 3000,
-      horizontalPosition: 'end',
-      verticalPosition: 'top',
-      panelClass: ['success-snackbar'],
+  private markFormGroupTouched(formGroup: FormGroup): void {
+    Object.values(formGroup.controls).forEach((control) => {
+      control.markAsTouched();
+
+      if ((control as any).controls) {
+        this.markFormGroupTouched(control as FormGroup);
+      }
     });
-    this.router.navigate(['/drivers']);
   }
 
-  private handleError(error: any): void {
-    this.isSubmitting = false;
-    console.error('Error saving driver:', error);
-    this.snackBar.open('Failed to save driver. Please try again.', 'Close', {
-      duration: 5000,
+  private showSnackBar(
+    message: string,
+    type: 'success' | 'error' | 'info'
+  ): void {
+    const className = {
+      success: 'success-snackbar',
+      error: 'error-snackbar',
+      info: 'info-snackbar',
+    }[type];
+
+    this.snackBar.open(message, 'Close', {
+      duration: 3000,
+      panelClass: [className],
       horizontalPosition: 'end',
       verticalPosition: 'top',
-      panelClass: ['error-snackbar'],
     });
   }
 

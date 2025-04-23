@@ -1,32 +1,27 @@
-// driver-list.component.ts
-import { Component, OnInit, ViewChild, AfterViewInit } from '@angular/core';
-import { Router } from '@angular/router';
-import { MatTableDataSource } from '@angular/material/table';
-import { MatSort } from '@angular/material/sort';
-import { MatPaginator } from '@angular/material/paginator';
 import { SelectionModel } from '@angular/cdk/collections';
-
-interface Driver {
-  id: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  phone: string;
-  company: string;
-  type: DriverType;
-  status: DriverStatus;
-  lastDriver: Date;
-}
-
-type DriverType = 'customer' | 'supplier' | 'partner';
-type DriverStatus = 'active' | 'inactive';
+import {
+  AfterViewInit,
+  Component,
+  OnDestroy,
+  OnInit,
+  ViewChild,
+} from '@angular/core';
+import { MatDialog } from '@angular/material/dialog';
+import { MatPaginator } from '@angular/material/paginator';
+import { MatSnackBar } from '@angular/material/snack-bar';
+import { MatSort } from '@angular/material/sort';
+import { MatTableDataSource } from '@angular/material/table';
+import { Router } from '@angular/router';
+import { Subscription } from 'rxjs';
+import { ConfirmationDialogComponent } from '../../../dialogs/confirmation-dialog.component';
+import { Driver, DriverService } from '../../../services/driver.service';
 
 @Component({
   selector: 'app-driver-list',
   templateUrl: './driver-list.component.html',
   styleUrls: ['./driver-list.component.scss'],
 })
-export class DriverListComponent implements OnInit, AfterViewInit {
+export class DriverListComponent implements OnInit, AfterViewInit, OnDestroy {
   displayedColumns: string[] = [
     'select',
     'id',
@@ -34,29 +29,40 @@ export class DriverListComponent implements OnInit, AfterViewInit {
     'email',
     'phone',
     'company',
-    'type',
     'status',
-    'lastDriver',
+    'lastLogin',
     'actions',
   ];
 
-  isLoading = false;
+  isLoading = true;
   dataSource = new MatTableDataSource<Driver>([]);
   selection = new SelectionModel<Driver>(true, []);
 
   @ViewChild(MatSort) sort!: MatSort;
   @ViewChild(MatPaginator) paginator!: MatPaginator;
 
-  typeFilter = 'All';
   statusFilter = 'All';
-
-  typeOptions = ['All', 'Customer', 'Supplier', 'Partner'];
   statusOptions = ['All', 'Active', 'Inactive'];
 
-  constructor(private router: Router) {}
+  // Subscriptions
+  private subscriptions: Subscription[] = [];
+
+  constructor(
+    private router: Router,
+    private driverService: DriverService,
+    private dialog: MatDialog,
+    private snackBar: MatSnackBar
+  ) {}
 
   ngOnInit(): void {
     this.loadDrivers();
+
+    // Subscribe to loading state
+    this.subscriptions.push(
+      this.driverService.isLoading$.subscribe((loading) => {
+        this.isLoading = loading;
+      })
+    );
   }
 
   ngAfterViewInit(): void {
@@ -65,17 +71,17 @@ export class DriverListComponent implements OnInit, AfterViewInit {
     this.setupCustomFilter();
   }
 
+  ngOnDestroy(): void {
+    // Clean up subscriptions to prevent memory leaks
+    this.subscriptions.forEach((sub) => sub.unsubscribe());
+  }
+
   private setupCustomFilter(): void {
     this.dataSource.filterPredicate = (data: Driver, filter: string) => {
       const searchText = filter.toLowerCase();
-      const shouldInclude = (value: string) =>
-        value.toLowerCase().includes(searchText);
+      const shouldInclude = (value: string | undefined) =>
+        value?.toLowerCase().includes(searchText) ?? false;
 
-      if (
-        this.typeFilter !== 'All' &&
-        data.type !== this.typeFilter.toLowerCase()
-      )
-        return false;
       if (
         this.statusFilter !== 'All' &&
         data.status !== this.statusFilter.toLowerCase()
@@ -86,8 +92,9 @@ export class DriverListComponent implements OnInit, AfterViewInit {
         shouldInclude(data.firstName) ||
         shouldInclude(data.lastName) ||
         shouldInclude(data.email) ||
-        shouldInclude(data.company) ||
-        shouldInclude(data.phone)
+        shouldInclude(data.companyName) ||
+        shouldInclude(data.phone) ||
+        shouldInclude(data.driverId)
       );
     };
   }
@@ -95,58 +102,29 @@ export class DriverListComponent implements OnInit, AfterViewInit {
   applyFilter(event: Event): void {
     const filterValue = (event.target as HTMLInputElement).value;
     this.dataSource.filter = filterValue.trim().toLowerCase();
+
+    if (this.dataSource.paginator) {
+      this.dataSource.paginator.firstPage();
+    }
   }
 
   loadDrivers(): void {
-    this.isLoading = true;
-
-    // Simulate API call with dummy data
-    setTimeout(() => {
-      const mockDrivers = Array(25)
-        .fill(null)
-        .map((_, index) => ({
-          id: `CON${String(index + 1).padStart(4, '0')}`,
-          firstName: `John${index + 1}`,
-          lastName: `Doe${index + 1}`,
-          email: `driver${index + 1}@example.com`,
-          phone: this.generatePhoneNumber(),
-          company: `Company ${String.fromCharCode(65 + (index % 5))}`,
-          type: this.getRandomType(),
-          status:
-            Math.random() > 0.3
-              ? ('active' as DriverStatus)
-              : ('inactive' as DriverStatus),
-          lastDriver: new Date(2024, 0, index + 1),
-        }));
-
-      this.dataSource.data = mockDrivers;
-      this.isLoading = false;
-    }, 1000); // Simulate network delay
+    // Subscribe to drivers from service - no dummy data
+    this.subscriptions.push(
+      this.driverService.getAllDrivers().subscribe({
+        next: (drivers) => {
+          this.dataSource.data = drivers;
+        },
+        error: (error) => {
+          console.error('Error loading drivers:', error);
+          this.showSnackBar('Failed to load drivers', 'error');
+        },
+      })
+    );
   }
 
-  private generatePhoneNumber(): string {
-    const areaCode = Math.floor(Math.random() * 900 + 100);
-    const prefix = Math.floor(Math.random() * 900 + 100);
-    const lineNumber = Math.floor(Math.random() * 9000 + 1000);
-    return `+1 ${areaCode}-${prefix}-${lineNumber}`;
-  }
-
-  private getRandomType(): DriverType {
-    const types: DriverType[] = ['customer', 'supplier', 'partner'];
-    return types[Math.floor(Math.random() * types.length)];
-  }
-
-  getStatusClass(status: DriverStatus): string {
+  getStatusClass(status: string): string {
     return status === 'active' ? 'status-green' : 'status-gray';
-  }
-
-  getTypeClass(type: DriverType): string {
-    const typeMap: Record<DriverType, string> = {
-      customer: 'type-blue',
-      supplier: 'type-purple',
-      partner: 'type-orange',
-    };
-    return typeMap[type];
   }
 
   onFilterChange(): void {
@@ -184,6 +162,108 @@ export class DriverListComponent implements OnInit, AfterViewInit {
     this.router.navigate(['/drivers', driver.id]);
   }
 
+  resetDriverPassword(driver: Driver, event: Event): void {
+    event.stopPropagation();
+
+    const dialogRef = this.dialog.open(ConfirmationDialogComponent, {
+      width: '350px',
+      data: {
+        title: 'Reset Password',
+        message: `Are you sure you want to reset the password for ${driver.firstName} ${driver.lastName}? They will receive an email with instructions.`,
+        confirmText: 'Reset Password',
+        cancelText: 'Cancel',
+      },
+    });
+
+    dialogRef.afterClosed().subscribe((result) => {
+      if (result) {
+        this.driverService.resetDriverPassword(driver.email).subscribe({
+          next: () => {
+            this.showSnackBar('Password reset email sent', 'success');
+          },
+          error: (error) => {
+            console.error('Error resetting password:', error);
+            this.showSnackBar('Failed to reset password', 'error');
+          },
+        });
+      }
+    });
+  }
+
+  toggleDriverStatus(driver: Driver, event: Event): void {
+    event.stopPropagation();
+
+    const newStatus = driver.status === 'active' ? 'inactive' : 'active';
+    const action = newStatus === 'active' ? 'activate' : 'deactivate';
+
+    const dialogRef = this.dialog.open(ConfirmationDialogComponent, {
+      width: '350px',
+      data: {
+        title: `${action.charAt(0).toUpperCase() + action.slice(1)} Driver`,
+        message: `Are you sure you want to ${action} ${driver.firstName} ${driver.lastName}?`,
+        confirmText: `Yes, ${action}`,
+        cancelText: 'Cancel',
+      },
+    });
+
+    dialogRef.afterClosed().subscribe((result) => {
+      if (result) {
+        this.driverService
+          .updateDriverStatus(driver.id, newStatus as 'active' | 'inactive')
+          .subscribe({
+            next: () => {
+              // Update the status in the local data for immediate UI update
+              const updatedData = this.dataSource.data.map((d) => {
+                if (d.id === driver.id) {
+                  return { ...d, status: newStatus as 'active' | 'inactive' };
+                }
+                return d;
+              });
+              this.dataSource.data = updatedData;
+              this.showSnackBar(`Driver ${action}d successfully`, 'success');
+            },
+            error: (error) => {
+              console.error(`Error ${action}ing driver:`, error);
+              this.showSnackBar(`Failed to ${action} driver`, 'error');
+            },
+          });
+      }
+    });
+  }
+
+  deleteDriver(driver: Driver, event: Event): void {
+    event.stopPropagation();
+
+    const dialogRef = this.dialog.open(ConfirmationDialogComponent, {
+      width: '350px',
+      data: {
+        title: 'Delete Driver',
+        message: `Are you sure you want to delete ${driver.firstName} ${driver.lastName}? This action cannot be undone.`,
+        confirmText: 'Delete',
+        cancelText: 'Cancel',
+        confirmColor: 'warn',
+      },
+    });
+
+    dialogRef.afterClosed().subscribe((result) => {
+      if (result) {
+        this.driverService.deleteDriver(driver.id).subscribe({
+          next: () => {
+            // Remove the deleted driver from the local data
+            this.dataSource.data = this.dataSource.data.filter(
+              (d) => d.id !== driver.id
+            );
+            this.showSnackBar('Driver deleted successfully', 'success');
+          },
+          error: (error) => {
+            console.error('Error deleting driver:', error);
+            this.showSnackBar('Failed to delete driver', 'error');
+          },
+        });
+      }
+    });
+  }
+
   exportDrivers(): void {
     // Create export options menu instead of direct export
     const exportMenu = document.createElement('div');
@@ -196,8 +276,7 @@ export class DriverListComponent implements OnInit, AfterViewInit {
   exportSelectedDrivers(): void {
     const selectedDrivers = this.selection.selected;
     if (selectedDrivers.length === 0) {
-      // Could use MatSnackBar here to show a message
-      console.log('No drivers selected');
+      this.showSnackBar('No drivers selected', 'error');
       return;
     }
     this.downloadDriversCsv(selectedDrivers);
@@ -212,25 +291,27 @@ export class DriverListComponent implements OnInit, AfterViewInit {
     // Convert drivers to CSV format
     const headers = [
       'ID',
+      'Driver ID',
       'First Name',
       'Last Name',
       'Email',
       'Phone',
       'Company',
-      'Type',
       'Status',
-      'Last Driver',
+      'Last Login',
     ];
     const rows = drivers.map((driver) => [
       driver.id,
+      driver.driverId,
       driver.firstName,
       driver.lastName,
       driver.email,
-      driver.phone,
-      driver.company,
-      driver.type,
+      driver.phone || '',
+      driver.companyName || '',
       driver.status,
-      new Date(driver.lastDriver).toLocaleDateString(),
+      driver.lastLogin
+        ? new Date(driver.lastLogin.seconds * 1000).toLocaleDateString()
+        : 'Never',
     ]);
 
     // Combine headers and rows
@@ -251,8 +332,21 @@ export class DriverListComponent implements OnInit, AfterViewInit {
     document.body.removeChild(link);
   }
 
-  deleteDriver(driver: Driver, event: Event): void {
-    event.stopPropagation();
-    console.log('Deleting driver:', driver.id);
+  private showSnackBar(
+    message: string,
+    type: 'success' | 'error' | 'info'
+  ): void {
+    const className = {
+      success: 'success-snackbar',
+      error: 'error-snackbar',
+      info: 'info-snackbar',
+    }[type];
+
+    this.snackBar.open(message, 'Close', {
+      duration: 3000,
+      panelClass: [className],
+      horizontalPosition: 'end',
+      verticalPosition: 'top',
+    });
   }
 }
