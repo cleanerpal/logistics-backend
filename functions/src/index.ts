@@ -1,4 +1,4 @@
-import * as functions from 'firebase-functions/v2';
+import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
 
 // Initialize Firebase Admin
@@ -240,16 +240,18 @@ export const updateUserStatus = functions.https.onCall(
 );
 
 // Trigger when a user is deleted to clean up Firestore data
-export const userDeleted = onUserDeleted(async (event: UserEvent) => {
-  try {
-    // Delete the user's document from Firestore
-    const userRef = admin.firestore().collection('users').doc(event.data.uid);
-    await userRef.delete();
+export const userDeleted = functions.auth
+  .user()
+  .onDelete(async (user: admin.auth.UserRecord) => {
+    try {
+      // Delete the user's document from Firestore
+      const userRef = admin.firestore().collection('users').doc(user.uid);
+      await userRef.delete();
 
-    console.log(`Successfully deleted user data for ${event.data.uid}`);
-    return true;
-  } catch (error) {
-    console.error('Error deleting user data:', error);
-    throw error;
-  }
-});
+      console.log(`Successfully deleted user data for ${user.uid}`);
+      return true;
+    } catch (error) {
+      console.error('Error deleting user data:', error);
+      throw error;
+    }
+  });
