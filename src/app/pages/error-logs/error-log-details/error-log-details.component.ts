@@ -223,14 +223,7 @@ export class ErrorLogDetailsComponent implements OnInit, OnDestroy {
   /**
    * Format JSON for display
    */
-  formatJson(jsonString?: string): string {
-    if (!jsonString) return '';
-
-    try {
-      const obj = JSON.parse(jsonString);
-      return JSON.stringify(obj, null, 2);
-    } catch (e) {
-      return jsonString;
-    }
+  formatJson(data: any): string {
+    return JSON.stringify(data, null, 2);
   }
 }

@@ -213,7 +213,7 @@
           mat-icon-button
           color="primary"
           matTooltip="Copy headers"
-          (click)="copyToClipboard(JSON.stringify(error.headers, null, 2))"
+          (click)="copyToClipboard(formatJson(error.headers))"
         >
           <mat-icon>content_copy</mat-icon>
         </button>
