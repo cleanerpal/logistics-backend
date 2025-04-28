@@ -1,5 +1,5 @@
 import { SelectionModel } from '@angular/cdk/collections';
-import { AsyncPipe, DatePipe, NgFor, NgIf } from '@angular/common';
+import { NgFor, NgIf } from '@angular/common';
 import { Component, OnDestroy, OnInit, ViewChild, inject } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
@@ -32,12 +32,9 @@ import {
 } from '@angular/fire/firestore';
 
 // Components
-import { BulkUploadDialogComponent } from './bulk-upload-dialog/bulk-upload-dialog.component';
 import { MatCard, MatCardContent } from '@angular/material/card';
-import {
-  MatProgressSpinner,
-  MatSpinner,
-} from '@angular/material/progress-spinner';
+import { MatProgressSpinner } from '@angular/material/progress-spinner';
+import { BulkUploadDialogComponent } from './bulk-upload-dialog/bulk-upload-dialog.component';
 
 // Interface for Job data
 export interface Job {
@@ -98,7 +95,6 @@ export interface Job {
   imports: [
     NgIf,
     NgFor,
-    AsyncPipe,
     MatTableModule,
     MatPaginatorModule,
     MatSortModule,
@@ -115,7 +111,6 @@ export interface Job {
     MatCard,
     MatCardContent,
     MatProgressSpinner,
-    DatePipe,
   ],
 })
 export class JobsComponent implements OnInit, OnDestroy {
