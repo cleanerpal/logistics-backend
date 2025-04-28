@@ -5,9 +5,7 @@ export const EXPENSES_ROUTES: Routes = [
   {
     path: '',
     loadComponent: () =>
-      import('./expenses-list/expenses-list.component').then(
-        (m) => m.ExpensesListComponent
-      ),
+      import('./expenses.component').then((m) => m.ExpensesComponent),
     canActivate: [authGuard],
   },
   {

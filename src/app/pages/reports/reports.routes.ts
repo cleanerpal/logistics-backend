@@ -5,35 +5,24 @@ export const REPORTS_ROUTES: Routes = [
   {
     path: '',
     loadComponent: () =>
-      import('./reports-dashboard/reports-dashboard.component').then(
-        (m) => m.ReportsDashboardComponent
+      import('./reports.component').then((m) => m.ReportsComponent),
+    canActivate: [authGuard],
+    data: { roles: ['SuperAdmin', 'Admin'] },
+  },
+  {
+    path: 'driver-performance',
+    loadComponent: () =>
+      import('./driver-performance/driver-performance.component').then(
+        (m) => m.DriverPerformanceComponent
       ),
     canActivate: [authGuard],
     data: { roles: ['SuperAdmin', 'Admin'] },
   },
   {
-    path: 'jobs',
+    path: 'vehicle-utilization',
     loadComponent: () =>
-      import('./job-reports/job-reports.component').then(
-        (m) => m.JobReportsComponent
-      ),
-    canActivate: [authGuard],
-    data: { roles: ['SuperAdmin', 'Admin'] },
-  },
-  {
-    path: 'drivers',
-    loadComponent: () =>
-      import('./driver-reports/driver-reports.component').then(
-        (m) => m.DriverReportsComponent
-      ),
-    canActivate: [authGuard],
-    data: { roles: ['SuperAdmin', 'Admin'] },
-  },
-  {
-    path: 'vehicles',
-    loadComponent: () =>
-      import('./vehicle-reports/vehicle-reports.component').then(
-        (m) => m.VehicleReportsComponent
+      import('./vehicle-utilization/vehicle-utilization.component').then(
+        (m) => m.VehicleUtilizationComponent
       ),
     canActivate: [authGuard],
     data: { roles: ['SuperAdmin', 'Admin'] },
@@ -48,10 +37,28 @@ export const REPORTS_ROUTES: Routes = [
     data: { roles: ['SuperAdmin', 'Admin'] },
   },
   {
-    path: 'expenses',
+    path: 'job-status',
     loadComponent: () =>
-      import('./expense-reports/expense-reports.component').then(
-        (m) => m.ExpenseReportsComponent
+      import('./job-status/job-status.component').then(
+        (m) => m.JobStatusComponent
+      ),
+    canActivate: [authGuard],
+    data: { roles: ['SuperAdmin', 'Admin'] },
+  },
+  {
+    path: 'driver-handover',
+    loadComponent: () =>
+      import('./driver-handover/driver-handover.component').then(
+        (m) => m.DriverHandoverComponent
+      ),
+    canActivate: [authGuard],
+    data: { roles: ['SuperAdmin', 'Admin'] },
+  },
+  {
+    path: 'driver-hours',
+    loadComponent: () =>
+      import('./driver-hours/driver-hours.component').then(
+        (m) => m.DriverHoursComponent
       ),
     canActivate: [authGuard],
     data: { roles: ['SuperAdmin', 'Admin'] },

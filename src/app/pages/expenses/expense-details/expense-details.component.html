@@ -1,0 +1,132 @@
+<div class="expense-details-container">
+  <div class="page-header">
+    <div class="title-section">
+      <button
+        mat-icon-button
+        color="primary"
+        (click)="goBack()"
+        class="back-button"
+      >
+        <mat-icon>arrow_back</mat-icon>
+      </button>
+      <h1 class="page-title">Expense Details</h1>
+    </div>
+
+    <div class="header-actions" *ngIf="expense">
+      <button
+        mat-raised-button
+        color="accent"
+        (click)="approveExpense()"
+        *ngIf="expense.status === 'Pending'"
+      >
+        <mat-icon>check_circle</mat-icon>
+        Approve
+      </button>
+      <button
+        mat-raised-button
+        color="warn"
+        (click)="rejectExpense()"
+        *ngIf="expense.status === 'Pending'"
+      >
+        <mat-icon>cancel</mat-icon>
+        Reject
+      </button>
+      <button mat-raised-button color="warn" (click)="confirmDelete()">
+        <mat-icon>delete</mat-icon>
+        Delete
+      </button>
+    </div>
+  </div>
+
+  <!-- Loading spinner -->
+  <div class="loading-container" *ngIf="loading">
+    <mat-spinner diameter="50"></mat-spinner>
+  </div>
+
+  <!-- Expense details content -->
+  <div class="details-content" *ngIf="!loading && expense">
+    <mat-card class="details-card">
+      <mat-card-header>
+        <mat-card-title>
+          {{ expense.type }} Expense
+          <span
+            class="status-badge"
+            [style.background-color]="getStatusColor(expense.status)"
+          >
+            {{ expense.status }}
+          </span>
+        </mat-card-title>
+        <mat-card-subtitle>Expense ID: {{ expense.id }}</mat-card-subtitle>
+      </mat-card-header>
+
+      <mat-card-content>
+        <div class="details-grid">
+          <div class="detail-item">
+            <div class="detail-label">Driver</div>
+            <div class="detail-value">{{ expense.driverName }}</div>
+          </div>
+
+          <div class="detail-item">
+            <div class="detail-label">Amount</div>
+            <div class="detail-value amount">
+              {{ formatAmount(expense.amount) }}
+            </div>
+          </div>
+
+          <div class="detail-item">
+            <div class="detail-label">Date</div>
+            <div class="detail-value">{{ formatDate(expense.date) }}</div>
+          </div>
+
+          <div class="detail-item">
+            <div class="detail-label">Created</div>
+            <div class="detail-value">
+              {{ formatDate(expense.createdAt) }}
+            </div>
+          </div>
+
+          <div class="detail-item full-width">
+            <div class="detail-label">Notes</div>
+            <div class="detail-value notes">
+              {{ expense.notes || "No notes provided" }}
+            </div>
+          </div>
+
+          <div class="detail-item full-width">
+            <div class="detail-label">Chargeable</div>
+            <div class="detail-value">
+              <mat-slide-toggle
+                [checked]="expense.chargeable"
+                (change)="toggleChargeable()"
+                color="primary"
+                [disabled]="expense.status === 'Rejected'"
+              ></mat-slide-toggle>
+            </div>
+          </div>
+        </div>
+
+        <mat-divider></mat-divider>
+
+        <!-- Receipt section -->
+        <div class="receipt-section" *ngIf="expense.receiptUrl">
+          <h3>Receipt</h3>
+          <div class="receipt-preview">
+            <div class="receipt-placeholder">
+              <mat-icon>receipt</mat-icon>
+              <div class="receipt-placeholder-text">Receipt Available</div>
+            </div>
+            <button mat-raised-button color="primary" (click)="viewReceipt()">
+              <mat-icon>visibility</mat-icon>
+              View Receipt
+            </button>
+          </div>
+        </div>
+
+        <div class="receipt-section" *ngIf="!expense.receiptUrl">
+          <h3>Receipt</h3>
+          <div class="no-receipt">No receipt was uploaded for this expense</div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+</div>
