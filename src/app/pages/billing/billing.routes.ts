@@ -1,3 +1,4 @@
+// billing.routes.ts
 import { Routes } from '@angular/router';
 import { authGuard } from '../../guards/auth.guard';
 
@@ -5,9 +6,7 @@ export const BILLING_ROUTES: Routes = [
   {
     path: '',
     loadComponent: () =>
-      import('./billing-list/billing-list.component').then(
-        (m) => m.BillingListComponent
-      ),
+      import('./billing.component').then((m) => m.BillingComponent),
     canActivate: [authGuard],
     data: { roles: ['SuperAdmin', 'Admin'] },
   },
@@ -25,6 +24,15 @@ export const BILLING_ROUTES: Routes = [
     loadComponent: () =>
       import('./invoice-details/invoice-details.component').then(
         (m) => m.InvoiceDetailsComponent
+      ),
+    canActivate: [authGuard],
+    data: { roles: ['SuperAdmin', 'Admin'] },
+  },
+  {
+    path: 'edit-invoice/:id',
+    loadComponent: () =>
+      import('./generate-invoice/generate-invoice.component').then(
+        (m) => m.GenerateInvoiceComponent
       ),
     canActivate: [authGuard],
     data: { roles: ['SuperAdmin', 'Admin'] },
