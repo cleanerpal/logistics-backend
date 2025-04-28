@@ -1,0 +1,112 @@
+<div class="user-form-container">
+  <div class="page-header">
+    <h1 class="header-title">{{ isEditMode ? "Edit User" : "Create User" }}</h1>
+    <button
+      mat-button
+      color="accent"
+      class="back-button"
+      (click)="cancelEdit()"
+    >
+      <mat-icon>arrow_back</mat-icon>
+      Back to Users
+    </button>
+  </div>
+
+  <mat-card>
+    <mat-card-content>
+      <div *ngIf="isLoading" class="loading-container">
+        <mat-spinner diameter="50"></mat-spinner>
+      </div>
+
+      <form [formGroup]="userForm" (ngSubmit)="onSubmit()" *ngIf="!isLoading">
+        <div class="form-row">
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Display Name</mat-label>
+            <input
+              matInput
+              formControlName="displayName"
+              placeholder="Enter user's full name"
+            />
+            <mat-error
+              *ngIf="userForm.get('displayName')?.hasError('required')"
+            >
+              Name is required
+            </mat-error>
+          </mat-form-field>
+        </div>
+
+        <div class="form-row">
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Email Address</mat-label>
+            <input
+              matInput
+              formControlName="email"
+              placeholder="Enter user's email"
+              type="email"
+            />
+            <mat-error *ngIf="userForm.get('email')?.hasError('required')">
+              Email is required
+            </mat-error>
+            <mat-error *ngIf="userForm.get('email')?.hasError('email')">
+              Please enter a valid email address
+            </mat-error>
+          </mat-form-field>
+        </div>
+
+        <div class="form-row">
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Role</mat-label>
+            <mat-select formControlName="role">
+              <mat-option *ngFor="let role of roles" [value]="role.value">
+                {{ role.label }}
+              </mat-option>
+            </mat-select>
+            <mat-error *ngIf="userForm.get('role')?.hasError('required')">
+              Role is required
+            </mat-error>
+          </mat-form-field>
+        </div>
+
+        <div class="form-row">
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Team</mat-label>
+            <mat-select formControlName="team">
+              <mat-option *ngFor="let team of teams" [value]="team.value">
+                {{ team.label }}
+              </mat-option>
+            </mat-select>
+            <mat-error *ngIf="userForm.get('team')?.hasError('required')">
+              Team is required for drivers
+            </mat-error>
+          </mat-form-field>
+        </div>
+
+        <div class="form-row" *ngIf="userForm.get('role')?.value === 'Driver'">
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Driver ID</mat-label>
+            <input matInput formControlName="driverId" readonly />
+            <mat-hint>Driver ID is auto-generated</mat-hint>
+          </mat-form-field>
+        </div>
+
+        <div class="form-actions">
+          <button mat-button type="button" (click)="cancelEdit()">
+            Cancel
+          </button>
+
+          <button
+            mat-raised-button
+            color="primary"
+            type="submit"
+            [disabled]="userForm.invalid || isSaving"
+          >
+            <mat-icon *ngIf="isSaving">
+              <mat-spinner diameter="20" color="accent"></mat-spinner>
+            </mat-icon>
+            <span>{{ isEditMode ? "Update" : "Create" }} User</span>
+          </button>
+        </div>
+      </form>
+    </mat-card-content>
+  </mat-card>
+</div>

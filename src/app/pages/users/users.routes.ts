@@ -5,8 +5,8 @@ export const USERS_ROUTES: Routes = [
   {
     path: '',
     loadComponent: () =>
-      import('./users-list/users-list.component').then(
-        (m) => m.UsersListComponent
+      import('./user-management/user-management.component').then(
+        (m) => m.UserManagementComponent
       ),
     canActivate: [authGuard],
     data: { roles: ['SuperAdmin'] },
@@ -25,15 +25,6 @@ export const USERS_ROUTES: Routes = [
     loadComponent: () =>
       import('./user-form/user-form.component').then(
         (m) => m.UserFormComponent
-      ),
-    canActivate: [authGuard],
-    data: { roles: ['SuperAdmin'] },
-  },
-  {
-    path: ':id',
-    loadComponent: () =>
-      import('./user-details/user-details.component').then(
-        (m) => m.UserDetailsComponent
       ),
     canActivate: [authGuard],
     data: { roles: ['SuperAdmin'] },
