@@ -19,7 +19,10 @@ import { MatCardModule } from '@angular/material/card';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
 import { MatSelectModule } from '@angular/material/select';
-import { MatSlideToggleModule } from '@angular/material/slide-toggle';
+import {
+  MatSlideToggleModule,
+  MatSlideToggleChange,
+} from '@angular/material/slide-toggle';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
@@ -383,29 +386,29 @@ export class ExpensesComponent implements OnInit, OnDestroy {
    * Toggle expense chargeable status
    */
   async toggleChargeable(
-    id: string,
-    currentStatus: boolean,
-    event: Event
+    expenseId: string,
+    currentValue: boolean,
+    event: MatSlideToggleChange
   ): Promise<void> {
-    event.stopPropagation(); // Prevent row click
+    // The click event is already stopped by the template's (click)="$event.stopPropagation()"
 
     try {
-      const expenseRef = doc(this.firestore, 'Expenses', id);
+      const expenseRef = doc(this.firestore, 'Expenses', expenseId);
       await updateDoc(expenseRef, {
-        chargeable: !currentStatus,
+        chargeable: !currentValue,
         updatedAt: Timestamp.now(),
       });
 
       this.snackBar.open(
-        `Expense marked as ${!currentStatus ? 'chargeable' : 'non-chargeable'}`,
+        `Expense marked as ${!currentValue ? 'chargeable' : 'non-chargeable'}`,
         'Close',
         {
           duration: 3000,
         }
       );
     } catch (error) {
-      console.error('Error updating expense chargeable status:', error);
-      this.snackBar.open('Error updating expense. Please try again.', 'Close', {
+      console.error('Error toggling chargeable status:', error);
+      this.snackBar.open('Error updating status. Please try again.', 'Close', {
         duration: 5000,
         panelClass: ['error-snackbar'],
       });

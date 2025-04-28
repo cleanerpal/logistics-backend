@@ -30,6 +30,7 @@ import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatTableModule } from '@angular/material/table';
+import { MatMenuModule } from '@angular/material/menu';
 
 // Firebase imports
 import {
@@ -104,6 +105,7 @@ import { HandoverDialogComponent } from '../handover-dialog/handover-dialog.comp
     MatTabsModule,
     MatTableModule,
     MatDialogModule,
+    MatMenuModule,
   ],
 })
 export class JobFormComponent implements OnInit, OnDestroy {

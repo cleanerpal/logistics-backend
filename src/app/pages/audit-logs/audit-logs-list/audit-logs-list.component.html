@@ -1,0 +1,176 @@
+<div class="audit-logs-container">
+  <mat-card class="filter-card">
+    <mat-card-header>
+      <mat-card-title>Audit Logs</mat-card-title>
+      <mat-card-subtitle>View system activity records</mat-card-subtitle>
+    </mat-card-header>
+    <mat-card-content>
+      <form [formGroup]="filterForm">
+        <div class="filters-row">
+          <mat-form-field appearance="outline" class="search-field">
+            <mat-label>Search</mat-label>
+            <input
+              matInput
+              formControlName="searchTerm"
+              placeholder="Search by user or details"
+            />
+            <mat-icon matSuffix>search</mat-icon>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Action Type</mat-label>
+            <mat-select formControlName="actionType">
+              <mat-option value="">All Actions</mat-option>
+              <mat-option *ngFor="let action of actionTypes" [value]="action">
+                {{ action }}
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <div class="date-range-container" formGroupName="dateRange">
+            <mat-form-field appearance="outline">
+              <mat-label>Date Range</mat-label>
+              <mat-date-range-input [rangePicker]="picker">
+                <input
+                  matStartDate
+                  formControlName="start"
+                  placeholder="Start date"
+                />
+                <input
+                  matEndDate
+                  formControlName="end"
+                  placeholder="End date"
+                />
+              </mat-date-range-input>
+              <mat-datepicker-toggle
+                matSuffix
+                [for]="picker"
+              ></mat-datepicker-toggle>
+              <mat-date-range-picker #picker></mat-date-range-picker>
+            </mat-form-field>
+          </div>
+
+          <div class="filter-buttons">
+            <button
+              mat-flat-button
+              color="primary"
+              class="primary-button"
+              (click)="loadAuditLogs()"
+            >
+              <mat-icon>filter_list</mat-icon> Apply
+            </button>
+            <button mat-stroked-button color="warn" (click)="resetFilters()">
+              <mat-icon>clear</mat-icon> Reset
+            </button>
+            <button mat-stroked-button color="primary" (click)="exportToCsv()">
+              <mat-icon>file_download</mat-icon> Export
+            </button>
+          </div>
+        </div>
+      </form>
+    </mat-card-content>
+  </mat-card>
+
+  <div class="loading-container" *ngIf="isLoading">
+    <mat-spinner diameter="40"></mat-spinner>
+    <p>Loading audit logs...</p>
+  </div>
+
+  <div class="table-container" *ngIf="!isLoading">
+    <div *ngIf="filteredData.length === 0" class="no-data">
+      <mat-icon>history</mat-icon>
+      <p>No audit logs found matching your criteria</p>
+    </div>
+
+    <table
+      mat-table
+      [dataSource]="filteredData"
+      matSort
+      *ngIf="filteredData.length > 0"
+    >
+      <!-- Timestamp Column -->
+      <ng-container matColumnDef="timestamp">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>Timestamp</th>
+        <td mat-cell *matCellDef="let log">
+          <div class="timestamp-cell">
+            <div class="timestamp-date">
+              {{ log.timestamp | date : "MMM d, yyyy" }}
+            </div>
+            <div class="timestamp-time">
+              {{ log.timestamp | date : "h:mm:ss a" }}
+            </div>
+          </div>
+        </td>
+      </ng-container>
+
+      <!-- Action Column -->
+      <ng-container matColumnDef="action">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>Action</th>
+        <td mat-cell *matCellDef="let log">
+          <mat-chip-set>
+            <mat-chip [ngClass]="'action-chip-' + log.action">{{
+              log.action
+            }}</mat-chip>
+          </mat-chip-set>
+        </td>
+      </ng-container>
+
+      <!-- User Column -->
+      <ng-container matColumnDef="userName">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>User</th>
+        <td mat-cell *matCellDef="let log">
+          <div class="user-cell">
+            <span>{{ log.userName || "Unknown User" }}</span>
+            <span class="user-id" *ngIf="log.userId">ID: {{ log.userId }}</span>
+            <span class="ip-address" *ngIf="log.ipAddress"
+              >IP: {{ log.ipAddress }}</span
+            >
+          </div>
+        </td>
+      </ng-container>
+
+      <!-- Resource Column -->
+      <ng-container matColumnDef="resource">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>Resource</th>
+        <td mat-cell *matCellDef="let log">
+          <span *ngIf="log.resource">{{ log.resource }}</span>
+          <span *ngIf="log.resourceId" class="resource-id"
+            >ID: {{ log.resourceId }}</span
+          >
+          <span *ngIf="!log.resource && !log.resourceId">-</span>
+        </td>
+      </ng-container>
+
+      <!-- Details Column -->
+      <ng-container matColumnDef="details">
+        <th mat-header-cell *matHeaderCellDef>Details</th>
+        <td mat-cell *matCellDef="let log">
+          <button
+            mat-icon-button
+            matTooltip="View Details"
+            (click)="log.showDetails = !log.showDetails"
+          >
+            <mat-icon>{{
+              log.showDetails ? "expand_less" : "expand_more"
+            }}</mat-icon>
+          </button>
+          <div class="details-panel" *ngIf="log.showDetails">
+            <pre>{{ formatDetails(log.details) }}</pre>
+          </div>
+        </td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+    </table>
+
+    <mat-paginator
+      [pageSizeOptions]="pageSizeOptions"
+      [pageSize]="pageSize"
+      [length]="totalLogs"
+      showFirstLastButtons
+      (page)="onPageChange($event)"
+    >
+    </mat-paginator>
+  </div>
+</div>

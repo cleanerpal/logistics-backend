@@ -1,0 +1,120 @@
+<div class="audit-log-details-container">
+  <div class="back-navigation">
+    <button mat-button color="primary" (click)="goBack()">
+      <mat-icon>arrow_back</mat-icon>
+      Back to Audit Logs
+    </button>
+  </div>
+
+  <div class="loading-container" *ngIf="isLoading">
+    <mat-spinner diameter="40"></mat-spinner>
+    <p>Loading audit log details...</p>
+  </div>
+
+  <div class="error-container" *ngIf="error && !isLoading">
+    <mat-icon color="warn">error</mat-icon>
+    <h2>{{ error }}</h2>
+    <button
+      mat-flat-button
+      color="primary"
+      class="primary-button"
+      (click)="goBack()"
+    >
+      Return to Audit Logs
+    </button>
+  </div>
+
+  <div class="content-container" *ngIf="auditLog && !isLoading">
+    <mat-card class="details-card">
+      <mat-card-header>
+        <div mat-card-avatar class="avatar-icon">
+          <mat-icon>history</mat-icon>
+        </div>
+        <mat-card-title>
+          Audit Log Details
+          <span class="log-id">#{{ logId }}</span>
+        </mat-card-title>
+        <mat-card-subtitle>
+          <mat-chip-set>
+            <mat-chip
+              [ngClass]="'action-chip-' + getActionClass(auditLog.action)"
+            >
+              {{ auditLog.action }}
+            </mat-chip>
+          </mat-chip-set>
+        </mat-card-subtitle>
+      </mat-card-header>
+
+      <mat-card-content>
+        <div class="detail-section">
+          <h3>Timestamp</h3>
+          <div class="timestamp-details">
+            <div class="timestamp-date">
+              {{ auditLog.timestamp | date : "fullDate" }}
+            </div>
+            <div class="timestamp-time">
+              {{ auditLog.timestamp | date : "h:mm:ss a" }}
+            </div>
+          </div>
+        </div>
+
+        <mat-divider></mat-divider>
+
+        <div class="detail-section">
+          <h3>User Information</h3>
+          <div class="detail-row">
+            <div class="detail-label">Name:</div>
+            <div class="detail-value">
+              {{ auditLog.userName || "Unknown User" }}
+            </div>
+          </div>
+          <div class="detail-row" *ngIf="auditLog.userId">
+            <div class="detail-label">User ID:</div>
+            <div class="detail-value">{{ auditLog.userId }}</div>
+          </div>
+          <div class="detail-row" *ngIf="auditLog.ipAddress">
+            <div class="detail-label">IP Address:</div>
+            <div class="detail-value">{{ auditLog.ipAddress }}</div>
+          </div>
+        </div>
+
+        <mat-divider
+          *ngIf="auditLog.resource || auditLog.resourceId"
+        ></mat-divider>
+
+        <div
+          class="detail-section"
+          *ngIf="auditLog.resource || auditLog.resourceId"
+        >
+          <h3>Resource Information</h3>
+          <div class="detail-row" *ngIf="auditLog.resource">
+            <div class="detail-label">Resource Type:</div>
+            <div class="detail-value">{{ auditLog.resource }}</div>
+          </div>
+          <div class="detail-row" *ngIf="auditLog.resourceId">
+            <div class="detail-label">Resource ID:</div>
+            <div class="detail-value">{{ auditLog.resourceId }}</div>
+          </div>
+        </div>
+
+        <mat-divider></mat-divider>
+
+        <div class="detail-section">
+          <h3>Details</h3>
+          <mat-expansion-panel>
+            <mat-expansion-panel-header>
+              <mat-panel-title> View Complete Details </mat-panel-title>
+            </mat-expansion-panel-header>
+            <pre class="details-pre">{{ formatDetails(auditLog.details) }}</pre>
+          </mat-expansion-panel>
+        </div>
+      </mat-card-content>
+
+      <mat-card-actions>
+        <button mat-button color="warn" [routerLink]="['/audit-logs']">
+          Close
+        </button>
+      </mat-card-actions>
+    </mat-card>
+  </div>
+</div>

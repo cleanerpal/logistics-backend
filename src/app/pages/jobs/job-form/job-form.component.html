@@ -539,7 +539,7 @@
       <mat-card
         class="form-card"
         *ngFor="let point of secondaryPoints.controls; let i = index"
-        [formGroup]="point"
+        [formGroup]="$any(point)"
       >
         <mat-card-header>
           <mat-card-title>Secondary Point {{ i + 1 }}</mat-card-title>

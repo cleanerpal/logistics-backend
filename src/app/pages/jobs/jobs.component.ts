@@ -33,6 +33,11 @@ import {
 
 // Components
 import { BulkUploadDialogComponent } from './bulk-upload-dialog/bulk-upload-dialog.component';
+import { MatCard, MatCardContent } from '@angular/material/card';
+import {
+  MatProgressSpinner,
+  MatSpinner,
+} from '@angular/material/progress-spinner';
 
 // Interface for Job data
 export interface Job {
@@ -107,6 +112,9 @@ export interface Job {
     MatDialogModule,
     MatSelectModule,
     ReactiveFormsModule,
+    MatCard,
+    MatCardContent,
+    MatProgressSpinner,
     DatePipe,
   ],
 })

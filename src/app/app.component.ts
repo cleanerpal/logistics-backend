@@ -1,12 +1,11 @@
+import { AsyncPipe, NgIf } from '@angular/common';
 import { Component, ViewChild } from '@angular/core';
-import { MatSidenav } from '@angular/material/sidenav';
-import { FirebaseService } from './services/firebase.service';
-import { Observable } from 'rxjs';
-import { NgIf, AsyncPipe } from '@angular/common';
+import { MatSidenav, MatSidenavModule } from '@angular/material/sidenav';
 import { RouterOutlet } from '@angular/router';
-import { MatSidenavModule } from '@angular/material/sidenav';
+import { Observable } from 'rxjs';
 import { HeaderComponent } from './components/header/header.component';
 import { SidebarComponent } from './components/sidebar/sidebar.component';
+import { FirebaseService } from './services/firebase.service';
 
 @Component({
   selector: 'app-root',
