@@ -1,0 +1,132 @@
+<div class="driver-form-container">
+  <div class="page-header">
+    <h1 class="page-title">
+      {{ isEditMode ? "Edit Driver" : "Create New Driver" }}
+    </h1>
+  </div>
+
+  <!-- Loading spinner -->
+  <div class="loading-container" *ngIf="loading">
+    <mat-spinner diameter="50"></mat-spinner>
+  </div>
+
+  <!-- Driver form -->
+  <form [formGroup]="driverForm" (ngSubmit)="onSubmit()" *ngIf="!loading">
+    <mat-card class="form-card">
+      <mat-card-header>
+        <mat-card-title>Driver Information</mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="form-row">
+          <mat-form-field appearance="outline">
+            <mat-label>Driver ID</mat-label>
+            <input matInput formControlName="id" />
+            <mat-hint *ngIf="!isEditMode">Auto-generated unique ID</mat-hint>
+            <mat-hint *ngIf="isEditMode"
+              >ID cannot be changed after creation</mat-hint
+            >
+          </mat-form-field>
+        </div>
+
+        <div class="form-row">
+          <mat-form-field appearance="outline">
+            <mat-label>Name</mat-label>
+            <input
+              matInput
+              formControlName="displayName"
+              placeholder="Full name"
+            />
+            <mat-error
+              *ngIf="driverForm.get('displayName')?.hasError('required')"
+            >
+              Name is required
+            </mat-error>
+          </mat-form-field>
+        </div>
+
+        <div class="form-row">
+          <mat-form-field appearance="outline">
+            <mat-label>Email</mat-label>
+            <input
+              matInput
+              formControlName="email"
+              type="email"
+              placeholder="email@example.com"
+            />
+            <mat-error *ngIf="driverForm.get('email')?.hasError('required')">
+              Email is required
+            </mat-error>
+            <mat-error *ngIf="driverForm.get('email')?.hasError('email')">
+              Please enter a valid email address
+            </mat-error>
+          </mat-form-field>
+        </div>
+
+        <div class="form-row">
+          <mat-form-field appearance="outline">
+            <mat-label>Phone Number</mat-label>
+            <input
+              matInput
+              formControlName="phoneNumber"
+              placeholder="+44 XXXX XXXXXX"
+            />
+            <mat-error
+              *ngIf="driverForm.get('phoneNumber')?.hasError('required')"
+            >
+              Phone number is required
+            </mat-error>
+            <mat-error
+              *ngIf="driverForm.get('phoneNumber')?.hasError('pattern')"
+            >
+              Please enter a valid phone number
+            </mat-error>
+          </mat-form-field>
+        </div>
+
+        <div class="form-row">
+          <mat-form-field appearance="outline">
+            <mat-label>Role</mat-label>
+            <input matInput formControlName="role" />
+            <mat-hint>Driver role is fixed and cannot be changed</mat-hint>
+          </mat-form-field>
+        </div>
+
+        <div class="form-row">
+          <mat-form-field appearance="outline">
+            <mat-label>Team</mat-label>
+            <mat-select formControlName="team">
+              <mat-option value="">Select a team</mat-option>
+              <mat-option *ngFor="let team of teams" [value]="team.name">
+                {{ team.name }}
+              </mat-option>
+            </mat-select>
+            <mat-error *ngIf="driverForm.get('team')?.hasError('required')">
+              Team is required
+            </mat-error>
+          </mat-form-field>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Form Actions -->
+    <div class="form-actions">
+      <button type="button" mat-stroked-button (click)="onCancel()">
+        <mat-icon>cancel</mat-icon>
+        Cancel
+      </button>
+
+      <button
+        type="submit"
+        mat-raised-button
+        color="primary"
+        [disabled]="saving"
+      >
+        <mat-spinner diameter="20" *ngIf="saving"></mat-spinner>
+        <span *ngIf="!saving">
+          <mat-icon>save</mat-icon>
+          {{ isEditMode ? "Update" : "Create" }} Driver
+        </span>
+      </button>
+    </div>
+  </form>
+</div>

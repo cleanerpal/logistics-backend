@@ -1,1 +1,123 @@
-<p>companies works!</p>
+<div class="companies-container">
+  <div class="page-header">
+    <h1 class="page-title">Companies</h1>
+
+    <div class="header-actions">
+      <button
+        mat-raised-button
+        color="primary"
+        class="create-button"
+        (click)="createCompany()"
+      >
+        <mat-icon>add</mat-icon>
+        Create Company
+      </button>
+    </div>
+  </div>
+
+  <!-- Search and Filter Section -->
+  <mat-card class="filter-card">
+    <mat-card-content>
+      <mat-form-field appearance="outline" class="search-field">
+        <mat-label>Search Companies</mat-label>
+        <input
+          matInput
+          [formControl]="searchControl"
+          placeholder="Search by name or company name"
+        />
+        <button
+          *ngIf="searchControl.value"
+          matSuffix
+          mat-icon-button
+          aria-label="Clear"
+          (click)="searchControl.setValue('')"
+        >
+          <mat-icon>close</mat-icon>
+        </button>
+        <mat-icon matSuffix>search</mat-icon>
+      </mat-form-field>
+    </mat-card-content>
+  </mat-card>
+
+  <!-- Loading Spinner -->
+  <div class="loading-container" *ngIf="loading">
+    <mat-spinner diameter="50"></mat-spinner>
+  </div>
+
+  <!-- Companies Table -->
+  <div class="table-container" *ngIf="!loading">
+    <table mat-table [dataSource]="dataSource" matSort class="companies-table">
+      <!-- Company Name Column -->
+      <ng-container matColumnDef="companyName">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>Company Name</th>
+        <td mat-cell *matCellDef="let company">{{ company.companyName }}</td>
+      </ng-container>
+
+      <!-- Contact Name Column -->
+      <ng-container matColumnDef="name">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>Contact Name</th>
+        <td mat-cell *matCellDef="let company">{{ company.name }}</td>
+      </ng-container>
+
+      <!-- Address Column -->
+      <ng-container matColumnDef="address">
+        <th mat-header-cell *matHeaderCellDef>Address</th>
+        <td mat-cell *matCellDef="let company">{{ formatAddress(company) }}</td>
+      </ng-container>
+
+      <!-- Phone Column -->
+      <ng-container matColumnDef="phone">
+        <th mat-header-cell *matHeaderCellDef>Phone</th>
+        <td mat-cell *matCellDef="let company">{{ company.phone }}</td>
+      </ng-container>
+
+      <!-- Email Column -->
+      <ng-container matColumnDef="email">
+        <th mat-header-cell *matHeaderCellDef>Email</th>
+        <td mat-cell *matCellDef="let company">{{ company.email }}</td>
+      </ng-container>
+
+      <!-- Actions Column -->
+      <ng-container matColumnDef="actions">
+        <th mat-header-cell *matHeaderCellDef>Actions</th>
+        <td mat-cell *matCellDef="let company">
+          <button
+            mat-icon-button
+            color="primary"
+            [matTooltip]="'Manage Addresses'"
+            (click)="manageAddresses(company.id, $event)"
+          >
+            <mat-icon>location_on</mat-icon>
+          </button>
+        </td>
+      </ng-container>
+
+      <!-- Row Definitions -->
+      <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+      <tr
+        mat-row
+        *matRowDef="let company; columns: displayedColumns"
+        (click)="editCompany(company.id)"
+        class="company-row"
+      ></tr>
+
+      <!-- No Results Row -->
+      <tr class="mat-row" *matNoDataRow>
+        <td
+          class="mat-cell no-data-cell"
+          [attr.colspan]="displayedColumns.length"
+        >
+          No companies found matching the search criteria
+        </td>
+      </tr>
+    </table>
+
+    <!-- Paginator -->
+    <mat-paginator
+      [pageSizeOptions]="[10, 25, 50]"
+      [pageSize]="50"
+      showFirstLastButtons
+    >
+    </mat-paginator>
+  </div>
+</div>

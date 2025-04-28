@@ -1,0 +1,156 @@
+<div class="vehicle-details-container">
+  <!-- Header with back button -->
+  <div class="page-header">
+    <div class="title-section">
+      <button
+        mat-icon-button
+        color="primary"
+        (click)="goBack()"
+        class="back-button"
+      >
+        <mat-icon>arrow_back</mat-icon>
+      </button>
+      <h1 class="page-title">Vehicle Details</h1>
+    </div>
+
+    <div class="header-actions">
+      <button mat-raised-button color="primary" (click)="editVehicle()">
+        <mat-icon>edit</mat-icon> Edit Vehicle
+      </button>
+      <button mat-stroked-button color="accent" (click)="viewAllJobs()">
+        <mat-icon>work</mat-icon> View All Jobs
+      </button>
+    </div>
+  </div>
+
+  <!-- Loading spinner -->
+  <div class="loading-container" *ngIf="loading">
+    <mat-spinner diameter="50"></mat-spinner>
+  </div>
+
+  <!-- Vehicle details content -->
+  <div class="details-content" *ngIf="!loading && vehicle">
+    <!-- Main info card -->
+    <mat-card class="info-card">
+      <mat-card-header>
+        <mat-card-title>{{ vehicle.make }} {{ vehicle.model }}</mat-card-title>
+        <mat-card-subtitle>{{ vehicle.registration }}</mat-card-subtitle>
+        <div class="status-chip-container">
+          <div
+            class="status-chip"
+            [ngClass]="getStatusColorClass(vehicle.status)"
+          >
+            {{ vehicle.status }}
+          </div>
+        </div>
+      </mat-card-header>
+
+      <mat-card-content>
+        <div class="details-grid">
+          <div class="details-item">
+            <div class="details-label">Type</div>
+            <div class="details-value">{{ vehicle.type }}</div>
+          </div>
+
+          <div class="details-item">
+            <div class="details-label">Year</div>
+            <div class="details-value">{{ vehicle.year }}</div>
+          </div>
+
+          <div class="details-item">
+            <div class="details-label">Current Location</div>
+            <div class="details-value">
+              {{ vehicle.location || "Not specified" }}
+            </div>
+          </div>
+
+          <div class="details-item">
+            <div class="details-label">Current Driver</div>
+            <div class="details-value">
+              {{ vehicle.currentDriverName || "None assigned" }}
+            </div>
+          </div>
+
+          <div class="details-item">
+            <div class="details-label">Last Service Date</div>
+            <div class="details-value">
+              {{ formatDate(vehicle.lastServiceDate) }}
+            </div>
+          </div>
+
+          <div class="details-item">
+            <div class="details-label">Next Service Due</div>
+            <div
+              class="details-value"
+              [ngClass]="{ 'service-due-soon': isServiceDueSoon() }"
+            >
+              {{ formatDate(vehicle.nextServiceDue) }}
+            </div>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Recent jobs card -->
+    <mat-card class="recent-jobs-card">
+      <mat-card-header>
+        <mat-card-title>Recent Jobs</mat-card-title>
+      </mat-card-header>
+
+      <mat-card-content>
+        <div class="no-jobs-message" *ngIf="recentJobs.length === 0">
+          No recent jobs found for this vehicle.
+        </div>
+
+        <div class="jobs-list" *ngIf="recentJobs.length > 0">
+          <div class="job-item" *ngFor="let job of recentJobs">
+            <div class="job-header">
+              <div class="job-id">{{ job.id }}</div>
+              <div
+                class="job-status"
+                [ngClass]="getJobStatusColorClass(job.status)"
+              >
+                {{ job.status }}
+              </div>
+            </div>
+
+            <div class="job-details">
+              <div class="job-reference" *ngIf="job.customerReference">
+                Ref: {{ job.customerReference }}
+              </div>
+
+              <div class="job-dates">
+                <div class="job-date">
+                  <mat-icon>calendar_today</mat-icon>
+                  Collection: {{ formatDate(job.collectionDate) }}
+                </div>
+                <div class="job-date">
+                  <mat-icon>calendar_today</mat-icon>
+                  Delivery: {{ formatDate(job.deliveryDate) }}
+                </div>
+              </div>
+            </div>
+
+            <div class="job-actions">
+              <a
+                [routerLink]="['/jobs/edit', job.id]"
+                mat-stroked-button
+                color="primary"
+              >
+                View Details
+              </a>
+            </div>
+
+            <mat-divider *ngIf="!last"></mat-divider>
+          </div>
+        </div>
+      </mat-card-content>
+
+      <mat-card-actions *ngIf="recentJobs.length > 0">
+        <button mat-button color="primary" (click)="viewAllJobs()">
+          View All Jobs <mat-icon>arrow_forward</mat-icon>
+        </button>
+      </mat-card-actions>
+    </mat-card>
+  </div>
+</div>

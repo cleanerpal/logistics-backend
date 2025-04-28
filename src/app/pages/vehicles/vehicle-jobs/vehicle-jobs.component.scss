@@ -1,5 +1,4 @@
-// Vehicles component styles
-.vehicles-container {
+.vehicle-jobs-container {
   padding: 20px;
   background-color: #f5f5f5;
   min-height: 100%;
@@ -10,6 +9,15 @@
   justify-content: space-between;
   align-items: center;
   margin-bottom: 24px;
+
+  .title-section {
+    display: flex;
+    align-items: center;
+  }
+
+  .back-button {
+    margin-right: 8px;
+  }
 
   @media (max-width: 768px) {
     flex-direction: column;
@@ -23,51 +31,10 @@
   font-weight: 500;
   color: #4a3c31;
   margin: 0;
-}
 
-.header-actions {
-  display: flex;
-  gap: 12px;
-
-  @media (max-width: 768px) {
-    width: 100%;
-    justify-content: space-between;
-  }
-
-  @media (max-width: 576px) {
-    flex-direction: column;
-    width: 100%;
-  }
-}
-
-.create-button {
-  background-color: #c19a6b;
-  color: white;
-}
-
-.filter-card {
-  margin-bottom: 24px;
-  border-radius: 8px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-
-  .mat-mdc-card-content {
-    padding: 16px;
-  }
-}
-
-.filter-form {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 16px;
-}
-
-.search-container {
-  flex: 1;
-  display: flex;
-  align-items: flex-start;
-
-  .mat-mdc-form-field {
-    width: 100%;
+  .vehicle-info {
+    font-weight: 400;
+    color: #c19a6b;
   }
 }
 
@@ -85,7 +52,7 @@
   overflow: hidden;
 }
 
-.vehicles-table {
+.jobs-table {
   width: 100%;
 
   .mat-mdc-header-cell {
@@ -99,7 +66,7 @@
     color: #333333;
   }
 
-  .vehicle-row {
+  .job-row {
     cursor: pointer;
     transition: background-color 0.2s;
 
@@ -107,6 +74,22 @@
       background-color: rgba(193, 154, 107, 0.05);
     }
   }
+}
+
+.vehicle-reg {
+  font-size: 12px;
+  color: #666666;
+}
+
+.status-badge {
+  padding: 4px 8px;
+  border-radius: 16px;
+  color: white;
+  font-size: 12px;
+  font-weight: 500;
+  display: inline-block;
+  min-width: 80px;
+  text-align: center;
 }
 
 // Make sure the mat-form-field fills its container

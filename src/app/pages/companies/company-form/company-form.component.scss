@@ -1,0 +1,97 @@
+.company-form-container {
+  padding: 20px;
+  background-color: #f5f5f5;
+  min-height: 100%;
+}
+
+.page-header {
+  margin-bottom: 24px;
+}
+
+.page-title {
+  font-size: 24px;
+  font-weight: 500;
+  color: #4a3c31;
+  margin: 0;
+}
+
+.loading-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 200px;
+}
+
+.form-card {
+  margin-bottom: 24px;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+
+  .mat-mdc-card-header {
+    padding: 16px 16px 0;
+
+    .mat-mdc-card-title {
+      color: #4a3c31;
+      font-size: 18px;
+      margin-bottom: 8px;
+    }
+
+    .mat-mdc-card-subtitle {
+      color: #666666;
+      font-size: 14px;
+    }
+  }
+
+  .mat-mdc-card-content {
+    padding: 16px;
+  }
+}
+
+.form-row {
+  margin-bottom: 16px;
+  width: 100%;
+
+  &.row-split {
+    display: flex;
+    gap: 16px;
+
+    .mat-mdc-form-field {
+      flex: 1;
+    }
+
+    @media (max-width: 768px) {
+      flex-direction: column;
+      gap: 0;
+    }
+  }
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 16px;
+  margin-top: 24px;
+  margin-bottom: 40px;
+
+  button {
+    min-width: 120px;
+  }
+
+  @media (max-width: 576px) {
+    flex-direction: column;
+
+    button {
+      width: 100%;
+    }
+  }
+}
+
+// Make sure the mat-form-field fills its container
+.mat-mdc-form-field {
+  width: 100%;
+}
+
+// Apply brand colors to buttons
+button[color="primary"] {
+  background-color: #c19a6b;
+}

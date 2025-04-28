@@ -5,9 +5,7 @@ export const DRIVERS_ROUTES: Routes = [
   {
     path: '',
     loadComponent: () =>
-      import('./drivers-list/drivers-list.component').then(
-        (m) => m.DriversListComponent
-      ),
+      import('./drivers.component').then((m) => m.DriversComponent),
     canActivate: [authGuard],
     data: { roles: ['SuperAdmin', 'Admin'] },
   },
@@ -25,15 +23,6 @@ export const DRIVERS_ROUTES: Routes = [
     loadComponent: () =>
       import('./driver-form/driver-form.component').then(
         (m) => m.DriverFormComponent
-      ),
-    canActivate: [authGuard],
-    data: { roles: ['SuperAdmin', 'Admin'] },
-  },
-  {
-    path: ':id',
-    loadComponent: () =>
-      import('./driver-details/driver-details.component').then(
-        (m) => m.DriverDetailsComponent
       ),
     canActivate: [authGuard],
     data: { roles: ['SuperAdmin', 'Admin'] },

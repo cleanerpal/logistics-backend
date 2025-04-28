@@ -1,10 +1,4 @@
-// Apply brand colors
-// Background: #F5F5F5
-// Text: #333333
-// Primary: #C19A6B
-// Secondary: #4A3C31
-
-.companies-container {
+.driver-jobs-container {
   padding: 20px;
   background-color: #f5f5f5;
   min-height: 100%;
@@ -15,12 +9,16 @@
   justify-content: space-between;
   align-items: center;
   margin-bottom: 24px;
+}
 
-  @media (max-width: 768px) {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 16px;
-  }
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.back-button {
+  color: #4a3c31;
 }
 
 .page-title {
@@ -28,34 +26,6 @@
   font-weight: 500;
   color: #4a3c31;
   margin: 0;
-}
-
-.header-actions {
-  display: flex;
-  gap: 12px;
-
-  @media (max-width: 768px) {
-    width: 100%;
-  }
-}
-
-.create-button {
-  background-color: #c19a6b;
-  color: white;
-}
-
-.filter-card {
-  margin-bottom: 24px;
-  border-radius: 8px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-
-  .mat-mdc-card-content {
-    padding: 16px;
-  }
-}
-
-.search-field {
-  width: 100%;
 }
 
 .loading-container {
@@ -72,7 +42,7 @@
   overflow: hidden;
 }
 
-.companies-table {
+.jobs-table {
   width: 100%;
 
   .mat-mdc-header-cell {
@@ -86,7 +56,7 @@
     color: #333333;
   }
 
-  .company-row {
+  .job-row {
     cursor: pointer;
     transition: background-color 0.2s;
 
@@ -96,19 +66,40 @@
   }
 }
 
-.no-data-cell {
-  padding: 20px;
+.status-badge {
+  padding: 4px 8px;
+  border-radius: 16px;
+  font-size: 12px;
+  font-weight: 500;
+  color: white;
+  display: inline-block;
+  min-width: 80px;
   text-align: center;
-  font-style: italic;
-  color: #666666;
 }
 
-// Make sure the mat-form-field fills its container
-.mat-mdc-form-field {
-  width: 100%;
+.vehicle-reg {
+  font-size: 12px;
+  color: #666666;
 }
 
 // Custom styling for mat-paginator
 .mat-mdc-paginator {
   background-color: #f5f5f5;
+}
+
+// No data message
+.mat-mdc-no-data-row {
+  padding: 16px;
+  text-align: center;
+  color: #666666;
+  font-style: italic;
+}
+
+// Responsive adjustments
+@media (max-width: 768px) {
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
 }
