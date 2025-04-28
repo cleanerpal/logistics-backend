@@ -1,0 +1,31 @@
+mat-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.header-title {
+  margin-left: 16px;
+  font-weight: 500;
+  font-size: 1.2rem;
+  color: white;
+}
+
+.spacer {
+  flex: 1 1 auto;
+}
+
+.user-info-header {
+  padding: 16px;
+  min-width: 180px;
+
+  .user-name {
+    font-weight: 500;
+    margin-bottom: 4px;
+  }
+
+  .user-role {
+    font-size: 0.8rem;
+    color: var(--medium-gray);
+  }
+}

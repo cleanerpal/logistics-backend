@@ -1,7 +1,7 @@
-import { Injectable, inject } from '@angular/core';
+import { Injectable, inject, NgZone } from '@angular/core';
 import { Router } from '@angular/router';
-import { Observable, from, of } from 'rxjs';
-import { switchMap, map } from 'rxjs/operators';
+import { Observable, of, from } from 'rxjs';
+import { switchMap, map, take, tap } from 'rxjs/operators';
 
 // Firebase imports
 import {
@@ -10,6 +10,9 @@ import {
   UserCredential,
   signInWithEmailAndPassword,
   signOut,
+  createUserWithEmailAndPassword,
+  sendPasswordResetEmail,
+  onAuthStateChanged,
 } from '@angular/fire/auth';
 import {
   Firestore,
@@ -44,39 +47,48 @@ export class FirebaseService {
   private auth: Auth = inject(Auth);
   private firestore: Firestore = inject(Firestore);
   private router: Router = inject(Router);
+  private ngZone: NgZone = inject(NgZone);
 
   user$: Observable<User | null>;
 
   constructor() {
     // Get auth state, then fetch firestore user document or return null
     this.user$ = new Observable<User | null>((observer) => {
-      const unsubscribe = this.auth.onAuthStateChanged((user) => {
-        if (user) {
-          this.getUserData(user.uid).then((userData) => {
-            if (userData) {
-              observer.next({
-                uid: user.uid,
-                email: user.email || '',
-                displayName: user.displayName || '',
-                photoURL: user.photoURL || '',
-                role: userData.role,
-              });
-            } else {
-              observer.next({
-                uid: user.uid,
-                email: user.email || '',
-                displayName: user.displayName || '',
-                photoURL: user.photoURL || '',
-              });
-            }
-          });
-        } else {
-          observer.next(null);
-        }
-      });
-
-      // Return unsubscribe function
-      return { unsubscribe };
+      return onAuthStateChanged(
+        this.auth,
+        (user) => {
+          if (user) {
+            // Move this inside NgZone to ensure Angular's change detection works
+            this.ngZone.run(() => {
+              from(this.getUserData(user.uid))
+                .pipe(take(1))
+                .subscribe((userData) => {
+                  if (userData) {
+                    observer.next({
+                      uid: user.uid,
+                      email: user.email || '',
+                      displayName: user.displayName || '',
+                      photoURL: user.photoURL || '',
+                      role: userData.role,
+                    });
+                  } else {
+                    observer.next({
+                      uid: user.uid,
+                      email: user.email || '',
+                      displayName: user.displayName || '',
+                      photoURL: user.photoURL || '',
+                    });
+                  }
+                });
+            });
+          } else {
+            this.ngZone.run(() => {
+              observer.next(null);
+            });
+          }
+        },
+        (error) => observer.error(error)
+      );
     });
   }
 
@@ -102,10 +114,56 @@ export class FirebaseService {
     }
   }
 
+  // Register with Email & Password
+  async registerWithEmail(
+    email: string,
+    password: string,
+    displayName: string
+  ): Promise<void> {
+    try {
+      const credential = await createUserWithEmailAndPassword(
+        this.auth,
+        email,
+        password
+      );
+
+      // Set display name and default role
+      const userData: User = {
+        uid: credential.user.uid,
+        email: credential.user.email || '',
+        displayName: displayName,
+        role: 'Driver', // Default role
+      };
+
+      // Save user data to Firestore
+      const userRef = doc(this.firestore, `users/${credential.user.uid}`);
+      await setDoc(userRef, userData);
+
+      return this.ngZone.run(() => {
+        this.router.navigate(['/dashboard']);
+      });
+    } catch (error) {
+      console.error('Registration error:', error);
+      throw error;
+    }
+  }
+
+  // Password reset
+  async forgotPassword(email: string): Promise<void> {
+    try {
+      return await sendPasswordResetEmail(this.auth, email);
+    } catch (error) {
+      console.error('Password reset error:', error);
+      throw error;
+    }
+  }
+
   // Sign out
   async signOut(): Promise<void> {
     await signOut(this.auth);
-    this.router.navigate(['/login']);
+    return this.ngZone.run(() => {
+      this.router.navigate(['/login']);
+    });
   }
 
   // Update user data in Firestore
@@ -211,7 +269,7 @@ export class FirebaseService {
   // Check if user is authenticated
   isAuthenticated(): Observable<boolean> {
     return new Observable<boolean>((observer) => {
-      const unsubscribe = this.auth.onAuthStateChanged((user) => {
+      const unsubscribe = onAuthStateChanged(this.auth, (user) => {
         observer.next(!!user);
       });
 

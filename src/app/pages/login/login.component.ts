@@ -5,7 +5,7 @@ import {
   Validators,
   ReactiveFormsModule,
 } from '@angular/forms';
-import { Router, ActivatedRoute } from '@angular/router';
+import { Router, ActivatedRoute, RouterLink } from '@angular/router';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { FirebaseService } from '../../services/firebase.service';
 import { MatCardModule } from '@angular/material/card';
@@ -30,6 +30,7 @@ import { NgIf } from '@angular/common';
     MatButtonModule,
     MatIconModule,
     MatProgressSpinnerModule,
+    RouterLink,
   ],
 })
 export class LoginComponent implements OnInit {

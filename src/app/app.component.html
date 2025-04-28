@@ -1,1 +1,17 @@
-<router-outlet></router-outlet>
+<ng-container *ngIf="isAuthenticated$ | async">
+  <mat-sidenav-container class="app-container">
+    <mat-sidenav #sidenav mode="side" opened class="sidebar">
+      <app-sidebar></app-sidebar>
+    </mat-sidenav>
+    <mat-sidenav-content>
+      <app-header (toggleSidebar)="toggleSidenav()"></app-header>
+      <main class="content-container">
+        <router-outlet></router-outlet>
+      </main>
+    </mat-sidenav-content>
+  </mat-sidenav-container>
+</ng-container>
+
+<ng-container *ngIf="!(isAuthenticated$ | async)">
+  <router-outlet></router-outlet>
+</ng-container>

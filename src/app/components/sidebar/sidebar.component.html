@@ -1,1 +1,41 @@
-<p>sidebar works!</p>
+<div class="sidebar-container">
+  <div class="logo-container">
+    <img
+      src="assets/logo.png"
+      alt="NI Vehicle Logistics Logo"
+      class="sidebar-logo"
+    />
+  </div>
+
+  <mat-nav-list>
+    <ng-container *ngFor="let item of menuItems">
+      <a
+        mat-list-item
+        *ngIf="showMenuItem(item) | async"
+        [routerLink]="item.route"
+        routerLinkActive="active-link"
+      >
+        <mat-icon matListItemIcon>{{ item.icon }}</mat-icon>
+        <span matListItemTitle>{{ item.text }}</span>
+      </a>
+    </ng-container>
+
+    <mat-divider></mat-divider>
+
+    <div class="admin-section" *ngIf="isAdmin$ | async">
+      <h3 matSubheader>Administration</h3>
+
+      <ng-container *ngFor="let item of adminMenuItems">
+        <a
+          mat-list-item
+          *ngIf="showMenuItem(item) | async"
+          [routerLink]="item.route"
+          routerLinkActive="active-link"
+        >
+          <mat-icon matListItemIcon>{{ item.icon }}</mat-icon>
+          <span matListItemTitle>{{ item.text }}</span>
+        </a>
+      </ng-container>
+    </div>
+  </mat-nav-list>
+</div>

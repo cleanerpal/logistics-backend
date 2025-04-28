@@ -1,0 +1,1 @@
+import{Lb as n,Mb as i,fc as p,pb as t}from"./chunk-NXWLSP6D.js";import"./chunk-RA2WU32H.js";var r=class o{static \u0275fac=function(e){return new(e||o)};static \u0275cmp=t({type:o,selectors:[["app-profile"]],decls:2,vars:0,template:function(e,l){e&1&&(n(0,"p"),p(1,"profile works!"),i())},encapsulation:2})};export{r as ProfileComponent};
