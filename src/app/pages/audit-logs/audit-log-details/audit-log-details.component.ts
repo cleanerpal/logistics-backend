@@ -10,7 +10,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatExpansionModule } from '@angular/material/expansion';
 
-import { FirebaseService } from '../../../services/firebase.service';
+import { AuditLogsService } from '../../../services/audit-logs.service';
 import { Subscription } from 'rxjs';
 import { AuditLog } from '../audit-logs-list/audit-logs-list.component';
 
@@ -43,7 +43,7 @@ export class AuditLogDetailsComponent implements OnInit, OnDestroy {
   constructor(
     private route: ActivatedRoute,
     private router: Router,
-    private firebaseService: FirebaseService
+    private auditLogsService: AuditLogsService
   ) {}
 
   ngOnInit(): void {
@@ -66,31 +66,21 @@ export class AuditLogDetailsComponent implements OnInit, OnDestroy {
     this.isLoading = true;
 
     this.subscription.add(
-      this.firebaseService
-        .getDocumentWithSnapshot<AuditLog>('auditLogs', this.logId)
-        .subscribe(
-          (log) => {
-            if (log) {
-              this.auditLog = {
-                ...log,
-                timestamp:
-                  log.timestamp instanceof Date
-                    ? log.timestamp
-                    : new Date(
-                        (log.timestamp as { seconds: number }).seconds * 1000
-                      ),
-              };
-            } else {
-              this.error = 'Audit log not found';
-            }
-            this.isLoading = false;
-          },
-          (err) => {
-            console.error('Error loading audit log:', err);
-            this.error = 'Error loading audit log details';
-            this.isLoading = false;
+      this.auditLogsService.getAuditLogById(this.logId).subscribe(
+        (log) => {
+          if (log) {
+            this.auditLog = log;
+          } else {
+            this.error = 'Audit log not found';
           }
-        )
+          this.isLoading = false;
+        },
+        (err) => {
+          console.error('Error loading audit log:', err);
+          this.error = 'Error loading audit log details';
+          this.isLoading = false;
+        }
+      )
     );
   }
 

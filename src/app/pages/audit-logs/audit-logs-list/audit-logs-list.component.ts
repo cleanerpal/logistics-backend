@@ -21,18 +21,14 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatChipsModule } from '@angular/material/chips';
 import { FormControl, FormGroup } from '@angular/forms';
 
-import { FirebaseService } from '../../../services/firebase.service';
 import {
   where,
-  query,
   orderBy,
   limit,
   QueryConstraint,
-  Firestore,
-  collection,
 } from '@angular/fire/firestore';
 import { Subscription, debounceTime, distinctUntilChanged } from 'rxjs';
-import { inject } from '@angular/core';
+import { AuditLogsService } from '../../../services/audit-logs.service';
 
 export interface AuditLog {
   id: string;
@@ -75,8 +71,6 @@ export class AuditLogsListComponent implements OnInit, OnDestroy {
   @ViewChild(MatPaginator) paginator!: MatPaginator;
   @ViewChild(MatSort) sort!: MatSort;
   @ViewChild(MatTable) table!: MatTable<AuditLog>;
-
-  private firestore: Firestore = inject(Firestore);
 
   displayedColumns: string[] = [
     'timestamp',
@@ -126,7 +120,7 @@ export class AuditLogsListComponent implements OnInit, OnDestroy {
 
   private subscription = new Subscription();
 
-  constructor(private firebaseService: FirebaseService) {}
+  constructor(private auditLogsService: AuditLogsService) {}
 
   ngOnInit(): void {
     this.loadAuditLogs();
@@ -182,21 +176,11 @@ export class AuditLogsListComponent implements OnInit, OnDestroy {
     }
 
     this.subscription.add(
-      this.firebaseService
-        .getCollectionWithSnapshot<AuditLog>('auditLogs', constraints)
-        .subscribe((logs) => {
-          this.dataSource = logs.map((log) => ({
-            ...log,
-            timestamp:
-              log.timestamp instanceof Date
-                ? log.timestamp
-                : new Date(
-                    (log.timestamp as { seconds: number }).seconds * 1000
-                  ),
-          }));
-          this.applyFilters();
-          this.isLoading = false;
-        })
+      this.auditLogsService.getAuditLogs(constraints).subscribe((logs) => {
+        this.dataSource = logs;
+        this.applyFilters();
+        this.isLoading = false;
+      })
     );
   }
 
