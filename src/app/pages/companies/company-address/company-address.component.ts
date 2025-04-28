@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit, inject } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject, Inject } from '@angular/core';
 import {
   FormBuilder,
   FormGroup,
@@ -17,7 +17,12 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatListModule } from '@angular/material/list';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import {
+  MatDialog,
+  MatDialogModule,
+  MAT_DIALOG_DATA,
+  MatDialogRef,
+} from '@angular/material/dialog';
 import { Subscription } from 'rxjs';
 
 // Firebase imports
@@ -176,16 +181,12 @@ export interface Address {
 })
 export class AddressDialogComponent implements OnInit {
   addressForm: FormGroup;
-  data: {
-    isEdit: boolean;
-    address?: Address;
-    companyId: string;
-    companyName: string;
-  };
 
-  constructor(private formBuilder: FormBuilder, private dialogRef: any) {
-    this.data = this.dialogRef.data;
-
+  constructor(
+    private formBuilder: FormBuilder,
+    @Inject(MAT_DIALOG_DATA) public data: any,
+    private dialogRef: MatDialogRef<AddressDialogComponent>
+  ) {
     this.addressForm = this.formBuilder.group({
       type: ['Delivery', Validators.required],
       building: ['', Validators.required],
@@ -223,8 +224,8 @@ export class AddressDialogComponent implements OnInit {
 
 @Component({
   selector: 'app-company-addresses',
-  templateUrl: './company-addresses.component.html',
-  styleUrls: ['./company-addresses.component.scss'],
+  templateUrl: './company-address.component.html',
+  styleUrls: ['./company-address.component.scss'],
   standalone: true,
   imports: [
     CommonModule,

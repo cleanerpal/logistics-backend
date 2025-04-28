@@ -22,6 +22,7 @@ import { MatDividerModule } from '@angular/material/divider';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { Observable, forkJoin, of } from 'rxjs';
 import { map, switchMap } from 'rxjs/operators';
+import { ApprovedExpensesPipe } from '../../../pipes/approved-expenses.pipe';
 
 // Firebase imports
 import {
@@ -88,6 +89,7 @@ interface Customer {
     MatNativeDateModule,
     MatDividerModule,
     MatAutocompleteModule,
+    ApprovedExpensesPipe,
   ],
   templateUrl: './generate-invoice.component.html',
   styleUrls: ['./generate-invoice.component.scss'],
@@ -335,5 +337,9 @@ export class GenerateInvoiceComponent implements OnInit {
 
   formatCurrency(amount: number): string {
     return `£${amount.toFixed(2)}`;
+  }
+
+  get jobAmount(): number {
+    return this.selectedJobs.reduce((sum, job) => sum + (job.amount || 0), 0);
   }
 }

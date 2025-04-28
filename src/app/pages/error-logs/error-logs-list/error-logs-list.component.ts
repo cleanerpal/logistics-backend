@@ -22,8 +22,8 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatChipsModule } from '@angular/material/chips';
-import { MatDividerModule } from '@angular/material/divider';
 import { MatBadgeModule } from '@angular/material/badge';
+import { MatDividerModule } from '@angular/material/divider';
 
 // Firebase imports
 import {
@@ -35,11 +35,11 @@ import {
   limit,
   Timestamp,
   collectionData,
-  CollectionReference,
+  doc,
+  updateDoc,
   QueryConstraint,
-  DocumentData,
 } from '@angular/fire/firestore';
-import { Observable, Subscription } from 'rxjs';
+import { Subscription } from 'rxjs';
 
 // Error log interface
 export interface ApiError {
@@ -56,7 +56,7 @@ export interface ApiError {
 }
 
 @Component({
-  selector: 'app-error-logs',
+  selector: 'app-error-logs-list',
   standalone: true,
   imports: [
     CommonModule,
@@ -79,10 +79,12 @@ export interface ApiError {
     MatDividerModule,
     MatBadgeModule,
   ],
-  templateUrl: './error-logs.component.html',
-  styleUrls: ['./error-logs.component.scss'],
+  templateUrl: './error-logs-list.component.html',
+  styleUrls: ['./error-logs-list.component.scss'],
 })
-export class ErrorLogsComponent implements OnInit, AfterViewInit, OnDestroy {
+export class ErrorLogsListComponent
+  implements OnInit, AfterViewInit, OnDestroy
+{
   // Data source and table configuration
   dataSource = new MatTableDataSource<ApiError>();
   displayedColumns: string[] = [
@@ -170,15 +172,17 @@ export class ErrorLogsComponent implements OnInit, AfterViewInit, OnDestroy {
       const errorsCollection = collection(this.firestore, 'ApiErrors');
 
       // Set up query constraints
-      const queryConstraints: QueryConstraint[] = [
-        orderBy('timestamp', 'desc'),
-        limit(500), // Limit to 500 records initially
-      ];
+      let queryConstraints: Array<QueryConstraint> = [];
 
+      // Add the where constraint first if needed
       const showResolved = this.filterForm.get('showResolved')?.value;
       if (!showResolved) {
         queryConstraints.push(where('resolved', '==', false));
       }
+
+      // Then add ordering and limit
+      queryConstraints.push(orderBy('timestamp', 'desc'));
+      queryConstraints.push(limit(500)); // Limit to 500 records initially
 
       const errorsQuery = query(errorsCollection, ...queryConstraints);
 
@@ -231,13 +235,12 @@ export class ErrorLogsComponent implements OnInit, AfterViewInit, OnDestroy {
       filter: string
     ): boolean => {
       // Job ID filter
-      const jobIdMatch = Boolean(
-        !jobId || (data.jobId && data.jobId.toLowerCase().includes(jobId))
-      );
+      const jobIdMatch =
+        !jobId || (data.jobId && data.jobId.toLowerCase().includes(jobId));
 
       // Date range filter
       let dateMatch = true;
-      if (dateRange?.start && dateRange?.end) {
+      if (dateRange.start && dateRange.end) {
         const errorDate = data.timestamp.toDate();
         const startDate = new Date(dateRange.start);
         const endDate = new Date(dateRange.end);
@@ -246,7 +249,7 @@ export class ErrorLogsComponent implements OnInit, AfterViewInit, OnDestroy {
         dateMatch = errorDate >= startDate && errorDate <= endDate;
       }
 
-      return jobIdMatch && dateMatch;
+      return Boolean(jobIdMatch) && dateMatch;
     };
 
     // Apply the filter
@@ -287,19 +290,16 @@ export class ErrorLogsComponent implements OnInit, AfterViewInit, OnDestroy {
    */
   async markAsResolved(error: ApiError): Promise<void> {
     try {
-      // For this example, we'll just update the item in the data source
-      // In a real app, you would update the document in Firestore
-      const index = this.dataSource.data.findIndex((e) => e.id === error.id);
-      if (index !== -1) {
-        // Create a new array to trigger change detection
-        const data = [...this.dataSource.data];
-        data[index] = { ...error, resolved: true };
-        this.dataSource.data = data;
+      // Update the document in Firestore
+      const errorRef = doc(this.firestore, 'ApiErrors', error.id);
+      await updateDoc(errorRef, {
+        resolved: true,
+        resolvedAt: Timestamp.now(),
+      });
 
-        this.snackBar.open('Error marked as resolved.', 'Close', {
-          duration: 3000,
-        });
-      }
+      this.snackBar.open('Error marked as resolved.', 'Close', {
+        duration: 3000,
+      });
     } catch (error) {
       console.error('Error marking as resolved:', error);
       this.snackBar.open('Error updating status. Please try again.', 'Close', {
@@ -316,6 +316,13 @@ export class ErrorLogsComponent implements OnInit, AfterViewInit, OnDestroy {
     if (jobId) {
       this.router.navigate(['/jobs', jobId]);
     }
+  }
+
+  /**
+   * Navigate to error details
+   */
+  viewErrorDetails(errorId: string): void {
+    this.router.navigate(['/error-logs', errorId]);
   }
 
   /**
@@ -353,18 +360,5 @@ export class ErrorLogsComponent implements OnInit, AfterViewInit, OnDestroy {
    */
   formatMessage(message: string): string {
     return message.length > 80 ? message.substring(0, 80) + '...' : message;
-  }
-
-  /**
-   * Show full error details
-   */
-  showErrorDetails(error: ApiError): void {
-    // In a real app, you would show a dialog with full error details
-    console.log('Full error details:', error);
-
-    // For this example, we'll just show a snackbar
-    this.snackBar.open('Full error details logged to console.', 'Close', {
-      duration: 3000,
-    });
   }
 }

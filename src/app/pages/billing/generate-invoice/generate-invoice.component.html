@@ -171,7 +171,7 @@
             <div class="total-row">
               <div class="total-label">Job Amount:</div>
               <div class="total-value">
-                {{ formatCurrency(selectedJobs.reduce((sum, job) => sum + (job.amount || 0), 0)) }}
+                {{ formatCurrency(jobAmount) }}
               </div>
             </div>
             <div class="total-row" *ngIf="chargeableExpenses > 0">
