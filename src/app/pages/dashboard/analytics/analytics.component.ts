@@ -533,7 +533,7 @@ export class AnalyticsComponent implements OnInit, AfterViewInit, OnDestroy {
 
     // Mock data
     const data = {
-      labels: ['Sedan', 'SUV', 'Van', 'Truck', 'Special'],
+      labels: ['Sedan', 'SUV', 'Van', 'Truck', 'Bus', 'Special'],
       datasets: [
         {
           label: 'Jobs by Vehicle Type',

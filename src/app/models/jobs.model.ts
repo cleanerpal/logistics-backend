@@ -6,7 +6,7 @@ export interface Job {
   customerReference: string;
   shippingReference: string;
   priority: boolean;
-  vehicleType: 'Car' | 'Van' | 'Truck' | 'Motorcycle';
+  vehicleType: 'Car' | 'Van' | 'Truck' | 'Bus' | 'Motorcycle';
   vehicleMake: string;
   vehicleModel: string;
   vehicleRegistration: string;

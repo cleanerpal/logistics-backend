@@ -41,6 +41,21 @@
 
           <div class="form-row">
             <mat-form-field appearance="outline">
+              <mat-label>Customer</mat-label>
+              <mat-select formControlName="customer">
+                <mat-option [value]="">-- None --</mat-option>
+                <mat-option
+                  *ngFor="let customer of customers"
+                  [value]="customer.id"
+                >
+                  {{ customer.name }}
+                </mat-option>
+              </mat-select>
+            </mat-form-field>
+          </div>
+
+          <div class="form-row">
+            <mat-form-field appearance="outline">
               <mat-label>Customer Reference</mat-label>
               <input matInput formControlName="customerReference" />
             </mat-form-field>
@@ -92,9 +107,16 @@
 
           <mat-form-field appearance="outline">
             <mat-label>Make</mat-label>
-            <input matInput formControlName="make" />
+            <mat-select
+              formControlName="makeId"
+              (selectionChange)="onMakeChange($event)"
+            >
+              <mat-option *ngFor="let make of vehicleMakes" [value]="make.id">
+                {{ make.name }}
+              </mat-option>
+            </mat-select>
             <mat-error
-              *ngIf="jobForm.get('vehicleDetails.make')?.hasError('required')"
+              *ngIf="jobForm.get('vehicleDetails.makeId')?.hasError('required')"
             >
               Make is required
             </mat-error>
@@ -104,7 +126,18 @@
         <div class="form-row row-split">
           <mat-form-field appearance="outline">
             <mat-label>Model</mat-label>
-            <input matInput formControlName="model" />
+            <mat-select
+              formControlName="modelId"
+              (selectionChange)="onModelChange($event)"
+              [disabled]="!jobForm.get('vehicleDetails.makeId')?.value"
+            >
+              <mat-option
+                *ngFor="let model of filteredVehicleModels"
+                [value]="model.id"
+              >
+                {{ model.name }}
+              </mat-option>
+            </mat-select>
             <mat-error
               *ngIf="jobForm.get('vehicleDetails.model')?.hasError('required')"
             >
@@ -154,9 +187,9 @@
             <mat-autocomplete #locationAuto="matAutocomplete">
               <mat-option
                 *ngFor="let address of addressOptions"
-                [value]="address.companyName"
+                [value]="address.name"
               >
-                {{ address.companyName }} ({{ address.city }})
+                {{ address.name }} ({{ address.city }})
               </mat-option>
             </mat-autocomplete>
           </mat-form-field>
@@ -170,27 +203,35 @@
         <mat-card-title>Collection Details</mat-card-title>
       </mat-card-header>
       <mat-card-content>
-        <div class="address-options">
-          <span class="address-label">Fill from saved address:</span>
-          <button
-            type="button"
-            mat-stroked-button
-            class="address-button"
-            [matMenuTriggerFor]="addressMenu"
-          >
-            <mat-icon>location_on</mat-icon>
-            Select Address
-          </button>
-          <mat-menu #addressMenu="matMenu">
-            <button
-              mat-menu-item
-              *ngFor="let address of addressOptions"
-              (click)="fillAddressFields('collectionDetails', address)"
-            >
-              {{ address.companyName }} - {{ address.city }},
-              {{ address.postcode }}
-            </button>
-          </mat-menu>
+        <div class="form-row">
+          <mat-form-field appearance="outline">
+            <mat-label>Collection Customer</mat-label>
+            <mat-select formControlName="collectionCustomerId">
+              <mat-option [value]="">-- Select Customer --</mat-option>
+              <mat-option
+                *ngFor="let customer of customers"
+                [value]="customer.id"
+              >
+                {{ customer.name }}
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
+        </div>
+
+        <div class="form-row" *ngIf="collectionAddresses.length > 0">
+          <mat-form-field appearance="outline">
+            <mat-label>Saved Addresses</mat-label>
+            <mat-select formControlName="addressId">
+              <mat-option [value]="">-- Select Address --</mat-option>
+              <mat-option
+                *ngFor="let address of collectionAddresses"
+                [value]="address.id"
+              >
+                {{ address.name || "Address" }} - {{ address.building }}
+                {{ address.street }}, {{ address.city }}, {{ address.postcode }}
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
         </div>
 
         <div class="form-row row-split">
@@ -359,27 +400,35 @@
         <mat-card-title>Delivery Details</mat-card-title>
       </mat-card-header>
       <mat-card-content>
-        <div class="address-options">
-          <span class="address-label">Fill from saved address:</span>
-          <button
-            type="button"
-            mat-stroked-button
-            class="address-button"
-            [matMenuTriggerFor]="deliveryAddressMenu"
-          >
-            <mat-icon>location_on</mat-icon>
-            Select Address
-          </button>
-          <mat-menu #deliveryAddressMenu="matMenu">
-            <button
-              mat-menu-item
-              *ngFor="let address of addressOptions"
-              (click)="fillAddressFields('deliveryDetails', address)"
-            >
-              {{ address.companyName }} - {{ address.city }},
-              {{ address.postcode }}
-            </button>
-          </mat-menu>
+        <div class="form-row">
+          <mat-form-field appearance="outline">
+            <mat-label>Delivery Customer</mat-label>
+            <mat-select formControlName="deliveryCustomerId">
+              <mat-option [value]="">-- Select Customer --</mat-option>
+              <mat-option
+                *ngFor="let customer of customers"
+                [value]="customer.id"
+              >
+                {{ customer.name }}
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
+        </div>
+
+        <div class="form-row" *ngIf="deliveryAddresses.length > 0">
+          <mat-form-field appearance="outline">
+            <mat-label>Saved Addresses</mat-label>
+            <mat-select formControlName="addressId">
+              <mat-option [value]="">-- Select Address --</mat-option>
+              <mat-option
+                *ngFor="let address of deliveryAddresses"
+                [value]="address.id"
+              >
+                {{ address.name || "Address" }} - {{ address.building }}
+                {{ address.street }}, {{ address.city }}, {{ address.postcode }}
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
         </div>
 
         <div class="form-row row-split">

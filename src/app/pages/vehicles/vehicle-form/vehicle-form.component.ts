@@ -51,7 +51,7 @@ export class VehicleFormComponent implements OnInit {
   saving = false;
 
   // Vehicle type options
-  vehicleTypes = ['Car', 'Van', 'Truck', 'Motorcycle'];
+  vehicleTypes = ['Car', 'Van', 'Truck', 'Bus', 'Motorcycle'];
 
   // Vehicle status options (for edit mode)
   vehicleStatusOptions = [

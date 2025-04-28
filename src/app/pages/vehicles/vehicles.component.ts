@@ -29,7 +29,7 @@ export interface Vehicle {
   registration: string;
   make: string;
   model: string;
-  type: 'Car' | 'Van' | 'Truck' | 'Motorcycle';
+  type: 'Car' | 'Van' | 'Truck' | 'Bus' | 'Motorcycle';
   year: number;
   location: string;
   currentDriverId?: string;

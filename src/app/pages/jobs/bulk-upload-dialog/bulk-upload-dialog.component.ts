@@ -61,7 +61,7 @@ interface ValidationError {
         </p>
         <ul>
           <li>Job ID</li>
-          <li>Vehicle Type (Car, Van, Truck, Motorcycle)</li>
+          <li>Vehicle Type (Car, Van, Truck, Bus, Motorcycle)</li>
           <li>Collection Address</li>
           <li>Delivery Address</li>
           <li>Shipping Reference</li>
@@ -430,14 +430,14 @@ export class BulkUploadDialogComponent implements OnInit {
 
       // Check vehicle type is valid
       if (row['vehicleType']) {
-        const validTypes = ['Car', 'Van', 'Truck', 'Motorcycle'];
+        const validTypes = ['Car', 'Van', 'Truck', 'Bus', 'Motorcycle'];
         if (!validTypes.includes(row['vehicleType'])) {
           errors.push({
             row: rowNumber,
             field: 'vehicleType',
             value: row['vehicleType'],
             error:
-              'Invalid vehicle type. Must be one of: Car, Van, Truck, Motorcycle',
+              'Invalid vehicle type. Must be one of: Car, Van, Truck, Bus, Motorcycle',
           });
         }
       }

@@ -10,7 +10,8 @@ import {
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
-import { Subscription } from 'rxjs';
+import { Observable, Subscription, combineLatest, of } from 'rxjs';
+import { map, startWith, switchMap, tap } from 'rxjs/operators';
 
 // Material Modules
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
@@ -59,17 +60,14 @@ interface DriverTimeline {
   isCurrent: boolean;
 }
 
-interface Address {
-  id: string;
-  companyId: string;
-  companyName: string;
-  building: string;
-  street: string;
-  city: string;
-  postcode: string;
-  country: string;
-  isHeadOffice: boolean;
-}
+// Services and Models
+import { CustomerService } from '../../../services/customer.service';
+import { Customer, Address } from '../../../models/customer.model';
+import {
+  VehicleService,
+  VehicleMake,
+  VehicleModel,
+} from '../../../services/vehicle.service';
 
 // Components
 import { HandoverDialogComponent } from '../handover-dialog/handover-dialog.component';
@@ -113,6 +111,8 @@ export class JobFormComponent implements OnInit, OnDestroy {
   private router: Router = inject(Router);
   private snackBar: MatSnackBar = inject(MatSnackBar);
   private dialog: MatDialog = inject(MatDialog);
+  private customerService: CustomerService = inject(CustomerService);
+  private vehicleService: VehicleService = inject(VehicleService);
 
   jobForm!: FormGroup;
   isEditMode = false;
@@ -132,8 +132,16 @@ export class JobFormComponent implements OnInit, OnDestroy {
 
   // Options for dropdowns
   teams: string[] = [];
-  vehicleTypes: string[] = ['Car', 'Van', 'Truck', 'Motorcycle'];
+  customers: Customer[] = [];
+  vehicleTypes: string[] = ['Car', 'Van', 'Truck', 'Bus', 'Motorcycle'];
+  vehicleMakes: VehicleMake[] = [];
+  vehicleModels: VehicleModel[] = [];
+  filteredVehicleModels: VehicleModel[] = [];
   addressOptions: Address[] = [];
+
+  // Collection and delivery addresses
+  collectionAddresses: Address[] = [];
+  deliveryAddresses: Address[] = [];
 
   // For checking if the user is a SuperAdmin
   isSuperAdmin = true; // This would be determined by your auth service
@@ -144,7 +152,9 @@ export class JobFormComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.initializeForm();
     this.loadTeams();
-    this.loadAddresses();
+    this.loadCustomers();
+    this.loadVehicleMakes();
+    this.setupVehicleModelListener();
 
     // Check if we're in edit mode
     this.route.paramMap.subscribe((params) => {
@@ -172,13 +182,16 @@ export class JobFormComponent implements OnInit, OnDestroy {
       // Job Type
       jobType: ['Standard', Validators.required],
       customerReference: [''],
+      customer: [''],
       shippingReference: ['', Validators.required],
       priority: [false],
 
       // Vehicle Details
       vehicleDetails: this.formBuilder.group({
         type: ['', Validators.required],
+        makeId: ['', Validators.required],
         make: ['', Validators.required],
+        modelId: [''],
         model: ['', Validators.required],
         registration: ['', Validators.required],
         year: [
@@ -188,8 +201,12 @@ export class JobFormComponent implements OnInit, OnDestroy {
         location: [''],
       }),
 
+      // Collection
+      collectionCustomerId: [''],
+
       // Collection Details
       collectionDetails: this.formBuilder.group({
+        addressId: [''],
         building: ['', Validators.required],
         street: ['', Validators.required],
         city: ['', Validators.required],
@@ -211,8 +228,12 @@ export class JobFormComponent implements OnInit, OnDestroy {
         date: [new Date(), Validators.required],
       }),
 
+      // Delivery
+      deliveryCustomerId: [''],
+
       // Delivery Details
       deliveryDetails: this.formBuilder.group({
+        addressId: [''],
         building: ['', Validators.required],
         street: ['', Validators.required],
         city: ['', Validators.required],
@@ -247,6 +268,85 @@ export class JobFormComponent implements OnInit, OnDestroy {
         this.ensureSecondaryPoint();
       }
     });
+
+    // Listen for customer changes to automatically populate both delivery and collection
+    this.jobForm.get('customer')?.valueChanges.subscribe((customerId) => {
+      if (customerId) {
+        // Set the customer ID for both collection and delivery
+        this.jobForm.get('collectionCustomerId')?.setValue(customerId);
+        this.jobForm.get('deliveryCustomerId')?.setValue(customerId);
+
+        // Attempt to find customer reference
+        const selectedCustomer = this.customers.find(
+          (c) => c.id === customerId
+        );
+        if (selectedCustomer && selectedCustomer.reference) {
+          this.jobForm
+            .get('customerReference')
+            ?.setValue(selectedCustomer.reference);
+        }
+      }
+    });
+
+    // Listen for collection customer changes
+    this.jobForm
+      .get('collectionCustomerId')
+      ?.valueChanges.subscribe((customerId) => {
+        if (customerId) {
+          this.loadCustomerAddresses(customerId, 'collection');
+        } else {
+          this.collectionAddresses = [];
+        }
+      });
+
+    // Listen for delivery customer changes
+    this.jobForm
+      .get('deliveryCustomerId')
+      ?.valueChanges.subscribe((customerId) => {
+        if (customerId) {
+          this.loadCustomerAddresses(customerId, 'delivery');
+        } else {
+          this.deliveryAddresses = [];
+        }
+      });
+
+    // Listen for collection address changes
+    this.jobForm
+      .get('collectionDetails.addressId')
+      ?.valueChanges.subscribe((addressId) => {
+        if (addressId) {
+          this.fillAddressFromId('collectionDetails', addressId);
+        }
+      });
+
+    // Listen for delivery address changes
+    this.jobForm
+      .get('deliveryDetails.addressId')
+      ?.valueChanges.subscribe((addressId) => {
+        if (addressId) {
+          this.fillAddressFromId('deliveryDetails', addressId);
+        }
+      });
+  }
+
+  /**
+   * Setup listener for vehicle make changes to filter models
+   */
+  setupVehicleModelListener(): void {
+    const makeIdControl = this.jobForm.get('vehicleDetails.makeId');
+    if (makeIdControl) {
+      const sub = makeIdControl.valueChanges.subscribe((makeId) => {
+        if (makeId) {
+          this.loadVehicleModels(makeId);
+          // Clear model selection when make changes
+          this.jobForm.get('vehicleDetails.modelId')?.setValue('');
+          this.jobForm.get('vehicleDetails.model')?.setValue('');
+        } else {
+          this.filteredVehicleModels = [];
+        }
+      });
+      this.subscriptions.push(sub);
+    }
   }
 
   /**
@@ -337,27 +437,141 @@ export class JobFormComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Load company addresses from Firestore
+   * Load customers from Customer service
    */
-  loadAddresses(): void {
+  loadCustomers(): void {
+    const sub = this.customerService.getCustomers().subscribe({
+      next: (customers) => {
+        this.customers = customers;
+      },
+      error: (error) => {
+        console.error('Error loading customers:', error);
+        this.snackBar.open(
+          'Error loading customers. Please try again.',
+          'Close',
+          {
+            duration: 5000,
+            panelClass: ['error-snackbar'],
+          }
+        );
+      },
+    });
+
+    this.subscriptions.push(sub);
+  }
+
+  /**
+   * Load customer addresses based on type (collection or delivery)
+   */
+  async loadCustomerAddresses(
+    customerId: string,
+    type: 'collection' | 'delivery'
+  ): Promise<void> {
     try {
-      const addressesCollection = collection(this.firestore, 'Addresses');
-      const addressesQuery = query(addressesCollection);
+      const addresses = await this.customerService.getCustomerAddresses(
+        customerId
+      );
 
-      const addressesSub = collectionData(addressesQuery, {
-        idField: 'id',
-      }).subscribe({
-        next: (addresses) => {
-          this.addressOptions = addresses as Address[];
-        },
-        error: (error) => {
-          console.error('Error loading addresses:', error);
-        },
-      });
-
-      this.subscriptions.push(addressesSub);
+      if (type === 'collection') {
+        this.collectionAddresses = addresses;
+      } else {
+        this.deliveryAddresses = addresses;
+      }
     } catch (error) {
-      console.error('Error setting up addresses subscription:', error);
+      console.error(`Error loading ${type} addresses:`, error);
+    }
+  }
+
+  /**
+   * Load vehicle makes from VehicleService
+   */
+  loadVehicleMakes(): void {
+    const sub = this.vehicleService.getVehicleMakes().subscribe({
+      next: (makes) => {
+        this.vehicleMakes = makes;
+      },
+      error: (error) => {
+        console.error('Error loading vehicle makes:', error);
+      },
+    });
+
+    this.subscriptions.push(sub);
+  }
+
+  /**
+   * Load vehicle models for a specific make
+   */
+  loadVehicleModels(makeId: string): void {
+    const sub = this.vehicleService.getVehicleModels(makeId).subscribe({
+      next: (models) => {
+        this.filteredVehicleModels = models;
+      },
+      error: (error) => {
+        console.error('Error loading vehicle models:', error);
+      },
+    });
+
+    this.subscriptions.push(sub);
+  }
+
+  /**
+   * Fill address fields from customer address
+   */
+  fillAddressFromId(addressGroup: string, addressId: string): void {
+    const addresses =
+      addressGroup === 'collectionDetails'
+        ? this.collectionAddresses
+        : this.deliveryAddresses;
+
+    const address = addresses.find((addr) => addr.id === addressId);
+    if (address) {
+      this.fillAddressFields(addressGroup, address);
+    }
+  }
+
+  /**
+   * Fill address fields from selected address
+   */
+  fillAddressFields(addressGroup: string, address: Address): void {
+    const group = this.jobForm.get(addressGroup) as FormGroup;
+
+    if (group) {
+      group.patchValue({
+        building: address.building,
+        street: address.street,
+        city: address.city,
+        postcode: address.postcode,
+        country: address.country || 'United Kingdom',
+        contactPhone: address.phone || '',
+        contactEmail: address.email || '',
+        instructions: address.notes || '',
+      });
+    }
+  }
+
+  /**
+   * Handle Make select change
+   */
+  onMakeChange(event: any): void {
+    const makeId = event.value;
+    const selectedMake = this.vehicleMakes.find((make) => make.id === makeId);
+
+    if (selectedMake) {
+      this.jobForm.get('vehicleDetails.make')?.setValue(selectedMake.name);
+    }
+  }
+
+  /**
+   * Handle Model select change
+   */
+  onModelChange(event: any): void {
+    const modelId = event.value;
+    const selectedModel = this.filteredVehicleModels.find(
+      (model) => model.id === modelId
+    );
+
+    if (selectedModel) {
+      this.jobForm.get('vehicleDetails.model')?.setValue(selectedModel.name);
     }
   }
 
@@ -376,6 +590,7 @@ export class JobFormComponent implements OnInit, OnDestroy {
         this.jobForm.patchValue({
           jobType: jobData['jobType'] || 'Standard',
           customerReference: jobData['customerReference'] || '',
+          customer: jobData['customer'] || '',
           shippingReference: jobData['shippingReference'] || '',
           priority: jobData['priority'] || false,
 
@@ -506,36 +721,6 @@ export class JobFormComponent implements OnInit, OnDestroy {
     } catch (error) {
       console.error('Error loading driver timeline:', error);
     }
-  }
-
-  /**
-   * Fill address fields from autocomplete
-   */
-  fillAddressFields(addressGroup: string, address: Address): void {
-    const group = this.jobForm.get(addressGroup) as FormGroup;
-
-    if (group) {
-      group.patchValue({
-        building: address.building,
-        street: address.street,
-        city: address.city,
-        postcode: address.postcode,
-        country: address.country,
-      });
-    }
-  }
-
-  /**
-   * Filter addresses for autocomplete
-   */
-  filterAddresses(value: string): Address[] {
-    const filterValue = value.toLowerCase();
-    return this.addressOptions.filter(
-      (address) =>
-        address.companyName.toLowerCase().includes(filterValue) ||
-        address.postcode.toLowerCase().includes(filterValue) ||
-        address.city.toLowerCase().includes(filterValue)
-    );
   }
 
   /**
