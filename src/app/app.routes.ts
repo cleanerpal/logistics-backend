@@ -52,9 +52,7 @@ export const routes: Routes = [
   {
     path: 'billing',
     loadChildren: () =>
-      import('./pages/companies/billing/billing.routes').then(
-        (m) => m.BILLING_ROUTES
-      ),
+      import('./pages/billing/billing.routes').then((m) => m.BILLING_ROUTES),
     canActivate: [authGuard],
     data: { roles: ['SuperAdmin', 'Admin'] },
   },

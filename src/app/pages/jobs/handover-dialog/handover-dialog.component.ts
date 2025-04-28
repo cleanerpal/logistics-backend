@@ -39,7 +39,12 @@ import {
   query,
   where,
   getDocs,
+  getDoc,
   Timestamp,
+  DocumentReference,
+  CollectionReference,
+  DocumentData,
+  Query,
 } from '@angular/fire/firestore';
 
 // Interfaces
@@ -526,30 +531,21 @@ export class HandoverDialogComponent implements OnInit {
    */
   async loadTeamMembers(): Promise<void> {
     try {
-      const usersRef = collection(this.firestore, 'Users');
       const q = query(
-        usersRef,
-        where('team', '==', this.data.team),
-        where('role', '==', 'Driver')
+        collection(this.firestore, 'Users'),
+        where('team', '==', this.data.team)
       );
 
       const querySnapshot = await getDocs(q);
 
       this.teamMembers = [];
 
-      querySnapshot.forEach((doc) => {
-        const data = doc.data();
-
-        // Only include drivers who are not the current driver
-        if (doc.id !== this.currentDriverId) {
-          this.teamMembers.push({
-            id: doc.id,
-            name: data['displayName'] || data['email'] || 'Unknown',
-            role: data['role'] || 'Driver',
-            team: data['team'] || '',
-          });
-        }
-      });
+      if (querySnapshot.docs.length > 0) {
+        querySnapshot.docs.forEach((doc) => {
+          const data = doc.data() as TeamMember;
+          this.teamMembers.push(data);
+        });
+      }
     } catch (error) {
       console.error('Error loading team members:', error);
       this.snackBar.open(
@@ -568,8 +564,13 @@ export class HandoverDialogComponent implements OnInit {
    */
   async loadCurrentDriver(): Promise<void> {
     try {
+      if (!this.data.jobId) {
+        console.error('No job ID provided');
+        return;
+      }
+
       const jobRef = doc(this.firestore, 'Jobs', this.data.jobId);
-      const jobSnap = await getDocs(jobRef);
+      const jobSnap = await getDoc(jobRef);
 
       if (jobSnap.exists()) {
         const data = jobSnap.data();
@@ -578,16 +579,26 @@ export class HandoverDialogComponent implements OnInit {
           this.currentDriverId = data['currentDriverId'];
 
           // Load driver name
-          const userRef = doc(this.firestore, 'Users', this.currentDriverId);
-          const userSnap = await getDocs(userRef);
+          if (this.currentDriverId) {
+            const userRef = doc(this.firestore, 'Users', this.currentDriverId);
+            const userSnap = await getDoc(userRef);
 
-          if (userSnap.exists()) {
-            const userData = userSnap.data();
-            this.currentDriverName =
-              userData['displayName'] || userData['email'] || 'Unknown';
+            if (userSnap.exists()) {
+              const userData = userSnap.data();
+              this.currentDriverName =
+                userData['displayName'] || userData['email'] || 'Unknown';
+            }
           }
         }
       }
+
+      // Load handover history
+      const handoversRef = collection(this.firestore, 'Handovers');
+      const handoversQuery = query(
+        handoversRef,
+        where('jobId', '==', this.data.jobId)
+      );
+      const handoversSnap = await getDocs(handoversQuery);
     } catch (error) {
       console.error('Error loading current driver:', error);
     }
@@ -841,13 +852,17 @@ export class HandoverDialogComponent implements OnInit {
 
         const querySnapshot = await getDocs(timelineQuery);
 
-        querySnapshot.forEach(async (document) => {
-          const docRef = doc(this.firestore, 'DriverTimeline', document.id);
-          await updateDoc(docRef, {
-            endTime: Timestamp.now(),
-            notes: `Handover to another driver: ${handoverDetails.reason}`,
+        if (querySnapshot.docs.length > 0) {
+          querySnapshot.docs.forEach((doc) => {
+            const data = doc.data() as DocumentData;
+            if (data['notes']) {
+              updateDoc(doc.ref, {
+                endTime: Timestamp.now(),
+                notes: `Handover to another driver: ${data['notes']}`,
+              });
+            }
           });
-        });
+        }
       }
 
       // Get new driver name

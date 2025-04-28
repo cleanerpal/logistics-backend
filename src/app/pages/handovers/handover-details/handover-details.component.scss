@@ -1,0 +1,372 @@
+// Variables using NI Vehicle Logistics brand colors
+$background-color: #f5f5f5;
+$text-color: #333333;
+$primary-color: #c19a6b;
+$secondary-color: #4a3c31;
+$light-gray: #e0e0e0;
+$medium-gray: #9e9e9e;
+$error-color: #b00020;
+$success-color: #4caf50;
+$warning-color: #ff9800;
+$info-color: #2196f3;
+
+.handover-details-container {
+  padding: 20px;
+  background-color: $background-color;
+  min-height: calc(100vh - 64px); // Adjust for header height
+}
+
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 100px 0;
+  color: $medium-gray;
+
+  mat-spinner {
+    margin-bottom: 20px;
+
+    ::ng-deep circle {
+      stroke: $primary-color;
+    }
+  }
+}
+
+.content-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.header-card {
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+
+  .header-flex {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    @media (max-width: 768px) {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 16px;
+    }
+  }
+
+  .title-section {
+    .back-button-container {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .page-title {
+      font-size: 24px;
+      font-weight: 500;
+      color: $secondary-color;
+      margin: 0;
+    }
+
+    .page-subtitle {
+      color: $medium-gray;
+      margin: 8px 0 0 0;
+
+      strong {
+        color: $text-color;
+        font-weight: 500;
+      }
+    }
+  }
+
+  .actions-section {
+    display: flex;
+    gap: 8px;
+
+    @media (max-width: 768px) {
+      flex-wrap: wrap;
+    }
+
+    .primary-button {
+      background-color: $primary-color;
+      color: white;
+    }
+  }
+}
+
+.two-column-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+
+  @media (max-width: 992px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.details-card,
+.signatures-card,
+.job-details-card {
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  height: fit-content;
+
+  .mat-mdc-card-header {
+    padding: 16px 16px 0;
+
+    .mat-mdc-card-title {
+      color: $secondary-color;
+      font-size: 18px;
+      margin-bottom: 0;
+    }
+  }
+
+  .mat-mdc-card-content {
+    padding: 16px;
+  }
+}
+
+.details-grid,
+.job-details-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 16px;
+
+  @media (max-width: 576px) {
+    grid-template-columns: 1fr;
+  }
+
+  .detail-item {
+    display: flex;
+    flex-direction: column;
+
+    .detail-label {
+      font-size: 14px;
+      color: $medium-gray;
+      margin-bottom: 4px;
+    }
+
+    .detail-value {
+      font-size: 16px;
+      color: $text-color;
+
+      &.clickable {
+        cursor: pointer;
+        color: $primary-color;
+        display: flex;
+        align-items: center;
+
+        &:hover {
+          text-decoration: underline;
+        }
+
+        .link-icon {
+          font-size: 16px;
+          height: 16px;
+          width: 16px;
+          margin-left: 4px;
+        }
+      }
+
+      .status-pill {
+        padding: 4px 12px;
+        border-radius: 16px;
+        font-size: 0.8rem;
+        font-weight: 500;
+        display: inline-block;
+        text-transform: capitalize;
+
+        &.status-completed {
+          background-color: $success-color;
+          color: white;
+        }
+
+        &.status-in-progress {
+          background-color: $info-color;
+          color: white;
+        }
+
+        &.status-pending {
+          background-color: $warning-color;
+          color: white;
+        }
+
+        &.status-cancelled {
+          background-color: $error-color;
+          color: white;
+        }
+      }
+    }
+  }
+}
+
+.notes-section {
+  margin-top: 16px;
+
+  h3 {
+    font-size: 16px;
+    font-weight: 500;
+    color: $secondary-color;
+    margin-bottom: 8px;
+  }
+
+  .notes-content {
+    white-space: pre-line;
+    color: $text-color;
+    font-size: 14px;
+    padding: 12px;
+    background-color: rgba(0, 0, 0, 0.02);
+    border-radius: 4px;
+  }
+}
+
+.signature-container {
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+
+  &:last-child {
+    margin-bottom: 0;
+    padding-bottom: 0;
+  }
+
+  h3 {
+    font-size: 16px;
+    font-weight: 500;
+    color: $secondary-color;
+    margin: 16px 0 12px 0;
+  }
+
+  .signature-image-container {
+    width: 100%;
+    background-color: white;
+    padding: 12px;
+    border: 1px solid $light-gray;
+    border-radius: 4px;
+
+    .signature-image {
+      width: 100%;
+      height: auto;
+      max-height: 150px;
+      object-fit: contain;
+    }
+  }
+
+  .signature-skipped {
+    display: flex;
+    align-items: center;
+    padding: 16px;
+    background-color: rgba($warning-color, 0.1);
+    border-radius: 4px;
+    color: darken($warning-color, 10%);
+
+    mat-icon {
+      margin-right: 8px;
+    }
+  }
+
+  .signature-notes {
+    margin-top: 12px;
+
+    .notes-label {
+      font-size: 14px;
+      font-weight: 500;
+      color: $medium-gray;
+    }
+
+    p {
+      margin: 4px 0 0 0;
+      font-size: 14px;
+      color: $text-color;
+    }
+  }
+}
+
+.view-job-button {
+  display: flex;
+  justify-content: center;
+  margin-top: 16px;
+
+  .secondary-button {
+    background-color: $secondary-color;
+    color: white;
+  }
+}
+
+.not-found-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 100px 0;
+
+  mat-card {
+    max-width: 500px;
+    width: 100%;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+
+    .not-found-content {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      padding: 24px;
+
+      .not-found-icon {
+        font-size: 64px;
+        height: 64px;
+        width: 64px;
+        color: $medium-gray;
+        margin-bottom: 24px;
+      }
+
+      h2 {
+        font-size: 24px;
+        font-weight: 500;
+        color: $secondary-color;
+        margin: 0 0 16px 0;
+      }
+
+      p {
+        color: $medium-gray;
+        margin: 0 0 24px 0;
+      }
+
+      button {
+        background-color: $primary-color;
+        color: white;
+      }
+    }
+  }
+}
+
+// Print styles
+@media print {
+  .handover-details-container {
+    padding: 0;
+    background-color: white;
+  }
+
+  .print-hide {
+    display: none !important;
+  }
+
+  .header-card,
+  .details-card,
+  .signatures-card,
+  .job-details-card {
+    box-shadow: none !important;
+    border: 1px solid $light-gray;
+    margin-bottom: 20px;
+  }
+
+  .two-column-layout {
+    display: block;
+
+    .details-card,
+    .signatures-card {
+      margin-bottom: 20px;
+    }
+  }
+}

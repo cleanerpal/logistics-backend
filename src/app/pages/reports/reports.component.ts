@@ -1047,7 +1047,7 @@ export class ReportsComponent implements OnInit, AfterViewInit, OnDestroy {
     });
 
     // Add footer with date and page number
-    const totalPages = doc.internal.getNumberOfPages();
+    const totalPages = doc.internal.pages.length;
     for (let i = 1; i <= totalPages; i++) {
       doc.setPage(i);
       doc.setFontSize(10);

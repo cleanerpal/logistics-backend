@@ -5,17 +5,15 @@ export const HANDOVERS_ROUTES: Routes = [
   {
     path: '',
     loadComponent: () =>
-      import('./handovers-list/handovers-list.component').then(
-        (m) => m.HandoversListComponent
-      ),
+      import('./handovers.component').then((m) => m.HandoversComponent),
     canActivate: [authGuard],
     data: { roles: ['SuperAdmin'] },
   },
   {
-    path: 'create',
+    path: 'history',
     loadComponent: () =>
-      import('./handover-form/handover-form.component').then(
-        (m) => m.HandoverFormComponent
+      import('./handovers-history/handovers-history.component').then(
+        (m) => m.HandoversHistoryComponent
       ),
     canActivate: [authGuard],
     data: { roles: ['SuperAdmin'] },
