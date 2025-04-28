@@ -1,0 +1,213 @@
+// Jobs component styles
+.jobs-container {
+  padding: 20px;
+  background-color: #f5f5f5;
+  min-height: 100%;
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+}
+
+.page-title {
+  font-size: 24px;
+  font-weight: 500;
+  color: #4a3c31;
+  margin: 0;
+}
+
+.header-actions {
+  display: flex;
+  gap: 12px;
+
+  @media (max-width: 768px) {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  @media (max-width: 576px) {
+    flex-direction: column;
+    width: 100%;
+  }
+}
+
+.create-button {
+  background-color: #c19a6b;
+  color: white;
+}
+
+.bulk-button,
+.multi-button {
+  background-color: #4a3c31;
+  color: white;
+}
+
+.filter-card,
+.update-card {
+  margin-bottom: 24px;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+
+  .mat-mdc-card-content {
+    padding: 16px;
+  }
+}
+
+.filter-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+
+  @media (max-width: 992px) {
+    flex-direction: column;
+  }
+}
+
+.search-container {
+  flex: 2;
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+
+  .mat-mdc-form-field {
+    width: 100%;
+  }
+
+  .reset-button {
+    margin-top: 4px;
+  }
+
+  @media (max-width: 576px) {
+    flex-direction: column;
+    width: 100%;
+
+    .reset-button {
+      width: 100%;
+    }
+  }
+}
+
+.date-container {
+  flex: 3;
+  display: flex;
+  gap: 16px;
+
+  .date-field {
+    flex: 3;
+  }
+
+  .date-type-field {
+    flex: 1;
+  }
+
+  @media (max-width: 576px) {
+    flex-direction: column;
+  }
+}
+
+.update-form {
+  h3 {
+    color: #4a3c31;
+    margin-top: 0;
+    margin-bottom: 16px;
+  }
+}
+
+.update-controls {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+
+  .status-field,
+  .team-field {
+    flex: 1;
+  }
+
+  .update-button {
+    margin-top: 4px;
+    background-color: #c19a6b;
+    color: white;
+  }
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+    width: 100%;
+
+    .status-field,
+    .team-field {
+      width: 100%;
+    }
+
+    .update-button {
+      width: 100%;
+    }
+  }
+}
+
+.loading-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 200px;
+}
+
+.table-container {
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.jobs-table {
+  width: 100%;
+
+  .mat-mdc-header-cell {
+    background-color: #f5f5f5;
+    font-weight: 500;
+    color: #4a3c31;
+    white-space: nowrap;
+  }
+
+  .mat-mdc-cell {
+    color: #333333;
+  }
+
+  .job-row {
+    cursor: pointer;
+    transition: background-color 0.2s;
+
+    &:hover {
+      background-color: rgba(193, 154, 107, 0.05);
+    }
+  }
+}
+
+.status-badge {
+  padding: 4px 8px;
+  border-radius: 16px;
+  font-size: 12px;
+  font-weight: 500;
+  color: white;
+  display: inline-block;
+  min-width: 80px;
+  text-align: center;
+}
+
+// Make sure the mat-form-field fills its container
+.mat-mdc-form-field {
+  width: 100%;
+}
+
+// Custom styling for mat-paginator
+.mat-mdc-paginator {
+  background-color: #f5f5f5;
+}
