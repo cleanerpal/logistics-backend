@@ -103,7 +103,7 @@
         </div>
 
         <div class="jobs-list" *ngIf="recentJobs.length > 0">
-          <div class="job-item" *ngFor="let job of recentJobs">
+          <div class="job-item" *ngFor="let job of recentJobs; let last = last">
             <div class="job-header">
               <div class="job-id">{{ job.id }}</div>
               <div
