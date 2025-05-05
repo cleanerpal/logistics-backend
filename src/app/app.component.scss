@@ -1,20 +1,21 @@
+// app.component.scss
 .app-container {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background-color: var(--background-color);
+  display: flex;
+  min-height: 100vh;
+  background-color: #f5f6fa;
+  position: relative;
 }
 
-mat-sidenav {
-  width: 250px;
-  background-color: white;
-  border-right: 1px solid var(--light-gray);
-}
-
-.content-container {
-  padding: 20px;
+.main-content {
+  flex: 1;
+  min-height: 100vh;
+  margin-left: 250px; // Match sidebar width
+  padding-top: 64px; // Match top nav height
+  position: relative;
+  z-index: 1;
   overflow-x: hidden;
-  overflow-y: auto;
+
+  @media (max-width: 768px) {
+    margin-left: 60px; // Match collapsed sidebar width
+  }
 }

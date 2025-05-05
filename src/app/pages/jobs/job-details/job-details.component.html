@@ -1,371 +1,445 @@
-<div class="job-details-container">
-  <div class="page-header">
-    <h1 class="page-title">Job Details</h1>
+<div class="job-details-page">
+  <!-- Sticky Header -->
+  <header class="sticky-header">
+    <div class="header-content">
+      <div class="header-left">
+        <button class="back-btn" routerLink="/jobs">
+          <span class="material-icons">arrow_back</span>
+          Back to Jobs
+        </button>
+        <div class="job-identifier">
+          <h1>{{ job.id }}</h1>
+          <span class="status-badge" [ngClass]="getStatusClass(job.status)">
+            {{ job.status }}
+          </span>
+        </div>
+      </div>
 
-    <div class="header-actions">
-      <button mat-button class="back-button" (click)="goBack()">
-        <mat-icon>arrow_back</mat-icon>
-        Back to Jobs
-      </button>
-
-      <button
-        mat-raised-button
-        color="primary"
-        class="edit-button"
-        (click)="editJob()"
-      >
-        <mat-icon>edit</mat-icon>
-        Edit Job
-      </button>
-
-      <button
-        *ngIf="isSuperAdmin"
-        mat-raised-button
-        color="accent"
-        class="handover-button"
-        (click)="openHandoverDialog()"
-      >
-        <mat-icon>swap_horiz</mat-icon>
-        Initiate Handover
-      </button>
+      <div class="header-actions">
+        <button class="action-btn" (click)="editJob()">
+          <span class="material-icons">edit</span>
+          Edit
+        </button>
+        <button class="action-btn" (click)="printJobDetails()">
+          <span class="material-icons">print</span>
+          Print
+        </button>
+      </div>
     </div>
-  </div>
 
-  <!-- Loading spinner -->
-  <div class="loading-container" *ngIf="loading">
-    <mat-spinner diameter="50"></mat-spinner>
-  </div>
-
-  <!-- Job details content -->
-  <div class="job-content" *ngIf="!loading && job">
-    <!-- Job Status Card -->
-    <mat-card class="status-card">
-      <mat-card-content>
-        <div class="status-content">
-          <div class="status-info">
-            <h2 class="job-id">Job ID: {{ job.id }}</h2>
-            <span
-              class="status-badge large"
-              [style.background-color]="getStatusColor(job.status)"
-            >
-              {{ job.status }}
-            </span>
-          </div>
-
-          <div class="job-dates">
-            <div class="date-info">
-              <span class="date-label">Collection Date:</span>
-              <span class="date-value">{{
-                formatDate(job.collectionDate)
-              }}</span>
-            </div>
-            <div class="date-info">
-              <span class="date-label">Delivery Date:</span>
-              <span class="date-value">{{ formatDate(job.deliveryDate) }}</span>
-            </div>
-          </div>
-
-          <div class="job-type-info">
-            <div class="type-detail">
-              <span class="detail-label">Job Type:</span>
-              <span class="detail-value">{{ job.jobType }}</span>
-            </div>
-            <div class="type-detail">
-              <span class="detail-label">Team:</span>
-              <span class="detail-value">{{ job.team }}</span>
-            </div>
-            <div class="type-detail" *ngIf="job.priority">
-              <span class="priority-badge">
-                <mat-icon>flag</mat-icon>
-                Priority Job
-              </span>
-            </div>
-          </div>
-        </div>
-      </mat-card-content>
-    </mat-card>
-
-    <!-- Tabs for different sections -->
-    <mat-tab-group animationDuration="0ms" class="details-tabs">
-      <!-- Vehicle Tab -->
-      <mat-tab label="Vehicle Details">
-        <mat-card class="details-card">
-          <mat-card-content>
-            <div class="details-grid">
-              <div class="details-item">
-                <span class="details-label">Type</span>
-                <span class="details-value">{{ job.vehicleType }}</span>
-              </div>
-              <div class="details-item">
-                <span class="details-label">Make & Model</span>
-                <span class="details-value"
-                  >{{ job.vehicleMake }} {{ job.vehicleModel }}</span
-                >
-              </div>
-              <div class="details-item">
-                <span class="details-label">Registration</span>
-                <span class="details-value">{{ job.vehicleRegistration }}</span>
-              </div>
-              <div class="details-item">
-                <span class="details-label">Year</span>
-                <span class="details-value">{{ job.vehicleYear }}</span>
-              </div>
-              <div class="details-item full-width" *ngIf="job.vehicleLocation">
-                <span class="details-label">Current Location</span>
-                <span class="details-value">{{ job.vehicleLocation }}</span>
-              </div>
-            </div>
-          </mat-card-content>
-        </mat-card>
-      </mat-tab>
-
-      <!-- Collection Tab -->
-      <mat-tab label="Collection Details">
-        <mat-card class="details-card">
-          <mat-card-content>
-            <div class="address-section">
-              <h3>Collection Address</h3>
-              <div class="address">
-                <div>
-                  {{ job.collectionBuilding }} {{ job.collectionStreet }}
-                </div>
-                <div>{{ job.collectionCity }}</div>
-                <div>{{ job.collectionPostcode }}</div>
-                <div>{{ job.collectionCountry }}</div>
-              </div>
-            </div>
-
-            <mat-divider></mat-divider>
-
-            <div class="contact-section">
-              <h3>Contact Information</h3>
-              <div class="contact-info">
-                <div class="contact-item">
-                  <mat-icon>person</mat-icon>
-                  <span>{{ job.collectionContactName }}</span>
-                </div>
-                <div class="contact-item">
-                  <mat-icon>phone</mat-icon>
-                  <span>{{ job.collectionContactPhone }}</span>
-                </div>
-                <div class="contact-item" *ngIf="job.collectionContactEmail">
-                  <mat-icon>email</mat-icon>
-                  <span>{{ job.collectionContactEmail }}</span>
-                </div>
-              </div>
-            </div>
-
-            <mat-divider *ngIf="job.collectionInstructions"></mat-divider>
-
-            <div
-              class="instructions-section"
-              *ngIf="job.collectionInstructions"
-            >
-              <h3>Special Instructions</h3>
-              <div class="instructions">
-                {{ job.collectionInstructions }}
-              </div>
-            </div>
-          </mat-card-content>
-        </mat-card>
-      </mat-tab>
-
-      <!-- Delivery Tab -->
-      <mat-tab label="Delivery Details">
-        <mat-card class="details-card">
-          <mat-card-content>
-            <div class="address-section">
-              <h3>Delivery Address</h3>
-              <div class="address">
-                <div>{{ job.deliveryBuilding }} {{ job.deliveryStreet }}</div>
-                <div>{{ job.deliveryCity }}</div>
-                <div>{{ job.deliveryPostcode }}</div>
-                <div>{{ job.deliveryCountry }}</div>
-              </div>
-            </div>
-
-            <mat-divider></mat-divider>
-
-            <div class="contact-section">
-              <h3>Contact Information</h3>
-              <div class="contact-info">
-                <div class="contact-item">
-                  <mat-icon>person</mat-icon>
-                  <span>{{ job.deliveryContactName }}</span>
-                </div>
-                <div class="contact-item">
-                  <mat-icon>phone</mat-icon>
-                  <span>{{ job.deliveryContactPhone }}</span>
-                </div>
-                <div class="contact-item" *ngIf="job.deliveryContactEmail">
-                  <mat-icon>email</mat-icon>
-                  <span>{{ job.deliveryContactEmail }}</span>
-                </div>
-              </div>
-            </div>
-
-            <mat-divider *ngIf="job.deliveryInstructions"></mat-divider>
-
-            <div class="instructions-section" *ngIf="job.deliveryInstructions">
-              <h3>Special Instructions</h3>
-              <div class="instructions">
-                {{ job.deliveryInstructions }}
-              </div>
-            </div>
-          </mat-card-content>
-        </mat-card>
-      </mat-tab>
-
-      <!-- Secondary Points Tab (for Split Journey) -->
-      <mat-tab
-        label="Secondary Points"
-        *ngIf="job.jobType === 'Split Journey' && job.secondaryPoints?.length"
+    <!-- Tab Navigation -->
+    <nav class="tab-navigation">
+      <button
+        [class.active]="activeTab === 'details'"
+        (click)="setActiveTab('details')"
       >
-        <div *ngFor="let point of job.secondaryPoints; let i = index">
-          <mat-card class="details-card secondary-point-card">
-            <mat-card-header>
-              <mat-card-title>Secondary Point {{ i + 1 }}</mat-card-title>
-            </mat-card-header>
-            <mat-card-content>
-              <div class="address-section">
-                <h3>Address</h3>
-                <div class="address">
-                  <div>{{ point.building }} {{ point.street }}</div>
-                  <div>{{ point.city }}</div>
-                  <div>{{ point.postcode }}</div>
-                  <div>{{ point.country }}</div>
-                </div>
+        Details
+      </button>
+      <button
+        [class.active]="activeTab === 'timeline'"
+        (click)="setActiveTab('timeline')"
+      >
+        Timeline
+      </button>
+      <button
+        [class.active]="activeTab === 'expenses'"
+        (click)="setActiveTab('expenses')"
+      >
+        Expenses
+      </button>
+    </nav>
+  </header>
+
+  <!-- Main Content -->
+  <main class="main-content">
+    <!-- Details Tab -->
+    <div class="tab-content" *ngIf="activeTab === 'details'">
+      <div class="two-column-layout">
+        <!-- Left Column -->
+        <div class="left-column">
+          <!-- Customer Card -->
+          <div class="info-card">
+            <h2>Customer Information</h2>
+            <div class="card-content">
+              <div class="info-row">
+                <span class="label">Name</span>
+                <span class="value">{{ job.customer.name }}</span>
               </div>
-
-              <mat-divider></mat-divider>
-
-              <div class="contact-section">
-                <h3>Contact Information</h3>
-                <div class="contact-info">
-                  <div class="contact-item">
-                    <mat-icon>person</mat-icon>
-                    <span>{{ point.contactName }}</span>
-                  </div>
-                  <div class="contact-item">
-                    <mat-icon>phone</mat-icon>
-                    <span>{{ point.contactPhone }}</span>
-                  </div>
-                  <div class="contact-item" *ngIf="point.contactEmail">
-                    <mat-icon>email</mat-icon>
-                    <span>{{ point.contactEmail }}</span>
-                  </div>
-                </div>
+              <div class="info-row">
+                <span class="label">Phone</span>
+                <span class="value">{{ job.customer.phone }}</span>
               </div>
-
-              <mat-divider *ngIf="point.instructions"></mat-divider>
-
-              <div class="instructions-section" *ngIf="point.instructions">
-                <h3>Special Instructions</h3>
-                <div class="instructions">
-                  {{ point.instructions }}
-                </div>
+              <div class="info-row">
+                <span class="label">Email</span>
+                <span class="value">{{ job.customer.email }}</span>
               </div>
-            </mat-card-content>
-          </mat-card>
-        </div>
-      </mat-tab>
-
-      <!-- Driver Timeline Tab -->
-      <mat-tab label="Driver Timeline">
-        <mat-card class="details-card">
-          <mat-card-content>
-            <h3 class="section-title">Driver Timeline</h3>
-
-            <div class="empty-state" *ngIf="driverTimeline.length === 0">
-              <p>No driver timeline entries found for this job.</p>
+              <div class="info-row">
+                <span class="label">Company</span>
+                <span class="value">{{ job.customer.company }}</span>
+              </div>
             </div>
+          </div>
 
-            <mat-list *ngIf="driverTimeline.length > 0">
-              <mat-list-item
-                *ngFor="let item of driverTimeline"
-                class="timeline-item"
-              >
-                <div
-                  class="timeline-content"
-                  [class.current-driver]="item.isCurrent"
+          <!-- Vehicle Card -->
+          <div class="info-card">
+            <h2>Vehicle Details</h2>
+            <div class="card-content">
+              <div class="info-row">
+                <span class="label">Make & Model</span>
+                <span class="value"
+                  >{{ job.vehicle.make }} {{ job.vehicle.model }}</span
                 >
-                  <div class="timeline-header">
-                    <span class="driver-name">{{ item.driverName }}</span>
-                    <span class="current-label" *ngIf="item.isCurrent"
-                      >(Current)</span
-                    >
-                  </div>
-                  <div class="timeline-time">
-                    <span>{{ formatDate(item.startTime) }}</span>
-                    <span *ngIf="item.endTime">
-                      - {{ formatDate(item.endTime) }}</span
-                    >
-                    <span *ngIf="!item.endTime"> - Present</span>
-                  </div>
-                  <div class="timeline-notes" *ngIf="item.notes">
-                    <span>{{ item.notes }}</span>
-                  </div>
-                </div>
-              </mat-list-item>
-            </mat-list>
-          </mat-card-content>
-        </mat-card>
-      </mat-tab>
+              </div>
+              <div class="info-row">
+                <span class="label">Type</span>
+                <span class="value">{{ job.vehicle.type }}</span>
+              </div>
+              <div class="info-row">
+                <span class="label">Registration</span>
+                <span class="value">{{ job.vehicle.registration }}</span>
+              </div>
+              <div class="info-row">
+                <span class="label">Chassis Number</span>
+                <span class="value">{{
+                  job.vehicle.chassisNumber || "N/A"
+                }}</span>
+              </div>
+              <div class="info-row">
+                <span class="label">Shipping Ref</span>
+                <span class="value">{{
+                  job.vehicle.shippingRef || "N/A"
+                }}</span>
+              </div>
+            </div>
+          </div>
 
-      <!-- Handover History Tab -->
-      <mat-tab label="Handover History">
-        <mat-card class="details-card">
-          <mat-card-content>
-            <h3 class="section-title">Handover History</h3>
+          <!-- Addresses Card -->
+          <div class="info-card">
+            <h2>Addresses</h2>
+            <div class="card-content">
+              <div class="address-section">
+                <h3>Collection</h3>
+                <p>{{ job.addresses.collection.street }}</p>
+                <p>
+                  <strong>Town:</strong> {{ job.addresses.collection.town }}
+                </p>
+                <p>{{ job.addresses.collection.postcode }}</p>
+                <p class="instructions">
+                  {{ job.addresses.collection.instructions }}
+                </p>
+              </div>
+              <div class="address-section">
+                <h3>Delivery</h3>
+                <p>{{ job.addresses.delivery.street }}</p>
+                <p><strong>Town:</strong> {{ job.addresses.delivery.town }}</p>
+                <p>{{ job.addresses.delivery.postcode }}</p>
+                <p class="instructions">
+                  {{ job.addresses.delivery.instructions }}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
 
-            <div class="empty-state" *ngIf="handoverHistory.length === 0">
-              <p>No handover history found for this job.</p>
+        <!-- Right Column -->
+        <div class="right-column">
+          <!-- Status Card -->
+          <div
+            class="info-card status-card"
+            [ngClass]="getStatusClass(job.status)"
+          >
+            <h2>Current Status</h2>
+            <div class="current-status">
+              <span class="status-indicator"></span>
+              <div class="status-details">
+                <span class="status-text">{{ job.status }}</span>
+                <span class="current-driver" *ngIf="job.currentDriver">
+                  Current Driver: {{ job.currentDriver }}
+                </span>
+              </div>
             </div>
 
-            <mat-list *ngIf="handoverHistory.length > 0">
-              <mat-list-item
-                *ngFor="let handover of handoverHistory"
-                class="handover-item"
-              >
-                <div class="handover-content">
-                  <div class="handover-header">
-                    <span class="handover-timestamp">{{
-                      formatDate(handover.timestamp)
-                    }}</span>
-                  </div>
-                  <div class="handover-details">
-                    <div>
-                      <strong>From:</strong>
-                      {{ handover.previousDriverName || "Unknown" }}
+            <!-- Status Change -->
+            <div class="status-change">
+              <h3>Change Status</h3>
+              <div class="status-buttons">
+                <button
+                  *ngFor="let status of statusOptions"
+                  [class.active]="job.status === status"
+                  (click)="updateJobStatus(status)"
+                  class="status-button"
+                >
+                  {{ status }}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Driver Card -->
+          <div class="info-card">
+            <h2>Assigned Driver</h2>
+            <div class="card-content">
+              <div class="info-row">
+                <span class="label">Name</span>
+                <span class="value">{{ job.driver.name }}</span>
+              </div>
+              <div class="info-row">
+                <span class="label">Phone</span>
+                <span class="value">{{ job.driver.phone }}</span>
+              </div>
+              <div class="info-row">
+                <span class="label">Current Location</span>
+                <span class="value">{{ job.driver.currentLocation }}</span>
+              </div>
+              <div class="info-row">
+                <span class="label">Assigned Date</span>
+                <span class="value">{{
+                  job.driver.assignedDate | date : "medium"
+                }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Notes Card -->
+          <div class="info-card">
+            <h2>Notes</h2>
+            <div class="card-content">
+              <div class="notes-container">
+                <div class="notes-list">
+                  <div *ngFor="let note of job.notes" class="note">
+                    <div class="note-header">
+                      <span class="note-author">{{ note.author }}</span>
+                      <span class="note-date">{{
+                        note.date | date : "medium"
+                      }}</span>
                     </div>
-                    <div>
-                      <strong>To:</strong>
-                      {{ handover.newDriverName || "Unknown" }}
-                    </div>
-                    <div>
-                      <strong>Location:</strong> {{ handover.location }}
-                    </div>
-                    <div><strong>Reason:</strong> {{ handover.reason }}</div>
-                    <div *ngIf="handover.notes">
-                      <strong>Notes:</strong> {{ handover.notes }}
-                    </div>
+                    <div class="note-content">{{ note.content }}</div>
                   </div>
                 </div>
-              </mat-list-item>
-            </mat-list>
-          </mat-card-content>
-        </mat-card>
-      </mat-tab>
-    </mat-tab-group>
-  </div>
 
-  <!-- Not found message -->
-  <div class="not-found" *ngIf="!loading && !job">
-    <h2>Job not found</h2>
-    <p>The requested job could not be found.</p>
-    <button mat-raised-button color="primary" (click)="goBack()">
-      <mat-icon>arrow_back</mat-icon>
-      Back to Jobs
-    </button>
+                <!-- Add Note Form -->
+                <div class="add-note-form">
+                  <textarea
+                    [(ngModel)]="newNote"
+                    placeholder="Add a note..."
+                    rows="2"
+                  ></textarea>
+                  <button
+                    class="add-note-button"
+                    [disabled]="!newNote.trim()"
+                    (click)="addNote()"
+                  >
+                    <span class="material-icons">add</span>
+                    Add Note
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Timeline Tab -->
+    <div class="tab-content" *ngIf="activeTab === 'timeline'">
+      <div class="timeline-view">
+        <div class="timeline-header">
+          <h2>Job Timeline</h2>
+        </div>
+        <div class="timeline-container">
+          <div class="timeline-event" *ngFor="let event of job.timeline">
+            <div class="timeline-marker">
+              <div class="timeline-icon">
+                <span class="material-icons">{{
+                  getTimelineIcon(event.status)
+                }}</span>
+              </div>
+              <div class="timeline-line" *ngIf="!isLastEvent(event)"></div>
+            </div>
+            <div class="timeline-content">
+              <div class="event-header">
+                <h3 class="event-status">{{ event.status }}</h3>
+                <time class="event-time">{{
+                  event.date | date : "medium"
+                }}</time>
+              </div>
+              <p class="event-description">{{ event.description }}</p>
+              <div class="event-metadata">
+                <span class="metadata-item">
+                  <span class="material-icons">person</span>
+                  {{ event.actor }}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Expenses Tab -->
+    <div class="tab-content" *ngIf="activeTab === 'expenses'">
+      <div class="expenses-view">
+        <div class="expenses-header">
+          <h2>Job Expenses</h2>
+          <button class="add-expense-button" (click)="openAddExpenseForm()">
+            <span class="material-icons">add</span>
+            Add Expense
+          </button>
+        </div>
+
+        <!-- Expenses Table -->
+        <div class="expenses-table-container">
+          <table *ngIf="expenses.length > 0" class="expenses-table">
+            <thead>
+              <tr>
+                <th>Description</th>
+                <th>Amount</th>
+                <th>Date</th>
+                <th>Driver</th>
+                <th>Status</th>
+                <th>Chargeable</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let expense of expenses">
+                <td>{{ expense.description }}</td>
+                <td>{{ formatCurrency(expense.amount) }}</td>
+                <td>{{ expense.date | date }}</td>
+                <td>{{ expense.driverName }}</td>
+                <td>
+                  <span
+                    class="status-chip"
+                    [ngClass]="getExpenseStatusClass(expense.status)"
+                  >
+                    {{ expense.status }}
+                  </span>
+                </td>
+                <td>
+                  <mat-checkbox
+                    [disabled]="expense.status !== 'Approved' || !isManager"
+                    [checked]="expense.isChargeable"
+                    (change)="updateExpenseChargeable(expense, $event.checked)"
+                  ></mat-checkbox>
+                </td>
+                <td>
+                  <div class="expense-actions">
+                    <button
+                      *ngIf="expense.status === 'Pending' && isManager"
+                      class="icon-button approve"
+                      (click)="approveExpense(expense)"
+                      matTooltip="Approve expense"
+                    >
+                      <span class="material-icons">check</span>
+                    </button>
+                    <button
+                      *ngIf="expense.status === 'Pending' && isManager"
+                      class="icon-button reject"
+                      (click)="rejectExpense(expense)"
+                      matTooltip="Reject expense"
+                    >
+                      <span class="material-icons">close</span>
+                    </button>
+                    <button
+                      class="icon-button view"
+                      (click)="viewExpenseDetails(expense)"
+                      matTooltip="View details"
+                    >
+                      <span class="material-icons">visibility</span>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+
+          <!-- Empty State -->
+          <div class="empty-expenses" *ngIf="expenses.length === 0">
+            <span class="material-icons">receipt_long</span>
+            <p>No expenses yet for this job</p>
+            <button class="add-expense-button" (click)="openAddExpenseForm()">
+              <span class="material-icons">add</span>
+              Add Expense
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Add Expense Dialog -->
+  <div class="expense-dialog" *ngIf="showAddExpenseForm">
+    <div class="expense-dialog-content">
+      <div class="dialog-header">
+        <h2>Add New Expense</h2>
+        <button class="close-button" (click)="closeAddExpenseForm()">
+          <span class="material-icons">close</span>
+        </button>
+      </div>
+      <form
+        [formGroup]="expenseForm"
+        (ngSubmit)="submitExpense()"
+        class="expense-form"
+      >
+        <div class="form-group">
+          <label for="description">Description</label>
+          <input type="text" id="description" formControlName="description" />
+        </div>
+        <div class="form-group">
+          <label for="amount">Amount</label>
+          <input
+            type="number"
+            id="amount"
+            formControlName="amount"
+            step="0.01"
+          />
+        </div>
+        <div class="form-group">
+          <label for="expenseDate">Date</label>
+          <input type="date" id="expenseDate" formControlName="date" />
+        </div>
+        <div class="form-group">
+          <label for="notes">Notes</label>
+          <textarea id="notes" formControlName="notes" rows="3"></textarea>
+        </div>
+        <div class="form-group upload-group">
+          <label>Receipt</label>
+          <div class="upload-control">
+            <button
+              type="button"
+              class="upload-button"
+              (click)="triggerFileInput()"
+            >
+              <span class="material-icons">upload_file</span>
+              Upload Receipt
+            </button>
+            <span *ngIf="receiptFile">{{ receiptFile.name }}</span>
+          </div>
+          <input
+            type="file"
+            #fileInput
+            hidden
+            (change)="handleFileInput($event)"
+            accept="image/*,.pdf"
+          />
+        </div>
+        <div class="form-actions">
+          <button
+            type="button"
+            class="cancel-button"
+            (click)="closeAddExpenseForm()"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            class="submit-button"
+            [disabled]="expenseForm.invalid"
+          >
+            Submit Expense
+          </button>
+        </div>
+      </form>
+    </div>
   </div>
 </div>

@@ -1,278 +1,391 @@
-import { Component, OnInit, OnDestroy, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { ActivatedRoute, Router, RouterModule } from '@angular/router';
-import { MatCardModule } from '@angular/material/card';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { MatDividerModule } from '@angular/material/divider';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatChipsModule } from '@angular/material/chips';
-import { MatTabsModule } from '@angular/material/tabs';
-import { MatListModule } from '@angular/material/list';
-import { MatSnackBar } from '@angular/material/snack-bar';
-import { MatDialogModule, MatDialog } from '@angular/material/dialog';
-import { Subscription } from 'rxjs';
+import { Component, OnInit, ElementRef, ViewChild } from '@angular/core';
+import { ActivatedRoute, Router } from '@angular/router';
+import { FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { JobStatus } from '../../../shared/models/job-status.enum';
+import { VehicleType } from '../../../shared/models/vehicle-type.enum';
+import { Expense, ExpenseStatus } from '../../../shared/models/expense.model';
+import { ExpenseService } from '../../../services/expense.service';
 
-// Firebase imports
-import {
-  Firestore,
-  doc,
-  getDoc,
-  collection,
-  query,
-  where,
-  orderBy,
-  getDocs,
-  Timestamp,
-  DocumentData,
-} from '@angular/fire/firestore';
+interface Note {
+  author: string;
+  content: string;
+  date: Date;
+}
 
-// Import Job model
-import { Job } from '../../../models/jobs.model';
-import { HandoverDialogComponent } from '../handover-dialog/handover-dialog.component';
-
-// Interface for driver timeline
-interface DriverTimeline {
+interface Job {
   id: string;
-  driverId: string;
-  driverName: string;
-  startTime: Timestamp;
-  endTime: Timestamp | null;
-  notes: string;
-  isCurrent: boolean;
+  status: JobStatus;
+  currentDriver?: string;
+  customer: {
+    name: string;
+    phone: string;
+    email: string;
+    company: string;
+  };
+  vehicle: {
+    make: string;
+    model: string;
+    type: VehicleType;
+    registration: string;
+    chassisNumber: string;
+    shippingRef?: string;
+  };
+  addresses: {
+    collection: {
+      street: string;
+      town: string;
+      postcode: string;
+      instructions: string;
+    };
+    delivery: {
+      street: string;
+      town: string;
+      postcode: string;
+      instructions: string;
+    };
+  };
+  driver: {
+    name: string;
+    phone: string;
+    currentLocation: string;
+    assignedDate: Date;
+  };
+  notes: Note[];
+  timeline: {
+    date: Date;
+    status: string;
+    description: string;
+    actor: string;
+  }[];
 }
 
 @Component({
   selector: 'app-job-details',
-  standalone: true,
-  imports: [
-    CommonModule,
-    RouterModule,
-    MatCardModule,
-    MatButtonModule,
-    MatIconModule,
-    MatDividerModule,
-    MatProgressSpinnerModule,
-    MatChipsModule,
-    MatTabsModule,
-    MatListModule,
-    MatDialogModule,
-  ],
   templateUrl: './job-details.component.html',
   styleUrls: ['./job-details.component.scss'],
 })
-export class JobDetailsComponent implements OnInit, OnDestroy {
-  private firestore: Firestore = inject(Firestore);
-  private route: ActivatedRoute = inject(ActivatedRoute);
-  private router: Router = inject(Router);
-  private snackBar: MatSnackBar = inject(MatSnackBar);
-  private dialog: MatDialog = inject(MatDialog);
+export class JobDetailsComponent implements OnInit {
+  @ViewChild('fileInput') fileInput!: ElementRef;
 
-  job: Job | null = null;
-  jobId: string | null = null;
-  loading = true;
-  driverTimeline: DriverTimeline[] = [];
-  handoverHistory: any[] = [];
+  jobId: string = '';
+  activeTab: 'details' | 'timeline' | 'expenses' = 'details';
+  isManager = true; // In a real app, this would be determined by user role
+  job!: Job;
+  expenses: Expense[] = [];
+  statusOptions = Object.values(JobStatus);
 
-  // To check if user has admin privileges
-  isSuperAdmin = true; // This would normally be set by your auth service
+  // Notes functionality
+  newNote: string = '';
 
-  private subscriptions: Subscription[] = [];
+  // Expense functionality
+  showAddExpenseForm = false;
+  expenseForm!: FormGroup;
+  receiptFile: File | null = null;
 
-  ngOnInit(): void {
-    // Get job ID from route params
-    this.route.paramMap.subscribe((params) => {
-      this.jobId = params.get('id');
+  constructor(
+    private route: ActivatedRoute,
+    private router: Router,
+    private fb: FormBuilder,
+    private expenseService: ExpenseService
+  ) {
+    this.createExpenseForm();
+  }
 
-      if (this.jobId) {
-        this.loadJobData(this.jobId);
-      } else {
-        this.snackBar.open('Job ID not provided.', 'Close', {
-          duration: 3000,
-        });
-        this.router.navigate(['/jobs']);
-      }
+  ngOnInit() {
+    this.route.params.subscribe((params) => {
+      this.jobId = params['id'];
+      this.loadJobDetails(this.jobId);
+      this.loadJobExpenses(this.jobId);
     });
   }
 
-  ngOnDestroy(): void {
-    // Unsubscribe from all subscriptions
-    this.subscriptions.forEach((sub) => sub.unsubscribe());
-  }
-
-  /**
-   * Load job data from Firestore
-   */
-  async loadJobData(jobId: string): Promise<void> {
-    try {
-      this.loading = true;
-
-      const jobRef = doc(this.firestore, 'Jobs', jobId);
-      const jobSnap = await getDoc(jobRef);
-
-      if (jobSnap.exists()) {
-        const data = jobSnap.data() as DocumentData;
-
-        // Create job object
-        this.job = {
-          id: jobSnap.id,
-          ...(data as any),
-        } as Job;
-
-        // Load related data
-        await Promise.all([
-          this.loadDriverTimeline(jobId),
-          this.loadHandoverHistory(jobId),
-        ]);
-
-        this.loading = false;
-      } else {
-        this.snackBar.open('Job not found.', 'Close', {
-          duration: 3000,
-        });
-        this.router.navigate(['/jobs']);
-      }
-    } catch (error) {
-      console.error('Error loading job data:', error);
-      this.snackBar.open('Error loading job data.', 'Close', {
-        duration: 3000,
-      });
-      this.loading = false;
-    }
-  }
-
-  /**
-   * Load driver timeline from Firestore
-   */
-  async loadDriverTimeline(jobId: string): Promise<void> {
-    try {
-      const timelineCollection = collection(this.firestore, 'DriverTimeline');
-      const timelineQuery = query(
-        timelineCollection,
-        where('jobId', '==', jobId),
-        orderBy('startTime', 'desc')
-      );
-
-      const querySnapshot = await getDocs(timelineQuery);
-      this.driverTimeline = [];
-
-      querySnapshot.forEach((doc) => {
-        const data = doc.data();
-        this.driverTimeline.push({
-          id: doc.id,
-          driverId: data['driverId'],
-          driverName: data['driverName'],
-          startTime: data['startTime'],
-          endTime: data['endTime'],
-          notes: data['notes'],
-          isCurrent: data['endTime'] === null,
-        });
-      });
-    } catch (error) {
-      console.error('Error loading driver timeline:', error);
-    }
-  }
-
-  /**
-   * Load handover history from Firestore
-   */
-  async loadHandoverHistory(jobId: string): Promise<void> {
-    try {
-      const handoversCollection = collection(this.firestore, 'Handovers');
-      const handoversQuery = query(
-        handoversCollection,
-        where('jobId', '==', jobId),
-        orderBy('timestamp', 'desc')
-      );
-
-      const querySnapshot = await getDocs(handoversQuery);
-      this.handoverHistory = [];
-
-      querySnapshot.forEach((doc) => {
-        this.handoverHistory.push({
-          id: doc.id,
-          ...doc.data(),
-        });
-      });
-    } catch (error) {
-      console.error('Error loading handover history:', error);
-    }
-  }
-
-  /**
-   * Open handover dialog
-   */
-  openHandoverDialog(): void {
-    if (!this.job) return;
-
-    const dialogRef = this.dialog.open(HandoverDialogComponent, {
-      width: '600px',
-      data: {
-        jobId: this.job.id,
-        team: this.job.team,
-      },
-    });
-
-    dialogRef.afterClosed().subscribe((result) => {
-      if (result && result.success) {
-        // Reload data
-        this.loadJobData(this.job!.id);
-
-        this.snackBar.open('Handover completed successfully.', 'Close', {
-          duration: 3000,
-        });
-      }
+  private createExpenseForm(): void {
+    this.expenseForm = this.fb.group({
+      description: ['', Validators.required],
+      amount: ['', [Validators.required, Validators.min(0.01)]],
+      date: [new Date().toISOString().substring(0, 10), Validators.required],
+      notes: [''],
     });
   }
 
-  /**
-   * Navigate to edit job
-   */
+  loadJobDetails(jobId: string) {
+    // In a real app, this would be an API call
+    setTimeout(() => {
+      this.job = {
+        id: jobId,
+        status: JobStatus.ALLOCATED,
+        currentDriver: 'Mike Johnson',
+        customer: {
+          name: 'John Smith',
+          phone: '+44 123 456 7890',
+          email: 'john.smith@email.com',
+          company: 'Smith Enterprises',
+        },
+        vehicle: {
+          make: 'Toyota',
+          model: 'Corolla',
+          type: VehicleType.CAR,
+          registration: 'AB12XYZ',
+          chassisNumber: 'TYT123456789',
+          shippingRef: 'SHIP1234',
+        },
+        addresses: {
+          collection: {
+            street: '123 Collection St',
+            town: 'London',
+            postcode: 'SW1A 1AA',
+            instructions: 'Call 30 minutes before arrival',
+          },
+          delivery: {
+            street: '456 Delivery Rd',
+            town: 'Edinburgh',
+            postcode: 'EH1 1BB',
+            instructions: 'Goods entrance at rear of building',
+          },
+        },
+        driver: {
+          name: 'Mike Johnson',
+          phone: '+44 987 654 3210',
+          currentLocation: 'En route to delivery',
+          assignedDate: new Date(),
+        },
+        notes: [
+          {
+            author: 'Sarah Admin',
+            content: 'Customer requested delivery before noon.',
+            date: new Date(Date.now() - 24 * 3600000),
+          },
+          {
+            author: 'Mike Johnson',
+            content: 'Vehicle collected, everything in order.',
+            date: new Date(Date.now() - 12 * 3600000),
+          },
+        ],
+        timeline: [
+          {
+            date: new Date(Date.now() - 24 * 3600000),
+            status: JobStatus.LOADED,
+            description: 'Job created and vehicle loaded at depot',
+            actor: 'Sarah Admin',
+          },
+          {
+            date: new Date(Date.now() - 20 * 3600000),
+            status: JobStatus.ALLOCATED,
+            description: 'Job assigned to Mike Johnson',
+            actor: 'System',
+          },
+          {
+            date: new Date(Date.now() - 12 * 3600000),
+            status: JobStatus.COLLECTED,
+            description: 'Vehicle collected from depot',
+            actor: 'Mike Johnson',
+          },
+        ],
+      };
+    }, 1000);
+  }
+
+  loadJobExpenses(jobId: string) {
+    this.expenseService
+      .getExpensesByJob(jobId)
+      .subscribe((expenses: Expense[]) => {
+        this.expenses = expenses;
+      });
+  }
+
+  setActiveTab(tab: 'details' | 'timeline' | 'expenses') {
+    this.activeTab = tab;
+  }
+
+  getStatusClass(status: string): string {
+    const statusMap: Record<string, string> = {
+      [JobStatus.LOADED]: 'status-loaded',
+      [JobStatus.ALLOCATED]: 'status-allocated',
+      [JobStatus.COLLECTED]: 'status-collected',
+      [JobStatus.DELIVERED]: 'status-delivered',
+      [JobStatus.ABORTED]: 'status-aborted',
+      [JobStatus.CANCELLED]: 'status-cancelled',
+    };
+    return statusMap[status] || 'status-default';
+  }
+
+  getTimelineIcon(status: string): string {
+    const iconMap: Record<string, string> = {
+      [JobStatus.LOADED]: 'inventory_2',
+      [JobStatus.ALLOCATED]: 'assignment',
+      [JobStatus.COLLECTED]: 'departure_board',
+      [JobStatus.DELIVERED]: 'check_circle',
+      [JobStatus.ABORTED]: 'error',
+      [JobStatus.CANCELLED]: 'cancel',
+    };
+    return iconMap[status] || 'radio_button_unchecked';
+  }
+
+  getExpenseStatusClass(status: ExpenseStatus): string {
+    const statusMap: Record<string, string> = {
+      [ExpenseStatus.PENDING]: 'status-pending',
+      [ExpenseStatus.APPROVED]: 'status-approved',
+      [ExpenseStatus.REJECTED]: 'status-rejected',
+    };
+    return statusMap[status] || 'status-default';
+  }
+
+  updateJobStatus(newStatus: JobStatus): void {
+    if (this.job.status === newStatus) return;
+
+    // In a real app, this would be an API call
+    this.job.status = newStatus;
+
+    // Add to timeline
+    this.job.timeline.push({
+      date: new Date(),
+      status: newStatus,
+      description: `Status updated to ${newStatus}`,
+      actor: 'Current User', // In a real app, this would be the logged-in user
+    });
+
+    // Sort timeline by date (newest first)
+    this.job.timeline.sort((a, b) => b.date.getTime() - a.date.getTime());
+  }
+
+  addNote(): void {
+    if (!this.newNote.trim()) return;
+
+    // Add the note
+    this.job.notes.push({
+      author: 'Current User', // In a real app, this would be the logged-in user
+      content: this.newNote.trim(),
+      date: new Date(),
+    });
+
+    // Clear the input
+    this.newNote = '';
+  }
+
   editJob(): void {
-    if (!this.job) return;
-    this.router.navigate(['/jobs/edit', this.job.id]);
+    this.router.navigate(['/jobs', this.jobId, 'edit']);
   }
 
-  /**
-   * Navigate back to jobs list
-   */
-  goBack(): void {
-    this.router.navigate(['/jobs']);
+  printJobDetails(): void {
+    window.print();
   }
 
-  /**
-   * Format date for display
-   */
-  formatDate(timestamp: Timestamp | null): string {
-    if (!timestamp) return 'N/A';
+  isLastEvent(event: any): boolean {
+    return this.job.timeline.indexOf(event) === 0; // Timeline is sorted newest first
+  }
 
-    const date = timestamp.toDate();
-    return date.toLocaleDateString('en-GB', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
+  // Expense Management
+  openAddExpenseForm(): void {
+    this.showAddExpenseForm = true;
+    this.expenseForm.reset({
+      date: new Date().toISOString().substring(0, 10),
     });
+    this.receiptFile = null;
   }
 
-  /**
-   * Get status color
-   */
-  getStatusColor(status: string): string {
-    switch (status) {
-      case 'Unallocated':
-        return '#F44336'; // Red
-      case 'Allocated':
-        return '#FFC107'; // Amber
-      case 'Collected':
-        return '#2196F3'; // Blue
-      case 'Delivered':
-        return '#4CAF50'; // Green
-      case 'Cancelled':
-        return '#9E9E9E'; // Grey
-      default:
-        return '#9E9E9E'; // Grey
+  closeAddExpenseForm(): void {
+    this.showAddExpenseForm = false;
+  }
+
+  triggerFileInput(): void {
+    this.fileInput.nativeElement.click();
+  }
+
+  handleFileInput(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    if (input.files?.length) {
+      this.receiptFile = input.files[0];
     }
+  }
+
+  submitExpense(): void {
+    if (this.expenseForm.invalid) return;
+
+    const formValue = this.expenseForm.value;
+
+    // Create expense object
+    const expense: Omit<Expense, 'id' | 'status'> = {
+      jobId: this.jobId,
+      driverId: 'DRIVER1', // In a real app, this would be the logged-in driver's ID
+      driverName: 'Current User', // In a real app, this would be the logged-in user's name
+      description: formValue.description,
+      amount: parseFloat(formValue.amount),
+      date: new Date(formValue.date),
+      notes: formValue.notes,
+      receiptUrl: this.receiptFile
+        ? URL.createObjectURL(this.receiptFile)
+        : undefined,
+      isChargeable: false, // Initially not chargeable until approved and marked
+    };
+
+    // Save expense
+    this.expenseService
+      .createExpense(expense)
+      .subscribe((newExpense: Expense) => {
+        this.expenses.push(newExpense);
+        this.closeAddExpenseForm();
+      });
+  }
+
+  approveExpense(expense: Expense): void {
+    this.expenseService
+      .updateExpenseStatus(
+        expense.id,
+        ExpenseStatus.APPROVED,
+        { approvedBy: 'Current Manager' } // In a real app, this would be the logged-in manager
+      )
+      .subscribe((updatedExpense: Expense) => {
+        // Update expense in the list
+        const index = this.expenses.findIndex(
+          (e) => e.id === updatedExpense.id
+        );
+        if (index !== -1) {
+          this.expenses[index] = updatedExpense;
+        }
+      });
+  }
+
+  rejectExpense(expense: Expense): void {
+    this.expenseService
+      .updateExpenseStatus(
+        expense.id,
+        ExpenseStatus.REJECTED,
+        { approvedBy: 'Current Manager' } // In a real app, this would be the logged-in manager
+      )
+      .subscribe((updatedExpense: Expense) => {
+        // Update expense in the list
+        const index = this.expenses.findIndex(
+          (e) => e.id === updatedExpense.id
+        );
+        if (index !== -1) {
+          this.expenses[index] = updatedExpense;
+        }
+      });
+  }
+
+  updateExpenseChargeable(expense: Expense, isChargeable: boolean): void {
+    this.expenseService
+      .updateExpenseChargeableStatus(expense.id, isChargeable)
+      .subscribe((updatedExpense: Expense) => {
+        // Update expense in the list
+        const index = this.expenses.findIndex(
+          (e) => e.id === updatedExpense.id
+        );
+        if (index !== -1) {
+          this.expenses[index] = updatedExpense;
+        }
+      });
+  }
+
+  viewExpenseDetails(expense: Expense): void {
+    // In a real app, this might open a modal with more details
+    console.log('View expense details', expense);
+  }
+
+  formatCurrency(amount: number): string {
+    return new Intl.NumberFormat('en-GB', {
+      style: 'currency',
+      currency: 'GBP',
+    }).format(amount);
   }
 }

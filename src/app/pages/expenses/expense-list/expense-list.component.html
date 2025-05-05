@@ -1,0 +1,414 @@
+<mat-card class="expenses-card">
+  <!-- Header -->
+  <div class="header-wrapper">
+    <div class="header-title">
+      <h1>Expenses</h1>
+      <p class="subtitle">{{ filteredExpenses.length }} total expenses</p>
+    </div>
+  </div>
+
+  <!-- Filters and Actions Bar -->
+  <div class="filters-actions-wrapper">
+    <div class="filters-section">
+      <mat-form-field appearance="outline" class="search-field">
+        <mat-label>Search expenses</mat-label>
+        <input
+          matInput
+          (keyup)="applyFilter($event)"
+          placeholder="Search by description, job or driver"
+        />
+        <mat-icon matSuffix>search</mat-icon>
+      </mat-form-field>
+
+      <div class="filters-group">
+        <mat-form-field appearance="outline">
+          <mat-label>Status</mat-label>
+          <mat-select
+            [(value)]="filters.status"
+            (selectionChange)="applyFilters()"
+          >
+            <mat-option value="All">All</mat-option>
+            <mat-option *ngFor="let status of statusOptions" [value]="status">
+              {{ status }}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Driver</mat-label>
+          <mat-select
+            [(value)]="filters.driver"
+            (selectionChange)="applyFilters()"
+          >
+            <mat-option value="All">All</mat-option>
+            <mat-option *ngFor="let driver of drivers" [value]="driver.id">
+              {{ driver.name }}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Chargeable</mat-label>
+          <mat-select
+            [(value)]="filters.chargeable"
+            (selectionChange)="applyFilters()"
+          >
+            <mat-option value="All">All</mat-option>
+            <mat-option [value]="true">Chargeable</mat-option>
+            <mat-option [value]="false">Non-Chargeable</mat-option>
+          </mat-select>
+        </mat-form-field>
+
+        <div class="date-range-group">
+          <mat-form-field appearance="outline">
+            <mat-label>Start Date</mat-label>
+            <input
+              matInput
+              [matDatepicker]="startPicker"
+              [(ngModel)]="filters.dateRange.start"
+              (dateChange)="applyFilters()"
+            />
+            <mat-datepicker-toggle
+              matSuffix
+              [for]="startPicker"
+            ></mat-datepicker-toggle>
+            <mat-datepicker #startPicker></mat-datepicker>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>End Date</mat-label>
+            <input
+              matInput
+              [matDatepicker]="endPicker"
+              [(ngModel)]="filters.dateRange.end"
+              (dateChange)="applyFilters()"
+            />
+            <mat-datepicker-toggle
+              matSuffix
+              [for]="endPicker"
+            ></mat-datepicker-toggle>
+            <mat-datepicker #endPicker></mat-datepicker>
+          </mat-form-field>
+        </div>
+      </div>
+    </div>
+
+    <div class="actions-group">
+      <!-- Bulk Approval Button (only visible to managers) -->
+      <button
+        *ngIf="isManager && getBulkApprovalCount() > 0"
+        mat-stroked-button
+        color="primary"
+        (click)="bulkApproveExpenses()"
+        matTooltip="Approve all pending expenses"
+        class="bulk-approve-button"
+      >
+        <mat-icon>done_all</mat-icon>
+        Approve {{ getBulkApprovalCount() }} Expenses
+      </button>
+
+      <button
+        mat-flat-button
+        color="primary"
+        (click)="createNewExpense()"
+        class="create-button"
+      >
+        <mat-icon>add</mat-icon>
+        New Expense
+      </button>
+    </div>
+  </div>
+
+  <!-- Table Container -->
+  <div class="table-container">
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" *ngIf="isLoading">
+      <mat-spinner diameter="40"></mat-spinner>
+      <span>Loading expenses...</span>
+    </div>
+
+    <!-- Table -->
+    <table
+      mat-table
+      [dataSource]="dataSource"
+      matSort
+      [class.loading]="isLoading"
+    >
+      <!-- ID Column -->
+      <ng-container matColumnDef="id">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>ID</th>
+        <td mat-cell *matCellDef="let expense">{{ expense.id }}</td>
+      </ng-container>
+
+      <!-- Description Column -->
+      <ng-container matColumnDef="description">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>Description</th>
+        <td mat-cell *matCellDef="let expense">{{ expense.description }}</td>
+      </ng-container>
+
+      <!-- Amount Column -->
+      <ng-container matColumnDef="amount">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>Amount</th>
+        <td mat-cell *matCellDef="let expense">
+          {{ formatCurrency(expense.amount) }}
+        </td>
+      </ng-container>
+
+      <!-- Date Column -->
+      <ng-container matColumnDef="date">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>Date</th>
+        <td mat-cell *matCellDef="let expense">{{ expense.date | date }}</td>
+      </ng-container>
+
+      <!-- Job ID Column -->
+      <ng-container matColumnDef="jobId">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>Job</th>
+        <td mat-cell *matCellDef="let expense">
+          <a
+            *ngIf="expense.jobId"
+            [routerLink]="['/jobs', expense.jobId]"
+            (click)="$event.stopPropagation()"
+          >
+            {{ expense.jobId }}
+          </a>
+          <span *ngIf="!expense.jobId">N/A</span>
+        </td>
+      </ng-container>
+
+      <!-- Driver Column -->
+      <ng-container matColumnDef="driver">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>Driver</th>
+        <td mat-cell *matCellDef="let expense">{{ expense.driverName }}</td>
+      </ng-container>
+
+      <!-- Status Column -->
+      <ng-container matColumnDef="status">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>Status</th>
+        <td mat-cell *matCellDef="let expense">
+          <span class="status-chip" [ngClass]="getStatusClass(expense.status)">
+            {{ expense.status }}
+          </span>
+        </td>
+      </ng-container>
+
+      <!-- Chargeable Column -->
+      <ng-container matColumnDef="chargeable">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>Chargeable</th>
+        <td mat-cell *matCellDef="let expense">
+          <mat-checkbox
+            [checked]="expense.isChargeable"
+            [disabled]="expense.status !== 'Approved' || !isManager"
+            (change)="updateChargeable(expense, $event)"
+            (click)="$event.stopPropagation()"
+          ></mat-checkbox>
+        </td>
+      </ng-container>
+
+      <!-- Actions Column -->
+      <ng-container matColumnDef="actions">
+        <th mat-header-cell *matHeaderCellDef></th>
+        <td mat-cell *matCellDef="let expense">
+          <div class="action-buttons">
+            <button
+              mat-icon-button
+              *ngIf="expense.status === 'Pending' && isManager"
+              color="primary"
+              matTooltip="Approve"
+              (click)="approveExpense(expense); $event.stopPropagation()"
+            >
+              <mat-icon>check_circle</mat-icon>
+            </button>
+            <button
+              mat-icon-button
+              *ngIf="expense.status === 'Pending' && isManager"
+              color="warn"
+              matTooltip="Reject"
+              (click)="rejectExpense(expense); $event.stopPropagation()"
+            >
+              <mat-icon>cancel</mat-icon>
+            </button>
+            <button
+              mat-icon-button
+              matTooltip="View Details"
+              (click)="viewExpenseDetails(expense); $event.stopPropagation()"
+            >
+              <mat-icon>visibility</mat-icon>
+            </button>
+          </div>
+        </td>
+      </ng-container>
+
+      <!-- Header and Data Rows -->
+      <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+      <tr
+        mat-row
+        *matRowDef="let row; columns: displayedColumns"
+        (click)="viewExpenseDetails(row)"
+        class="expense-row"
+      ></tr>
+    </table>
+
+    <!-- Empty State -->
+    <div
+      class="empty-state"
+      *ngIf="!isLoading && filteredExpenses.length === 0"
+    >
+      <mat-icon class="empty-icon">receipt_long</mat-icon>
+      <h3>No expenses found</h3>
+      <p>Try adjusting your filters or create a new expense</p>
+      <button mat-flat-button color="primary" (click)="createNewExpense()">
+        <mat-icon>add</mat-icon>
+        New Expense
+      </button>
+    </div>
+  </div>
+
+  <!-- Paginator -->
+  <mat-paginator
+    [length]="filteredExpenses.length"
+    [pageSize]="25"
+    [pageSizeOptions]="[10, 25, 50, 100]"
+    showFirstLastButtons
+  >
+  </mat-paginator>
+</mat-card>
+
+<!-- Expense Detail Dialog -->
+<ng-template #expenseDetailDialog>
+  <div class="expense-detail-dialog">
+    <h2 mat-dialog-title>Expense Details</h2>
+    <mat-dialog-content *ngIf="selectedExpense">
+      <div class="expense-info-grid">
+        <div class="expense-info-item">
+          <span class="label">ID</span>
+          <span class="value">{{ selectedExpense.id }}</span>
+        </div>
+        <div class="expense-info-item">
+          <span class="label">Description</span>
+          <span class="value">{{ selectedExpense.description }}</span>
+        </div>
+        <div class="expense-info-item">
+          <span class="label">Amount</span>
+          <span class="value">{{
+            formatCurrency(selectedExpense.amount)
+          }}</span>
+        </div>
+        <div class="expense-info-item">
+          <span class="label">Date</span>
+          <span class="value">{{
+            selectedExpense.date | date : "medium"
+          }}</span>
+        </div>
+        <div class="expense-info-item">
+          <span class="label">Driver</span>
+          <span class="value">{{ selectedExpense.driverName }}</span>
+        </div>
+        <div class="expense-info-item">
+          <span class="label">Job</span>
+          <span class="value">
+            <a
+              *ngIf="selectedExpense.jobId"
+              [routerLink]="['/jobs', selectedExpense.jobId]"
+              (click)="closeDialog()"
+            >
+              {{ selectedExpense.jobId }}
+            </a>
+            <span *ngIf="!selectedExpense.jobId">N/A</span>
+          </span>
+        </div>
+        <div class="expense-info-item">
+          <span class="label">Status</span>
+          <span
+            class="value status-chip"
+            [ngClass]="getStatusClass(selectedExpense.status)"
+          >
+            {{ selectedExpense.status }}
+          </span>
+        </div>
+        <div class="expense-info-item">
+          <span class="label">Chargeable</span>
+          <span class="value">{{
+            selectedExpense.isChargeable ? "Yes" : "No"
+          }}</span>
+        </div>
+        <div class="expense-info-item full-width" *ngIf="selectedExpense.notes">
+          <span class="label">Notes</span>
+          <div class="value notes-content">{{ selectedExpense.notes }}</div>
+        </div>
+        <div
+          class="expense-info-item full-width"
+          *ngIf="selectedExpense.receiptUrl"
+        >
+          <span class="label">Receipt</span>
+          <div class="receipt-image">
+            <img [src]="selectedExpense.receiptUrl" alt="Receipt" />
+          </div>
+        </div>
+        <div
+          class="expense-info-item full-width"
+          *ngIf="selectedExpense.approvedBy"
+        >
+          <span class="label">Approved By</span>
+          <span class="value"
+            >{{ selectedExpense.approvedBy }} on
+            {{ selectedExpense.approvedDate | date : "medium" }}</span
+          >
+        </div>
+      </div>
+    </mat-dialog-content>
+    <mat-dialog-actions align="end">
+      <button mat-button mat-dialog-close>Close</button>
+      <button
+        mat-raised-button
+        color="primary"
+        *ngIf="selectedExpense?.status === 'Pending' && isManager"
+        (click)="approveExpense(selectedExpense!)"
+      >
+        Approve
+      </button>
+      <button
+        mat-raised-button
+        color="warn"
+        *ngIf="selectedExpense?.status === 'Pending' && isManager"
+        (click)="rejectExpense(selectedExpense!)"
+      >
+        Reject
+      </button>
+    </mat-dialog-actions>
+  </div>
+</ng-template>
+
+<!-- Rejection Dialog -->
+<ng-template #rejectDialog>
+  <div class="rejection-dialog">
+    <h2 mat-dialog-title>Reject Expense</h2>
+    <mat-dialog-content>
+      <form [formGroup]="rejectionForm">
+        <p>Please provide a reason for rejecting this expense:</p>
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Rejection Reason</mat-label>
+          <textarea
+            matInput
+            formControlName="reason"
+            rows="3"
+            placeholder="Enter reason for rejection"
+          ></textarea>
+          <mat-error *ngIf="rejectionForm.get('reason')?.hasError('required')">
+            A reason is required for rejecting the expense
+          </mat-error>
+        </mat-form-field>
+      </form>
+    </mat-dialog-content>
+    <mat-dialog-actions align="end">
+      <button mat-button mat-dialog-close>Cancel</button>
+      <button
+        mat-raised-button
+        color="warn"
+        [disabled]="rejectionForm.invalid"
+        (click)="confirmReject()"
+      >
+        Reject Expense
+      </button>
+    </mat-dialog-actions>
+  </div>
+</ng-template>

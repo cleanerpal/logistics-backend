@@ -1,265 +1,270 @@
-import { Component, OnDestroy, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { ActivatedRoute, Router, RouterModule } from '@angular/router';
-import { MatCardModule } from '@angular/material/card';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { MatChipsModule } from '@angular/material/chips';
-import { MatDividerModule } from '@angular/material/divider';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSnackBar } from '@angular/material/snack-bar';
-import { Subscription } from 'rxjs';
-import {
-  Firestore,
-  doc,
-  getDoc,
-  collectionData,
-  query,
-  collection,
-  where,
-  limit,
-  Timestamp,
-} from '@angular/fire/firestore';
+import { Component, OnInit } from '@angular/core';
+import { ActivatedRoute, Router } from '@angular/router';
 
-interface Vehicle {
-  id: string;
-  registration: string;
-  make: string;
-  model: string;
+interface Dimensions {
+  length: number;
+  width: number;
+  height: number;
+  wheelbase: number;
+}
+
+interface Weight {
+  empty: number;
+  maxLoad: number;
+}
+
+interface HandlingInstructions {
+  loadingProcedure: string[];
+  securingPoints: string[];
+  specialConsiderations: string[];
+  safetyRequirements: string[];
+  equipment: string[];
+}
+
+interface Specifications {
+  dimensions: Dimensions;
+  weight: Weight;
+  loadingRequirements: string[];
+  transportRestrictions: string[];
+  requiredEquipment: string[];
+}
+
+interface Document {
+  name: string;
   type: string;
-  year: number;
-  location: string;
-  status: 'Available' | 'In Use' | 'Maintenance' | 'Out of Service';
-  lastServiceDate?: Timestamp;
-  nextServiceDue?: Timestamp;
-  currentDriverId?: string;
-  currentDriverName?: string;
-  createdAt?: Timestamp;
-  updatedAt: Timestamp;
+  url: string;
+  lastUpdated: Date;
 }
 
-interface Job {
-  id: string;
-  customerReference: string;
-  status: string;
-  collectionDate: Timestamp;
-  deliveryDate: Timestamp;
+interface JobHistory {
+  jobId: string;
+  date: Date;
+  customer: string;
+  distance: number;
+  duration: number;
+  issues: string[];
 }
+
+interface VehicleModel {
+  id: string;
+  manufacturerId: string;
+  manufacturerName: string;
+  name: string;
+  yearStart: number;
+  yearEnd: number | null;
+  images: string[];
+  specifications: Specifications;
+  handlingInstructions: HandlingInstructions;
+  documents: Document[];
+  jobHistory: JobHistory[];
+  status: 'Active' | 'Archived';
+  activeJobs: number;
+}
+
+type TabType = 'overview' | 'specifications' | 'handling' | 'history';
 
 @Component({
   selector: 'app-vehicle-details',
-  standalone: true,
-  imports: [
-    CommonModule,
-    RouterModule,
-    MatCardModule,
-    MatButtonModule,
-    MatIconModule,
-    MatChipsModule,
-    MatDividerModule,
-    MatProgressSpinnerModule,
-  ],
   templateUrl: './vehicle-details.component.html',
   styleUrls: ['./vehicle-details.component.scss'],
 })
-export class VehicleDetailsComponent implements OnInit, OnDestroy {
-  vehicleId: string | null = null;
-  vehicle: Vehicle | null = null;
-  recentJobs: Job[] = [];
+export class VehicleDetailsComponent implements OnInit {
+  model: VehicleModel | null = null;
+  activeTab: TabType = 'overview';
+  currentImageIndex = 0;
+  isAdmin = true; // For demo purposes
   loading = true;
-  private jobsSubscription?: Subscription;
+  error: string | null = null;
 
-  constructor(
-    private route: ActivatedRoute,
-    private router: Router,
-    private firestore: Firestore,
-    private snackBar: MatSnackBar
-  ) {}
+  constructor(private route: ActivatedRoute, private router: Router) {}
 
   ngOnInit(): void {
-    this.route.paramMap.subscribe((params) => {
-      this.vehicleId = params.get('id');
-      if (this.vehicleId) {
-        this.loadVehicleData();
-      } else {
-        this.snackBar.open('Vehicle ID not provided', 'Close', {
-          duration: 3000,
-        });
-        this.router.navigate(['/vehicles']);
+    this.route.params.subscribe((params) => {
+      const modelId = params['id'];
+      if (modelId) {
+        this.loadModelDetails(modelId);
       }
     });
   }
 
-  ngOnDestroy(): void {
-    if (this.jobsSubscription) {
-      this.jobsSubscription.unsubscribe();
-    }
-  }
+  loadModelDetails(modelId: string): void {
+    this.loading = true;
+    this.error = null;
 
-  /**
-   * Load vehicle data
-   */
-  async loadVehicleData(): Promise<void> {
-    if (!this.vehicleId) return;
-
-    try {
-      const vehicleRef = doc(this.firestore, 'Vehicles', this.vehicleId);
-      const vehicleSnap = await getDoc(vehicleRef);
-
-      if (vehicleSnap.exists()) {
-        const data = vehicleSnap.data();
-        this.vehicle = {
-          id: vehicleSnap.id,
-          registration: data['registration'] || '',
-          make: data['make'] || '',
-          model: data['model'] || '',
-          type: data['type'] || '',
-          year: data['year'] || 0,
-          location: data['location'] || '',
-          status: data['status'] || 'Available',
-          lastServiceDate: data['lastServiceDate'],
-          nextServiceDue: data['nextServiceDue'],
-          currentDriverId: data['currentDriverId'],
-          currentDriverName: data['currentDriverName'],
-          createdAt: data['createdAt'],
-          updatedAt: data['updatedAt'],
+    // Simulate API delay
+    setTimeout(() => {
+      try {
+        // Return same dummy data regardless of ID
+        this.model = {
+          id: modelId,
+          manufacturerId: '1',
+          manufacturerName: 'Toyota',
+          name: 'Corolla',
+          yearStart: 2018,
+          yearEnd: null,
+          status: 'Active',
+          activeJobs: 5,
+          images: [
+            '/assets/images/corolla.jpg',
+            '/assets/images/corolla1.jpg',
+            '/assets/images/corolla2.jpg',
+          ],
+          specifications: {
+            dimensions: {
+              length: 192.7,
+              width: 72.4,
+              height: 56.9,
+              wheelbase: 111.2,
+            },
+            weight: {
+              empty: 3310,
+              maxLoad: 4500,
+            },
+            loadingRequirements: [
+              'Clear overhead clearance of 7 feet',
+              'Minimum ramp angle of 10 degrees',
+              'Secure all loose items',
+            ],
+            transportRestrictions: [
+              'No stacking',
+              'Climate controlled transport recommended',
+            ],
+            requiredEquipment: [
+              'Wheel straps',
+              'Soft tie-downs',
+              'Wheel chocks',
+            ],
+          },
+          handlingInstructions: {
+            loadingProcedure: [
+              'Inspect vehicle for existing damage',
+              'Position vehicle straight with loading ramp',
+              'Drive slowly onto transport',
+              'Set parking brake',
+            ],
+            securingPoints: [
+              'Front tow hooks',
+              'Rear tow hooks',
+              'Wheel straps',
+            ],
+            specialConsiderations: [
+              'Low ground clearance',
+              'Sport suspension package available',
+            ],
+            safetyRequirements: [
+              'Use wheel chocks',
+              'Verify tie-down tension',
+              'Check ground clearance',
+            ],
+            equipment: [
+              'Wheel straps',
+              'Soft tie-downs',
+              'Wheel chocks',
+              'Loading ramps',
+            ],
+          },
+          documents: [
+            {
+              name: 'Loading Guidelines',
+              type: 'PDF',
+              url: '/documents/loading-guidelines.pdf',
+              lastUpdated: new Date('2024-01-15'),
+            },
+            {
+              name: 'Safety Protocol',
+              type: 'PDF',
+              url: '/documents/safety-protocol.pdf',
+              lastUpdated: new Date('2024-01-15'),
+            },
+          ],
+          jobHistory: [
+            {
+              jobId: 'J123',
+              date: new Date('2024-01-10'),
+              customer: 'ABC Motors',
+              distance: 450,
+              duration: 8,
+              issues: ['Minor delay due to weather'],
+            },
+            {
+              jobId: 'J124',
+              date: new Date('2024-01-15'),
+              customer: 'XYZ Transport',
+              distance: 300,
+              duration: 6,
+              issues: [],
+            },
+          ],
         };
-
-        // Load recent jobs after vehicle data is loaded
-        this.loadRecentJobs();
-      } else {
-        this.snackBar.open('Vehicle not found', 'Close', { duration: 3000 });
-        this.router.navigate(['/vehicles']);
+        this.loading = false;
+      } catch (error) {
+        this.error = 'Failed to load model details';
+        this.loading = false;
       }
-    } catch (error) {
-      console.error('Error loading vehicle:', error);
-      this.snackBar.open('Error loading vehicle details', 'Close', {
-        duration: 3000,
-      });
-      this.loading = false;
+    }, 1000); // Simulate network delay
+  }
+
+  get currentImage(): string {
+    return this.model?.images[this.currentImageIndex] || '';
+  }
+
+  get hasImages(): boolean {
+    return (this.model?.images?.length || 0) > 0;
+  }
+
+  get totalImages(): number {
+    return this.model?.images?.length || 0;
+  }
+
+  get averageTransportTime(): number {
+    if (!this.model?.jobHistory.length) return 0;
+    const total = this.model.jobHistory.reduce(
+      (sum, job) => sum + job.duration,
+      0
+    );
+    return Math.round((total / this.model.jobHistory.length) * 10) / 10;
+  }
+
+  get totalJobs(): number {
+    return this.model?.jobHistory?.length || 0;
+  }
+
+  nextImage(): void {
+    if (this.model?.images.length) {
+      this.currentImageIndex =
+        (this.currentImageIndex + 1) % this.model.images.length;
     }
   }
 
-  /**
-   * Load recent jobs for this vehicle
-   */
-  loadRecentJobs(): void {
-    if (!this.vehicleId) return;
-
-    try {
-      const jobsCollection = collection(this.firestore, 'Jobs');
-      const jobsQuery = query(
-        jobsCollection,
-        where('vehicleId', '==', this.vehicleId),
-        limit(5)
-      );
-
-      this.jobsSubscription = collectionData(jobsQuery, {
-        idField: 'id',
-      }).subscribe({
-        next: (jobs) => {
-          this.recentJobs = jobs as Job[];
-          this.loading = false;
-        },
-        error: (error) => {
-          console.error('Error loading recent jobs:', error);
-          this.loading = false;
-        },
-      });
-    } catch (error) {
-      console.error('Error setting up jobs subscription:', error);
-      this.loading = false;
+  previousImage(): void {
+    if (this.model?.images.length) {
+      this.currentImageIndex =
+        this.currentImageIndex === 0
+          ? this.model.images.length - 1
+          : this.currentImageIndex - 1;
     }
   }
 
-  /**
-   * Navigate to edit vehicle page
-   */
-  editVehicle(): void {
-    if (this.vehicleId) {
-      this.router.navigate(['/vehicles/edit', this.vehicleId]);
-    }
+  switchTab(tab: TabType): void {
+    this.activeTab = tab;
   }
 
-  /**
-   * Navigate to vehicle jobs list
-   */
-  viewAllJobs(): void {
-    if (this.vehicleId) {
-      this.router.navigate(['/vehicles', this.vehicleId, 'jobs']);
-    }
+  archiveModel(): void {
+    if (!this.model) return;
+    // TODO: Implement archive functionality
+    console.log(`Archiving model: ${this.model.id}`);
   }
 
-  /**
-   * Go back to vehicles list
-   */
-  goBack(): void {
-    this.router.navigate(['/vehicles']);
+  downloadDocument(doc: Document): void {
+    // TODO: Implement document download
+    console.log(`Downloading document: ${doc.name}`);
   }
 
-  /**
-   * Format date for display
-   */
-  formatDate(timestamp?: Timestamp): string {
-    if (!timestamp) return 'N/A';
-
-    const date = timestamp.toDate();
-    return date.toLocaleDateString('en-GB', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-    });
+  getSpecificationList(type: keyof Specifications): string[] {
+    return (this.model?.specifications[type] as string[]) || [];
   }
 
-  /**
-   * Get status color class
-   */
-  getStatusColorClass(status: string): string {
-    switch (status) {
-      case 'Available':
-        return 'status-available';
-      case 'In Use':
-        return 'status-in-use';
-      case 'Maintenance':
-        return 'status-maintenance';
-      case 'Out of Service':
-        return 'status-out-of-service';
-      default:
-        return '';
-    }
-  }
-
-  /**
-   * Check if service is due soon (within 30 days)
-   */
-  isServiceDueSoon(): boolean {
-    if (!this.vehicle?.nextServiceDue) return false;
-
-    const now = new Date();
-    const serviceDueDate = this.vehicle.nextServiceDue.toDate();
-    const diffTime = serviceDueDate.getTime() - now.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-    return diffDays <= 30 && diffDays > 0;
-  }
-
-  /**
-   * Get job status color class
-   */
-  getJobStatusColorClass(status: string): string {
-    switch (status) {
-      case 'Unallocated':
-        return 'job-status-unallocated';
-      case 'Allocated':
-        return 'job-status-allocated';
-      case 'Collected':
-        return 'job-status-collected';
-      case 'Delivered':
-        return 'job-status-delivered';
-      case 'Cancelled':
-        return 'job-status-cancelled';
-      default:
-        return '';
-    }
+  getHandlingInstructionList(type: keyof HandlingInstructions): string[] {
+    return this.model?.handlingInstructions[type] || [];
   }
 }
