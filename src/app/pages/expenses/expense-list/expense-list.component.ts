@@ -36,6 +36,7 @@ interface Driver {
   selector: 'app-expense-list',
   templateUrl: './expense-list.component.html',
   styleUrls: ['./expense-list.component.scss'],
+  standalone: false,
 })
 export class ExpenseListComponent implements OnInit, AfterViewInit {
   @ViewChild(MatSort) sort!: MatSort;

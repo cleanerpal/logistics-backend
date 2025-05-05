@@ -15,6 +15,7 @@ interface Manufacturer {
   selector: 'app-vehicle-create',
   templateUrl: './vehicle-create.component.html',
   styleUrls: ['./vehicle-create.component.scss'],
+  standalone: false,
 })
 export class VehicleCreateComponent implements OnInit {
   vehicleForm!: FormGroup;

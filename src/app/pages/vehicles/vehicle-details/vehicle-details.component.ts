@@ -67,6 +67,7 @@ type TabType = 'overview' | 'specifications' | 'handling' | 'history';
   selector: 'app-vehicle-details',
   templateUrl: './vehicle-details.component.html',
   styleUrls: ['./vehicle-details.component.scss'],
+  standalone: false,
 })
 export class VehicleDetailsComponent implements OnInit {
   model: VehicleModel | null = null;

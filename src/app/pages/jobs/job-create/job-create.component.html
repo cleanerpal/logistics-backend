@@ -1,4 +1,10 @@
-<!-- <div class="create-job-container">
+<div class="create-job-container">
+  <!-- Loading Spinner -->
+  <div class="loading-overlay" *ngIf="isLoading">
+    <mat-spinner diameter="40"></mat-spinner>
+    <span>Loading...</span>
+  </div>
+
   <div class="create-job-content">
     <div class="form-header">
       <h1>Create Job</h1>
@@ -9,42 +15,40 @@
     </div>
 
     <form [formGroup]="jobForm" (ngSubmit)="onSubmit()" class="job-form">
+      <!-- Customer Information Section -->
       <div class="form-section">
         <h2>Customer Information</h2>
         <div class="form-grid">
           <div class="form-group full-width">
             <label for="customerId">Customer</label>
-            <select id="customerId" formControlName="customerId">
+            <select
+              id="customerId"
+              formControlName="customerId"
+              (change)="onCustomerSelected($event)"
+            >
               <option value="">Select a customer</option>
               <option *ngFor="let customer of customers" [value]="customer.id">
-                {{ customer.name }} - {{ customer.company }}
+                {{ customer.name }}
+                {{ customer.city ? "- " + customer.city : "" }}
               </option>
             </select>
             <span class="error-message">{{
               getErrorMessage("customerId")
             }}</span>
-
-            <div class="sync-info" *ngIf="quickbooksEnabled">
-              <mat-icon>sync</mat-icon>
-              <span>Customer data synced with QuickBooks</span>
-            </div>
           </div>
         </div>
       </div>
 
+      <!-- Vehicle Information Section -->
       <div class="form-section">
         <h2>Vehicle Information</h2>
         <div class="form-grid">
           <div class="form-group">
             <label for="vehicleMake">Make</label>
-            <select
-              id="vehicleMake"
-              formControlName="vehicleMake"
-              (change)="updatePreviousSelections('make')"
-            >
+            <select id="vehicleMake" formControlName="vehicleMake">
               <option value="">Select make</option>
-              <option *ngFor="let make of vehicleMakes" [value]="make.name">
-                {{ make.name }}
+              <option *ngFor="let make of vehicleMakes" [value]="make.id">
+                {{ make.displayName }}
               </option>
             </select>
             <span class="error-message">{{
@@ -54,16 +58,9 @@
 
           <div class="form-group">
             <label for="vehicleModel">Model</label>
-            <select
-              id="vehicleModel"
-              formControlName="vehicleModel"
-              (change)="updatePreviousSelections('model')"
-            >
+            <select id="vehicleModel" formControlName="vehicleModel">
               <option value="">Select model</option>
-              <option
-                *ngFor="let model of availableModels"
-                [value]="model.name"
-              >
+              <option *ngFor="let model of availableModels" [value]="model.id">
                 {{ model.name }}
               </option>
             </select>
@@ -86,7 +83,9 @@
           </div>
 
           <div class="form-group">
-            <label for="registration">Registration (CAPS, NO SPACES)</label>
+            <label for="registration"
+              >Registration (UPPERCASE, NO SPACES)</label
+            >
             <input
               id="registration"
               type="text"
@@ -99,7 +98,7 @@
           </div>
 
           <div class="form-group">
-            <label for="chassisNumber">Chassis Number (CAPS, NO SPACES)</label>
+            <label for="chassisNumber">Chassis Number (optional)</label>
             <input
               id="chassisNumber"
               type="text"
@@ -112,11 +111,13 @@
           </div>
 
           <div class="form-group">
-            <label for="shippingRef">Shipping Reference</label>
-            <input id="shippingRef" type="text" formControlName="shippingRef" />
-            <span class="error-message">{{
-              getErrorMessage("shippingRef")
-            }}</span>
+            <label for="color">Color (optional)</label>
+            <input id="color" type="text" formControlName="color" />
+          </div>
+
+          <div class="form-group">
+            <label for="year">Year (optional)</label>
+            <input id="year" type="number" formControlName="year" />
           </div>
         </div>
 
@@ -128,17 +129,18 @@
               class="selection-pill"
               (click)="applyPreviousSelection(item)"
             >
-              {{ item.make }} {{ item.model }} ({{ item.registration }})
+              {{ item.makeName }} {{ item.modelName }} ({{ item.registration }})
             </div>
           </div>
         </div>
       </div>
 
+      <!-- Collection Details Section -->
       <div class="form-section">
-        <h2>Location Details</h2>
+        <h2>Collection Details</h2>
         <div class="form-grid">
           <div class="form-group full-width">
-            <label for="collectionAddress">Collection Address</label>
+            <label for="collectionAddress">Address</label>
             <input
               id="collectionAddress"
               type="text"
@@ -150,19 +152,58 @@
           </div>
 
           <div class="form-group">
-            <label for="collectionTown">Collection Town</label>
+            <label for="collectionCity">City</label>
             <input
-              id="collectionTown"
+              id="collectionCity"
               type="text"
-              formControlName="collectionTown"
+              formControlName="collectionCity"
             />
-            <span class="error-message">{{
-              getErrorMessage("collectionTown")
-            }}</span>
+          </div>
+
+          <div class="form-group">
+            <label for="collectionPostcode">Postcode</label>
+            <input
+              id="collectionPostcode"
+              type="text"
+              formControlName="collectionPostcode"
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="collectionContactName">Contact Name</label>
+            <input
+              id="collectionContactName"
+              type="text"
+              formControlName="collectionContactName"
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="collectionContactPhone">Contact Phone</label>
+            <input
+              id="collectionContactPhone"
+              type="text"
+              formControlName="collectionContactPhone"
+            />
           </div>
 
           <div class="form-group full-width">
-            <label for="deliveryAddress">Delivery Address</label>
+            <label for="collectionNotes">Notes</label>
+            <textarea
+              id="collectionNotes"
+              formControlName="collectionNotes"
+              rows="2"
+            ></textarea>
+          </div>
+        </div>
+      </div>
+
+      <!-- Delivery Details Section -->
+      <div class="form-section">
+        <h2>Delivery Details</h2>
+        <div class="form-grid">
+          <div class="form-group full-width">
+            <label for="deliveryAddress">Address</label>
             <input
               id="deliveryAddress"
               type="text"
@@ -174,61 +215,75 @@
           </div>
 
           <div class="form-group">
-            <label for="deliveryTown">Delivery Town</label>
+            <label for="deliveryCity">City</label>
             <input
-              id="deliveryTown"
+              id="deliveryCity"
               type="text"
-              formControlName="deliveryTown"
+              formControlName="deliveryCity"
             />
-            <span class="error-message">{{
-              getErrorMessage("deliveryTown")
-            }}</span>
           </div>
 
           <div class="form-group">
-            <label for="collectionDateTime">Collection Date & Time</label>
+            <label for="deliveryPostcode">Postcode</label>
             <input
-              id="collectionDateTime"
-              type="datetime-local"
-              formControlName="collectionDateTime"
+              id="deliveryPostcode"
+              type="text"
+              formControlName="deliveryPostcode"
             />
-            <span class="error-message">{{
-              getErrorMessage("collectionDateTime")
-            }}</span>
           </div>
 
           <div class="form-group">
-            <label for="status">Status</label>
-            <select id="status" formControlName="status">
-              <option *ngFor="let status of statusOptions" [value]="status">
-                {{ status }}
-              </option>
-            </select>
-            <span class="error-message">{{ getErrorMessage("status") }}</span>
+            <label for="deliveryContactName">Contact Name</label>
+            <input
+              id="deliveryContactName"
+              type="text"
+              formControlName="deliveryContactName"
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="deliveryContactPhone">Contact Phone</label>
+            <input
+              id="deliveryContactPhone"
+              type="text"
+              formControlName="deliveryContactPhone"
+            />
+          </div>
+
+          <div class="form-group full-width">
+            <label for="deliveryNotes">Notes</label>
+            <textarea
+              id="deliveryNotes"
+              formControlName="deliveryNotes"
+              rows="2"
+            ></textarea>
           </div>
         </div>
       </div>
 
+      <!-- Additional Details Section -->
       <div class="form-section">
-        <h2>Assignment (Optional)</h2>
+        <h2>Additional Information</h2>
         <div class="form-grid">
           <div class="form-group">
-            <label for="driverId">Driver</label>
-            <select id="driverId" formControlName="driverId">
-              <option value="">Select driver</option>
-              <option *ngFor="let driver of drivers" [value]="driver.id">
-                {{ driver.name }}
-              </option>
-            </select>
+            <div class="checkbox-group">
+              <input
+                type="checkbox"
+                id="isSplitJourney"
+                formControlName="isSplitJourney"
+              />
+              <label for="isSplitJourney">Split Journey</label>
+            </div>
           </div>
 
           <div class="form-group full-width">
-            <label for="notes">Notes</label>
+            <label for="notes">Job Notes</label>
             <textarea id="notes" formControlName="notes" rows="4"></textarea>
           </div>
         </div>
       </div>
 
+      <!-- Form Actions -->
       <div class="form-actions">
         <button
           type="submit"
@@ -240,4 +295,4 @@
       </div>
     </form>
   </div>
-</div> -->
+</div>

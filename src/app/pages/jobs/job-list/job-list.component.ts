@@ -1,24 +1,20 @@
-// job-list.component.ts
-import { Component, OnInit, ViewChild, AfterViewInit } from '@angular/core';
+import {
+  Component,
+  OnInit,
+  ViewChild,
+  AfterViewInit,
+  OnDestroy,
+} from '@angular/core';
 import { Router } from '@angular/router';
 import { MatTableDataSource } from '@angular/material/table';
 import { MatSort } from '@angular/material/sort';
 import { MatPaginator } from '@angular/material/paginator';
-import { DatePipe } from '@angular/common';
-import { JobStatus } from '../../../shared/models/job-status.enum';
-
-interface Job {
-  id: string;
-  regNumber: string;
-  customerName: string;
-  collectionDate: Date;
-  collectionTown: string;
-  deliveryTown: string;
-  status: JobStatus;
-  driver: string;
-  shippingRef?: string;
-  notes?: string;
-}
+import { FormControl, FormGroup } from '@angular/forms';
+import { JobService } from '../../../services/job.service';
+import { AuthService } from '../../../services/auth.service';
+import { Job } from '../../../interfaces/job.interface';
+import { Subscription } from 'rxjs';
+import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 
 interface JobFilters {
   status: string;
@@ -33,16 +29,15 @@ interface JobFilters {
   selector: 'app-job-list',
   templateUrl: './job-list.component.html',
   styleUrls: ['./job-list.component.scss'],
-  providers: [DatePipe],
+  standalone: false,
 })
-export class JobListComponent implements OnInit, AfterViewInit {
+export class JobListComponent implements OnInit, AfterViewInit, OnDestroy {
   displayedColumns: string[] = [
     'id',
     'regNumber',
-    'customerName',
+    'make',
+    'model',
     'collectionDate',
-    'collectionTown',
-    'deliveryTown',
     'status',
     'driver',
     'actions',
@@ -51,11 +46,22 @@ export class JobListComponent implements OnInit, AfterViewInit {
   isLoading = false;
   dataSource = new MatTableDataSource<Job>([]);
 
+  private subscriptions: Subscription[] = [];
+  filterForm: FormGroup;
+  searchControl = new FormControl('');
+
   @ViewChild(MatSort) sort!: MatSort;
   @ViewChild(MatPaginator) paginator!: MatPaginator;
 
-  statusOptions = Object.values(JobStatus);
-  drivers = ['John Doe', 'Jane Smith', 'Mike Johnson'];
+  statusOptions = [
+    'unallocated',
+    'allocated',
+    'collected',
+    'delivered',
+    'completed',
+  ];
+  drivers: string[] = [];
+  driverMap: { [key: string]: string } = {};
 
   filters: JobFilters = {
     status: 'All',
@@ -66,16 +72,82 @@ export class JobListComponent implements OnInit, AfterViewInit {
     },
   };
 
-  constructor(private router: Router, private datePipe: DatePipe) {}
+  constructor(
+    private router: Router,
+    private jobService: JobService,
+    private authService: AuthService
+  ) {
+    this.filterForm = new FormGroup({
+      status: new FormControl('All'),
+      driver: new FormControl('All'),
+      startDate: new FormControl(null),
+      endDate: new FormControl(null),
+    });
+  }
 
   ngOnInit(): void {
-    this.loadJobs();
+    this.isLoading = true;
+
+    // Initialize driver information
+    this.loadDrivers();
+
+    // Subscribe to jobs observable
+    const jobsSub = this.jobService.jobs$.subscribe((jobs) => {
+      this.dataSource.data = jobs;
+      this.isLoading = false;
+    });
+    this.subscriptions.push(jobsSub);
+
+    // Subscribe to loading state
+    const loadingSub = this.jobService.loading$.subscribe(
+      (loading) => (this.isLoading = loading)
+    );
+    this.subscriptions.push(loadingSub);
+
+    // Load initial jobs data
+    this.jobService.getDriverJobs().subscribe();
+
+    // Setup filter form listeners
+    this.setupFilterListeners();
+  }
+
+  private setupFilterListeners(): void {
+    // Subscribe to search input changes
+    const searchSub = this.searchControl.valueChanges
+      .pipe(debounceTime(300), distinctUntilChanged())
+      .subscribe((value) => {
+        this.applyFilter(value || '');
+      });
+    this.subscriptions.push(searchSub);
+
+    // Subscribe to filter form changes
+    const filterSub = this.filterForm.valueChanges.subscribe(() => {
+      this.applyFilters();
+    });
+    this.subscriptions.push(filterSub);
+  }
+
+  private loadDrivers(): void {
+    // Get all drivers from the users collection
+    this.authService.getDrivers().subscribe((drivers) => {
+      this.drivers = drivers.map((driver) => driver.name);
+
+      // Create a map of driver IDs to names for display
+      drivers.forEach((driver) => {
+        this.driverMap[driver.id] = driver.name;
+      });
+    });
   }
 
   ngAfterViewInit(): void {
     this.dataSource.sort = this.sort;
     this.dataSource.paginator = this.paginator;
     this.setupCustomFilter();
+  }
+
+  ngOnDestroy(): void {
+    // Unsubscribe from all subscriptions
+    this.subscriptions.forEach((sub) => sub.unsubscribe());
   }
 
   private setupCustomFilter(): void {
@@ -93,14 +165,14 @@ export class JobListComponent implements OnInit, AfterViewInit {
       // Apply driver filter
       if (
         this.filters.driver !== 'All' &&
-        data.driver !== this.filters.driver
+        this.driverMap[data.driverId || ''] !== this.filters.driver
       ) {
         return false;
       }
 
       // Apply date range filter
       if (this.filters.dateRange.start && this.filters.dateRange.end) {
-        const jobDate = new Date(data.collectionDate);
+        const jobDate = new Date(data.createdAt);
         const startDate = new Date(this.filters.dateRange.start);
         const endDate = new Date(this.filters.dateRange.end);
 
@@ -111,88 +183,63 @@ export class JobListComponent implements OnInit, AfterViewInit {
 
       // Apply text search
       return (
-        data.id.toLowerCase().includes(searchStr) ||
-        data.customerName.toLowerCase().includes(searchStr) ||
-        data.collectionTown.toLowerCase().includes(searchStr) ||
-        data.deliveryTown.toLowerCase().includes(searchStr) ||
-        data.regNumber.toLowerCase().includes(searchStr)
+        data.id?.toLowerCase().includes(searchStr) ||
+        data.registration?.toLowerCase().includes(searchStr) ||
+        data.make?.toLowerCase().includes(searchStr) ||
+        data.model?.toLowerCase().includes(searchStr) ||
+        this.driverMap[data.driverId || '']?.toLowerCase().includes(searchStr)
       );
     };
   }
 
-  applyFilter(event: Event): void {
-    const filterValue = (event.target as HTMLInputElement).value;
+  applyFilter(filterValue: string): void {
     this.dataSource.filter = filterValue.trim().toLowerCase();
+
+    if (this.dataSource.paginator) {
+      this.dataSource.paginator.firstPage();
+    }
   }
 
   applyFilters(): void {
-    this.dataSource.filter = this.dataSource.filter || ' '; // Trigger filter refresh
+    const formValues = this.filterForm.value;
+
+    this.filters.status = formValues.status;
+    this.filters.driver = formValues.driver;
+    this.filters.dateRange.start = formValues.startDate;
+    this.filters.dateRange.end = formValues.endDate;
+
+    // This will trigger the filterPredicate function
+    this.dataSource.filter = this.dataSource.filter || ' ';
   }
 
-  loadJobs(): void {
-    this.isLoading = true;
-
-    // Simulate API call with dummy data
-    setTimeout(() => {
-      const mockJobs: Job[] = Array(25)
-        .fill(null)
-        .map((_, index) => ({
-          id: `JOB${String(index + 1).padStart(4, '0')}`,
-          regNumber: this.generateRandomRegNumber(),
-          customerName: `Customer ${index + 1}`,
-          collectionDate: new Date(2024, 0, index + 1),
-          collectionTown: `Collection Town ${(index % 10) + 1}`,
-          deliveryTown: `Delivery Town ${(index % 8) + 1}`,
-          status: this.getRandomStatus(),
-          driver: this.drivers[Math.floor(Math.random() * this.drivers.length)],
-          shippingRef: `SHIP${String(
-            Math.floor(Math.random() * 10000)
-          ).padStart(4, '0')}`,
-          notes: Math.random() > 0.5 ? `Notes for job ${index + 1}` : undefined,
-        }));
-
-      this.dataSource.data = mockJobs;
-      this.isLoading = false;
-    }, 1000);
+  getDriverName(driverId: string | null): string {
+    if (!driverId) return 'Unassigned';
+    return this.driverMap[driverId] || 'Unknown Driver';
   }
 
-  private getRandomStatus(): JobStatus {
-    const statuses = Object.values(JobStatus);
-    return statuses[Math.floor(Math.random() * statuses.length)];
-  }
+  formatCreationDate(date: Date | undefined): string {
+    if (!date) return 'N/A';
 
-  private generateRandomRegNumber(): string {
-    // Generate UK-style registration number (no spaces, all caps)
-    const letters1 = 'ABCDEFGHJKLMNOPRSTUVWXYZ';
-    const letters2 = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
-    const numbers = '0123456789';
+    if (typeof date === 'string') {
+      return new Date(date).toLocaleDateString();
+    }
 
-    let reg = '';
+    // Handle Firebase Timestamp
+    if (date && typeof date === 'object' && 'toDate' in date) {
+      const timestamp = date as unknown as { toDate: () => Date };
+      return timestamp.toDate().toLocaleDateString();
+    }
 
-    // Two letters for area
-    reg += letters1[Math.floor(Math.random() * letters1.length)];
-    reg += letters1[Math.floor(Math.random() * letters1.length)];
-
-    // Two numbers for year
-    reg += numbers[Math.floor(Math.random() * numbers.length)];
-    reg += numbers[Math.floor(Math.random() * numbers.length)];
-
-    // Three letters for random
-    reg += letters2[Math.floor(Math.random() * letters2.length)];
-    reg += letters2[Math.floor(Math.random() * letters2.length)];
-    reg += letters2[Math.floor(Math.random() * letters2.length)];
-
-    return reg;
+    return date.toLocaleDateString();
   }
 
   getStatusClass(status: string): string {
     const statusMap: Record<string, string> = {
-      [JobStatus.LOADED]: 'status-loaded',
-      [JobStatus.ALLOCATED]: 'status-allocated',
-      [JobStatus.COLLECTED]: 'status-collected',
-      [JobStatus.DELIVERED]: 'status-delivered',
-      [JobStatus.ABORTED]: 'status-aborted',
-      [JobStatus.CANCELLED]: 'status-cancelled',
+      unallocated: 'status-unallocated',
+      allocated: 'status-allocated',
+      collected: 'status-collected',
+      delivered: 'status-delivered',
+      completed: 'status-completed',
     };
     return statusMap[status] || 'status-default';
   }
@@ -205,7 +252,36 @@ export class JobListComponent implements OnInit, AfterViewInit {
     this.router.navigate(['/jobs', job.id]);
   }
 
-  editJob(job: Job): void {
+  editJob(job: Job, event: Event): void {
+    event.stopPropagation(); // Prevent row click event
     this.router.navigate(['/jobs', job.id, 'edit']);
+  }
+
+  allocateJob(job: Job, event: Event): void {
+    event.stopPropagation(); // Prevent row click event
+
+    this.isLoading = true;
+    this.jobService.allocateJob(job.id).subscribe({
+      next: () => {
+        this.isLoading = false;
+      },
+      error: (error) => {
+        console.error('Error allocating job:', error);
+        this.isLoading = false;
+        // Handle error (show notification)
+      },
+    });
+  }
+
+  refreshJobs(): void {
+    this.isLoading = true;
+    this.jobService.getDriverJobs().subscribe({
+      next: () => {
+        this.isLoading = false;
+      },
+      error: () => {
+        this.isLoading = false;
+      },
+    });
   }
 }

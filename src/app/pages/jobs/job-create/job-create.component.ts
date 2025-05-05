@@ -1,98 +1,72 @@
-// job-create.component.ts
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
-
-interface Customer {
-  id: string;
-  name: string;
-  company: string;
-}
-
-interface VehicleModel {
-  name: string;
-  type: 'Car' | 'Van' | 'Truck' | 'Motorcycle';
-}
-
-interface VehicleMake {
-  name: string;
-  models: VehicleModel[];
-}
-
-interface Driver {
-  id: string;
-  name: string;
-  available: boolean;
-}
+import { Observable, Subscription, forkJoin } from 'rxjs';
+import { finalize } from 'rxjs/operators';
+import { JobService } from '../../../services/job.service';
+import { AuthService } from '../../../services/auth.service';
+import {
+  VehicleService,
+  VehicleMake,
+  VehicleModel,
+} from '../../../services/vehicle.service';
+import { CustomerService, Customer } from '../../../services/customer.service';
+import { MatSnackBar } from '@angular/material/snack-bar';
 
 @Component({
   selector: 'app-job-create',
   templateUrl: './job-create.component.html',
   styleUrls: ['./job-create.component.scss'],
+  standalone: false,
 })
-export class JobCreateComponent implements OnInit {
+export class JobCreateComponent implements OnInit, OnDestroy {
   jobForm!: FormGroup;
+  isSubmitting = false;
+  isLoading = true;
 
-  // Sample data (replace with API calls)
-  customers: Customer[] = [
-    { id: '1', name: 'John Smith', company: 'Smith Co' },
-    { id: '2', name: 'Jane Doe', company: 'Doe Industries' },
-  ];
-
-  vehicleMakes: VehicleMake[] = [
-    {
-      name: 'Toyota',
-      models: [
-        { name: 'Corolla', type: 'Car' },
-        { name: 'Hilux', type: 'Truck' },
-        { name: 'HiAce', type: 'Van' },
-      ],
-    },
-    {
-      name: 'Ford',
-      models: [
-        { name: 'Transit', type: 'Van' },
-        { name: 'Ranger', type: 'Truck' },
-        { name: 'Focus', type: 'Car' },
-        { name: 'Fiesta', type: 'Car' },
-      ],
-    },
-  ];
-
-  drivers: Driver[] = [
-    { id: '1', name: 'Mike Johnson', available: true },
-    { id: '2', name: 'Sarah Williams', available: true },
-  ];
-
-  priorities = ['Low', 'Medium', 'High'];
+  // Reference data
+  customers: Customer[] = [];
+  vehicleMakes: VehicleMake[] = [];
   availableModels: VehicleModel[] = [];
-  vehicleTypes = ['Car', 'Van', 'Truck', 'Motorcycle'];
+  allModels: VehicleModel[] = [];
+  vehicleTypes: string[] = [];
 
-  constructor(private fb: FormBuilder, private router: Router) {
+  // Previous selections for easy re-use
+  previousSelections: any[] = [];
+
+  private subscriptions: Subscription[] = [];
+
+  constructor(
+    private fb: FormBuilder,
+    private router: Router,
+    private jobService: JobService,
+    private authService: AuthService,
+    private vehicleService: VehicleService,
+    private customerService: CustomerService,
+    private snackBar: MatSnackBar
+  ) {
     this.createForm();
   }
 
   ngOnInit() {
-    // Subscribe to make changes to update models
-    this.jobForm.get('vehicleMake')?.valueChanges.subscribe((make) => {
-      this.updateModels(make);
-    });
+    // Load reference data
+    this.loadReferenceData();
 
-    // Subscribe to model changes to update type
-    this.jobForm.get('vehicleModel')?.valueChanges.subscribe((modelName) => {
-      this.updateVehicleType(modelName);
-    });
+    // Set up form listeners
+    this.setupFormListeners();
+
+    // Check for access permissions
+    this.checkPermissions();
+  }
+
+  ngOnDestroy() {
+    this.subscriptions.forEach((sub) => sub.unsubscribe());
   }
 
   createForm() {
     this.jobForm = this.fb.group({
       // Customer Information
       customerId: ['', Validators.required],
-      driverPerson: ['', Validators.required],
-      driverNumber: [
-        '',
-        [Validators.required, Validators.pattern('^[0-9+\\-\\s]*$')],
-      ],
 
       // Vehicle Information
       vehicleMake: ['', Validators.required],
@@ -100,61 +74,361 @@ export class JobCreateComponent implements OnInit {
       vehicleType: ['', Validators.required],
       registration: [
         '',
-        Validators.required,
-        Validators.pattern(/^[A-Z0-9]+$/),
+        [Validators.required, Validators.pattern(/^[A-Z0-9]+$/)],
       ],
-      chassisNumber: [
-        '',
-        Validators.required,
-        Validators.pattern(/^[A-Z0-9]+$/),
-      ],
+      chassisNumber: ['', Validators.pattern(/^[A-Z0-9]+$/)],
+      color: [''],
+      year: [''],
 
-      // Location Details
+      // Collection Details
       collectionAddress: ['', Validators.required],
-      deliveryAddress: ['', Validators.required],
-      collectionDateTime: ['', Validators.required],
+      collectionCity: [''],
+      collectionPostcode: [''],
+      collectionContactName: [''],
+      collectionContactPhone: [''],
+      collectionNotes: [''],
 
-      // Assignment
-      driverId: [''],
-      priority: ['Medium'],
+      // Delivery Details
+      deliveryAddress: ['', Validators.required],
+      deliveryCity: [''],
+      deliveryPostcode: [''],
+      deliveryContactName: [''],
+      deliveryContactPhone: [''],
+      deliveryNotes: [''],
+
+      // Job Settings
+      isSplitJourney: [false],
+
+      // General notes
       notes: [''],
     });
   }
 
-  updateModels(makeName: string) {
-    const make = this.vehicleMakes.find((m) => m.name === makeName);
-    this.availableModels = make ? make.models : [];
-    this.jobForm.patchValue({
-      vehicleModel: '',
-      vehicleType: '',
+  private loadReferenceData() {
+    this.isLoading = true;
+
+    // Load all reference data in parallel
+    const referenceDataSub = forkJoin({
+      customers: this.customerService.getCustomers(),
+      makes: this.vehicleService.getVehicleMakes(),
+      models: this.vehicleService.getVehicleModels(),
+      types: this.vehicleService.getVehicleTypes(),
+    }).subscribe({
+      next: (data) => {
+        this.customers = data.customers;
+        this.vehicleMakes = data.makes;
+        this.allModels = data.models;
+        this.vehicleTypes = data.types;
+        this.isLoading = false;
+      },
+      error: (error) => {
+        console.error('Error loading reference data:', error);
+        this.showSnackbar('Error loading data. Please try again.');
+        this.isLoading = false;
+      },
     });
+
+    this.subscriptions.push(referenceDataSub);
   }
 
-  updateVehicleType(modelName: string) {
-    const selectedMake = this.vehicleMakes.find(
-      (m) => m.name === this.jobForm.get('vehicleMake')?.value
+  private checkPermissions() {
+    const permissionSub = this.authService
+      .hasPermission('canCreateJobs')
+      .subscribe((hasPermission) => {
+        if (!hasPermission) {
+          this.showSnackbar('You do not have permission to create jobs');
+          this.router.navigate(['/jobs']);
+        }
+      });
+
+    this.subscriptions.push(permissionSub);
+  }
+
+  private setupFormListeners() {
+    // Listen to make changes to update models
+    const makeSub = this.jobForm
+      .get('vehicleMake')
+      ?.valueChanges.subscribe((makeId) => {
+        this.updateAvailableModels(makeId);
+      });
+
+    if (makeSub) this.subscriptions.push(makeSub);
+
+    // Listen to model changes to update vehicle type
+    const modelSub = this.jobForm
+      .get('vehicleModel')
+      ?.valueChanges.subscribe((modelId) => {
+        this.updateVehicleType(modelId);
+      });
+
+    if (modelSub) this.subscriptions.push(modelSub);
+  }
+
+  private updateAvailableModels(makeId: string) {
+    if (!makeId) {
+      this.availableModels = [];
+      return;
+    }
+
+    // If we already loaded all models, filter them locally for faster performance
+    this.availableModels = this.allModels.filter(
+      (model) => model.makeId === makeId && model.isActive
     );
-    const selectedModel = selectedMake?.models.find(
-      (m) => m.name === modelName
-    );
+
+    // Reset model selection
+    this.jobForm.get('vehicleModel')?.setValue('');
+    this.jobForm.get('vehicleType')?.setValue('');
+  }
+
+  private updateVehicleType(modelId: string) {
+    if (!modelId) {
+      return;
+    }
+
+    const selectedModel = this.allModels.find((model) => model.id === modelId);
 
     if (selectedModel) {
-      this.jobForm.patchValue({ vehicleType: selectedModel.type });
+      this.jobForm.get('vehicleType')?.setValue(selectedModel.type);
     }
   }
 
-  onSubmit() {
-    if (this.jobForm.valid) {
-      console.log(this.jobForm.value);
-      // Submit form data to backend
-      this.router.navigate(['/jobs']);
-    } else {
-      this.markFormGroupTouched(this.jobForm);
+  getMakeDisplayName(makeId: string): string {
+    const make = this.vehicleMakes.find((m) => m.id === makeId);
+    return make ? make.displayName : '';
+  }
+
+  /**
+   * Auto-populate customer address information when a customer is selected
+   */
+  onCustomerSelected(event: Event) {
+    const select = event.target as HTMLSelectElement;
+    const customerId = select?.value;
+
+    if (!customerId) return;
+
+    const selectedCustomer = this.customers.find((c) => c.id === customerId);
+
+    if (selectedCustomer && selectedCustomer.address) {
+      // Auto-populate the collection address with customer info
+      this.jobForm.patchValue({
+        collectionAddress: selectedCustomer.address || '',
+        collectionCity: selectedCustomer.city || '',
+        collectionPostcode: selectedCustomer.postcode || '',
+        collectionContactName: selectedCustomer.contactName || '',
+        collectionContactPhone: selectedCustomer.contactPhone || '',
+      });
     }
+  }
+
+  /**
+   * For easy re-use of previous vehicle information
+   */
+  updatePreviousSelections() {
+    // Retrieve previous selections from localStorage
+    const savedSelections = localStorage.getItem('previousVehicleSelections');
+
+    if (savedSelections) {
+      try {
+        this.previousSelections = JSON.parse(savedSelections);
+      } catch (e) {
+        console.error('Error parsing saved vehicle selections:', e);
+        this.previousSelections = [];
+      }
+    }
+  }
+
+  /**
+   * Save current vehicle information to previous selections
+   */
+  saveToRecentSelections() {
+    const formValue = this.jobForm.value;
+
+    // Only save if we have the minimum required information
+    if (
+      !formValue.vehicleMake ||
+      !formValue.vehicleModel ||
+      !formValue.registration
+    ) {
+      return;
+    }
+
+    const selectedMake = this.vehicleMakes.find(
+      (m) => m.id === formValue.vehicleMake
+    );
+    const selectedModel = this.availableModels.find(
+      (m) => m.id === formValue.vehicleModel
+    );
+
+    if (!selectedMake || !selectedModel) {
+      return;
+    }
+
+    const vehicleSelection = {
+      makeId: formValue.vehicleMake,
+      makeName: selectedMake.displayName,
+      modelId: formValue.vehicleModel,
+      modelName: selectedModel.name,
+      registration: formValue.registration,
+      chassisNumber: formValue.chassisNumber || '',
+      color: formValue.color || '',
+      year: formValue.year || '',
+      timestamp: new Date().toISOString(),
+    };
+
+    // Get existing selections
+    let selections = [];
+    try {
+      const savedData = localStorage.getItem('previousVehicleSelections');
+      selections = savedData ? JSON.parse(savedData) : [];
+    } catch (e) {
+      console.error('Error retrieving previous vehicle selections:', e);
+      selections = [];
+    }
+
+    // Check if this registration already exists
+    const existingIndex = selections.findIndex(
+      (s: { registration: string }) =>
+        s.registration.toLowerCase() ===
+        vehicleSelection.registration.toLowerCase()
+    );
+
+    if (existingIndex >= 0) {
+      // Update existing entry
+      selections[existingIndex] = vehicleSelection;
+    } else {
+      // Add new entry
+      selections.unshift(vehicleSelection);
+
+      // Keep max 10 entries
+      if (selections.length > 10) {
+        selections = selections.slice(0, 10);
+      }
+    }
+
+    // Save back to localStorage
+    localStorage.setItem(
+      'previousVehicleSelections',
+      JSON.stringify(selections)
+    );
+
+    // Update the component state
+    this.previousSelections = selections;
+  }
+
+  /**
+   * Apply previously used vehicle details
+   */
+  applyPreviousSelection(selection: any) {
+    this.jobForm.patchValue({
+      vehicleMake: selection.makeId,
+      vehicleModel: selection.modelId,
+      registration: selection.registration,
+      chassisNumber: selection.chassisNumber || '',
+      color: selection.color || '',
+      year: selection.year || '',
+    });
+
+    // Make sure models list is updated
+    this.updateAvailableModels(selection.makeId);
+
+    // Delay setting the model to ensure the models list is populated
+    setTimeout(() => {
+      this.jobForm.patchValue({
+        vehicleModel: selection.modelId,
+      });
+    }, 100);
   }
 
   onCancel() {
     this.router.navigate(['/jobs']);
+  }
+
+  onSubmit() {
+    if (this.jobForm.invalid) {
+      this.markFormGroupTouched(this.jobForm);
+      this.showSnackbar('Please complete all required fields');
+      return;
+    }
+
+    this.isSubmitting = true;
+
+    const formValue = this.jobForm.value;
+
+    // Get make and model display names
+    const selectedMake = this.vehicleMakes.find(
+      (m) => m.id === formValue.vehicleMake
+    );
+    const selectedModel = this.availableModels.find(
+      (m) => m.id === formValue.vehicleModel
+    );
+
+    // Customer info
+    const selectedCustomer = this.customers.find(
+      (c) => c.id === formValue.customerId
+    );
+
+    // Prepare job data matching the Job interface
+    const jobData = {
+      vehicleId: formValue.chassisNumber || formValue.registration, // Using reg/chassis as vehicle ID
+      status: 'unallocated' as 'unallocated',
+      make: selectedMake?.displayName || '',
+      model: selectedModel?.name || '',
+      registration: formValue.registration.toUpperCase(),
+
+      // Customer info
+      customerId: formValue.customerId,
+      customerName: selectedCustomer?.name || '',
+      customerContact: selectedCustomer?.contactName || '',
+      customerContactPhone: selectedCustomer?.contactPhone || '',
+
+      // Collection
+      collectionAddress: formValue.collectionAddress,
+      collectionCity: formValue.collectionCity,
+      collectionPostcode: formValue.collectionPostcode,
+      collectionContactName: formValue.collectionContactName,
+      collectionContactPhone: formValue.collectionContactPhone,
+      collectionNotes: formValue.collectionNotes,
+
+      // Delivery
+      deliveryAddress: formValue.deliveryAddress,
+      deliveryCity: formValue.deliveryCity,
+      deliveryPostcode: formValue.deliveryPostcode,
+      deliveryContactName: formValue.deliveryContactName,
+      deliveryContactPhone: formValue.deliveryContactPhone,
+      deliveryNotes: formValue.deliveryNotes,
+
+      // Vehicle details
+      color: formValue.color,
+      year: formValue.year,
+      chassisNumber: formValue.chassisNumber
+        ? formValue.chassisNumber.toUpperCase()
+        : '',
+      vehicleType: formValue.vehicleType,
+
+      // Split journey
+      isSplitJourney: formValue.isSplitJourney,
+
+      // Notes
+      notes: formValue.notes,
+    };
+
+    // Save the vehicle selection for future use
+    this.saveToRecentSelections();
+
+    // Create the job
+    this.jobService
+      .createJob(jobData)
+      .pipe(finalize(() => (this.isSubmitting = false)))
+      .subscribe({
+        next: (jobId) => {
+          this.showSnackbar('Job created successfully');
+          this.router.navigate(['/jobs', jobId]);
+        },
+        error: (error) => {
+          console.error('Error creating job:', error);
+          this.showSnackbar(`Error creating job: ${error.message}`);
+        },
+      });
   }
 
   private markFormGroupTouched(formGroup: FormGroup) {
@@ -169,15 +443,30 @@ export class JobCreateComponent implements OnInit {
 
   getErrorMessage(controlName: string): string {
     const control = this.jobForm.get(controlName);
-    if (!control || !control.errors || !control.touched) return '';
 
-    const errors = control.errors;
-    if (errors['required']) return `This field is required`;
-    if (errors['pattern'])
-      return `${
-        controlName === 'registration' ? 'Registration' : 'Chassis'
-      } must be uppercase with no spaces`;
+    if (!control || !control.errors || !control.touched) {
+      return '';
+    }
 
-    return '';
+    if (control.errors['required']) {
+      return 'This field is required';
+    }
+
+    if (control.errors['pattern']) {
+      if (controlName === 'registration' || controlName === 'chassisNumber') {
+        return 'Must be uppercase with no spaces';
+      }
+      return 'Invalid format';
+    }
+
+    return 'Invalid value';
+  }
+
+  showSnackbar(message: string): void {
+    this.snackBar.open(message, 'Close', {
+      duration: 5000,
+      horizontalPosition: 'center',
+      verticalPosition: 'bottom',
+    });
   }
 }

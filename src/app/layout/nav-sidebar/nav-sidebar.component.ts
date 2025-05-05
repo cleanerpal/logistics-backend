@@ -12,6 +12,7 @@ interface NavItem {
   selector: 'app-nav-sidebar',
   templateUrl: './nav-sidebar.component.html',
   styleUrls: ['./nav-sidebar.component.scss'],
+  standalone: false,
 })
 export class NavSidebarComponent {
   navItems: NavItem[] = [

@@ -18,6 +18,7 @@ enum MovementType {
   selector: 'app-vehicle-movement',
   templateUrl: './vehicle-movement.component.html',
   styleUrls: ['./vehicle-movement.component.scss'],
+  standalone: false,
 })
 export class VehicleMovementComponent implements OnInit {
   movementForm: FormGroup;

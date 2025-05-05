@@ -4,6 +4,7 @@ import { Pipe, PipeTransform } from '@angular/core';
 @Pipe({
   name: 'timeAgo',
   pure: false, // Make the pipe impure so it updates automatically
+  standalone: false,
 })
 export class TimeAgoPipe implements PipeTransform {
   transform(value: Date | string): string {

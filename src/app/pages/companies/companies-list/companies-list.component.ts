@@ -22,6 +22,7 @@ type CompanyStatus = 'active' | 'inactive' | 'pending';
   selector: 'app-companies-list',
   templateUrl: './companies-list.component.html',
   styleUrls: ['./companies-list.component.scss'],
+  standalone: false,
 })
 export class CompaniesListComponent implements OnInit, AfterViewInit {
   displayedColumns: string[] = [

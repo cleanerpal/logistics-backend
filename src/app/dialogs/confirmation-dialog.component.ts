@@ -29,6 +29,7 @@ export interface ConfirmationDialogData {
       }
     `,
   ],
+  standalone: false,
 })
 export class ConfirmationDialogComponent {
   constructor(

@@ -7,6 +7,7 @@ import { Location } from '@angular/common';
   selector: 'app-company-create',
   templateUrl: './company-create.component.html',
   styleUrl: './company-create.component.scss',
+  standalone: false,
 })
 export class CompanyCreateComponent implements OnInit {
   companyForm: FormGroup;

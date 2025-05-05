@@ -58,6 +58,7 @@ interface Manufacturer {
   selector: 'app-vehicle-models',
   templateUrl: './vehicle-models.component.html',
   styleUrls: ['./vehicle-models.component.scss'],
+  standalone: false,
 })
 export class VehicleModelsComponent implements OnInit, AfterViewInit {
   // Table configuration

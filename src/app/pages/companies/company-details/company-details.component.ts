@@ -51,6 +51,7 @@ interface CompanyForm {
   selector: 'app-company-details',
   templateUrl: './company-details.component.html',
   styleUrls: ['./company-details.component.scss'],
+  standalone: false,
 })
 export class CompanyDetailsComponent implements OnInit {
   companyId: string | null = null;

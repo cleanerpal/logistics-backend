@@ -25,6 +25,7 @@ type DriverStatus = 'active' | 'inactive';
   selector: 'app-driver-list',
   templateUrl: './driver-list.component.html',
   styleUrls: ['./driver-list.component.scss'],
+  standalone: false,
 })
 export class DriverListComponent implements OnInit, AfterViewInit {
   displayedColumns: string[] = [

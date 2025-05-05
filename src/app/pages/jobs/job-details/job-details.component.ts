@@ -1,196 +1,153 @@
-import { Component, OnInit, ElementRef, ViewChild } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
+import { MatDialog } from '@angular/material/dialog';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { ActivatedRoute, Router } from '@angular/router';
-import { FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { JobStatus } from '../../../shared/models/job-status.enum';
-import { VehicleType } from '../../../shared/models/vehicle-type.enum';
-import { Expense, ExpenseStatus } from '../../../shared/models/expense.model';
-import { ExpenseService } from '../../../services/expense.service';
+import { Subscription, combineLatest } from 'rxjs';
+import { ConfirmationDialogComponent } from '../../../dialogs/confirmation-dialog.component';
+import { AuthService } from '../../../services/auth.service';
+import { JobService } from '../../../services/job.service';
+import { Job, UserProfile } from '../../../interfaces/job.interface';
 
 interface Note {
   author: string;
   content: string;
   date: Date;
+  id?: string;
 }
 
-interface Job {
-  id: string;
-  status: JobStatus;
-  currentDriver?: string;
-  customer: {
-    name: string;
-    phone: string;
-    email: string;
-    company: string;
-  };
-  vehicle: {
-    make: string;
-    model: string;
-    type: VehicleType;
-    registration: string;
-    chassisNumber: string;
-    shippingRef?: string;
-  };
-  addresses: {
-    collection: {
-      street: string;
-      town: string;
-      postcode: string;
-      instructions: string;
-    };
-    delivery: {
-      street: string;
-      town: string;
-      postcode: string;
-      instructions: string;
-    };
-  };
-  driver: {
-    name: string;
-    phone: string;
-    currentLocation: string;
-    assignedDate: Date;
-  };
-  notes: Note[];
-  timeline: {
-    date: Date;
-    status: string;
-    description: string;
-    actor: string;
-  }[];
+// Note type for FireStore storage - dates as strings
+interface NoteData {
+  author: string;
+  content: string;
+  date: string | Date;
+  id?: string;
 }
 
 @Component({
   selector: 'app-job-details',
   templateUrl: './job-details.component.html',
   styleUrls: ['./job-details.component.scss'],
+  standalone: false,
 })
-export class JobDetailsComponent implements OnInit {
-  @ViewChild('fileInput') fileInput!: ElementRef;
-
+export class JobDetailsComponent implements OnInit, OnDestroy {
   jobId: string = '';
+  job: Job | null = null;
   activeTab: 'details' | 'timeline' | 'expenses' = 'details';
-  isManager = true; // In a real app, this would be determined by user role
-  job!: Job;
-  expenses: Expense[] = [];
-  statusOptions = Object.values(JobStatus);
+  isLoading = true;
+  hasEditPermission = false;
+  hasAllocatePermission = false;
+  isAdmin = false;
+  currentUser: UserProfile | null = null;
 
-  // Notes functionality
+  jobNotes: Note[] = [];
   newNote: string = '';
+  allowedStatuses: (
+    | 'unallocated'
+    | 'allocated'
+    | 'collected'
+    | 'delivered'
+    | 'completed'
+  )[] = ['unallocated', 'allocated', 'collected', 'delivered', 'completed'];
 
-  // Expense functionality
-  showAddExpenseForm = false;
-  expenseForm!: FormGroup;
-  receiptFile: File | null = null;
+  private subscriptions: Subscription[] = [];
 
   constructor(
     private route: ActivatedRoute,
     private router: Router,
-    private fb: FormBuilder,
-    private expenseService: ExpenseService
-  ) {
-    this.createExpenseForm();
-  }
+    private jobService: JobService,
+    private authService: AuthService,
+    private dialog: MatDialog,
+    private snackBar: MatSnackBar
+  ) {}
 
   ngOnInit() {
+    // Get the job ID from the route
     this.route.params.subscribe((params) => {
       this.jobId = params['id'];
-      this.loadJobDetails(this.jobId);
-      this.loadJobExpenses(this.jobId);
+      this.loadJobDetails();
     });
+
+    // Check user permissions
+    this.checkUserPermissions();
   }
 
-  private createExpenseForm(): void {
-    this.expenseForm = this.fb.group({
-      description: ['', Validators.required],
-      amount: ['', [Validators.required, Validators.min(0.01)]],
-      date: [new Date().toISOString().substring(0, 10), Validators.required],
-      notes: [''],
+  ngOnDestroy() {
+    this.subscriptions.forEach((sub) => sub.unsubscribe());
+  }
+
+  private loadJobDetails() {
+    this.isLoading = true;
+
+    const jobSub = this.jobService.getJobById(this.jobId).subscribe({
+      next: (job) => {
+        this.job = job;
+        this.isLoading = false;
+
+        // Load job notes if available
+        if (job && job.notes) {
+          this.processJobNotes(job);
+        }
+      },
+      error: (error) => {
+        this.isLoading = false;
+        console.error('Error loading job details:', error);
+        this.showSnackbar('Error loading job details');
+      },
     });
+
+    this.subscriptions.push(jobSub);
   }
 
-  loadJobDetails(jobId: string) {
-    // In a real app, this would be an API call
-    setTimeout(() => {
-      this.job = {
-        id: jobId,
-        status: JobStatus.ALLOCATED,
-        currentDriver: 'Mike Johnson',
-        customer: {
-          name: 'John Smith',
-          phone: '+44 123 456 7890',
-          email: 'john.smith@email.com',
-          company: 'Smith Enterprises',
+  private processJobNotes(job: Job) {
+    // Process notes based on the format they're stored in
+    if (Array.isArray(job.notes)) {
+      this.jobNotes = job.notes as Note[];
+    } else if (typeof job.notes === 'string') {
+      // If it's a single string, create a note from it
+      this.jobNotes = [
+        {
+          author: job.createdBy || 'System',
+          content: job.notes,
+          date: job.createdAt,
         },
-        vehicle: {
-          make: 'Toyota',
-          model: 'Corolla',
-          type: VehicleType.CAR,
-          registration: 'AB12XYZ',
-          chassisNumber: 'TYT123456789',
-          shippingRef: 'SHIP1234',
-        },
-        addresses: {
-          collection: {
-            street: '123 Collection St',
-            town: 'London',
-            postcode: 'SW1A 1AA',
-            instructions: 'Call 30 minutes before arrival',
-          },
-          delivery: {
-            street: '456 Delivery Rd',
-            town: 'Edinburgh',
-            postcode: 'EH1 1BB',
-            instructions: 'Goods entrance at rear of building',
-          },
-        },
-        driver: {
-          name: 'Mike Johnson',
-          phone: '+44 987 654 3210',
-          currentLocation: 'En route to delivery',
-          assignedDate: new Date(),
-        },
-        notes: [
-          {
-            author: 'Sarah Admin',
-            content: 'Customer requested delivery before noon.',
-            date: new Date(Date.now() - 24 * 3600000),
-          },
-          {
-            author: 'Mike Johnson',
-            content: 'Vehicle collected, everything in order.',
-            date: new Date(Date.now() - 12 * 3600000),
-          },
-        ],
-        timeline: [
-          {
-            date: new Date(Date.now() - 24 * 3600000),
-            status: JobStatus.LOADED,
-            description: 'Job created and vehicle loaded at depot',
-            actor: 'Sarah Admin',
-          },
-          {
-            date: new Date(Date.now() - 20 * 3600000),
-            status: JobStatus.ALLOCATED,
-            description: 'Job assigned to Mike Johnson',
-            actor: 'System',
-          },
-          {
-            date: new Date(Date.now() - 12 * 3600000),
-            status: JobStatus.COLLECTED,
-            description: 'Vehicle collected from depot',
-            actor: 'Mike Johnson',
-          },
-        ],
-      };
-    }, 1000);
+      ];
+    } else if (typeof job.notes === 'object' && job.notes !== null) {
+      // If it's an object of notes, convert to array
+      try {
+        const notesObject = job.notes as Record<string, any>;
+        this.jobNotes = Object.entries(notesObject).map(([id, noteData]) => {
+          // Ensure the note data has the needed structure
+          const note: Note = {
+            author: (noteData as any).author || 'Unknown',
+            content: (noteData as any).content || '',
+            date: new Date((noteData as any).date || new Date()),
+          };
+          return note;
+        });
+      } catch (error) {
+        console.error('Error processing notes:', error);
+        this.jobNotes = [];
+      }
+    } else {
+      // Default - no notes
+      this.jobNotes = [];
+    }
   }
 
-  loadJobExpenses(jobId: string) {
-    this.expenseService
-      .getExpensesByJob(jobId)
-      .subscribe((expenses: Expense[]) => {
-        this.expenses = expenses;
-      });
+  private checkUserPermissions() {
+    const permissionsSub = combineLatest([
+      this.authService.getUserProfile(),
+      this.authService.hasPermission('canEditJobs'),
+      this.authService.hasPermission('canAllocateJobs'),
+      this.authService.hasPermission('isAdmin'),
+    ]).subscribe(([user, canEdit, canAllocate, isAdmin]) => {
+      this.currentUser = user;
+      this.hasEditPermission = canEdit;
+      this.hasAllocatePermission = canAllocate;
+      this.isAdmin = isAdmin;
+    });
+
+    this.subscriptions.push(permissionsSub);
   }
 
   setActiveTab(tab: 'details' | 'timeline' | 'expenses') {
@@ -199,193 +156,288 @@ export class JobDetailsComponent implements OnInit {
 
   getStatusClass(status: string): string {
     const statusMap: Record<string, string> = {
-      [JobStatus.LOADED]: 'status-loaded',
-      [JobStatus.ALLOCATED]: 'status-allocated',
-      [JobStatus.COLLECTED]: 'status-collected',
-      [JobStatus.DELIVERED]: 'status-delivered',
-      [JobStatus.ABORTED]: 'status-aborted',
-      [JobStatus.CANCELLED]: 'status-cancelled',
+      unallocated: 'status-unallocated',
+      allocated: 'status-allocated',
+      collected: 'status-collected',
+      delivered: 'status-delivered',
+      completed: 'status-completed',
     };
     return statusMap[status] || 'status-default';
   }
 
   getTimelineIcon(status: string): string {
     const iconMap: Record<string, string> = {
-      [JobStatus.LOADED]: 'inventory_2',
-      [JobStatus.ALLOCATED]: 'assignment',
-      [JobStatus.COLLECTED]: 'departure_board',
-      [JobStatus.DELIVERED]: 'check_circle',
-      [JobStatus.ABORTED]: 'error',
-      [JobStatus.CANCELLED]: 'cancel',
+      unallocated: 'assignment',
+      allocated: 'assignment_ind',
+      collected: 'local_shipping',
+      'in-transit': 'directions_car',
+      delivered: 'check_circle',
+      completed: 'done_all',
     };
     return iconMap[status] || 'radio_button_unchecked';
   }
 
-  getExpenseStatusClass(status: ExpenseStatus): string {
-    const statusMap: Record<string, string> = {
-      [ExpenseStatus.PENDING]: 'status-pending',
-      [ExpenseStatus.APPROVED]: 'status-approved',
-      [ExpenseStatus.REJECTED]: 'status-rejected',
-    };
-    return statusMap[status] || 'status-default';
-  }
-
-  updateJobStatus(newStatus: JobStatus): void {
-    if (this.job.status === newStatus) return;
-
-    // In a real app, this would be an API call
-    this.job.status = newStatus;
-
-    // Add to timeline
-    this.job.timeline.push({
-      date: new Date(),
-      status: newStatus,
-      description: `Status updated to ${newStatus}`,
-      actor: 'Current User', // In a real app, this would be the logged-in user
-    });
-
-    // Sort timeline by date (newest first)
-    this.job.timeline.sort((a, b) => b.date.getTime() - a.date.getTime());
-  }
-
-  addNote(): void {
-    if (!this.newNote.trim()) return;
-
-    // Add the note
-    this.job.notes.push({
-      author: 'Current User', // In a real app, this would be the logged-in user
-      content: this.newNote.trim(),
-      date: new Date(),
-    });
-
-    // Clear the input
-    this.newNote = '';
-  }
-
-  editJob(): void {
-    this.router.navigate(['/jobs', this.jobId, 'edit']);
-  }
-
-  printJobDetails(): void {
-    window.print();
-  }
-
   isLastEvent(event: any): boolean {
-    return this.job.timeline.indexOf(event) === 0; // Timeline is sorted newest first
+    return (
+      this.job?.['timeline']?.indexOf(event) ===
+      this.job?.['timeline']?.length - 1
+    );
   }
 
-  // Expense Management
-  openAddExpenseForm(): void {
-    this.showAddExpenseForm = true;
-    this.expenseForm.reset({
-      date: new Date().toISOString().substring(0, 10),
-    });
-    this.receiptFile = null;
+  goBack() {
+    this.router.navigate(['/jobs']);
   }
 
-  closeAddExpenseForm(): void {
-    this.showAddExpenseForm = false;
-  }
-
-  triggerFileInput(): void {
-    this.fileInput.nativeElement.click();
-  }
-
-  handleFileInput(event: Event): void {
-    const input = event.target as HTMLInputElement;
-    if (input.files?.length) {
-      this.receiptFile = input.files[0];
+  editJob() {
+    if (this.job && (this.hasEditPermission || this.isAdmin)) {
+      this.router.navigate(['/jobs', this.job.id, 'edit']);
+    } else {
+      this.showSnackbar('You do not have permission to edit this job');
     }
   }
 
-  submitExpense(): void {
-    if (this.expenseForm.invalid) return;
+  printJobDetails() {
+    window.print();
+  }
 
-    const formValue = this.expenseForm.value;
+  addNote() {
+    if (!this.newNote.trim() || !this.job) return;
 
-    // Create expense object
-    const expense: Omit<Expense, 'id' | 'status'> = {
-      jobId: this.jobId,
-      driverId: 'DRIVER1', // In a real app, this would be the logged-in driver's ID
-      driverName: 'Current User', // In a real app, this would be the logged-in user's name
-      description: formValue.description,
-      amount: parseFloat(formValue.amount),
-      date: new Date(formValue.date),
-      notes: formValue.notes,
-      receiptUrl: this.receiptFile
-        ? URL.createObjectURL(this.receiptFile)
-        : undefined,
-      isChargeable: false, // Initially not chargeable until approved and marked
+    // Create a new note
+    const newNote: Note = {
+      author: this.currentUser?.name || 'User',
+      content: this.newNote.trim(),
+      date: new Date(),
     };
 
-    // Save expense
-    this.expenseService
-      .createExpense(expense)
-      .subscribe((newExpense: Expense) => {
-        this.expenses.push(newExpense);
-        this.closeAddExpenseForm();
-      });
+    // Add the note to the job
+    const notesList: Note[] = [...(this.jobNotes || []), newNote];
+
+    // Update the job - convert notes to a structure Firebase can store
+    this.isLoading = true;
+
+    // Create a simple object representation for Firestore
+    const notesData: NoteData[] = notesList.map((note) => ({
+      author: note.author,
+      content: note.content,
+      date: note.date,
+    }));
+
+    this.jobService.updateJob(this.job.id, { notes: notesData }).subscribe({
+      next: () => {
+        this.jobNotes = notesList;
+        this.newNote = '';
+        this.isLoading = false;
+        this.showSnackbar('Note added successfully');
+      },
+      error: (error) => {
+        console.error('Error adding note:', error);
+        this.isLoading = false;
+        this.showSnackbar('Error adding note');
+      },
+    });
   }
 
-  approveExpense(expense: Expense): void {
-    this.expenseService
-      .updateExpenseStatus(
-        expense.id,
-        ExpenseStatus.APPROVED,
-        { approvedBy: 'Current Manager' } // In a real app, this would be the logged-in manager
-      )
-      .subscribe((updatedExpense: Expense) => {
-        // Update expense in the list
-        const index = this.expenses.findIndex(
-          (e) => e.id === updatedExpense.id
-        );
-        if (index !== -1) {
-          this.expenses[index] = updatedExpense;
+  updateJobStatus(
+    newStatus:
+      | 'unallocated'
+      | 'allocated'
+      | 'collected'
+      | 'delivered'
+      | 'completed'
+  ) {
+    if (!this.job) return;
+
+    // Prevent unnecessary updates
+    if (this.job.status === newStatus) return;
+
+    // Different actions based on status change
+    this.isLoading = true;
+
+    // Check what type of transition we're making
+    switch (newStatus) {
+      case 'allocated':
+        if (!this.hasAllocatePermission && !this.isAdmin) {
+          this.showSnackbar('You do not have permission to allocate jobs');
+          this.isLoading = false;
+          return;
         }
-      });
-  }
 
-  rejectExpense(expense: Expense): void {
-    this.expenseService
-      .updateExpenseStatus(
-        expense.id,
-        ExpenseStatus.REJECTED,
-        { approvedBy: 'Current Manager' } // In a real app, this would be the logged-in manager
-      )
-      .subscribe((updatedExpense: Expense) => {
-        // Update expense in the list
-        const index = this.expenses.findIndex(
-          (e) => e.id === updatedExpense.id
-        );
-        if (index !== -1) {
-          this.expenses[index] = updatedExpense;
+        this.jobService.allocateJob(this.job.id).subscribe({
+          next: () => {
+            this.loadJobDetails();
+            this.showSnackbar('Job allocated successfully');
+          },
+          error: (error) => {
+            console.error('Error allocating job:', error);
+            this.isLoading = false;
+            this.showSnackbar('Error allocating job');
+          },
+        });
+        break;
+
+      case 'unallocated':
+        if (!this.hasEditPermission && !this.isAdmin) {
+          this.showSnackbar('You do not have permission to unallocate jobs');
+          this.isLoading = false;
+          return;
         }
-      });
+
+        this.jobService.unallocateJob(this.job.id).subscribe({
+          next: () => {
+            this.loadJobDetails();
+            this.showSnackbar('Job unallocated successfully');
+          },
+          error: (error) => {
+            console.error('Error unallocating job:', error);
+            this.isLoading = false;
+            this.showSnackbar('Error unallocating job');
+          },
+        });
+        break;
+
+      case 'collected':
+        // Start collection process
+        this.startCollection();
+        break;
+
+      case 'delivered':
+        // Start delivery process
+        this.startDelivery();
+        break;
+
+      case 'completed':
+        // Update job status to completed
+        this.completeJob();
+        break;
+    }
   }
 
-  updateExpenseChargeable(expense: Expense, isChargeable: boolean): void {
-    this.expenseService
-      .updateExpenseChargeableStatus(expense.id, isChargeable)
-      .subscribe((updatedExpense: Expense) => {
-        // Update expense in the list
-        const index = this.expenses.findIndex(
-          (e) => e.id === updatedExpense.id
-        );
-        if (index !== -1) {
-          this.expenses[index] = updatedExpense;
-        }
-      });
+  startCollection() {
+    if (!this.job) return;
+
+    const dialogRef = this.dialog.open(ConfirmationDialogComponent, {
+      data: {
+        title: 'Start Collection',
+        message: 'Are you ready to start the collection process for this job?',
+        confirmText: 'Start Collection',
+        cancelText: 'Cancel',
+      },
+    });
+
+    dialogRef.afterClosed().subscribe((result) => {
+      if (result) {
+        this.jobService.startCollection(this.job!.id).subscribe({
+          next: () => {
+            this.loadJobDetails();
+            this.showSnackbar('Collection started successfully');
+
+            // Navigate to collection process
+            this.router.navigate(['/jobs', this.job!.id, 'collection']);
+          },
+          error: (error) => {
+            console.error('Error starting collection:', error);
+            this.isLoading = false;
+            this.showSnackbar('Error starting collection');
+          },
+        });
+      } else {
+        this.isLoading = false;
+      }
+    });
   }
 
-  viewExpenseDetails(expense: Expense): void {
-    // In a real app, this might open a modal with more details
-    console.log('View expense details', expense);
+  startDelivery() {
+    if (!this.job) return;
+
+    const dialogRef = this.dialog.open(ConfirmationDialogComponent, {
+      data: {
+        title: 'Start Delivery',
+        message: 'Are you ready to start the delivery process for this job?',
+        confirmText: 'Start Delivery',
+        cancelText: 'Cancel',
+      },
+    });
+
+    dialogRef.afterClosed().subscribe((result) => {
+      if (result) {
+        this.jobService.startDelivery(this.job!.id).subscribe({
+          next: () => {
+            this.loadJobDetails();
+            this.showSnackbar('Delivery started successfully');
+
+            // Navigate to delivery process
+            this.router.navigate(['/jobs', this.job!.id, 'delivery']);
+          },
+          error: (error) => {
+            console.error('Error starting delivery:', error);
+            this.isLoading = false;
+            this.showSnackbar('Error starting delivery');
+          },
+        });
+      } else {
+        this.isLoading = false;
+      }
+    });
   }
 
-  formatCurrency(amount: number): string {
-    return new Intl.NumberFormat('en-GB', {
-      style: 'currency',
-      currency: 'GBP',
-    }).format(amount);
+  completeJob() {
+    if (!this.job) return;
+
+    const dialogRef = this.dialog.open(ConfirmationDialogComponent, {
+      data: {
+        title: 'Complete Job',
+        message: 'Are you sure you want to mark this job as completed?',
+        confirmText: 'Complete Job',
+        cancelText: 'Cancel',
+      },
+    });
+
+    dialogRef.afterClosed().subscribe((result) => {
+      if (result) {
+        this.jobService
+          .updateJob(this.job!.id, {
+            status: 'completed',
+            updatedAt: new Date(),
+          })
+          .subscribe({
+            next: () => {
+              this.loadJobDetails();
+              this.showSnackbar('Job marked as completed');
+            },
+            error: (error) => {
+              console.error('Error completing job:', error);
+              this.isLoading = false;
+              this.showSnackbar('Error completing job');
+            },
+          });
+      } else {
+        this.isLoading = false;
+      }
+    });
+  }
+
+  formatDate(date: Date | undefined): string {
+    if (!date) return 'N/A';
+
+    if (typeof date === 'string') {
+      return new Date(date).toLocaleString();
+    }
+
+    // Handle Firebase Timestamp
+    if (date && typeof date === 'object' && 'toDate' in date) {
+      const timestamp = date as unknown as { toDate: () => Date };
+      return timestamp.toDate().toLocaleString();
+    }
+
+    return date.toLocaleString();
+  }
+
+  showSnackbar(message: string): void {
+    this.snackBar.open(message, 'Close', {
+      duration: 3000,
+      horizontalPosition: 'center',
+      verticalPosition: 'bottom',
+    });
   }
 }

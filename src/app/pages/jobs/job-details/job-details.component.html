@@ -1,22 +1,32 @@
 <div class="job-details-page">
+  <!-- Loading Spinner -->
+  <div class="loading-overlay" *ngIf="isLoading">
+    <mat-spinner diameter="40"></mat-spinner>
+    <span>Loading job details...</span>
+  </div>
+
   <!-- Sticky Header -->
-  <header class="sticky-header">
+  <header class="sticky-header" *ngIf="job">
     <div class="header-content">
       <div class="header-left">
-        <button class="back-btn" routerLink="/jobs">
+        <button class="back-btn" (click)="goBack()">
           <span class="material-icons">arrow_back</span>
           Back to Jobs
         </button>
         <div class="job-identifier">
           <h1>{{ job.id }}</h1>
           <span class="status-badge" [ngClass]="getStatusClass(job.status)">
-            {{ job.status }}
+            {{ job.status | titlecase }}
           </span>
         </div>
       </div>
 
       <div class="header-actions">
-        <button class="action-btn" (click)="editJob()">
+        <button
+          class="action-btn"
+          (click)="editJob()"
+          *ngIf="hasEditPermission || isAdmin"
+        >
           <span class="material-icons">edit</span>
           Edit
         </button>
@@ -51,7 +61,7 @@
   </header>
 
   <!-- Main Content -->
-  <main class="main-content">
+  <main class="main-content" *ngIf="job">
     <!-- Details Tab -->
     <div class="tab-content" *ngIf="activeTab === 'details'">
       <div class="two-column-layout">
@@ -63,19 +73,17 @@
             <div class="card-content">
               <div class="info-row">
                 <span class="label">Name</span>
-                <span class="value">{{ job.customer.name }}</span>
+                <span class="value">{{ job.customerName || "N/A" }}</span>
+              </div>
+              <div class="info-row">
+                <span class="label">Contact</span>
+                <span class="value">{{ job.customerContact || "N/A" }}</span>
               </div>
               <div class="info-row">
                 <span class="label">Phone</span>
-                <span class="value">{{ job.customer.phone }}</span>
-              </div>
-              <div class="info-row">
-                <span class="label">Email</span>
-                <span class="value">{{ job.customer.email }}</span>
-              </div>
-              <div class="info-row">
-                <span class="label">Company</span>
-                <span class="value">{{ job.customer.company }}</span>
+                <span class="value">{{
+                  job.customerContactPhone || "N/A"
+                }}</span>
               </div>
             </div>
           </div>
@@ -87,28 +95,36 @@
               <div class="info-row">
                 <span class="label">Make & Model</span>
                 <span class="value"
-                  >{{ job.vehicle.make }} {{ job.vehicle.model }}</span
+                  >{{ job.make || "N/A" }} {{ job.model || "" }}</span
                 >
               </div>
               <div class="info-row">
                 <span class="label">Type</span>
-                <span class="value">{{ job.vehicle.type }}</span>
+                <span class="value">{{ job["vehicleType"] || "N/A" }}</span>
               </div>
               <div class="info-row">
                 <span class="label">Registration</span>
-                <span class="value">{{ job.vehicle.registration }}</span>
+                <span class="value">{{ job.registration || "N/A" }}</span>
               </div>
-              <div class="info-row">
-                <span class="label">Chassis Number</span>
-                <span class="value">{{
-                  job.vehicle.chassisNumber || "N/A"
-                }}</span>
+              <div class="info-row" *ngIf="job.color">
+                <span class="label">Color</span>
+                <span class="value">{{ job.color }}</span>
               </div>
-              <div class="info-row">
-                <span class="label">Shipping Ref</span>
-                <span class="value">{{
-                  job.vehicle.shippingRef || "N/A"
-                }}</span>
+              <div class="info-row" *ngIf="job.year">
+                <span class="label">Year</span>
+                <span class="value">{{ job.year }}</span>
+              </div>
+              <div class="info-row" *ngIf="job.mileage">
+                <span class="label">Mileage</span>
+                <span class="value">{{ job.mileage }}</span>
+              </div>
+              <div class="info-row" *ngIf="job.fuelType">
+                <span class="label">Fuel Type</span>
+                <span class="value">{{ job.fuelType }}</span>
+              </div>
+              <div class="info-row" *ngIf="job.fuelLevel">
+                <span class="label">Fuel Level</span>
+                <span class="value">{{ job.fuelLevel }}</span>
               </div>
             </div>
           </div>
@@ -119,22 +135,40 @@
             <div class="card-content">
               <div class="address-section">
                 <h3>Collection</h3>
-                <p>{{ job.addresses.collection.street }}</p>
-                <p>
-                  <strong>Town:</strong> {{ job.addresses.collection.town }}
+                <p>{{ job.collectionAddress || "Not specified" }}</p>
+                <p *ngIf="job.collectionCity">
+                  <strong>City:</strong> {{ job.collectionCity }}
                 </p>
-                <p>{{ job.addresses.collection.postcode }}</p>
-                <p class="instructions">
-                  {{ job.addresses.collection.instructions }}
+                <p *ngIf="job.collectionPostcode">
+                  <strong>Postcode:</strong> {{ job.collectionPostcode }}
+                </p>
+                <p *ngIf="job.collectionContactName">
+                  <strong>Contact:</strong> {{ job.collectionContactName }}
+                </p>
+                <p *ngIf="job.collectionContactPhone">
+                  <strong>Phone:</strong> {{ job.collectionContactPhone }}
+                </p>
+                <p *ngIf="job.collectionNotes" class="instructions">
+                  <strong>Notes:</strong> {{ job.collectionNotes }}
                 </p>
               </div>
               <div class="address-section">
                 <h3>Delivery</h3>
-                <p>{{ job.addresses.delivery.street }}</p>
-                <p><strong>Town:</strong> {{ job.addresses.delivery.town }}</p>
-                <p>{{ job.addresses.delivery.postcode }}</p>
-                <p class="instructions">
-                  {{ job.addresses.delivery.instructions }}
+                <p>{{ job.deliveryAddress || "Not specified" }}</p>
+                <p *ngIf="job.deliveryCity">
+                  <strong>City:</strong> {{ job.deliveryCity }}
+                </p>
+                <p *ngIf="job.deliveryPostcode">
+                  <strong>Postcode:</strong> {{ job.deliveryPostcode }}
+                </p>
+                <p *ngIf="job.deliveryContactName">
+                  <strong>Contact:</strong> {{ job.deliveryContactName }}
+                </p>
+                <p *ngIf="job.deliveryContactPhone">
+                  <strong>Phone:</strong> {{ job.deliveryContactPhone }}
+                </p>
+                <p *ngIf="job.deliveryNotes" class="instructions">
+                  <strong>Notes:</strong> {{ job.deliveryNotes }}
                 </p>
               </div>
             </div>
@@ -152,50 +186,91 @@
             <div class="current-status">
               <span class="status-indicator"></span>
               <div class="status-details">
-                <span class="status-text">{{ job.status }}</span>
-                <span class="current-driver" *ngIf="job.currentDriver">
-                  Current Driver: {{ job.currentDriver }}
+                <span class="status-text">{{ job.status | titlecase }}</span>
+                <span class="current-driver" *ngIf="job.driverId">
+                  Driver ID: {{ job.driverId }}
+                </span>
+                <span class="stage" *ngIf="job.stage">
+                  Stage: {{ job.stage }}
                 </span>
               </div>
             </div>
 
             <!-- Status Change -->
-            <div class="status-change">
+            <div
+              class="status-change"
+              *ngIf="
+                hasEditPermission || isAdmin || job.driverId === currentUser?.id
+              "
+            >
               <h3>Change Status</h3>
               <div class="status-buttons">
                 <button
-                  *ngFor="let status of statusOptions"
+                  *ngFor="let status of allowedStatuses"
                   [class.active]="job.status === status"
                   (click)="updateJobStatus(status)"
                   class="status-button"
                 >
-                  {{ status }}
+                  {{ status | titlecase }}
                 </button>
               </div>
             </div>
           </div>
 
           <!-- Driver Card -->
-          <div class="info-card">
+          <div class="info-card" *ngIf="job.driverId">
             <h2>Assigned Driver</h2>
             <div class="card-content">
               <div class="info-row">
-                <span class="label">Name</span>
-                <span class="value">{{ job.driver.name }}</span>
+                <span class="label">Driver ID</span>
+                <span class="value">{{ job.driverId }}</span>
               </div>
-              <div class="info-row">
-                <span class="label">Phone</span>
-                <span class="value">{{ job.driver.phone }}</span>
-              </div>
-              <div class="info-row">
-                <span class="label">Current Location</span>
-                <span class="value">{{ job.driver.currentLocation }}</span>
-              </div>
-              <div class="info-row">
+              <div class="info-row" *ngIf="job.allocatedAt">
                 <span class="label">Assigned Date</span>
+                <span class="value">{{ formatDate(job.allocatedAt) }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Timestamps Card -->
+          <div class="info-card">
+            <h2>Timeline</h2>
+            <div class="card-content">
+              <div class="info-row">
+                <span class="label">Created</span>
+                <span class="value">{{ formatDate(job.createdAt) }}</span>
+              </div>
+              <div class="info-row" *ngIf="job.allocatedAt">
+                <span class="label">Allocated</span>
+                <span class="value">{{ formatDate(job.allocatedAt) }}</span>
+              </div>
+              <div class="info-row" *ngIf="job.collectionStartTime">
+                <span class="label">Collection Started</span>
                 <span class="value">{{
-                  job.driver.assignedDate | date : "medium"
+                  formatDate(job.collectionStartTime)
                 }}</span>
+              </div>
+              <div class="info-row" *ngIf="job.collectionCompleteTime">
+                <span class="label">Collection Completed</span>
+                <span class="value">{{
+                  formatDate(job.collectionCompleteTime)
+                }}</span>
+              </div>
+              <div class="info-row" *ngIf="job.deliveryStartTime">
+                <span class="label">Delivery Started</span>
+                <span class="value">{{
+                  formatDate(job.deliveryStartTime)
+                }}</span>
+              </div>
+              <div class="info-row" *ngIf="job.deliveryCompleteTime">
+                <span class="label">Delivery Completed</span>
+                <span class="value">{{
+                  formatDate(job.deliveryCompleteTime)
+                }}</span>
+              </div>
+              <div class="info-row">
+                <span class="label">Last Updated</span>
+                <span class="value">{{ formatDate(job.updatedAt) }}</span>
               </div>
             </div>
           </div>
@@ -206,19 +281,27 @@
             <div class="card-content">
               <div class="notes-container">
                 <div class="notes-list">
-                  <div *ngFor="let note of job.notes" class="note">
+                  <div *ngIf="jobNotes.length === 0" class="empty-notes">
+                    <p>No notes available for this job</p>
+                  </div>
+                  <div *ngFor="let note of jobNotes" class="note">
                     <div class="note-header">
                       <span class="note-author">{{ note.author }}</span>
-                      <span class="note-date">{{
-                        note.date | date : "medium"
-                      }}</span>
+                      <span class="note-date">{{ formatDate(note.date) }}</span>
                     </div>
                     <div class="note-content">{{ note.content }}</div>
                   </div>
                 </div>
 
                 <!-- Add Note Form -->
-                <div class="add-note-form">
+                <div
+                  class="add-note-form"
+                  *ngIf="
+                    hasEditPermission ||
+                    isAdmin ||
+                    job.driverId === currentUser?.id
+                  "
+                >
                   <textarea
                     [(ngModel)]="newNote"
                     placeholder="Add a note..."
@@ -246,28 +329,146 @@
         <div class="timeline-header">
           <h2>Job Timeline</h2>
         </div>
+
+        <!-- Display history in timeline format -->
         <div class="timeline-container">
-          <div class="timeline-event" *ngFor="let event of job.timeline">
+          <!-- Created event -->
+          <div class="timeline-event">
             <div class="timeline-marker">
               <div class="timeline-icon">
-                <span class="material-icons">{{
-                  getTimelineIcon(event.status)
-                }}</span>
+                <span class="material-icons">add_circle</span>
               </div>
-              <div class="timeline-line" *ngIf="!isLastEvent(event)"></div>
+              <div class="timeline-line"></div>
             </div>
             <div class="timeline-content">
               <div class="event-header">
-                <h3 class="event-status">{{ event.status }}</h3>
-                <time class="event-time">{{
-                  event.date | date : "medium"
-                }}</time>
+                <h3 class="event-status">Job Created</h3>
+                <time class="event-time">{{ formatDate(job.createdAt) }}</time>
               </div>
-              <p class="event-description">{{ event.description }}</p>
               <div class="event-metadata">
                 <span class="metadata-item">
                   <span class="material-icons">person</span>
-                  {{ event.actor }}
+                  {{ job.createdBy || "System" }}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Allocated event -->
+          <div class="timeline-event" *ngIf="job.allocatedAt">
+            <div class="timeline-marker">
+              <div class="timeline-icon">
+                <span class="material-icons">assignment_ind</span>
+              </div>
+              <div class="timeline-line"></div>
+            </div>
+            <div class="timeline-content">
+              <div class="event-header">
+                <h3 class="event-status">Job Allocated</h3>
+                <time class="event-time">{{
+                  formatDate(job.allocatedAt)
+                }}</time>
+              </div>
+              <div class="event-metadata">
+                <span class="metadata-item">
+                  <span class="material-icons">person</span>
+                  {{ job.driverId || "Unknown" }}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Collection start event -->
+          <div class="timeline-event" *ngIf="job.collectionStartTime">
+            <div class="timeline-marker">
+              <div class="timeline-icon">
+                <span class="material-icons">departure_board</span>
+              </div>
+              <div class="timeline-line"></div>
+            </div>
+            <div class="timeline-content">
+              <div class="event-header">
+                <h3 class="event-status">Collection Started</h3>
+                <time class="event-time">{{
+                  formatDate(job.collectionStartTime)
+                }}</time>
+              </div>
+              <div class="event-metadata">
+                <span class="metadata-item">
+                  <span class="material-icons">person</span>
+                  {{ job.driverId || "Unknown" }}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Collection complete event -->
+          <div class="timeline-event" *ngIf="job.collectionCompleteTime">
+            <div class="timeline-marker">
+              <div class="timeline-icon">
+                <span class="material-icons">check_circle</span>
+              </div>
+              <div class="timeline-line"></div>
+            </div>
+            <div class="timeline-content">
+              <div class="event-header">
+                <h3 class="event-status">Collection Completed</h3>
+                <time class="event-time">{{
+                  formatDate(job.collectionCompleteTime)
+                }}</time>
+              </div>
+              <div class="event-metadata">
+                <span class="metadata-item">
+                  <span class="material-icons">person</span>
+                  {{ job.driverId || "Unknown" }}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Delivery start event -->
+          <div class="timeline-event" *ngIf="job.deliveryStartTime">
+            <div class="timeline-marker">
+              <div class="timeline-icon">
+                <span class="material-icons">local_shipping</span>
+              </div>
+              <div class="timeline-line"></div>
+            </div>
+            <div class="timeline-content">
+              <div class="event-header">
+                <h3 class="event-status">Delivery Started</h3>
+                <time class="event-time">{{
+                  formatDate(job.deliveryStartTime)
+                }}</time>
+              </div>
+              <div class="event-metadata">
+                <span class="metadata-item">
+                  <span class="material-icons">person</span>
+                  {{ job.driverId || "Unknown" }}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Delivery complete event -->
+          <div class="timeline-event" *ngIf="job.deliveryCompleteTime">
+            <div class="timeline-marker">
+              <div class="timeline-icon">
+                <span class="material-icons">done_all</span>
+              </div>
+              <div class="timeline-line"></div>
+            </div>
+            <div class="timeline-content">
+              <div class="event-header">
+                <h3 class="event-status">Delivery Completed</h3>
+                <time class="event-time">{{
+                  formatDate(job.deliveryCompleteTime)
+                }}</time>
+              </div>
+              <div class="event-metadata">
+                <span class="metadata-item">
+                  <span class="material-icons">person</span>
+                  {{ job.driverId || "Unknown" }}
                 </span>
               </div>
             </div>
@@ -281,165 +482,32 @@
       <div class="expenses-view">
         <div class="expenses-header">
           <h2>Job Expenses</h2>
-          <button class="add-expense-button" (click)="openAddExpenseForm()">
+          <button
+            class="add-expense-button"
+            *ngIf="job.driverId === currentUser?.id || isAdmin"
+          >
             <span class="material-icons">add</span>
             Add Expense
           </button>
         </div>
 
-        <!-- Expenses Table -->
-        <div class="expenses-table-container">
-          <table *ngIf="expenses.length > 0" class="expenses-table">
-            <thead>
-              <tr>
-                <th>Description</th>
-                <th>Amount</th>
-                <th>Date</th>
-                <th>Driver</th>
-                <th>Status</th>
-                <th>Chargeable</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr *ngFor="let expense of expenses">
-                <td>{{ expense.description }}</td>
-                <td>{{ formatCurrency(expense.amount) }}</td>
-                <td>{{ expense.date | date }}</td>
-                <td>{{ expense.driverName }}</td>
-                <td>
-                  <span
-                    class="status-chip"
-                    [ngClass]="getExpenseStatusClass(expense.status)"
-                  >
-                    {{ expense.status }}
-                  </span>
-                </td>
-                <td>
-                  <mat-checkbox
-                    [disabled]="expense.status !== 'Approved' || !isManager"
-                    [checked]="expense.isChargeable"
-                    (change)="updateExpenseChargeable(expense, $event.checked)"
-                  ></mat-checkbox>
-                </td>
-                <td>
-                  <div class="expense-actions">
-                    <button
-                      *ngIf="expense.status === 'Pending' && isManager"
-                      class="icon-button approve"
-                      (click)="approveExpense(expense)"
-                      matTooltip="Approve expense"
-                    >
-                      <span class="material-icons">check</span>
-                    </button>
-                    <button
-                      *ngIf="expense.status === 'Pending' && isManager"
-                      class="icon-button reject"
-                      (click)="rejectExpense(expense)"
-                      matTooltip="Reject expense"
-                    >
-                      <span class="material-icons">close</span>
-                    </button>
-                    <button
-                      class="icon-button view"
-                      (click)="viewExpenseDetails(expense)"
-                      matTooltip="View details"
-                    >
-                      <span class="material-icons">visibility</span>
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-
-          <!-- Empty State -->
-          <div class="empty-expenses" *ngIf="expenses.length === 0">
-            <span class="material-icons">receipt_long</span>
-            <p>No expenses yet for this job</p>
-            <button class="add-expense-button" (click)="openAddExpenseForm()">
-              <span class="material-icons">add</span>
-              Add Expense
-            </button>
-          </div>
+        <!-- This section would integrate with your expense service -->
+        <!-- For now, showing a placeholder -->
+        <div class="empty-expenses">
+          <span class="material-icons">receipt_long</span>
+          <p>No expenses yet for this job</p>
         </div>
       </div>
     </div>
   </main>
 
-  <!-- Add Expense Dialog -->
-  <div class="expense-dialog" *ngIf="showAddExpenseForm">
-    <div class="expense-dialog-content">
-      <div class="dialog-header">
-        <h2>Add New Expense</h2>
-        <button class="close-button" (click)="closeAddExpenseForm()">
-          <span class="material-icons">close</span>
-        </button>
-      </div>
-      <form
-        [formGroup]="expenseForm"
-        (ngSubmit)="submitExpense()"
-        class="expense-form"
-      >
-        <div class="form-group">
-          <label for="description">Description</label>
-          <input type="text" id="description" formControlName="description" />
-        </div>
-        <div class="form-group">
-          <label for="amount">Amount</label>
-          <input
-            type="number"
-            id="amount"
-            formControlName="amount"
-            step="0.01"
-          />
-        </div>
-        <div class="form-group">
-          <label for="expenseDate">Date</label>
-          <input type="date" id="expenseDate" formControlName="date" />
-        </div>
-        <div class="form-group">
-          <label for="notes">Notes</label>
-          <textarea id="notes" formControlName="notes" rows="3"></textarea>
-        </div>
-        <div class="form-group upload-group">
-          <label>Receipt</label>
-          <div class="upload-control">
-            <button
-              type="button"
-              class="upload-button"
-              (click)="triggerFileInput()"
-            >
-              <span class="material-icons">upload_file</span>
-              Upload Receipt
-            </button>
-            <span *ngIf="receiptFile">{{ receiptFile.name }}</span>
-          </div>
-          <input
-            type="file"
-            #fileInput
-            hidden
-            (change)="handleFileInput($event)"
-            accept="image/*,.pdf"
-          />
-        </div>
-        <div class="form-actions">
-          <button
-            type="button"
-            class="cancel-button"
-            (click)="closeAddExpenseForm()"
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            class="submit-button"
-            [disabled]="expenseForm.invalid"
-          >
-            Submit Expense
-          </button>
-        </div>
-      </form>
-    </div>
+  <!-- No Job Found Message -->
+  <div class="not-found" *ngIf="!isLoading && !job">
+    <mat-icon>error_outline</mat-icon>
+    <h2>Job Not Found</h2>
+    <p>The job you're looking for could not be found.</p>
+    <button mat-raised-button color="primary" (click)="goBack()">
+      Back to Jobs
+    </button>
   </div>
 </div>
