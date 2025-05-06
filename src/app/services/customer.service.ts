@@ -1,27 +1,9 @@
-// src/app/services/customer.service.ts
-
 import { Injectable } from '@angular/core';
-import {
-  Firestore,
-  collection,
-  doc,
-  getDoc,
-  getDocs,
-  addDoc,
-  updateDoc,
-  deleteDoc,
-  query,
-  where,
-  orderBy,
-  serverTimestamp,
-  DocumentReference,
-  Timestamp,
-  collectionData,
-} from '@angular/fire/firestore';
-import { Observable, BehaviorSubject, from, of, throwError } from 'rxjs';
-import { catchError, map, tap, switchMap } from 'rxjs/operators';
-import { Customer, CustomerSize, CustomerStatus, CustomerContact } from '../interfaces/customer.interface';
 import { Auth } from '@angular/fire/auth';
+import { Firestore, addDoc, collection, doc, getDoc, getDocs, orderBy, query, serverTimestamp, updateDoc, where } from '@angular/fire/firestore';
+import { BehaviorSubject, Observable, from, of, throwError } from 'rxjs';
+import { catchError, map, tap } from 'rxjs/operators';
+import { Customer, CustomerContact, CustomerStatus } from '../interfaces/customer.interface';
 import { BaseFirebaseService } from './base-firebase.service';
 import { NotificationService } from './notification.service';
 
@@ -417,6 +399,7 @@ export class CustomerService extends BaseFirebaseService {
     return {
       id,
       name: data.name || '',
+      phone: data.phone || '',
       industry: data.industry,
       category: data.category,
       size: data.size,

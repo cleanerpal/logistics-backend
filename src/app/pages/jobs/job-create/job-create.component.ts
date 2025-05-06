@@ -6,7 +6,8 @@ import { finalize } from 'rxjs/operators';
 import { JobService } from '../../../services/job.service';
 import { AuthService } from '../../../services/auth.service';
 import { VehicleService, VehicleMake, VehicleModel } from '../../../services/vehicle.service';
-import { CustomerService, Customer } from '../../../services/customer.service';
+import { CustomerService } from '../../../services/customer.service';
+import { Customer } from '../../../interfaces/customer.interface';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatDialog } from '@angular/material/dialog';
 import { ConfirmationDialogComponent } from '../../../dialogs/confirmation-dialog.component';
@@ -276,8 +277,8 @@ export class JobCreateComponent implements OnInit, OnDestroy {
         collectionAddress: selectedCustomer.address || '',
         collectionCity: selectedCustomer.city || '',
         collectionPostcode: selectedCustomer.postcode || '',
-        collectionContactName: selectedCustomer.contactName || '',
-        collectionContactPhone: selectedCustomer.contactPhone || '',
+        collectionContactName: selectedCustomer.name || '',
+        collectionContactPhone: selectedCustomer.phone || '',
       });
     }
   }
@@ -374,8 +375,8 @@ export class JobCreateComponent implements OnInit, OnDestroy {
       // Customer info
       customerId: formValue.customerId,
       customerName: selectedCustomer?.name || '',
-      customerContact: selectedCustomer?.contactName || '',
-      customerContactPhone: selectedCustomer?.contactPhone || '',
+      customerContact: selectedCustomer?.name || '',
+      customerContactPhone: selectedCustomer?.phone || '',
 
       // Primary Collection
       collectionAddress: formValue.collectionAddress,

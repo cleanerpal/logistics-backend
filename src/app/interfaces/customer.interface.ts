@@ -25,6 +25,7 @@ export interface CustomerContact {
 export interface Customer {
   id: string;
   name: string;
+  phone: string;
   industry?: string;
   category?: string;
   size?: CustomerSize;

@@ -8,9 +8,6 @@ import { DriverListComponent } from './pages/drivers/driver-list/driver-list.com
 import { VehicleModelsComponent } from './pages/vehicles/vehicle-models/vehicle-models.component';
 import { JobCreateComponent } from './pages/jobs/job-create/job-create.component';
 import { JobEditComponent } from './pages/jobs/job-edit/job-edit.component';
-import { CustomersListComponent } from './pages/customers/customers-list/customers-list.component';
-import { CustomerCreateComponent } from './pages/customers/customer-create/customer-create.component';
-import { CustomerDetailsComponent } from './pages/customers/customer-details/customer-details.component';
 import { DriverCreateComponent } from './pages/drivers/driver-create/driver-create.component';
 import { DriverDetailsComponent } from './pages/drivers/driver-details/driver-details.component';
 import { VehicleListComponent } from './pages/vehicles/vehicle-list/vehicle-list.component';
@@ -21,6 +18,9 @@ import { VehicleMovementComponent } from './pages/vehicles/vehicle-movement/vehi
 // Guards
 import { AuthGuard } from './guards/auth.guard';
 import { RoleGuard } from './guards/role.guard';
+import { CustomerListComponent } from './pages/customers/customers-list/customer-list.component';
+import { CustomerCreateComponent } from './pages/customers/customer-create/customer-create.component';
+import { CustomerDetailsComponent } from './pages/customers/customer-details/customer-details.component';
 
 const routes: Routes = [
   // Auth routes (lazy loaded)
@@ -78,7 +78,7 @@ const routes: Routes = [
     path: 'customers',
     canActivate: [AuthGuard],
     children: [
-      { path: '', component: CustomersListComponent },
+      { path: '', component: CustomerListComponent },
       {
         path: 'new',
         component: CustomerCreateComponent,

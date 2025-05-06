@@ -24,7 +24,6 @@ import { JobCreateComponent } from './pages/jobs/job-create/job-create.component
 import { JobEditComponent } from './pages/jobs/job-edit/job-edit.component';
 import { DriverListComponent } from './pages/drivers/driver-list/driver-list.component';
 import { VehicleModelsComponent } from './pages/vehicles/vehicle-models/vehicle-models.component';
-import { CustomersListComponent } from './pages/customers/customers-list/customers-list.component';
 import { DriverCreateComponent } from './pages/drivers/driver-create/driver-create.component';
 import { DriverDetailsComponent } from './pages/drivers/driver-details/driver-details.component';
 import { VehicleListComponent } from './pages/vehicles/vehicle-list/vehicle-list.component';
@@ -55,6 +54,9 @@ import { provideNgxMask } from 'ngx-mask';
 import { FirebaseService } from './services/firebase.service';
 import { DriverSelectionDialogComponent } from './dialogs/driver-selection-dialog.component';
 import { environment } from '../environments/environment.prod';
+import { CustomerListComponent } from './pages/customers/customers-list/customer-list.component';
+import { CustomerCreateComponent } from './pages/customers/customer-create/customer-create.component';
+import { CustomerDetailsComponent } from './pages/customers/customer-details/customer-details.component';
 
 @NgModule({
   declarations: [
@@ -69,7 +71,6 @@ import { environment } from '../environments/environment.prod';
     JobCreateComponent,
     JobDetailsComponent,
     JobEditComponent,
-    CustomersListComponent,
     VehicleListComponent,
     VehicleModelsComponent,
     VehicleDetailsComponent,
@@ -80,6 +81,9 @@ import { environment } from '../environments/environment.prod';
     ExpenseListComponent,
     VehicleMovementComponent,
     TimeAgoPipe,
+    CustomerListComponent,
+    CustomerCreateComponent,
+    CustomerDetailsComponent,
   ],
   imports: [BrowserModule, BrowserAnimationsModule, AppRoutingModule, FormsModule, ReactiveFormsModule, NgxChartsModule, MaterialModule],
   providers: [
