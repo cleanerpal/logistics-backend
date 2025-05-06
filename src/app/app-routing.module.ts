@@ -88,7 +88,7 @@ const routes: Routes = [
       { path: ':id', component: CustomerDetailsComponent },
       {
         path: ':id/edit',
-        component: CustomerCreateComponent, // Reusing the create component for editing
+        component: CustomerCreateComponent,
         canActivate: [RoleGuard],
         data: { permissions: ['canManageUsers', 'isAdmin'] },
       },
