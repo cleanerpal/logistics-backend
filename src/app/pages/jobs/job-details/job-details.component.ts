@@ -434,18 +434,144 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Get vehicle brand logo path
+   * Format date to UK format (DD/MM/YYYY)
+   */
+  formatUKDate(date: Date | undefined): string {
+    if (!date) return 'N/A';
+
+    if (typeof date === 'string') {
+      date = new Date(date);
+    }
+
+    // Handle Firebase Timestamp
+    if (date && typeof date === 'object' && 'toDate' in date) {
+      const timestamp = date as unknown as { toDate: () => Date };
+      date = timestamp.toDate();
+    }
+
+    const day = date.getDate().toString().padStart(2, '0');
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const year = date.getFullYear();
+
+    return `${day}/${month}/${year}`;
+  }
+
+  /**
+   * Format date and time to UK format (DD/MM/YYYY HH:MM)
+   */
+  formatUKDateTime(date: Date | undefined): string {
+    if (!date) return 'N/A';
+
+    if (typeof date === 'string') {
+      date = new Date(date);
+    }
+
+    // Handle Firebase Timestamp
+    if (date && typeof date === 'object' && 'toDate' in date) {
+      const timestamp = date as unknown as { toDate: () => Date };
+      date = timestamp.toDate();
+    }
+
+    const day = date.getDate().toString().padStart(2, '0');
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const year = date.getFullYear();
+    const hours = date.getHours().toString().padStart(2, '0');
+    const minutes = date.getMinutes().toString().padStart(2, '0');
+
+    return `${day}/${month}/${year} ${hours}:${minutes}`;
+  }
+
+  /**
+   * Get the progress percentage for the status flow display
+   */
+  getStatusFlowProgress(): number {
+    if (!this.job) return 0;
+
+    const statusOrder = [
+      'unallocated',
+      'allocated',
+      'collected',
+      'delivered',
+      'completed',
+    ];
+
+    const currentStatusIndex = statusOrder.indexOf(this.job.status);
+    if (currentStatusIndex === -1) return 0;
+
+    // Calculate percentage based on position in flow
+    return (currentStatusIndex / (statusOrder.length - 1)) * 100;
+  }
+
+  /**
+   * Get status steps for the status flow visualization
+   */
+  getStatusFlow() {
+    if (!this.job) return [];
+
+    const statusOrder = [
+      { key: 'unallocated', label: 'Unallocated' },
+      { key: 'allocated', label: 'Allocated' },
+      { key: 'collected', label: 'Collected' },
+      { key: 'delivered', label: 'Delivered' },
+      { key: 'completed', label: 'Completed' },
+    ];
+
+    const currentStatusIndex = statusOrder.findIndex(
+      (s) => s.key === this.job?.status
+    );
+
+    return statusOrder.map((status, index) => {
+      return {
+        ...status,
+        active: index === currentStatusIndex,
+        completed: index < currentStatusIndex,
+      };
+    });
+  }
+
+  /**
+   * Get vehicle brand logo path with improved filename normalization
    * @param make The vehicle manufacturer name
    * @returns Path to the logo image
    */
   getVehicleLogo(make: string): string {
     if (!make) return 'assets/images/car-logos/default.png';
 
-    // Convert to lowercase and remove spaces/special characters for file matching
-    const normalizedMake = make.toLowerCase().replace(/[^a-z0-9]/g, '');
+    // Special cases mapping for certain manufacturers
+    const specialCases: Record<string, string> = {
+      'mercedes-benz': 'mercedes',
+      'mercedes benz': 'mercedes',
+      vw: 'volkswagen',
+      'range rover': 'land_rover',
+      'jaguar land rover': 'jaguar',
+      'rolls-royce': 'rolls_royce',
+      'rolls royce': 'rolls_royce',
+    };
 
-    // Return the path to the logo - add error handling with default logo
-    return `assets/images/car-logos/${normalizedMake}.png`;
+    // Normalize the make name
+    const normalized = make.toLowerCase().trim();
+
+    // Check if it's a special case first
+    if (specialCases[normalized]) {
+      return `assets/images/car-logos/${specialCases[normalized]}.png`;
+    }
+
+    // Regular normalization: lowercase, replace spaces with underscores, replace hyphens with underscores
+    const normalizedFilename = normalized
+      .replace(/\s+/g, '_')
+      .replace(/-/g, '_')
+      .replace(/[^a-z0-9_]/g, '');
+
+    return `assets/images/car-logos/${normalizedFilename}.png`;
+  }
+
+  /**
+   * Handle image loading error by setting a default image
+   * @param event The error event
+   */
+  handleImageError(event: Event): void {
+    const imgElement = event.target as HTMLImageElement;
+    imgElement.src = 'assets/images/car-logos/default.png';
   }
 
   showSnackbar(message: string): void {
