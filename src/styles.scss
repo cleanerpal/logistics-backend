@@ -1,6 +1,148 @@
-@import "@angular/material/prebuilt-themes/indigo-pink.css";
+/* Import Angular Material theme and sass:color module */
+@use "@angular/material" as mat;
+@use "sass:color"; // Required for color.adjust
 
-/* styles.scss */
+/* Color palette */
+$primary: #4b3e21;
+$secondary: #9e7520;
+$tertiary: #6e4e0a;
+
+/* Generate Light Theme */
+$theme-primary: mat.define-palette(
+  (
+    50: color.adjust($primary, $lightness: 40%),
+    100: color.adjust($primary, $lightness: 35%),
+    200: color.adjust($primary, $lightness: 30%),
+    300: color.adjust($primary, $lightness: 25%),
+    400: color.adjust($primary, $lightness: 20%),
+    500: $primary,
+    600: color.adjust($primary, $lightness: -5%),
+    700: color.adjust($primary, $lightness: -10%),
+    800: color.adjust($primary, $lightness: -15%),
+    900: color.adjust($primary, $lightness: -20%),
+    contrast: (
+      50: rgba(black, 0.87),
+      100: rgba(black, 0.87),
+      200: rgba(black, 0.87),
+      300: rgba(black, 0.87),
+      400: white,
+      500: white,
+      600: white,
+      700: white,
+      800: white,
+      900: white,
+    ),
+  ),
+  500
+);
+
+$theme-accent: mat.define-palette(
+  (
+    50: color.adjust($secondary, $lightness: 40%),
+    100: color.adjust($secondary, $lightness: 35%),
+    200: color.adjust($secondary, $lightness: 30%),
+    300: color.adjust($secondary, $lightness: 25%),
+    400: color.adjust($secondary, $lightness: 20%),
+    500: $secondary,
+    600: color.adjust($secondary, $lightness: -5%),
+    700: color.adjust($secondary, $lightness: -10%),
+    800: color.adjust($secondary, $lightness: -15%),
+    900: color.adjust($secondary, $lightness: -20%),
+    contrast: (
+      50: rgba(black, 0.87),
+      100: rgba(black, 0.87),
+      200: rgba(black, 0.87),
+      300: rgba(black, 0.87),
+      400: white,
+      500: white,
+      600: white,
+      700: white,
+      800: white,
+      900: white,
+    ),
+  ),
+  500
+);
+
+$theme-warn: mat.define-palette(mat.$red-palette);
+
+$theme: mat.define-light-theme(
+  (
+    color: (
+      primary: $theme-primary,
+      accent: $theme-accent,
+      warn: $theme-warn,
+    ),
+    typography: mat.define-typography-config(),
+    density: 0,
+  )
+);
+
+// Apply the theme
+@include mat.core();
+@include mat.all-component-themes($theme);
+
+/* Custom color variables */
+:root {
+  --primary-color: #{$primary};
+  --secondary-color: #{$secondary};
+  --tertiary-color: #{$tertiary};
+
+  --primary-light: #{color.adjust($primary, $lightness: 35%)};
+  --secondary-light: #{color.adjust($secondary, $lightness: 35%)};
+  --tertiary-light: #{color.adjust($tertiary, $lightness: 35%)};
+
+  --primary-dark: #{color.adjust($primary, $lightness: -10%)};
+  --secondary-dark: #{color.adjust($secondary, $lightness: -10%)};
+  --tertiary-dark: #{color.adjust($tertiary, $lightness: -10%)};
+
+  --background-color: #f8f9fa;
+  --card-background: #ffffff;
+  --text-primary: rgba(0, 0, 0, 0.87);
+  --text-secondary: rgba(0, 0, 0, 0.6);
+  --border-color: rgba(0, 0, 0, 0.12);
+  --hover-color: rgba(0, 0, 0, 0.04);
+  --active-color: rgba(75, 62, 33, 0.12);
+  --error-color: #f44336;
+  --success-color: #4caf50;
+  --warning-color: #ff9800;
+  --info-color: #2196f3;
+}
+
+/* Font Definitions */
+@font-face {
+  font-family: "UberMove";
+  src: url("./assets/fonts/UberMove-Light.woff2") format("woff2");
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "UberMove";
+  src: url("./assets/fonts/UberMove-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "UberMove";
+  src: url("./assets/fonts/UberMove-Medium.woff2") format("woff2");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "UberMove";
+  src: url("./assets/fonts/UberMove-Bold.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Base Styles */
 * {
   margin: 0;
   padding: 0;
@@ -9,12 +151,12 @@
 
 html,
 body {
-  font-family: "Montserrat", -apple-system, BlinkMacSystemFont, "Segoe UI",
-    Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  font-family: "UberMove", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    Oxygen, Ubuntu, Cantarell, sans-serif;
   font-size: 16px;
   line-height: 1.5;
-  color: #333;
-  background-color: #f8f9fa;
+  color: var(--text-primary);
+  background-color: var(--background-color);
 }
 
 // Typography
@@ -24,10 +166,11 @@ h3,
 h4,
 h5,
 h6 {
-  font-family: "Montserrat", sans-serif;
-  font-weight: 600;
+  font-family: "UberMove", sans-serif;
+  font-weight: 500;
   line-height: 1.2;
-  color: #333;
+  color: var(--primary-color);
+  margin-bottom: 0.5em;
 }
 
 h1 {
@@ -45,16 +188,18 @@ input,
 select,
 textarea,
 button {
-  font-family: "Montserrat", sans-serif;
+  font-family: "UberMove", sans-serif;
   font-size: 14px;
 }
 
 // Links
 a {
-  color: #007bff;
+  color: var(--secondary-color);
   text-decoration: none;
+  transition: color 0.2s ease;
 
   &:hover {
+    color: var(--tertiary-color);
     text-decoration: underline;
   }
 }
@@ -123,6 +268,129 @@ a {
   letter-spacing: 0.025em;
 }
 
+/* Status chip colors */
+.status-chip {
+  &.status-active,
+  &.status-approved,
+  &.status-completed,
+  &.status-success,
+  &.status-green {
+    background-color: rgba(76, 175, 80, 0.12);
+    color: #4caf50;
+  }
+
+  &.status-inactive,
+  &.status-default,
+  &.status-gray {
+    background-color: rgba(97, 97, 97, 0.12);
+    color: #616161;
+  }
+
+  &.status-pending,
+  &.status-allocated,
+  &.status-warning,
+  &.status-orange {
+    background-color: rgba(255, 152, 0, 0.12);
+    color: #ff9800;
+  }
+
+  &.status-rejected,
+  &.status-error,
+  &.status-red,
+  &.status-cancelled {
+    background-color: rgba(244, 67, 54, 0.12);
+    color: #f44336;
+  }
+
+  &.status-delivered,
+  &.status-collected,
+  &.status-info {
+    background-color: rgba(33, 150, 243, 0.12);
+    color: #2196f3;
+  }
+}
+
+/* Material customizations */
+.mat-mdc-card {
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+  overflow: hidden;
+}
+
+.mat-mdc-form-field {
+  &.mat-mdc-form-field-appearance-outline {
+    .mdc-notched-outline__leading,
+    .mdc-notched-outline__trailing,
+    .mdc-notched-outline__notch {
+      border-color: rgba(0, 0, 0, 0.12);
+    }
+
+    &.mat-focused {
+      .mdc-notched-outline__leading,
+      .mdc-notched-outline__trailing,
+      .mdc-notched-outline__notch {
+        border-color: var(--primary-color);
+      }
+    }
+  }
+}
+
+.mat-mdc-raised-button,
+.mat-mdc-unelevated-button {
+  &.mat-primary {
+    background-color: var(--primary-color);
+  }
+
+  &.mat-accent {
+    background-color: var(--secondary-color);
+  }
+}
+
+.mat-mdc-outlined-button {
+  &.mat-primary {
+    color: var(--primary-color);
+    border-color: var(--primary-color);
+  }
+
+  &.mat-accent {
+    color: var(--secondary-color);
+    border-color: var(--secondary-color);
+  }
+}
+
+.mat-mdc-tab-label.mdc-tab--active .mdc-tab__text-label {
+  color: var(--primary-color);
+}
+
+.mat-mdc-tab-header .mat-mdc-tab-header-pagination-chevron {
+  border-color: var(--primary-color);
+}
+
+.mat-mdc-progress-spinner.mat-primary circle {
+  stroke: var(--primary-color);
+}
+
+// Snackbar styles
+.success-snackbar {
+  background-color: #4caf50;
+  color: white;
+}
+
+.error-snackbar {
+  background-color: #f44336;
+  color: white;
+}
+
+.info-snackbar {
+  background-color: #2196f3;
+  color: white;
+}
+
+.warning-snackbar {
+  background-color: #ff9800;
+  color: white;
+}
+
 // Mobile optimization
 @media (max-width: 768px) {
   html,
@@ -136,5 +404,38 @@ a {
 
   h2 {
     font-size: 18px;
+  }
+}
+
+// Dark theme
+.dark-theme {
+  --background-color: #121212;
+  --card-background: #1e1e1e;
+  --text-primary: rgba(255, 255, 255, 0.87);
+  --text-secondary: rgba(255, 255, 255, 0.6);
+  --border-color: rgba(255, 255, 255, 0.12);
+  --hover-color: rgba(255, 255, 255, 0.04);
+  --active-color: rgba(255, 255, 255, 0.12);
+
+  background-color: var(--background-color);
+  color: var(--text-primary);
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    color: var(--text-primary);
+  }
+
+  .mat-mdc-card {
+    background-color: var(--card-background);
+    color: var(--text-primary);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3) !important;
+  }
+
+  .status-chip {
+    opacity: 0.85;
   }
 }
