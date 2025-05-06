@@ -1,3 +1,5 @@
+// src/app/services/customer.service.ts
+
 import { Injectable } from '@angular/core';
 import {
   Firestore,
@@ -5,50 +7,110 @@ import {
   doc,
   getDoc,
   getDocs,
+  addDoc,
+  updateDoc,
+  deleteDoc,
   query,
   where,
+  orderBy,
+  serverTimestamp,
+  DocumentReference,
+  Timestamp,
+  collectionData,
 } from '@angular/fire/firestore';
-import { Observable, from, of } from 'rxjs';
-import { map, catchError } from 'rxjs/operators';
-
-export interface Customer {
-  id: string;
-  name: string;
-  address?: string;
-  category?: string;
-  city?: string;
-  contactName?: string;
-  contactPhone?: string;
-  contactPosition?: string;
-  country?: string;
-  email?: string;
-  isActive: boolean;
-  postcode?: string;
-  createdAt?: Date;
-  updatedAt?: Date;
-}
+import { Observable, BehaviorSubject, from, of, throwError } from 'rxjs';
+import { catchError, map, tap, switchMap } from 'rxjs/operators';
+import { Customer, CustomerSize, CustomerStatus, CustomerContact } from '../interfaces/customer.interface';
+import { Auth } from '@angular/fire/auth';
+import { BaseFirebaseService } from './base-firebase.service';
+import { NotificationService } from './notification.service';
 
 @Injectable({
   providedIn: 'root',
 })
-export class CustomerService {
-  constructor(private firestore: Firestore) {}
+export class CustomerService extends BaseFirebaseService {
+  private customersSubject = new BehaviorSubject<Customer[]>([]);
+  private loadingSubject = new BehaviorSubject<boolean>(false);
+
+  public customers$ = this.customersSubject.asObservable();
+  public loading$ = this.loadingSubject.asObservable();
+
+  constructor(protected override firestore: Firestore, protected override auth: Auth, private notificationService: NotificationService) {
+    super(firestore, auth);
+  }
 
   /**
-   * Get all active customers
+   * Get all customers
    */
   getCustomers(): Observable<Customer[]> {
+    this.loadingSubject.next(true);
+
     const customersRef = collection(this.firestore, 'customers');
-    const q = query(customersRef, where('isActive', '==', true));
+    const q = query(customersRef, where('isActive', '==', true), orderBy('name', 'asc'));
 
     return from(getDocs(q)).pipe(
       map((snapshot) => {
-        return snapshot.docs.map((doc) => {
+        const customers = snapshot.docs.map((doc) => {
           return this.convertFirebaseCustomerToModel(doc.id, doc.data());
         });
+        this.customersSubject.next(customers);
+        return customers;
       }),
+      tap(() => this.loadingSubject.next(false)),
       catchError((error) => {
         console.error('Error fetching customers:', error);
+        this.loadingSubject.next(false);
+        this.customersSubject.next([]);
+        return of([]);
+      })
+    );
+  }
+
+  /**
+   * Get customers by status
+   */
+  getCustomersByStatus(status: CustomerStatus): Observable<Customer[]> {
+    this.loadingSubject.next(true);
+
+    const customersRef = collection(this.firestore, 'customers');
+    const q = query(customersRef, where('status', '==', status), where('isActive', '==', true), orderBy('name', 'asc'));
+
+    return from(getDocs(q)).pipe(
+      map((snapshot) => {
+        const customers = snapshot.docs.map((doc) => {
+          return this.convertFirebaseCustomerToModel(doc.id, doc.data());
+        });
+        return customers;
+      }),
+      tap(() => this.loadingSubject.next(false)),
+      catchError((error) => {
+        console.error(`Error fetching customers with status ${status}:`, error);
+        this.loadingSubject.next(false);
+        return of([]);
+      })
+    );
+  }
+
+  /**
+   * Get customers by category
+   */
+  getCustomersByCategory(category: string): Observable<Customer[]> {
+    this.loadingSubject.next(true);
+
+    const customersRef = collection(this.firestore, 'customers');
+    const q = query(customersRef, where('category', '==', category), where('isActive', '==', true), orderBy('name', 'asc'));
+
+    return from(getDocs(q)).pipe(
+      map((snapshot) => {
+        const customers = snapshot.docs.map((doc) => {
+          return this.convertFirebaseCustomerToModel(doc.id, doc.data());
+        });
+        return customers;
+      }),
+      tap(() => this.loadingSubject.next(false)),
+      catchError((error) => {
+        console.error(`Error fetching customers with category ${category}:`, error);
+        this.loadingSubject.next(false);
         return of([]);
       })
     );
@@ -58,7 +120,10 @@ export class CustomerService {
    * Get a customer by ID
    */
   getCustomerById(id: string): Observable<Customer | null> {
+    this.loadingSubject.next(true);
+
     if (!id) {
+      this.loadingSubject.next(false);
       return of(null);
     }
 
@@ -67,47 +132,200 @@ export class CustomerService {
     return from(getDoc(customerRef)).pipe(
       map((docSnap) => {
         if (docSnap.exists()) {
-          return this.convertFirebaseCustomerToModel(
-            docSnap.id,
-            docSnap.data()
-          );
+          return this.convertFirebaseCustomerToModel(docSnap.id, docSnap.data());
         } else {
           return null;
         }
       }),
+      tap(() => this.loadingSubject.next(false)),
       catchError((error) => {
         console.error(`Error fetching customer ${id}:`, error);
+        this.loadingSubject.next(false);
         return of(null);
       })
     );
   }
 
   /**
-   * Get customers by category
+   * Create a new customer
    */
-  getCustomersByCategory(category: string): Observable<Customer[]> {
-    if (!category) {
-      return of([]);
+  createCustomer(data: Partial<Customer>): Observable<string> {
+    this.loadingSubject.next(true);
+
+    // Get the current user ID
+    const userId = this.currentUserId;
+    if (!userId) {
+      this.loadingSubject.next(false);
+      return throwError(() => new Error('User not authenticated'));
     }
 
+    // Ensure contacts have IDs
+    const contacts =
+      data.contacts?.map((contact) => {
+        if (!contact.id) {
+          return { ...contact, id: this.generateId() };
+        }
+        return contact;
+      }) || [];
+
+    // Prepare customer data
+    const customerData = {
+      ...data,
+      contacts: contacts,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+      createdBy: userId,
+      updatedBy: userId,
+      status: data.status || CustomerStatus.ACTIVE,
+      isActive: true,
+    };
+
     const customersRef = collection(this.firestore, 'customers');
-    const q = query(
-      customersRef,
-      where('category', '==', category),
-      where('isActive', '==', true)
+
+    return from(addDoc(customersRef, customerData)).pipe(
+      map((docRef) => {
+        // Refresh the customers list
+        this.refreshCustomersList();
+
+        // Add notification
+        this.notificationService.addNotification({
+          type: 'success',
+          title: 'Customer Created',
+          message: `Customer "${data.name}" has been created successfully`,
+          actionUrl: `/customers/${docRef.id}`,
+        });
+
+        return docRef.id;
+      }),
+      tap(() => this.loadingSubject.next(false)),
+      catchError((error) => {
+        console.error('Error creating customer:', error);
+        this.loadingSubject.next(false);
+        return throwError(() => error);
+      })
     );
+  }
+
+  /**
+   * Update an existing customer
+   */
+  updateCustomer(id: string, data: Partial<Customer>): Observable<void> {
+    this.loadingSubject.next(true);
+
+    // Get the current user ID
+    const userId = this.currentUserId;
+    if (!userId) {
+      this.loadingSubject.next(false);
+      return throwError(() => new Error('User not authenticated'));
+    }
+
+    const customerRef = doc(this.firestore, `customers/${id}`);
+
+    // Process contacts array
+    let contacts = data.contacts || [];
+
+    // Make sure all contacts have IDs
+    contacts = contacts.map((contact) => {
+      if (!contact.id) {
+        return { ...contact, id: this.generateId() };
+      }
+      return contact;
+    });
+
+    // Remove id from update data to avoid overwriting it
+    const { id: _, ...updateData } = data;
+
+    // Add updater and timestamp
+    const customerData = {
+      ...updateData,
+      contacts: contacts,
+      updatedAt: serverTimestamp(),
+      updatedBy: userId,
+    };
+
+    return from(updateDoc(customerRef, customerData)).pipe(
+      tap(() => {
+        // Refresh the customers list
+        this.refreshCustomersList();
+
+        // Add notification about customer update
+        this.notificationService.addNotification({
+          type: 'info',
+          title: 'Customer Updated',
+          message: `Customer "${data.name}" has been updated`,
+          actionUrl: `/customers/${id}`,
+        });
+      }),
+      map(() => void 0),
+      tap(() => this.loadingSubject.next(false)),
+      catchError((error) => {
+        console.error(`Error updating customer ${id}:`, error);
+        this.loadingSubject.next(false);
+        return throwError(() => error);
+      })
+    );
+  }
+
+  /**
+   * Soft delete a customer (mark as inactive)
+   */
+  deleteCustomer(id: string): Observable<void> {
+    this.loadingSubject.next(true);
+
+    const customerRef = doc(this.firestore, `customers/${id}`);
+
+    // We'll do a soft delete by setting isActive to false
+    const updateData = {
+      isActive: false,
+      updatedAt: serverTimestamp(),
+      updatedBy: this.currentUserId,
+    };
+
+    return from(updateDoc(customerRef, updateData)).pipe(
+      tap(() => {
+        // Refresh the customers list
+        this.refreshCustomersList();
+
+        // Add notification
+        this.notificationService.addNotification({
+          type: 'warning',
+          title: 'Customer Deleted',
+          message: 'The customer has been deleted',
+          actionUrl: '/customers',
+        });
+      }),
+      map(() => void 0),
+      tap(() => this.loadingSubject.next(false)),
+      catchError((error) => {
+        console.error(`Error deleting customer ${id}:`, error);
+        this.loadingSubject.next(false);
+        return throwError(() => error);
+      })
+    );
+  }
+
+  /**
+   * Get unique list of categories from all customers
+   */
+  getCategories(): Observable<string[]> {
+    const customersRef = collection(this.firestore, 'customers');
+    const q = query(customersRef, where('isActive', '==', true));
 
     return from(getDocs(q)).pipe(
       map((snapshot) => {
-        return snapshot.docs.map((doc) => {
-          return this.convertFirebaseCustomerToModel(doc.id, doc.data());
+        const categoriesSet = new Set<string>();
+
+        snapshot.docs.forEach((doc) => {
+          const category = doc.data()['category'];
+          if (category) {
+            categoriesSet.add(category);
+          }
         });
+
+        return Array.from(categoriesSet).sort();
       }),
       catchError((error) => {
-        console.error(
-          `Error fetching customers of category ${category}:`,
-          error
-        );
+        console.error('Error fetching categories:', error);
         return of([]);
       })
     );
@@ -128,78 +346,95 @@ export class CustomerService {
         const normalizedSearchTerm = searchTerm.toLowerCase().trim();
 
         return customers.filter(
-          (customer) =>
-            customer.name.toLowerCase().includes(normalizedSearchTerm) ||
-            (customer.contactName &&
-              customer.contactName.toLowerCase().includes(normalizedSearchTerm))
+          (customer) => customer.name.toLowerCase().includes(normalizedSearchTerm) || this.contactsIncludeSearchTerm(customer.contacts, normalizedSearchTerm)
         );
       })
     );
   }
 
   /**
-   * Get customer categories (distinct list)
+   * Check if any contact information matches the search term
    */
-  getCustomerCategories(): Observable<string[]> {
-    const customersRef = collection(this.firestore, 'customers');
-    const q = query(customersRef, where('isActive', '==', true));
+  private contactsIncludeSearchTerm(contacts: CustomerContact[], searchTerm: string): boolean {
+    if (!contacts || contacts.length === 0) return false;
 
-    return from(getDocs(q)).pipe(
-      map((snapshot) => {
-        const categoriesSet = new Set<string>();
-
-        snapshot.docs.forEach((doc) => {
-          const customer = doc.data();
-          if (customer['category']) {
-            categoriesSet.add(customer['category']);
-          }
-        });
-
-        return Array.from(categoriesSet).sort();
-      }),
-      catchError((error) => {
-        console.error('Error fetching customer categories:', error);
-        return of([]);
-      })
+    return contacts.some(
+      (contact) =>
+        (contact.name && contact.name.toLowerCase().includes(searchTerm)) ||
+        (contact.email && contact.email.toLowerCase().includes(searchTerm)) ||
+        (contact.phone && contact.phone.toLowerCase().includes(searchTerm)) ||
+        (contact.position && contact.position.toLowerCase().includes(searchTerm))
     );
   }
 
   /**
-   * Convert Firestore document data to Customer model
+   * Refresh the customers list
+   */
+  private refreshCustomersList(): void {
+    // Only refresh if we have customers loaded already
+    if (this.customersSubject.getValue().length > 0) {
+      this.getCustomers().subscribe();
+    }
+  }
+
+  /**
+   * Generate a random ID for customer contacts
+   */
+  private generateId(): string {
+    return Date.now().toString(36) + Math.random().toString(36).substr(2);
+  }
+
+  /**
+   * Convert Firestore document to Customer model
    */
   private convertFirebaseCustomerToModel(id: string, data: any): Customer {
-    // Handle Firebase timestamps
-    const convertTimestamp = (timestamp: any): Date | undefined => {
-      if (!timestamp) return undefined;
+    // Process contacts array
+    const contacts: CustomerContact[] = [];
 
-      // Firebase timestamp object with toDate() method
-      if (timestamp && typeof timestamp === 'object' && 'toDate' in timestamp) {
-        return timestamp.toDate();
-      }
+    if (data.contacts && Array.isArray(data.contacts)) {
+      data.contacts.forEach((contact: any) => {
+        contacts.push({
+          id: contact.id || this.generateId(),
+          name: contact.name || '',
+          position: contact.position,
+          email: contact.email || '',
+          phone: contact.phone,
+          isPrimary: contact.isPrimary || false,
+        });
+      });
+    }
 
-      // String or number timestamp
-      if (timestamp) {
-        return new Date(timestamp);
-      }
-
-      return undefined;
-    };
+    // Ensure at least one contact exists
+    if (contacts.length === 0) {
+      contacts.push({
+        id: this.generateId(),
+        name: '',
+        email: '',
+        isPrimary: true,
+      });
+    }
 
     return {
       id,
       name: data.name || '',
-      address: data.address,
+      industry: data.industry,
       category: data.category,
+      size: data.size,
+      status: data.status || CustomerStatus.ACTIVE,
+      address: data.address,
       city: data.city,
-      contactName: data.contactName,
-      contactPhone: data.contactPhone,
-      contactPosition: data.contactPosition,
-      country: data.country,
-      email: data.email,
-      isActive: data.isActive !== false,
       postcode: data.postcode,
-      createdAt: convertTimestamp(data.createdAt),
-      updatedAt: convertTimestamp(data.updatedAt),
+      country: data.country,
+      website: data.website,
+      description: data.description,
+      contacts: contacts,
+      createdAt: this.convertTimestamp(data.createdAt) || new Date(),
+      updatedAt: this.convertTimestamp(data.updatedAt) || new Date(),
+      createdBy: data.createdBy,
+      updatedBy: data.updatedBy,
+      lastContact: this.convertTimestamp(data.lastContact),
+      notes: data.notes,
+      isActive: data.isActive !== false,
     };
   }
 }

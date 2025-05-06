@@ -1,3 +1,4 @@
+// src/app/app-routing.module.ts
 import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
 import { DashboardComponent } from './pages/dashboard/dashboard.component';
@@ -6,10 +7,10 @@ import { JobListComponent } from './pages/jobs/job-list/job-list.component';
 import { DriverListComponent } from './pages/drivers/driver-list/driver-list.component';
 import { VehicleModelsComponent } from './pages/vehicles/vehicle-models/vehicle-models.component';
 import { JobCreateComponent } from './pages/jobs/job-create/job-create.component';
-import { JobEditComponent } from './pages/jobs/job-edit/job-edit.component'; // Import the new component
-import { CompaniesListComponent } from './pages/companies/companies-list/companies-list.component';
-import { CompanyCreateComponent } from './pages/companies/company-create/company-create.component';
-import { CompanyDetailsComponent } from './pages/companies/company-details/company-details.component';
+import { JobEditComponent } from './pages/jobs/job-edit/job-edit.component';
+import { CustomersListComponent } from './pages/customers/customers-list/customers-list.component';
+import { CustomerCreateComponent } from './pages/customers/customer-create/customer-create.component';
+import { CustomerDetailsComponent } from './pages/customers/customer-details/customer-details.component';
 import { DriverCreateComponent } from './pages/drivers/driver-create/driver-create.component';
 import { DriverDetailsComponent } from './pages/drivers/driver-details/driver-details.component';
 import { VehicleListComponent } from './pages/vehicles/vehicle-list/vehicle-list.component';
@@ -74,17 +75,23 @@ const routes: Routes = [
     ],
   },
   {
-    path: 'companies',
+    path: 'customers',
     canActivate: [AuthGuard],
     children: [
-      { path: '', component: CompaniesListComponent },
+      { path: '', component: CustomersListComponent },
       {
         path: 'new',
-        component: CompanyCreateComponent,
+        component: CustomerCreateComponent,
         canActivate: [RoleGuard],
         data: { permissions: ['canManageUsers', 'isAdmin'] },
       },
-      { path: ':id', component: CompanyDetailsComponent },
+      { path: ':id', component: CustomerDetailsComponent },
+      {
+        path: ':id/edit',
+        component: CustomerCreateComponent, // Reusing the create component for editing
+        canActivate: [RoleGuard],
+        data: { permissions: ['canManageUsers', 'isAdmin'] },
+      },
     ],
   },
   {

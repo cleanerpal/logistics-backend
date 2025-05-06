@@ -1,3 +1,4 @@
+// src/app/app.module.ts
 import { NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
@@ -20,12 +21,10 @@ import { TopbarComponent } from './layout/topbar/topbar.component';
 import { JobListComponent } from './pages/jobs/job-list/job-list.component';
 import { JobDetailsComponent } from './pages/jobs/job-details/job-details.component';
 import { JobCreateComponent } from './pages/jobs/job-create/job-create.component';
-import { JobEditComponent } from './pages/jobs/job-edit/job-edit.component'; // Added the new component
+import { JobEditComponent } from './pages/jobs/job-edit/job-edit.component';
 import { DriverListComponent } from './pages/drivers/driver-list/driver-list.component';
 import { VehicleModelsComponent } from './pages/vehicles/vehicle-models/vehicle-models.component';
-import { CompaniesListComponent } from './pages/companies/companies-list/companies-list.component';
-import { CompanyCreateComponent } from './pages/companies/company-create/company-create.component';
-import { CompanyDetailsComponent } from './pages/companies/company-details/company-details.component';
+import { CustomersListComponent } from './pages/customers/customers-list/customers-list.component';
 import { DriverCreateComponent } from './pages/drivers/driver-create/driver-create.component';
 import { DriverDetailsComponent } from './pages/drivers/driver-details/driver-details.component';
 import { VehicleListComponent } from './pages/vehicles/vehicle-list/vehicle-list.component';
@@ -44,7 +43,6 @@ import { MaterialModule } from './material.module';
 import { NgxChartsModule } from '@swimlane/ngx-charts';
 
 // Services
-
 import { JobService } from './services/job.service';
 import { AuthService } from './services/auth.service';
 import { VehicleService } from './services/vehicle.service';
@@ -70,10 +68,8 @@ import { environment } from '../environments/environment.prod';
     JobListComponent,
     JobCreateComponent,
     JobDetailsComponent,
-    JobEditComponent, // Added here
-    CompaniesListComponent,
-    CompanyCreateComponent,
-    CompanyDetailsComponent,
+    JobEditComponent,
+    CustomersListComponent,
     VehicleListComponent,
     VehicleModelsComponent,
     VehicleDetailsComponent,
@@ -85,17 +81,7 @@ import { environment } from '../environments/environment.prod';
     VehicleMovementComponent,
     TimeAgoPipe,
   ],
-  imports: [
-    BrowserModule,
-    BrowserAnimationsModule,
-    AppRoutingModule,
-    FormsModule,
-    ReactiveFormsModule,
-    NgxChartsModule,
-    MaterialModule,
-
-    // Firebase setup
-  ],
+  imports: [BrowserModule, BrowserAnimationsModule, AppRoutingModule, FormsModule, ReactiveFormsModule, NgxChartsModule, MaterialModule],
   providers: [
     provideNgxMask(),
     FirebaseService,

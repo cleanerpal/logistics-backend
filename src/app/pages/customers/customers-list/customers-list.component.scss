@@ -1,0 +1,495 @@
+/* customers-list.component.scss */
+
+:host {
+  display: block;
+  padding: 24px;
+  background-color: var(--background-color);
+  min-height: 100vh;
+  margin-left: 250px; /* Account for sidebar width */
+  padding-top: 88px; /* Account for topbar height (64px) + some padding */
+}
+
+/* Card styles */
+.mat-mdc-card {
+  margin-bottom: 24px;
+  background-color: white;
+  border-radius: 8px;
+}
+
+/* Header Section */
+.header-wrapper {
+  padding: 24px 24px 0;
+}
+
+.header-title h1 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 500;
+  color: var(--primary-color);
+}
+
+.header-title .subtitle {
+  margin: 4px 0 0;
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+/* Filters and Actions Section */
+.filters-actions-wrapper {
+  padding: 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 24px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.filters-section {
+  display: flex;
+  flex: 1;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.search-field {
+  width: 300px;
+}
+
+.search-field ::ng-deep .mat-mdc-text-field-wrapper {
+  background-color: #f8f9fa;
+}
+
+.search-field input {
+  height: 20px;
+}
+
+.filters-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  flex: 1;
+}
+
+.filters-group mat-form-field {
+  width: 180px;
+}
+
+.actions-group {
+  display: flex;
+  gap: 12px;
+  margin-left: auto;
+}
+
+.export-button {
+  height: 40px;
+}
+
+.create-button {
+  height: 40px;
+  padding: 0 20px;
+  background-color: var(--primary-color);
+  transition: background-color 0.2s ease;
+}
+
+.create-button:hover {
+  background-color: var(--tertiary-color);
+}
+
+.actions-group .mat-icon {
+  margin-right: 8px;
+}
+
+/* Table Container */
+.table-container {
+  position: relative;
+  min-height: 400px;
+  overflow: auto;
+}
+
+/* Scrollbar styling */
+.table-container::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.table-container::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.table-container::-webkit-scrollbar-thumb {
+  background: #ddd;
+  border-radius: 4px;
+}
+
+.table-container::-webkit-scrollbar-thumb:hover {
+  background: #ccc;
+}
+
+/* Loading Overlay */
+.loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.9);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  gap: 16px;
+}
+
+.loading-overlay span {
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+/* Table Styles */
+table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+table.loading {
+  opacity: 0.6;
+}
+
+/* Header Styles */
+.mat-mdc-header-row {
+  background-color: #f8f9fa;
+  min-height: 48px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.mat-mdc-header-cell {
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 0 16px;
+  white-space: nowrap;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.mat-mdc-header-cell:first-of-type {
+  padding-left: 24px;
+}
+
+.mat-mdc-header-cell:last-of-type {
+  padding-right: 24px;
+}
+
+/* Sort header styling */
+.mat-sort-header-container {
+  justify-content: flex-start;
+}
+
+.mat-sort-header-arrow {
+  color: rgba(0, 0, 0, 0.38);
+}
+
+/* Cell Styles */
+.mat-mdc-cell {
+  font-size: 14px;
+  color: var(--text-primary);
+  padding: 0 16px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  height: 52px;
+}
+
+.mat-mdc-cell:first-of-type {
+  padding-left: 24px;
+}
+
+.mat-mdc-cell:last-of-type {
+  padding-right: 24px;
+}
+
+/* Row Styles */
+.customer-row {
+  min-height: 52px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.customer-row:hover {
+  background-color: #fafafa;
+}
+
+.customer-row:hover .job-id {
+  color: var(--primary-color);
+}
+
+.customer-row:active {
+  background-color: var(--active-color);
+}
+
+.customer-row.selected {
+  background-color: var(--active-color);
+}
+
+/* Column Styles */
+.mat-column-id {
+  width: 100px;
+  white-space: nowrap;
+}
+
+.mat-column-size,
+.mat-column-status {
+  width: 140px;
+}
+
+.mat-column-lastContact {
+  width: 120px;
+}
+
+.mat-column-actions {
+  width: 60px;
+  text-align: right;
+}
+
+.mat-column-select {
+  width: 50px;
+  overflow: visible;
+}
+
+.contacts-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.primary-contact {
+  color: var(--text-primary);
+}
+
+.contacts-count {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+/* Size Chips */
+.size-chip {
+  display: inline-flex;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.size-chip.size-small {
+  background-color: #e8f5e9;
+  color: #2e7d32;
+}
+
+.size-chip.size-medium {
+  background-color: #e3f2fd;
+  color: #1565c0;
+}
+
+.size-chip.size-large {
+  background-color: #fff8e1;
+  color: #f57f17;
+}
+
+.size-chip.size-enterprise {
+  background-color: #fbe9e7;
+  color: #d84315;
+}
+
+/* Status Chips */
+.status-chip {
+  display: inline-flex;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.status-chip.status-active {
+  background-color: #e8f5e9;
+  color: #2e7d32;
+}
+
+.status-chip.status-inactive {
+  background-color: #f5f5f5;
+  color: #757575;
+}
+
+.status-chip.status-pending {
+  background-color: #fff8e1;
+  color: #f57f17;
+}
+
+/* Empty State */
+.empty-state {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  width: 100%;
+  padding: 0 24px;
+  box-sizing: border-box;
+}
+
+.empty-state .empty-icon {
+  font-size: 48px;
+  width: 48px;
+  height: 48px;
+  color: rgba(0, 0, 0, 0.38);
+  margin-bottom: 16px;
+}
+
+.empty-state h3 {
+  margin: 0 0 8px;
+  font-size: 16px;
+  color: var(--text-primary);
+}
+
+.empty-state p {
+  margin: 0 0 24px;
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.empty-state button {
+  min-width: 160px;
+}
+
+.empty-state .mat-icon {
+  margin-right: 8px;
+}
+
+/* Delete Action */
+.delete-action {
+  color: #f44336;
+}
+
+/* Responsive Design */
+@media screen and (max-width: 1200px) {
+  .filters-section {
+    flex-direction: column;
+  }
+
+  .search-field {
+    width: 100%;
+  }
+
+  .filters-group {
+    width: 100%;
+  }
+
+  .filters-group mat-form-field {
+    flex: 1;
+    min-width: 150px;
+  }
+}
+
+@media screen and (max-width: 960px) {
+  :host {
+    padding: 16px;
+    padding-top: 80px; /* Slightly reduced top padding */
+  }
+
+  .filters-actions-wrapper {
+    flex-direction: column;
+  }
+
+  .actions-group {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .actions-group button {
+    flex: 1;
+  }
+
+  .mat-column-category,
+  .mat-column-lastContact {
+    display: none;
+  }
+}
+
+@media screen and (max-width: 768px) {
+  :host {
+    margin-left: 60px; /* Collapsed sidebar width */
+    padding-top: 80px; /* Reduced topbar padding for smaller screens */
+  }
+
+  .mat-column-size {
+    display: none;
+  }
+}
+
+@media screen and (max-width: 600px) {
+  :host {
+    padding: 8px;
+    padding-top: 72px; /* Further reduced for mobile */
+  }
+
+  .header-wrapper {
+    padding: 16px 16px 0;
+  }
+
+  .filters-actions-wrapper {
+    padding: 16px;
+  }
+
+  .filters-group {
+    flex-direction: column;
+  }
+
+  .filters-group mat-form-field {
+    width: 100% !important;
+  }
+
+  .actions-group {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .mat-column-id {
+    display: none;
+  }
+}
+
+/* Print Styles */
+@media print {
+  :host {
+    padding: 0;
+    background: white;
+    margin-left: 0; /* No sidebar in print */
+    padding-top: 0; /* No topbar in print */
+  }
+
+  .mat-mdc-card {
+    box-shadow: none !important;
+  }
+
+  .filters-actions-wrapper,
+  .mat-mdc-paginator,
+  .mat-column-select,
+  .mat-column-actions {
+    display: none !important;
+  }
+
+  .table-container {
+    overflow: visible;
+  }
+
+  .customer-row {
+    break-inside: avoid;
+  }
+
+  /* Ensure good contrast for printing */
+  .status-chip,
+  .size-chip {
+    border: 1px solid rgba(0, 0, 0, 0.2);
+  }
+}
