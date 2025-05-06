@@ -1,0 +1,191 @@
+<!-- customer-create.component.html -->
+<mat-card class="mat-elevation-z3">
+  <!-- Loading Spinner -->
+  <div class="loading-overlay" *ngIf="isLoading">
+    <mat-spinner diameter="40"></mat-spinner>
+    <span>Loading...</span>
+  </div>
+
+  <!-- Header -->
+  <div class="header-wrapper">
+    <div class="header-title">
+      <button mat-icon-button (click)="goBack()" matTooltip="Go back">
+        <mat-icon>arrow_back</mat-icon>
+      </button>
+      <h1>{{ isEditMode ? 'Edit Customer' : 'New Customer' }}</h1>
+    </div>
+  </div>
+
+  <!-- Form -->
+  <form [formGroup]="customerForm" (ngSubmit)="onSubmit()" class="form-container">
+    <div class="form-section">
+      <h2 class="section-title">Customer Information</h2>
+
+      <!-- Customer Name -->
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Customer Name</mat-label>
+        <input matInput formControlName="name" placeholder="Enter customer name" />
+        <mat-error *ngIf="customerForm.get('name')?.hasError('required')"> Customer name is required </mat-error>
+      </mat-form-field>
+
+      <div class="form-row">
+        <!-- Industry -->
+        <mat-form-field appearance="outline">
+          <mat-label>Industry</mat-label>
+          <mat-select formControlName="industry">
+            <mat-option *ngFor="let industry of industries" [value]="industry">
+              {{ industry }}
+            </mat-option>
+          </mat-select>
+          <mat-error *ngIf="customerForm.get('industry')?.hasError('required')"> Industry is required </mat-error>
+        </mat-form-field>
+
+        <!-- Customer Size -->
+        <mat-form-field appearance="outline">
+          <mat-label>Customer Size</mat-label>
+          <mat-select formControlName="size">
+            <mat-option *ngFor="let size of customerSizes" [value]="size">
+              {{ size }}
+            </mat-option>
+          </mat-select>
+          <mat-error *ngIf="customerForm.get('size')?.hasError('required')"> Customer size is required </mat-error>
+        </mat-form-field>
+
+        <!-- Status -->
+        <mat-form-field appearance="outline">
+          <mat-label>Status</mat-label>
+          <mat-select formControlName="status">
+            <mat-option *ngFor="let status of customerStatuses" [value]="status">
+              {{ status }}
+            </mat-option>
+          </mat-select>
+          <mat-error *ngIf="customerForm.get('status')?.hasError('required')"> Status is required </mat-error>
+        </mat-form-field>
+      </div>
+
+      <!-- Website -->
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Website</mat-label>
+        <input matInput formControlName="website" placeholder="e.g. https://www.example.com" />
+        <mat-icon matSuffix>language</mat-icon>
+      </mat-form-field>
+
+      <!-- Description -->
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Description</mat-label>
+        <textarea matInput formControlName="description" placeholder="Brief description of the customer" rows="3"></textarea>
+      </mat-form-field>
+    </div>
+
+    <div class="form-section">
+      <h2 class="section-title">Address Information</h2>
+
+      <!-- Address -->
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Address</mat-label>
+        <textarea matInput formControlName="address" placeholder="Enter customer address" rows="3"></textarea>
+        <mat-error *ngIf="customerForm.get('address')?.hasError('required')"> Address is required </mat-error>
+      </mat-form-field>
+
+      <div class="form-row">
+        <!-- City -->
+        <mat-form-field appearance="outline">
+          <mat-label>City</mat-label>
+          <input matInput formControlName="city" placeholder="Enter city" />
+        </mat-form-field>
+
+        <!-- Postcode -->
+        <mat-form-field appearance="outline">
+          <mat-label>Postcode</mat-label>
+          <input matInput formControlName="postcode" placeholder="Enter postcode" />
+        </mat-form-field>
+
+        <!-- Country -->
+        <mat-form-field appearance="outline">
+          <mat-label>Country</mat-label>
+          <input matInput formControlName="country" placeholder="Enter country" />
+        </mat-form-field>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <div class="section-header">
+        <h2 class="section-title">Contact Information</h2>
+        <button type="button" mat-stroked-button color="primary" (click)="addContact()" class="add-contact-btn">
+          <mat-icon>add</mat-icon>
+          Add Contact
+        </button>
+      </div>
+
+      <div class="contacts-container" formArrayName="contacts">
+        <div *ngFor="let contact of contactsFormArray.controls; let i = index" class="contact-item" [formGroupName]="i">
+          <div class="contact-header">
+            <h3>Contact #{{ i + 1 }}</h3>
+            <div class="contact-actions">
+              <mat-checkbox
+                class="primary-checkbox"
+                formControlName="isPrimary"
+                [checked]="contact.get('isPrimary')?.value"
+                (change)="setPrimaryContact(i)"
+                [disabled]="contact.get('isPrimary')?.value">
+                Primary
+              </mat-checkbox>
+              <button type="button" mat-icon-button color="warn" (click)="removeContact(i)" [disabled]="contactsFormArray.length === 1" class="remove-btn">
+                <mat-icon>delete</mat-icon>
+              </button>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <!-- Contact Name -->
+            <mat-form-field appearance="outline">
+              <mat-label>Name</mat-label>
+              <input matInput formControlName="name" placeholder="Full name" />
+              <mat-error *ngIf="contact.get('name')?.hasError('required')"> Name is required </mat-error>
+            </mat-form-field>
+
+            <!-- Position -->
+            <mat-form-field appearance="outline">
+              <mat-label>Position</mat-label>
+              <input matInput formControlName="position" placeholder="e.g. Manager" />
+            </mat-form-field>
+          </div>
+
+          <div class="form-row">
+            <!-- Email -->
+            <mat-form-field appearance="outline">
+              <mat-label>Email</mat-label>
+              <input matInput formControlName="email" placeholder="Email address" type="email" />
+              <mat-error *ngIf="contact.get('email')?.hasError('required')"> Email is required </mat-error>
+              <mat-error *ngIf="contact.get('email')?.hasError('email')"> Please enter a valid email address </mat-error>
+            </mat-form-field>
+
+            <!-- Phone -->
+            <mat-form-field appearance="outline">
+              <mat-label>Phone</mat-label>
+              <input matInput formControlName="phone" placeholder="Phone number" type="tel" />
+            </mat-form-field>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <h2 class="section-title">Additional Information</h2>
+
+      <!-- Notes -->
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Notes</mat-label>
+        <textarea matInput formControlName="notes" placeholder="Additional notes about the customer" rows="4"></textarea>
+      </mat-form-field>
+    </div>
+
+    <!-- Form Actions -->
+    <div class="form-actions">
+      <button mat-stroked-button type="button" (click)="goBack()">Cancel</button>
+      <button mat-flat-button color="primary" type="submit" [disabled]="customerForm.invalid || isSubmitting">
+        {{ isSubmitting ? 'Saving...' : isEditMode ? 'Update Customer' : 'Create Customer' }}
+      </button>
+    </div>
+  </form>
+</mat-card>
