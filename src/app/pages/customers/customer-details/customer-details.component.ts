@@ -122,22 +122,65 @@ export class CustomerDetailsComponent implements OnInit, OnDestroy {
     this.subscriptions.push(jobsSub);
   }
 
+  // Add this code to your DriverDetailsComponent class (src/app/pages/drivers/driver-details/driver-details.component.ts)
+
   /**
-   * Get CSS class for status
+   * Get status class for CSS styling
+   * This accepts a string status value and returns the appropriate CSS class name
    */
-  getStatusClass(status: string): string {
-    const statusMap: Record<string, string> = {
-      [CustomerStatus.ACTIVE]: 'status-active',
-      [CustomerStatus.INACTIVE]: 'status-inactive',
-      [CustomerStatus.PENDING]: 'status-pending',
-      Loaded: 'status-info',
-      Allocated: 'status-warning',
-      Collected: 'status-info',
-      Delivered: 'status-success',
-      Aborted: 'status-error',
-      Cancelled: 'status-error',
-    };
-    return statusMap[status] || 'status-default';
+  getStatusClass(status: string | undefined): string {
+    if (!status) return 'status-gray';
+
+    switch (status.toLowerCase()) {
+      case 'active':
+        return 'status-green';
+      case 'pending':
+        return 'status-orange';
+      case 'inactive':
+      default:
+        return 'status-gray';
+    }
+  }
+
+  /**
+   * Get type class for CSS styling
+   * This accepts a string type value and returns the appropriate CSS class name
+   */
+  getTypeClass(type: string | undefined): string {
+    if (!type) return 'type-blue';
+
+    switch (type.toLowerCase()) {
+      case 'customer':
+        return 'type-blue';
+      case 'supplier':
+        return 'type-purple';
+      case 'partner':
+        return 'type-orange';
+      default:
+        return 'type-blue';
+    }
+  }
+
+  /**
+   * Get role class for CSS styling
+   * This accepts a string role value and returns the appropriate CSS class name
+   */
+  getRoleClass(role: string | undefined): string {
+    if (!role) return 'role-driver';
+
+    switch (role.toLowerCase()) {
+      case 'admin':
+        return 'role-admin';
+      case 'manager':
+        return 'role-manager';
+      case 'dispatcher':
+        return 'role-dispatcher';
+      case 'driver':
+        return 'role-driver';
+      case 'user':
+      default:
+        return 'role-user';
+    }
   }
 
   /**

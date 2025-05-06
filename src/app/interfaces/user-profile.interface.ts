@@ -1,3 +1,4 @@
+// src/app/interfaces/user-profile.interface.ts
 export interface UserProfile {
   id: string;
   email: string;
@@ -5,8 +6,18 @@ export interface UserProfile {
   firstName?: string;
   lastName?: string;
   phoneNumber?: string;
+  phone?: string;
   role?: string;
+  status?: 'active' | 'inactive' | 'pending';
   isActive?: boolean;
+  company?: string;
+  type?: 'customer' | 'supplier' | 'partner';
+  lastActivity?: Date;
+  licenseNumber?: string;
+  licenseExpiry?: Date;
+  vehicleType?: string;
+  areaCoverage?: string;
+  availability?: string;
   createdAt?: Date;
   updatedAt?: Date;
   permissions?: {
