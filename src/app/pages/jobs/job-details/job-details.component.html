@@ -20,38 +20,22 @@
         <div class="header-left">
           <div class="job-identifier">
             <div class="vehicle-badge" *ngIf="job.make">
-              <img
-                [src]="getVehicleLogo(job.make)"
-                [alt]="job.make + ' logo'"
-                (error)="handleImageError($event)"
-              />
+              <img [src]="getVehicleLogo(job.make)" [alt]="job.make + ' logo'" (error)="handleImageError($event)" />
             </div>
             <div class="job-details-header">
-              <!-- <h1>{{ job.id }}</h1> -->
               <div class="vehicle-summary" *ngIf="job.make && job.model">
                 {{ job.make }} {{ job.model }}
-                {{ job.registration ? "(" + job.registration + ")" : "" }}
+                {{ job.registration ? '(' + job.registration + ')' : '' }}
               </div>
             </div>
-            <span
-              class="status-badge"
-              [ngClass]="
-                job.status
-                  ? 'status-' + job.status.toLowerCase().replace(' ', '-')
-                  : ''
-              "
-            >
+            <span class="status-badge" [ngClass]="job.status ? 'status-' + job.status.toLowerCase().replace(' ', '-') : ''">
               {{ job.status | titlecase }}
             </span>
           </div>
         </div>
 
         <div class="header-actions">
-          <button
-            class="action-btn"
-            *ngIf="hasEditPermission || isAdmin"
-            (click)="editJob()"
-          >
+          <button class="action-btn" *ngIf="hasEditPermission || isAdmin" [routerLink]="['/jobs', job.id, 'edit']">
             <span class="material-icons">edit</span>
             Edit
           </button>
@@ -64,24 +48,9 @@
 
       <!-- Tab Navigation -->
       <div class="tab-navigation">
-        <button
-          [class.active]="activeTab === 'details'"
-          (click)="setActiveTab('details')"
-        >
-          Details
-        </button>
-        <button
-          [class.active]="activeTab === 'timeline'"
-          (click)="setActiveTab('timeline')"
-        >
-          Timeline
-        </button>
-        <button
-          [class.active]="activeTab === 'expenses'"
-          (click)="setActiveTab('expenses')"
-        >
-          Expenses
-        </button>
+        <button [class.active]="activeTab === 'details'" (click)="setActiveTab('details')">Details</button>
+        <button [class.active]="activeTab === 'timeline'" (click)="setActiveTab('timeline')">Timeline</button>
+        <button [class.active]="activeTab === 'expenses'" (click)="setActiveTab('expenses')">Expenses</button>
       </div>
     </div>
 
@@ -92,71 +61,58 @@
         <div *ngSwitchCase="'details'" class="details-tab">
           <div class="two-column-layout">
             <div class="left-column">
-              <!-- Status Card - Moved to top -->
-              <div
-                class="info-card status-card"
-                [ngClass]="
-                  job.status
-                    ? 'status-' + job.status.toLowerCase().replace(' ', '-')
-                    : ''
-                "
-              >
-                <h2>Current Status</h2>
-                <div class="current-status">
-                  <span class="status-indicator"></span>
-                  <div class="status-details">
-                    <span class="status-text">{{
-                      job.status | titlecase
-                    }}</span>
-                    <span class="current-driver" *ngIf="job.driverId">
-                      Driver: {{ getDriverName() }}
-                    </span>
-                    <span class="status-date" *ngIf="job['statusUpdatedAt']">
-                      Updated: {{ formatUKDateTime(job["statusUpdatedAt"]) }}
-                    </span>
+              <!-- Customer Card -->
+              <div class="info-card">
+                <h2>Customer Information</h2>
+                <div class="card-content">
+                  <div class="info-row">
+                    <span class="label">Customer</span>
+                    <span class="value">{{ job.customerName || 'N/A' }}</span>
+                  </div>
+                  <div class="info-row">
+                    <span class="label">Contact Name</span>
+                    <span class="value">{{ job.customerContact || 'N/A' }}</span>
+                  </div>
+                  <div class="info-row">
+                    <span class="label">Phone</span>
+                    <span class="value">{{ job.customerContactPhone || 'N/A' }}</span>
                   </div>
                 </div>
+              </div>
 
-                <!-- Status flow visualization -->
-                <div class="status-flow">
-                  <div class="status-flow-line"></div>
-                  <div
-                    class="status-flow-progress"
-                    [style.width.%]="getStatusFlowProgress()"
-                  ></div>
-
-                  <div
-                    *ngFor="let step of getStatusFlow()"
-                    class="status-step"
-                    [ngClass]="{
-                      active: step.active,
-                      completed: step.completed
-                    }"
-                  >
-                    <div class="step-circle"></div>
-                    <p class="step-label">{{ step.label }}</p>
-                  </div>
-                </div>
-
-                <!-- Status Change section -->
-                <div
-                  class="status-change"
-                  *ngIf="
-                    hasEditPermission ||
-                    isAdmin ||
-                    job.driverId === currentUser?.id
-                  "
-                >
-                  <h3>Change Status</h3>
-                  <div class="status-buttons">
-                    <button
-                      *ngFor="let status of allowedStatuses"
-                      [class.active]="job.status === status"
-                      (click)="updateJobStatus(status)"
-                      class="status-button"
-                    >
-                      {{ status | titlecase }}
-                    </button>
+              <!-- Vehicle Card -->
+              <div class="info-card">
+                <h2>Vehicle Information</h2>
+                <div class="card-content vehicle-card-content">
+                  <div class="vehicle-details">
+                    <div class="info-row">
+                      <span class="label">Make</span>
+                      <span class="value">{{ job.make || 'N/A' }}</span>
+                    </div>
+                    <div class="info-row">
+                      <span class="label">Model</span>
+                      <span class="value">{{ job.model || 'N/A' }}</span>
+                    </div>
+                    <div class="info-row">
+                      <span class="label">Registration</span>
+                      <span class="value">{{ job.registration || 'N/A' }}</span>
+                    </div>
+                    <div class="info-row">
+                      <span class="label">Type</span>
+                      <span class="value">{{ job.vehicleType || 'N/A' }}</span>
+                    </div>
+                    <div class="info-row">
+                      <span class="label">Color</span>
+                      <span class="value">{{ job.color || 'N/A' }}</span>
+                    </div>
+                    <div class="info-row">
+                      <span class="label">Year</span>
+                      <span class="value">{{ job.year || 'N/A' }}</span>
+                    </div>
+                    <div class="info-row">
+                      <span class="label">Chassis Number</span>
+                      <span class="value">{{ job.chassisNumber || 'N/A' }}</span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -171,20 +127,12 @@
                       Collection
                     </h3>
                     <p class="address-main">
-                      {{ job.collectionAddress || "Not specified" }}
+                      {{ job.collectionAddress || 'Not specified' }}
                     </p>
-                    <p *ngIf="job.collectionCity">
-                      <strong>City:</strong> {{ job.collectionCity }}
-                    </p>
-                    <p *ngIf="job.collectionPostcode">
-                      <strong>Postcode:</strong> {{ job.collectionPostcode }}
-                    </p>
-                    <p *ngIf="job.collectionContactName">
-                      <strong>Contact:</strong> {{ job.collectionContactName }}
-                    </p>
-                    <p *ngIf="job.collectionContactPhone">
-                      <strong>Phone:</strong> {{ job.collectionContactPhone }}
-                    </p>
+                    <p *ngIf="job.collectionCity"><strong>City:</strong> {{ job.collectionCity }}</p>
+                    <p *ngIf="job.collectionPostcode"><strong>Postcode:</strong> {{ job.collectionPostcode }}</p>
+                    <p *ngIf="job.collectionContactName"><strong>Contact:</strong> {{ job.collectionContactName }}</p>
+                    <p *ngIf="job.collectionContactPhone"><strong>Phone:</strong> {{ job.collectionContactPhone }}</p>
                     <p *ngIf="job.collectionNotes" class="instructions">
                       <span class="material-icons">info</span>
                       {{ job.collectionNotes }}
@@ -196,20 +144,12 @@
                       Delivery
                     </h3>
                     <p class="address-main">
-                      {{ job.deliveryAddress || "Not specified" }}
+                      {{ job.deliveryAddress || 'Not specified' }}
                     </p>
-                    <p *ngIf="job.deliveryCity">
-                      <strong>City:</strong> {{ job.deliveryCity }}
-                    </p>
-                    <p *ngIf="job.deliveryPostcode">
-                      <strong>Postcode:</strong> {{ job.deliveryPostcode }}
-                    </p>
-                    <p *ngIf="job.deliveryContactName">
-                      <strong>Contact:</strong> {{ job.deliveryContactName }}
-                    </p>
-                    <p *ngIf="job.deliveryContactPhone">
-                      <strong>Phone:</strong> {{ job.deliveryContactPhone }}
-                    </p>
+                    <p *ngIf="job.deliveryCity"><strong>City:</strong> {{ job.deliveryCity }}</p>
+                    <p *ngIf="job.deliveryPostcode"><strong>Postcode:</strong> {{ job.deliveryPostcode }}</p>
+                    <p *ngIf="job.deliveryContactName"><strong>Contact:</strong> {{ job.deliveryContactName }}</p>
+                    <p *ngIf="job.deliveryContactPhone"><strong>Phone:</strong> {{ job.deliveryContactPhone }}</p>
                     <p *ngIf="job.deliveryNotes" class="instructions">
                       <span class="material-icons">info</span>
                       {{ job.deliveryNotes }}
@@ -217,71 +157,48 @@
                   </div>
                 </div>
               </div>
-
-              <!-- Customer Card -->
-              <div class="info-card">
-                <h2>Customer Information</h2>
-                <div class="card-content">
-                  <div class="info-row">
-                    <span class="label">Customer</span>
-                    <span class="value">{{ job.customerName || "N/A" }}</span>
-                  </div>
-                  <div class="info-row">
-                    <span class="label">Contact Name</span>
-                    <span class="value">{{
-                      job.customerContact || "N/A"
-                    }}</span>
-                  </div>
-                  <div class="info-row">
-                    <span class="label">Phone</span>
-                    <span class="value">{{
-                      job.customerContactPhone || "N/A"
-                    }}</span>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Vehicle Card -->
-              <div class="info-card">
-                <h2>Vehicle Information</h2>
-                <div class="card-content vehicle-card-content">
-                  <div class="vehicle-details">
-                    <div class="info-row">
-                      <span class="label">Make</span>
-                      <span class="value">{{ job.make || "N/A" }}</span>
-                    </div>
-                    <div class="info-row">
-                      <span class="label">Model</span>
-                      <span class="value">{{ job.model || "N/A" }}</span>
-                    </div>
-                    <div class="info-row">
-                      <span class="label">Registration</span>
-                      <span class="value">{{ job.registration || "N/A" }}</span>
-                    </div>
-                    <div class="info-row">
-                      <span class="label">Type</span>
-                      <span class="value">{{ job.vehicleType || "N/A" }}</span>
-                    </div>
-                    <div class="info-row">
-                      <span class="label">Color</span>
-                      <span class="value">{{ job.color || "N/A" }}</span>
-                    </div>
-                    <div class="info-row">
-                      <span class="label">Year</span>
-                      <span class="value">{{ job.year || "N/A" }}</span>
-                    </div>
-                    <div class="info-row">
-                      <span class="label">Chassis Number</span>
-                      <span class="value">{{
-                        job.chassisNumber || "N/A"
-                      }}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
             </div>
 
             <div class="right-column">
+              <!-- Status Card - Moved to top -->
+              <div class="info-card status-card" [ngClass]="job.status ? 'status-' + job.status.toLowerCase().replace(' ', '-') : ''">
+                <h2>Current Status</h2>
+                <div class="current-status">
+                  <span class="status-indicator"></span>
+                  <div class="status-details">
+                    <span class="status-text">{{ job.status | titlecase }}</span>
+                    <span class="current-driver" *ngIf="job.driverId"> Driver: {{ getDriverName() }} </span>
+                    <span class="status-date" *ngIf="job['statusUpdatedAt']"> Updated: {{ formatUKDateTime(job['statusUpdatedAt']) }} </span>
+                  </div>
+                </div>
+
+                <!-- Status flow visualization -->
+                <div class="status-flow">
+                  <div class="status-flow-line"></div>
+                  <div class="status-flow-progress" [style.width.%]="getStatusFlowProgress()"></div>
+
+                  <div
+                    *ngFor="let step of getStatusFlow()"
+                    class="status-step"
+                    [ngClass]="{
+                      active: step.active,
+                      completed: step.completed
+                    }">
+                    <div class="step-circle"></div>
+                    <p class="step-label">{{ step.label }}</p>
+                  </div>
+                </div>
+
+                <!-- Status Change section -->
+                <div class="status-change" *ngIf="hasEditPermission || isAdmin || job.driverId === currentUser?.id">
+                  <h3>Change Status</h3>
+                  <div class="status-buttons">
+                    <button *ngFor="let status of allowedStatuses" [class.active]="job.status === status" (click)="updateJobStatus(status)" class="status-button">
+                      {{ status | titlecase }}
+                    </button>
+                  </div>
+                </div>
+              </div>
               <!-- Notes Section -->
               <div class="info-card">
                 <h2>Notes</h2>
@@ -294,33 +211,16 @@
                       <div *ngFor="let note of jobNotes" class="note">
                         <div class="note-header">
                           <span class="note-author">{{ note.author }}</span>
-                          <span class="note-date">{{
-                            formatUKDateTime(note.date)
-                          }}</span>
+                          <span class="note-date">{{ formatUKDateTime(note.date) }}</span>
                         </div>
                         <div class="note-content">{{ note.content }}</div>
                       </div>
                     </div>
 
                     <!-- Add Note Form -->
-                    <div
-                      class="add-note-form"
-                      *ngIf="
-                        hasEditPermission ||
-                        isAdmin ||
-                        job.driverId === currentUser?.id
-                      "
-                    >
-                      <textarea
-                        [(ngModel)]="newNote"
-                        placeholder="Add a note..."
-                        rows="2"
-                      ></textarea>
-                      <button
-                        class="add-note-button"
-                        [disabled]="!newNote.trim()"
-                        (click)="addNote()"
-                      >
+                    <div class="add-note-form" *ngIf="hasEditPermission || isAdmin || job.driverId === currentUser?.id">
+                      <textarea [(ngModel)]="newNote" placeholder="Add a note..." rows="2"></textarea>
+                      <button class="add-note-button" [disabled]="!newNote.trim()" (click)="addNote()">
                         <span class="material-icons">add</span>
                         Add Note
                       </button>
@@ -361,31 +261,26 @@
                 <div class="timeline-content">
                   <div class="event-header">
                     <h3 class="event-status">Job Created</h3>
-                    <time class="event-time">{{
-                      formatUKDateTime(job.createdAt)
-                    }}</time>
+                    <time class="event-time">{{ formatUKDateTime(job.createdAt) }}</time>
                   </div>
                   <p class="event-description" *ngIf="job['description']">
-                    {{ job["description"] }}
+                    {{ job['description'] }}
                   </p>
                   <div class="event-metadata">
                     <span class="metadata-item">
                       <span class="material-icons">person</span>
-                      {{ job.createdBy || "System" }}
+                      {{ job.createdBy || 'System' }}
                     </span>
                     <span class="metadata-item" *ngIf="job['jobReference']">
                       <span class="material-icons">bookmark</span>
-                      Ref: {{ job["jobReference"] }}
+                      Ref: {{ job['jobReference'] }}
                     </span>
                   </div>
                 </div>
               </div>
 
               <!-- Allocated event -->
-              <div
-                class="timeline-event status-assigned"
-                *ngIf="job.allocatedAt"
-              >
+              <div class="timeline-event status-assigned" *ngIf="job.allocatedAt">
                 <div class="timeline-marker">
                   <div class="timeline-icon">
                     <span class="material-icons">assignment_ind</span>
@@ -394,9 +289,7 @@
                 <div class="timeline-content">
                   <div class="event-header">
                     <h3 class="event-status">Job Allocated</h3>
-                    <time class="event-time">{{
-                      formatUKDateTime(job.allocatedAt)
-                    }}</time>
+                    <time class="event-time">{{ formatUKDateTime(job.allocatedAt) }}</time>
                   </div>
                   <div class="event-metadata">
                     <span class="metadata-item">
@@ -408,10 +301,7 @@
               </div>
 
               <!-- Collection start event -->
-              <div
-                class="timeline-event status-collection-started"
-                *ngIf="job.collectionStartTime"
-              >
+              <div class="timeline-event status-collection-started" *ngIf="job.collectionStartTime">
                 <div class="timeline-marker">
                   <div class="timeline-icon">
                     <span class="material-icons">departure_board</span>
@@ -420,9 +310,7 @@
                 <div class="timeline-content">
                   <div class="event-header">
                     <h3 class="event-status">Collection Started</h3>
-                    <time class="event-time">{{
-                      formatUKDateTime(job.collectionStartTime)
-                    }}</time>
+                    <time class="event-time">{{ formatUKDateTime(job.collectionStartTime) }}</time>
                   </div>
                   <div class="event-metadata">
                     <span class="metadata-item">
@@ -438,10 +326,7 @@
               </div>
 
               <!-- Collection complete event -->
-              <div
-                class="timeline-event status-collection-completed"
-                *ngIf="job.collectionCompleteTime"
-              >
+              <div class="timeline-event status-collection-completed" *ngIf="job.collectionCompleteTime">
                 <div class="timeline-marker">
                   <div class="timeline-icon">
                     <span class="material-icons">check_circle</span>
@@ -450,9 +335,7 @@
                 <div class="timeline-content">
                   <div class="event-header">
                     <h3 class="event-status">Collection Completed</h3>
-                    <time class="event-time">{{
-                      formatUKDateTime(job.collectionCompleteTime)
-                    }}</time>
+                    <time class="event-time">{{ formatUKDateTime(job.collectionCompleteTime) }}</time>
                   </div>
                   <div class="event-metadata">
                     <span class="metadata-item">
@@ -464,10 +347,7 @@
               </div>
 
               <!-- Delivery start event -->
-              <div
-                class="timeline-event status-delivery-started"
-                *ngIf="job.deliveryStartTime"
-              >
+              <div class="timeline-event status-delivery-started" *ngIf="job.deliveryStartTime">
                 <div class="timeline-marker">
                   <div class="timeline-icon">
                     <span class="material-icons">local_shipping</span>
@@ -476,9 +356,7 @@
                 <div class="timeline-content">
                   <div class="event-header">
                     <h3 class="event-status">Delivery Started</h3>
-                    <time class="event-time">{{
-                      formatUKDateTime(job.deliveryStartTime)
-                    }}</time>
+                    <time class="event-time">{{ formatUKDateTime(job.deliveryStartTime) }}</time>
                   </div>
                   <div class="event-metadata">
                     <span class="metadata-item">
@@ -494,10 +372,7 @@
               </div>
 
               <!-- Delivery complete event -->
-              <div
-                class="timeline-event status-delivery-completed"
-                *ngIf="job.deliveryCompleteTime"
-              >
+              <div class="timeline-event status-delivery-completed" *ngIf="job.deliveryCompleteTime">
                 <div class="timeline-marker">
                   <div class="timeline-icon">
                     <span class="material-icons">done_all</span>
@@ -506,9 +381,7 @@
                 <div class="timeline-content">
                   <div class="event-header">
                     <h3 class="event-status">Delivery Completed</h3>
-                    <time class="event-time">{{
-                      formatUKDateTime(job.deliveryCompleteTime)
-                    }}</time>
+                    <time class="event-time">{{ formatUKDateTime(job.deliveryCompleteTime) }}</time>
                   </div>
                   <div class="event-metadata">
                     <span class="metadata-item">
@@ -527,16 +400,7 @@
           <div class="expenses-view">
             <div class="expenses-header">
               <h2>Job Expenses</h2>
-              <button
-                mat-flat-button
-                color="primary"
-                class="add-expense-button"
-                *ngIf="
-                  hasEditPermission ||
-                  isAdmin ||
-                  job.driverId === currentUser?.id
-                "
-              >
+              <button mat-flat-button color="primary" class="add-expense-button" *ngIf="hasEditPermission || isAdmin || job.driverId === currentUser?.id">
                 <span class="material-icons">add</span>
                 Add Expense
               </button>
@@ -544,7 +408,7 @@
 
             <!-- Expenses List -->
             <div class="empty-expenses" *ngIf="!isLoading">
-              <span class="material-icons">monetization_on</span>
+              <span class="material-icons">currency_pound</span>
               <p>No expenses found for this job</p>
             </div>
           </div>

@@ -1,219 +1,116 @@
 import { Injectable } from '@angular/core';
-import { Auth } from '@angular/fire/auth';
 import {
   Firestore,
-  addDoc,
   collection,
   doc,
   getDoc,
   getDocs,
-  onSnapshot,
-  orderBy,
-  query,
+  addDoc,
   updateDoc,
+  query,
   where,
+  orderBy,
   serverTimestamp,
+  DocumentReference,
+  Timestamp,
+  limit,
+  collectionData,
+  FieldValue,
 } from '@angular/fire/firestore';
+import { Auth } from '@angular/fire/auth';
 import {
-  BehaviorSubject,
   Observable,
-  forkJoin,
+  BehaviorSubject,
   from,
   of,
   throwError,
+  catchError,
+  map,
+  tap,
+  switchMap,
+  combineLatest,
 } from 'rxjs';
-import { catchError, map, switchMap, tap } from 'rxjs/operators';
 import { Job } from '../interfaces/job.interface';
-import { AuthService } from './auth.service';
+import { BaseFirebaseService } from './base-firebase.service';
+import { NotificationService } from './notification.service';
+import { JobStatus } from '../shared/models/job-status.enum';
 
 @Injectable({
   providedIn: 'root',
 })
-export class JobService {
+export class JobService extends BaseFirebaseService {
   private jobsSubject = new BehaviorSubject<Job[]>([]);
-  public jobs$ = this.jobsSubject.asObservable();
-
   private loadingSubject = new BehaviorSubject<boolean>(false);
+
+  public jobs$ = this.jobsSubject.asObservable();
   public loading$ = this.loadingSubject.asObservable();
 
   constructor(
-    private firestore: Firestore,
-    private auth: Auth,
-    private authService: AuthService
+    protected override firestore: Firestore,
+    protected override auth: Auth,
+    private notificationService: NotificationService
   ) {
-    // Initialize job listener when authentication state changes
-    this.authService.user$.subscribe((user) => {
-      if (!user) {
-        this.jobsSubject.next([]);
-        return;
-      }
-
-      this.setupJobListener(user.uid);
-    });
+    super(firestore, auth);
   }
 
   /**
-   * Set up real-time listener for jobs based on user permissions
+   * Get all jobs for the current user
    */
-  private setupJobListener(userId: string): void {
+  getDriverJobs(): Observable<Job[]> {
     this.loadingSubject.next(true);
 
-    this.authService.getUserProfile().subscribe((profile) => {
-      if (!profile) {
-        this.jobsSubject.next([]);
-        this.loadingSubject.next(false);
-        return;
-      }
+    // Get the current user's ID
+    const userId = this.currentUserId;
+    if (!userId) {
+      this.loadingSubject.next(false);
+      return throwError(() => new Error('User not authenticated'));
+    }
 
-      const isAdmin = profile.permissions?.isAdmin || false;
-      const canViewUnallocated =
-        profile.permissions?.canViewUnallocated || false;
-
-      if (isAdmin) {
-        this.listenToAllJobs();
-      } else if (canViewUnallocated) {
-        this.listenToDriverAndUnallocatedJobs(userId);
-      } else {
-        this.listenToDriverJobs(userId);
-      }
-    });
-  }
-
-  /**
-   * Listen to all jobs (for admin users)
-   */
-  private listenToAllJobs(): void {
+    // For testing purposes, we'll load all jobs instead of just for this driver
     const jobsRef = collection(this.firestore, 'jobs');
     const q = query(jobsRef, orderBy('createdAt', 'desc'));
 
-    const unsubscribe = onSnapshot(
-      q,
-      (snapshot) => {
+    return from(getDocs(q)).pipe(
+      map((snapshot) => {
         const jobs = snapshot.docs.map((doc) => {
           return this.convertFirebaseJobToModel(doc.id, doc.data());
         });
         this.jobsSubject.next(jobs);
+        return jobs;
+      }),
+      tap(() => this.loadingSubject.next(false)),
+      catchError((error) => {
+        console.error('Error fetching driver jobs:', error);
         this.loadingSubject.next(false);
-      },
-      (error) => {
-        console.error('Error fetching all jobs:', error);
-        this.loadingSubject.next(false);
-      }
+        this.jobsSubject.next([]);
+        return of([]);
+      })
     );
   }
 
   /**
-   * Listen to driver's jobs and unallocated jobs
+   * Get all unallocated jobs
    */
-  private listenToDriverAndUnallocatedJobs(userId: string): void {
-    const assignedJobsRef = collection(this.firestore, 'jobs');
-    const assignedQuery = query(
-      assignedJobsRef,
-      where('driverId', '==', userId),
-      orderBy('createdAt', 'desc')
-    );
+  getUnallocatedJobs(): Observable<Job[]> {
+    this.loadingSubject.next(true);
 
-    const unallocatedJobsRef = collection(this.firestore, 'jobs');
-    const unallocatedQuery = query(
-      unallocatedJobsRef,
+    const jobsRef = collection(this.firestore, 'jobs');
+    const q = query(
+      jobsRef,
       where('status', '==', 'unallocated'),
       orderBy('createdAt', 'desc')
     );
 
-    const assignedUnsubscribe = onSnapshot(
-      assignedQuery,
-      (assignedSnapshot) => {
-        const assignedJobs = assignedSnapshot.docs.map((doc) =>
-          this.convertFirebaseJobToModel(doc.id, doc.data())
-        );
-
-        const unallocatedUnsubscribe = onSnapshot(
-          unallocatedQuery,
-          (unallocatedSnapshot) => {
-            const unallocatedJobs = unallocatedSnapshot.docs.map((doc) =>
-              this.convertFirebaseJobToModel(doc.id, doc.data())
-            );
-
-            const allJobsMap = new Map<string, Job>();
-            [...assignedJobs, ...unallocatedJobs].forEach((job) => {
-              allJobsMap.set(job.id, job);
-            });
-
-            const allJobs = Array.from(allJobsMap.values());
-            this.jobsSubject.next(allJobs);
-            this.loadingSubject.next(false);
-          },
-          (error) => {
-            console.error('Error fetching unallocated jobs:', error);
-
-            this.jobsSubject.next(assignedJobs);
-            this.loadingSubject.next(false);
-          }
-        );
-      },
-      (error) => {
-        console.error('Error fetching assigned jobs:', error);
-        this.loadingSubject.next(false);
-
-        this.jobsSubject.next([]);
-      }
-    );
-  }
-
-  /**
-   * Listen to driver's jobs only
-   */
-  private listenToDriverJobs(userId: string): void {
-    const jobsRef = collection(this.firestore, 'jobs');
-    const q = query(
-      jobsRef,
-      where('driverId', '==', userId),
-      orderBy('createdAt', 'desc')
-    );
-
-    const unsubscribe = onSnapshot(
-      q,
-      (snapshot) => {
+    return from(getDocs(q)).pipe(
+      map((snapshot) => {
         const jobs = snapshot.docs.map((doc) => {
           return this.convertFirebaseJobToModel(doc.id, doc.data());
         });
-        this.jobsSubject.next(jobs);
-        this.loadingSubject.next(false);
-      },
-      (error) => {
-        console.error('Error fetching driver jobs:', error);
-        this.loadingSubject.next(false);
-      }
-    );
-  }
-
-  /**
-   * Get jobs available for the current driver
-   */
-  getDriverJobs(): Observable<Job[]> {
-    const currentUser = this.auth.currentUser;
-    if (!currentUser) {
-      return of([]);
-    }
-
-    this.loadingSubject.next(true);
-
-    return forkJoin([
-      this.authService.hasPermission('canViewUnallocated'),
-      this.authService.hasPermission('isAdmin'),
-    ]).pipe(
-      switchMap(([canViewUnallocated, isAdmin]) => {
-        if (isAdmin) {
-          return this.getAllJobs();
-        } else if (canViewUnallocated) {
-          return this.getDriverAndUnallocatedJobs(currentUser.uid);
-        } else {
-          return this.getAssignedDriverJobs(currentUser.uid);
-        }
+        return jobs;
       }),
       tap(() => this.loadingSubject.next(false)),
       catchError((error) => {
-        console.error('Error fetching jobs:', error);
+        console.error('Error fetching unallocated jobs:', error);
         this.loadingSubject.next(false);
         return of([]);
       })
@@ -221,78 +118,15 @@ export class JobService {
   }
 
   /**
-   * Get all jobs (for admin users)
+   * Get jobs for a specific customer
    */
-  private getAllJobs(): Observable<Job[]> {
-    const jobsRef = collection(this.firestore, 'jobs');
-    const q = query(jobsRef, orderBy('createdAt', 'desc'));
+  getCustomerJobs(customerId: string): Observable<Job[]> {
+    this.loadingSubject.next(true);
 
-    return from(getDocs(q)).pipe(
-      map((snapshot) => {
-        const jobs = snapshot.docs.map((doc) => {
-          return this.convertFirebaseJobToModel(doc.id, doc.data());
-        });
-
-        this.jobsSubject.next(jobs);
-
-        return jobs;
-      })
-    );
-  }
-
-  /**
-   * Get jobs assigned to a driver and unallocated jobs
-   */
-  private getDriverAndUnallocatedJobs(userId: string): Observable<Job[]> {
-    const assignedJobsRef = collection(this.firestore, 'jobs');
-    const assignedQuery = query(
-      assignedJobsRef,
-      where('driverId', '==', userId),
-      orderBy('createdAt', 'desc')
-    );
-
-    const unallocatedJobsRef = collection(this.firestore, 'jobs');
-    const unallocatedQuery = query(
-      unallocatedJobsRef,
-      where('status', '==', 'unallocated'),
-      orderBy('createdAt', 'desc')
-    );
-
-    return forkJoin([
-      from(getDocs(assignedQuery)),
-      from(getDocs(unallocatedQuery)),
-    ]).pipe(
-      map(([assignedSnapshot, unallocatedSnapshot]) => {
-        const assignedJobs = assignedSnapshot.docs.map((doc) =>
-          this.convertFirebaseJobToModel(doc.id, doc.data())
-        );
-
-        const unallocatedJobs = unallocatedSnapshot.docs.map((doc) =>
-          this.convertFirebaseJobToModel(doc.id, doc.data())
-        );
-
-        const allJobsMap = new Map<string, Job>();
-        [...assignedJobs, ...unallocatedJobs].forEach((job) => {
-          allJobsMap.set(job.id, job);
-        });
-
-        const allJobs = Array.from(allJobsMap.values());
-
-        this.jobsSubject.next(allJobs);
-
-        return allJobs;
-      })
-    );
-  }
-
-  /**
-   * Get jobs assigned to a specific driver
-   */
-  private getAssignedDriverJobs(userId: string): Observable<Job[]> {
     const jobsRef = collection(this.firestore, 'jobs');
     const q = query(
       jobsRef,
-      where('driverId', '==', userId),
+      where('customerId', '==', customerId),
       orderBy('createdAt', 'desc')
     );
 
@@ -301,44 +135,41 @@ export class JobService {
         const jobs = snapshot.docs.map((doc) => {
           return this.convertFirebaseJobToModel(doc.id, doc.data());
         });
-
-        this.jobsSubject.next(jobs);
-
         return jobs;
+      }),
+      tap(() => this.loadingSubject.next(false)),
+      catchError((error) => {
+        console.error(`Error fetching jobs for customer ${customerId}:`, error);
+        this.loadingSubject.next(false);
+        return of([]);
       })
     );
   }
 
   /**
-   * Get unallocated jobs
+   * Get jobs for a specific driver
    */
-  getUnallocatedJobs(): Observable<Job[]> {
-    return this.authService.hasPermission('canViewUnallocated').pipe(
-      switchMap((hasPermission) => {
-        if (!hasPermission) {
-          return throwError(
-            () =>
-              new Error('You do not have permission to view unallocated jobs')
-          );
-        }
+  getJobsByDriver(driverId: string): Observable<Job[]> {
+    this.loadingSubject.next(true);
 
-        const jobsRef = collection(this.firestore, 'jobs');
-        const q = query(
-          jobsRef,
-          where('status', '==', 'unallocated'),
-          orderBy('createdAt', 'desc')
-        );
+    const jobsRef = collection(this.firestore, 'jobs');
+    const q = query(
+      jobsRef,
+      where('driverId', '==', driverId),
+      orderBy('createdAt', 'desc')
+    );
 
-        return from(getDocs(q)).pipe(
-          map((snapshot) => {
-            return snapshot.docs.map((doc) => {
-              return this.convertFirebaseJobToModel(doc.id, doc.data());
-            });
-          })
-        );
+    return from(getDocs(q)).pipe(
+      map((snapshot) => {
+        const jobs = snapshot.docs.map((doc) => {
+          return this.convertFirebaseJobToModel(doc.id, doc.data());
+        });
+        return jobs;
       }),
+      tap(() => this.loadingSubject.next(false)),
       catchError((error) => {
-        console.error('Error fetching unallocated jobs:', error);
+        console.error(`Error fetching jobs for driver ${driverId}:`, error);
+        this.loadingSubject.next(false);
         return of([]);
       })
     );
@@ -348,40 +179,89 @@ export class JobService {
    * Get jobs by status
    */
   getJobsByStatus(status: string): Observable<Job[]> {
-    if (!this.auth.currentUser) {
-      return of([]);
-    }
+    this.loadingSubject.next(true);
 
-    return this.authService.hasPermission('isAdmin').pipe(
-      switchMap((isAdmin) => {
-        let jobsQuery;
-        const jobsRef = collection(this.firestore, 'jobs');
+    const jobsRef = collection(this.firestore, 'jobs');
+    const q = query(
+      jobsRef,
+      where('status', '==', status),
+      orderBy('createdAt', 'desc')
+    );
 
-        if (isAdmin) {
-          jobsQuery = query(
-            jobsRef,
-            where('status', '==', status),
-            orderBy('createdAt', 'desc')
-          );
-        } else {
-          jobsQuery = query(
-            jobsRef,
-            where('driverId', '==', this.auth.currentUser!.uid),
-            where('status', '==', status),
-            orderBy('createdAt', 'desc')
-          );
-        }
-
-        return from(getDocs(jobsQuery)).pipe(
-          map((snapshot) => {
-            return snapshot.docs.map((doc) => {
-              return this.convertFirebaseJobToModel(doc.id, doc.data());
-            });
-          })
-        );
+    return from(getDocs(q)).pipe(
+      map((snapshot) => {
+        const jobs = snapshot.docs.map((doc) => {
+          return this.convertFirebaseJobToModel(doc.id, doc.data());
+        });
+        return jobs;
       }),
+      tap(() => this.loadingSubject.next(false)),
       catchError((error) => {
         console.error(`Error fetching jobs with status ${status}:`, error);
+        this.loadingSubject.next(false);
+        return of([]);
+      })
+    );
+  }
+
+  /**
+   * Get jobs by vehicle ID
+   */
+  getJobsByVehicle(vehicleId: string): Observable<Job[]> {
+    this.loadingSubject.next(true);
+
+    const jobsRef = collection(this.firestore, 'jobs');
+    const q = query(
+      jobsRef,
+      where('vehicleId', '==', vehicleId),
+      orderBy('createdAt', 'desc')
+    );
+
+    return from(getDocs(q)).pipe(
+      map((snapshot) => {
+        const jobs = snapshot.docs.map((doc) => {
+          return this.convertFirebaseJobToModel(doc.id, doc.data());
+        });
+        return jobs;
+      }),
+      tap(() => this.loadingSubject.next(false)),
+      catchError((error) => {
+        console.error(`Error fetching jobs for vehicle ${vehicleId}:`, error);
+        this.loadingSubject.next(false);
+        return of([]);
+      })
+    );
+  }
+
+  /**
+   * Get recent jobs (last 7 days)
+   */
+  getRecentJobs(count: number = 10): Observable<Job[]> {
+    this.loadingSubject.next(true);
+
+    const jobsRef = collection(this.firestore, 'jobs');
+    const oneWeekAgo = new Date();
+    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+
+    // Using timestamp comparison for date range
+    const q = query(
+      jobsRef,
+      where('createdAt', '>=', oneWeekAgo),
+      orderBy('createdAt', 'desc'),
+      limit(count)
+    );
+
+    return from(getDocs(q)).pipe(
+      map((snapshot) => {
+        const jobs = snapshot.docs.map((doc) => {
+          return this.convertFirebaseJobToModel(doc.id, doc.data());
+        });
+        return jobs;
+      }),
+      tap(() => this.loadingSubject.next(false)),
+      catchError((error) => {
+        console.error('Error fetching recent jobs:', error);
+        this.loadingSubject.next(false);
         return of([]);
       })
     );
@@ -390,12 +270,16 @@ export class JobService {
   /**
    * Get a specific job by ID
    */
-  getJobById(id: string): Observable<Job | null> {
-    if (!id) {
+  getJobById(jobId: string): Observable<Job | null> {
+    this.loadingSubject.next(true);
+
+    if (!jobId) {
+      this.loadingSubject.next(false);
       return of(null);
     }
 
-    const jobRef = doc(this.firestore, `jobs/${id}`);
+    const jobRef = doc(this.firestore, `jobs/${jobId}`);
+
     return from(getDoc(jobRef)).pipe(
       map((docSnap) => {
         if (docSnap.exists()) {
@@ -404,8 +288,10 @@ export class JobService {
           return null;
         }
       }),
+      tap(() => this.loadingSubject.next(false)),
       catchError((error) => {
-        console.error(`Error fetching job ${id}:`, error);
+        console.error(`Error fetching job ${jobId}:`, error);
+        this.loadingSubject.next(false);
         return of(null);
       })
     );
@@ -415,85 +301,203 @@ export class JobService {
    * Create a new job
    */
   createJob(jobData: Partial<Job>): Observable<string> {
-    if (!this.auth.currentUser) {
+    this.loadingSubject.next(true);
+
+    // Get the current user ID to mark as creator
+    const userId = this.currentUserId;
+    if (!userId) {
+      this.loadingSubject.next(false);
       return throwError(() => new Error('User not authenticated'));
     }
 
-    return this.authService.hasPermission('canCreateJobs').pipe(
-      switchMap((hasPermission) => {
-        if (!hasPermission) {
-          return throwError(
-            () => new Error('You do not have permission to create jobs')
-          );
-        }
+    const now = new Date();
 
-        if (!jobData.vehicleId) {
-          return throwError(() => new Error('Vehicle ID is required'));
-        }
+    // Prepare job data with timestamps and user info
+    const newJobData = {
+      ...jobData,
+      status: jobData.status || 'unallocated',
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+      createdBy: userId,
+      updatedBy: userId,
+    };
 
-        const jobsRef = collection(this.firestore, 'jobs');
+    const jobsRef = collection(this.firestore, 'jobs');
 
-        // Add timestamps and user information
-        const newJobData = {
-          ...jobData,
-          status: 'unallocated' as 'unallocated',
-          driverId: null,
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp(),
-          createdBy: this.auth.currentUser!.uid,
-          updatedBy: null,
-        };
+    return from(addDoc(jobsRef, newJobData)).pipe(
+      map((docRef) => {
+        // Refresh the jobs list
+        this.refreshJobsList();
 
-        return from(addDoc(jobsRef, newJobData)).pipe(
-          map((docRef) => docRef.id),
-          catchError((error) => {
-            console.error('Error creating job:', error);
-            return throwError(
-              () => new Error(`Failed to create job: ${error.message}`)
-            );
-          })
-        );
+        // Add notification about new job
+        this.notificationService.addNotification({
+          type: 'info',
+          title: 'New Job Created',
+          message: `Job for ${jobData.make || ''} ${jobData.model || ''} ${
+            jobData.registration ? '(' + jobData.registration + ')' : ''
+          } has been created`,
+          actionUrl: `/jobs/${docRef.id}`,
+        });
+
+        return docRef.id;
+      }),
+      tap(() => this.loadingSubject.next(false)),
+      catchError((error) => {
+        console.error('Error creating job:', error);
+        this.loadingSubject.next(false);
+        return throwError(() => error);
       })
     );
   }
 
   /**
-   * Update an existing job
+   * Update job details
    */
-  updateJob(id: string, data: Partial<Job>): Observable<void> {
-    if (!this.auth.currentUser) {
+  updateJob(jobId: string, data: Partial<Job>): Observable<void> {
+    this.loadingSubject.next(true);
+
+    // Get the current user ID to mark as updater
+    const userId = this.currentUserId;
+    if (!userId) {
+      this.loadingSubject.next(false);
       return throwError(() => new Error('User not authenticated'));
     }
 
-    if (!id) {
-      return throwError(() => new Error('Job ID is required'));
+    const jobRef = doc(this.firestore, `jobs/${jobId}`);
+
+    // Remove id from update data to avoid overwriting it
+    const { id, ...updateData } = data;
+
+    // Add updater and timestamp
+    const jobData: Record<string, any> = {
+      ...updateData,
+      updatedAt: serverTimestamp(),
+      updatedBy: userId,
+    };
+
+    // If status is changing, add status update timestamp
+    if (updateData.status) {
+      jobData['statusUpdatedAt'] = serverTimestamp();
     }
 
-    return this.authService.hasPermission('canEditJobs').pipe(
-      switchMap((hasPermission) => {
-        if (!hasPermission) {
-          return throwError(
-            () => new Error('You do not have permission to edit jobs')
-          );
+    return from(updateDoc(jobRef, jobData)).pipe(
+      tap(() => {
+        // Refresh the jobs list
+        this.refreshJobsList();
+
+        // Add notification about job update if status was changed
+        if (updateData.status) {
+          this.notificationService.addNotification({
+            type: 'info',
+            title: 'Job Status Updated',
+            message: `Job ${jobId} status updated to ${updateData.status}`,
+            actionUrl: `/jobs/${jobId}`,
+          });
         }
+      }),
+      map(() => void 0),
+      tap(() => this.loadingSubject.next(false)),
+      catchError((error) => {
+        console.error(`Error updating job ${jobId}:`, error);
+        this.loadingSubject.next(false);
+        return throwError(() => error);
+      })
+    );
+  }
 
-        const jobRef = doc(this.firestore, `jobs/${id}`);
+  /**
+   * Allocate a job to the current user
+   */
+  allocateJob(jobId: string): Observable<void> {
+    this.loadingSubject.next(true);
 
-        // Add updated timestamp and user info
-        const updateData = {
-          ...data,
-          updatedAt: serverTimestamp(),
-          updatedBy: this.auth.currentUser!.uid,
-        };
+    // Get the current user ID
+    const userId = this.currentUserId;
+    if (!userId) {
+      this.loadingSubject.next(false);
+      return throwError(() => new Error('User not authenticated'));
+    }
 
-        return from(updateDoc(jobRef, updateData)).pipe(
-          catchError((error) => {
-            console.error(`Error updating job ${id}:`, error);
-            return throwError(
-              () => new Error(`Failed to update job: ${error.message}`)
-            );
-          })
-        );
+    const jobRef = doc(this.firestore, `jobs/${jobId}`);
+
+    // Prepare job data
+    const jobData = {
+      status: 'allocated',
+      driverId: userId,
+      allocatedAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+      updatedBy: userId,
+      statusUpdatedAt: serverTimestamp(),
+    };
+
+    return from(updateDoc(jobRef, jobData)).pipe(
+      tap(() => {
+        // Refresh the jobs list
+        this.refreshJobsList();
+
+        // Add notification
+        this.notificationService.addNotification({
+          type: 'success',
+          title: 'Job Allocated',
+          message: `Job ${jobId} has been allocated to you`,
+          actionUrl: `/jobs/${jobId}`,
+        });
+      }),
+      map(() => void 0),
+      tap(() => this.loadingSubject.next(false)),
+      catchError((error) => {
+        console.error(`Error allocating job ${jobId}:`, error);
+        this.loadingSubject.next(false);
+        return throwError(() => error);
+      })
+    );
+  }
+
+  /**
+   * Unallocate a job (remove driver assignment)
+   */
+  unallocateJob(jobId: string): Observable<void> {
+    this.loadingSubject.next(true);
+
+    // Get the current user ID
+    const userId = this.currentUserId;
+    if (!userId) {
+      this.loadingSubject.next(false);
+      return throwError(() => new Error('User not authenticated'));
+    }
+
+    const jobRef = doc(this.firestore, `jobs/${jobId}`);
+
+    // Prepare job data
+    const jobData = {
+      status: 'unallocated',
+      driverId: null,
+      unallocatedAt: serverTimestamp(),
+      allocatedAt: null, // Clear allocation timestamp
+      updatedAt: serverTimestamp(),
+      updatedBy: userId,
+      statusUpdatedAt: serverTimestamp(),
+    };
+
+    return from(updateDoc(jobRef, jobData)).pipe(
+      tap(() => {
+        // Refresh the jobs list
+        this.refreshJobsList();
+
+        // Add notification
+        this.notificationService.addNotification({
+          type: 'info',
+          title: 'Job Unallocated',
+          message: `Job ${jobId} has been unallocated`,
+          actionUrl: `/jobs/${jobId}`,
+        });
+      }),
+      map(() => void 0),
+      tap(() => this.loadingSubject.next(false)),
+      catchError((error) => {
+        console.error(`Error unallocating job ${jobId}:`, error);
+        this.loadingSubject.next(false);
+        return throwError(() => error);
       })
     );
   }
@@ -502,51 +506,129 @@ export class JobService {
    * Start the collection process for a job
    */
   startCollection(jobId: string): Observable<void> {
-    if (!this.auth.currentUser) {
+    this.loadingSubject.next(true);
+
+    // Get the current user ID
+    const userId = this.currentUserId;
+    if (!userId) {
+      this.loadingSubject.next(false);
       return throwError(() => new Error('User not authenticated'));
     }
 
-    if (!jobId) {
-      return throwError(() => new Error('Job ID is required'));
-    }
+    const jobRef = doc(this.firestore, `jobs/${jobId}`);
 
-    return this.getJobById(jobId).pipe(
-      switchMap((job) => {
-        if (!job) {
-          return throwError(() => new Error('Job not found'));
+    // First, get the current job to ensure it can be updated
+    return from(getDoc(jobRef)).pipe(
+      switchMap((docSnap) => {
+        if (!docSnap.exists()) {
+          throw new Error(`Job ${jobId} not found`);
         }
 
-        return forkJoin([
-          of(job.driverId === this.auth.currentUser!.uid),
-          this.authService.hasPermission('isAdmin'),
-        ]).pipe(
-          switchMap(([isAssignedToUser, isAdmin]) => {
-            if (!isAssignedToUser && !isAdmin) {
-              return throwError(
-                () =>
-                  new Error(
-                    'You do not have permission to start collection for this job'
-                  )
-              );
-            }
+        const job = docSnap.data() as Job;
+        if (job.driverId !== userId && !job.driverId) {
+          throw new Error('You are not authorized to update this job');
+        }
 
-            const jobRef = doc(this.firestore, `jobs/${jobId}`);
-            const updateData: Partial<Job> = {
-              status: 'collected' as 'collected',
-              collectionStartTime: new Date(),
-              updatedAt: new Date(),
-              updatedBy: this.auth.currentUser!.uid,
-            };
+        // Prepare job update data
+        const jobData = {
+          status: 'collected',
+          collectionStartTime: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+          updatedBy: userId,
+          statusUpdatedAt: serverTimestamp(),
+        };
 
-            return from(updateDoc(jobRef, updateData));
-          })
-        );
+        return updateDoc(jobRef, jobData);
       }),
+      tap(() => {
+        // Refresh the jobs list
+        this.refreshJobsList();
+
+        // Add notification
+        this.notificationService.addNotification({
+          type: 'info',
+          title: 'Collection Started',
+          message: `Collection process has started for job ${jobId}`,
+          actionUrl: `/jobs/${jobId}/collection`,
+        });
+      }),
+      map(() => void 0),
+      tap(() => this.loadingSubject.next(false)),
       catchError((error) => {
         console.error(`Error starting collection for job ${jobId}:`, error);
-        return throwError(
-          () => new Error(`Failed to start collection: ${error.message}`)
-        );
+        this.loadingSubject.next(false);
+        return throwError(() => error);
+      })
+    );
+  }
+
+  /**
+   * Mark a job collection as complete
+   */
+  completeCollection(
+    jobId: string,
+    collectionData: {
+      mileage?: number;
+      fuelLevel?: string;
+      collectionNotes?: string;
+      collectionPhotos?: string[];
+      collectionSignature?: string;
+    }
+  ): Observable<void> {
+    this.loadingSubject.next(true);
+
+    // Get the current user ID
+    const userId = this.currentUserId;
+    if (!userId) {
+      this.loadingSubject.next(false);
+      return throwError(() => new Error('User not authenticated'));
+    }
+
+    const jobRef = doc(this.firestore, `jobs/${jobId}`);
+
+    // First, get the current job to ensure it can be updated
+    return from(getDoc(jobRef)).pipe(
+      switchMap((docSnap) => {
+        if (!docSnap.exists()) {
+          throw new Error(`Job ${jobId} not found`);
+        }
+
+        const job = this.convertFirebaseJobToModel(docSnap.id, docSnap.data());
+        if (job.driverId !== userId) {
+          throw new Error('You are not authorized to update this job');
+        }
+
+        // Prepare job update data
+        const jobData = {
+          collectionCompleteTime: serverTimestamp(),
+          stage: 'in-transit',
+          updatedAt: serverTimestamp(),
+          updatedBy: userId,
+          statusUpdatedAt: serverTimestamp(),
+          ...collectionData,
+        };
+
+        // Update in Firebase only
+        return updateDoc(jobRef, jobData);
+      }),
+      tap(() => {
+        // Refresh the jobs list
+        this.refreshJobsList();
+
+        // Add notification
+        this.notificationService.addNotification({
+          type: 'success',
+          title: 'Collection Completed',
+          message: `Collection has been completed for job ${jobId}`,
+          actionUrl: `/jobs/${jobId}`,
+        });
+      }),
+      map(() => void 0),
+      tap(() => this.loadingSubject.next(false)),
+      catchError((error) => {
+        console.error(`Error completing collection for job ${jobId}:`, error);
+        this.loadingSubject.next(false);
+        return throwError(() => error);
       })
     );
   }
@@ -555,202 +637,321 @@ export class JobService {
    * Start the delivery process for a job
    */
   startDelivery(jobId: string): Observable<void> {
-    if (!this.auth.currentUser) {
+    this.loadingSubject.next(true);
+
+    // Get the current user ID
+    const userId = this.currentUserId;
+    if (!userId) {
+      this.loadingSubject.next(false);
       return throwError(() => new Error('User not authenticated'));
     }
 
-    if (!jobId) {
-      return throwError(() => new Error('Job ID is required'));
-    }
+    const jobRef = doc(this.firestore, `jobs/${jobId}`);
 
-    return this.getJobById(jobId).pipe(
-      switchMap((job) => {
-        if (!job) {
-          return throwError(() => new Error('Job not found'));
+    // First, get the current job to ensure it can be updated
+    return from(getDoc(jobRef)).pipe(
+      switchMap((docSnap) => {
+        if (!docSnap.exists()) {
+          throw new Error(`Job ${jobId} not found`);
         }
 
-        return forkJoin([
-          of(job.driverId === this.auth.currentUser!.uid),
-          this.authService.hasPermission('isAdmin'),
-        ]).pipe(
-          switchMap(([isAssignedToUser, isAdmin]) => {
-            if (!isAssignedToUser && !isAdmin) {
-              return throwError(
-                () =>
-                  new Error(
-                    'You do not have permission to start delivery for this job'
-                  )
-              );
-            }
+        const job = docSnap.data() as Job;
+        if (job.driverId !== userId) {
+          throw new Error('You are not authorized to update this job');
+        }
 
-            const jobRef = doc(this.firestore, `jobs/${jobId}`);
-            const updateData: Partial<Job> = {
-              stage: 'in-transit' as 'in-transit',
-              deliveryStartTime: new Date(),
-              updatedAt: new Date(),
-              updatedBy: this.auth.currentUser!.uid,
-            };
+        // Prepare job update data
+        const jobData = {
+          status: 'delivered',
+          stage: 'ready-for-delivery',
+          deliveryStartTime: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+          updatedBy: userId,
+          statusUpdatedAt: serverTimestamp(),
+        };
 
-            return from(updateDoc(jobRef, updateData));
-          })
-        );
+        return updateDoc(jobRef, jobData);
       }),
+      tap(() => {
+        // Refresh the jobs list
+        this.refreshJobsList();
+
+        // Add notification
+        this.notificationService.addNotification({
+          type: 'info',
+          title: 'Delivery Started',
+          message: `Delivery process has started for job ${jobId}`,
+          actionUrl: `/jobs/${jobId}/delivery`,
+        });
+      }),
+      map(() => void 0),
+      tap(() => this.loadingSubject.next(false)),
       catchError((error) => {
         console.error(`Error starting delivery for job ${jobId}:`, error);
-        return throwError(
-          () => new Error(`Failed to start delivery: ${error.message}`)
-        );
+        this.loadingSubject.next(false);
+        return throwError(() => error);
       })
     );
   }
 
   /**
-   * Allocate a job to the current driver
+   * Mark a job delivery as complete
    */
-  allocateJob(jobId: string): Observable<void> {
-    if (!this.auth.currentUser) {
+  completeDelivery(
+    jobId: string,
+    deliveryData: {
+      mileage?: number;
+      fuelLevel?: string;
+      deliveryNotes?: string;
+      deliveryPhotos?: string[];
+      deliverySignature?: string;
+    }
+  ): Observable<void> {
+    this.loadingSubject.next(true);
+
+    // Get the current user ID
+    const userId = this.currentUserId;
+    if (!userId) {
+      this.loadingSubject.next(false);
       return throwError(() => new Error('User not authenticated'));
     }
 
-    if (!jobId) {
-      return throwError(() => new Error('Job ID is required'));
-    }
+    const jobRef = doc(this.firestore, `jobs/${jobId}`);
 
-    return this.authService.hasPermission('canAllocateJobs').pipe(
-      switchMap((hasPermission) => {
-        if (!hasPermission) {
-          return throwError(
-            () => new Error('You do not have permission to allocate jobs')
-          );
+    // First, get the current job to ensure it can be updated
+    return from(getDoc(jobRef)).pipe(
+      switchMap((docSnap) => {
+        if (!docSnap.exists()) {
+          throw new Error(`Job ${jobId} not found`);
         }
 
-        const jobRef = doc(this.firestore, `jobs/${jobId}`);
-        const updateData: Partial<Job> = {
-          driverId: this.auth.currentUser!.uid,
-          status: 'allocated' as 'allocated',
-          allocatedAt: new Date(),
-          updatedAt: new Date(),
-          updatedBy: this.auth.currentUser!.uid,
+        const job = this.convertFirebaseJobToModel(docSnap.id, docSnap.data());
+        if (job.driverId !== userId) {
+          throw new Error('You are not authorized to update this job');
+        }
+
+        // Prepare job update data
+        const jobData = {
+          status: 'completed',
+          stage: 'awaiting-confirmation',
+          deliveryCompleteTime: serverTimestamp(),
+          deliveryActualDateTime: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+          updatedBy: userId,
+          statusUpdatedAt: serverTimestamp(),
+          ...deliveryData,
         };
 
-        return from(updateDoc(jobRef, updateData));
+        // Update in Firebase only
+        return updateDoc(jobRef, jobData);
       }),
+      tap(() => {
+        // Refresh the jobs list
+        this.refreshJobsList();
+
+        // Add notification
+        this.notificationService.addNotification({
+          type: 'success',
+          title: 'Delivery Completed',
+          message: `Delivery has been completed for job ${jobId}`,
+          actionUrl: `/jobs/${jobId}`,
+        });
+      }),
+      map(() => void 0),
+      tap(() => this.loadingSubject.next(false)),
       catchError((error) => {
-        console.error(`Error allocating job ${jobId}:`, error);
-        return throwError(
-          () => new Error(`Failed to allocate job: ${error.message}`)
-        );
+        console.error(`Error completing delivery for job ${jobId}:`, error);
+        this.loadingSubject.next(false);
+        return throwError(() => error);
       })
     );
   }
 
   /**
-   * Unallocate a job (return it to the pool)
+   * Get dashboard statistics
    */
-  unallocateJob(jobId: string): Observable<void> {
-    if (!this.auth.currentUser) {
-      return throwError(() => new Error('User not authenticated'));
-    }
+  getDashboardStats(): Observable<any> {
+    this.loadingSubject.next(true);
 
-    if (!jobId) {
-      return throwError(() => new Error('Job ID is required'));
-    }
+    const jobsRef = collection(this.firestore, 'jobs');
 
-    return this.authService.hasAnyPermission(['canEditJobs', 'isAdmin']).pipe(
-      switchMap((hasPermission) => {
-        if (!hasPermission) {
-          return throwError(
-            () => new Error('You do not have permission to unallocate jobs')
-          );
-        }
+    // Get counts for each status
+    const unallocatedQuery = query(
+      jobsRef,
+      where('status', '==', 'unallocated')
+    );
+    const allocatedQuery = query(jobsRef, where('status', '==', 'allocated'));
+    const collectedQuery = query(jobsRef, where('status', '==', 'collected'));
+    const deliveredQuery = query(jobsRef, where('status', '==', 'delivered'));
+    const completedQuery = query(jobsRef, where('status', '==', 'completed'));
 
-        const jobRef = doc(this.firestore, `jobs/${jobId}`);
-        const updateData = {
-          driverId: null,
-          status: 'unallocated' as 'unallocated',
-          unallocatedAt: new Date(),
-          updatedAt: new Date(),
-          updatedBy: this.auth.currentUser!.uid,
+    return combineLatest([
+      from(getDocs(unallocatedQuery)).pipe(map((snap) => snap.size)),
+      from(getDocs(allocatedQuery)).pipe(map((snap) => snap.size)),
+      from(getDocs(collectedQuery)).pipe(map((snap) => snap.size)),
+      from(getDocs(deliveredQuery)).pipe(map((snap) => snap.size)),
+      from(getDocs(completedQuery)).pipe(map((snap) => snap.size)),
+    ]).pipe(
+      map(([unallocated, allocated, collected, delivered, completed]) => {
+        return {
+          unallocated,
+          allocated,
+          collected,
+          delivered,
+          completed,
+          total: unallocated + allocated + collected + delivered + completed,
+          active: unallocated + allocated + collected + delivered,
         };
-
-        return from(updateDoc(jobRef, updateData));
       }),
+      tap(() => this.loadingSubject.next(false)),
       catchError((error) => {
-        console.error(`Error unallocating job ${jobId}:`, error);
-        return throwError(
-          () => new Error(`Failed to unallocate job: ${error.message}`)
-        );
+        console.error('Error fetching dashboard stats:', error);
+        this.loadingSubject.next(false);
+        return of({
+          unallocated: 0,
+          allocated: 0,
+          collected: 0,
+          delivered: 0,
+          completed: 0,
+          total: 0,
+          active: 0,
+        });
       })
     );
   }
 
   /**
-   * Convert Firestore document data to Job model
+   * Refresh the jobs list by re-fetching data
+   */
+  private refreshJobsList(): void {
+    // Only refresh if we have jobs loaded already
+    if (this.jobsSubject.getValue().length > 0) {
+      this.getDriverJobs().subscribe();
+    }
+  }
+
+  /**
+   * Convert Firestore data to Job model
    */
   private convertFirebaseJobToModel(id: string, data: any): Job {
-    // Handle Firebase timestamps
-    const convertTimestamp = (timestamp: any): Date | undefined => {
-      if (!timestamp) return undefined;
-
-      // Firebase timestamp object with toDate() method
-      if (timestamp && typeof timestamp === 'object' && 'toDate' in timestamp) {
-        return timestamp.toDate();
-      }
-
-      // String or number timestamp
-      if (timestamp) {
-        return new Date(timestamp);
-      }
-
-      return undefined;
-    };
-
-    return {
+    // Create the job object with required fields
+    const job: Job = {
       id,
       vehicleId: data.vehicleId || '',
-      driverId: data.driverId,
+      driverId: data.driverId || null,
       status: data.status || 'unallocated',
       stage: data.stage,
-      collectionStartTime: convertTimestamp(data.collectionStartTime),
-      collectionCompleteTime: convertTimestamp(data.collectionCompleteTime),
-      deliveryStartTime: convertTimestamp(data.deliveryStartTime),
-      deliveryCompleteTime: convertTimestamp(data.deliveryCompleteTime),
-      allocatedAt: convertTimestamp(data.allocatedAt),
-      unallocatedAt: convertTimestamp(data.unallocatedAt),
-      createdAt: convertTimestamp(data.createdAt) || new Date(),
-      updatedAt: convertTimestamp(data.updatedAt) || new Date(),
-      createdBy: data.createdBy,
-      updatedBy: data.updatedBy,
-      make: data.make,
-      model: data.model,
-      registration: data.registration,
-
-      // Include all other properties
-      ...Object.entries(data)
-        .filter(
-          ([key]) =>
-            ![
-              'id',
-              'vehicleId',
-              'driverId',
-              'status',
-              'stage',
-              'collectionStartTime',
-              'collectionCompleteTime',
-              'deliveryStartTime',
-              'deliveryCompleteTime',
-              'allocatedAt',
-              'unallocatedAt',
-              'createdAt',
-              'updatedAt',
-              'createdBy',
-              'updatedBy',
-              'make',
-              'model',
-              'registration',
-            ].includes(key)
-        )
-        .reduce((obj, [key, value]) => ({ ...obj, [key]: value }), {}),
+      createdAt: this.convertTimestamp(data.createdAt) || new Date(),
+      updatedAt: this.convertTimestamp(data.updatedAt) || new Date(),
     };
+
+    // Add optional fields if present
+    if (data.collectionStartTime) {
+      job.collectionStartTime = this.convertTimestamp(data.collectionStartTime);
+    }
+
+    if (data.collectionCompleteTime) {
+      job.collectionCompleteTime = this.convertTimestamp(
+        data.collectionCompleteTime
+      );
+    }
+
+    if (data.deliveryStartTime) {
+      job.deliveryStartTime = this.convertTimestamp(data.deliveryStartTime);
+    }
+
+    if (data.deliveryCompleteTime) {
+      job.deliveryCompleteTime = this.convertTimestamp(
+        data.deliveryCompleteTime
+      );
+    }
+
+    if (data.allocatedAt) {
+      job.allocatedAt = this.convertTimestamp(data.allocatedAt);
+    }
+
+    if (data.unallocatedAt) {
+      job.unallocatedAt = this.convertTimestamp(data.unallocatedAt);
+    }
+
+    if (data.statusUpdatedAt) {
+      job['statusUpdatedAt'] = this.convertTimestamp(data.statusUpdatedAt);
+    }
+
+    if (data.createdBy) {
+      job.createdBy = data.createdBy;
+    }
+
+    if (data.updatedBy) {
+      job.updatedBy = data.updatedBy;
+    }
+
+    // Vehicle details
+    if (data.make) job.make = data.make;
+    if (data.model) job.model = data.model;
+    if (data.registration) job.registration = data.registration;
+    if (data.color) job.color = data.color;
+    if (data.year) job.year = data.year;
+    if (data.fuelType) job.fuelType = data.fuelType;
+    if (data.mileage !== undefined) job.mileage = data.mileage;
+    if (data.fuelLevel) job.fuelLevel = data.fuelLevel;
+    if (data.chassisNumber) job.chassisNumber = data.chassisNumber;
+    if (data.vehicleType) job.vehicleType = data.vehicleType;
+
+    // Customer details
+    if (data.customerId) job.customerId = data.customerId;
+    if (data.customerName) job.customerName = data.customerName;
+    if (data.customerContact) job.customerContact = data.customerContact;
+    if (data.customerContactPhone)
+      job.customerContactPhone = data.customerContactPhone;
+
+    // Collection details
+    if (data.collectionAddress) job.collectionAddress = data.collectionAddress;
+    if (data.collectionCity) job.collectionCity = data.collectionCity;
+    if (data.collectionPostcode)
+      job.collectionPostcode = data.collectionPostcode;
+    if (data.collectionContactName)
+      job.collectionContactName = data.collectionContactName;
+    if (data.collectionContactPhone)
+      job.collectionContactPhone = data.collectionContactPhone;
+    if (data.collectionNotes) job.collectionNotes = data.collectionNotes;
+    if (data.collectionActualDateTime)
+      job.collectionActualDateTime = this.convertTimestamp(
+        data.collectionActualDateTime
+      );
+
+    // Delivery details
+    if (data.deliveryAddress) job.deliveryAddress = data.deliveryAddress;
+    if (data.deliveryCity) job.deliveryCity = data.deliveryCity;
+    if (data.deliveryPostcode) job.deliveryPostcode = data.deliveryPostcode;
+    if (data.deliveryContactName)
+      job.deliveryContactName = data.deliveryContactName;
+    if (data.deliveryContactPhone)
+      job.deliveryContactPhone = data.deliveryContactPhone;
+    if (data.deliveryNotes) job.deliveryNotes = data.deliveryNotes;
+    if (data.deliveryActualDateTime)
+      job.deliveryActualDateTime = this.convertTimestamp(
+        data.deliveryActualDateTime
+      );
+
+    // Documentation
+    if (data.collectionPhotos) job.collectionPhotos = data.collectionPhotos;
+    if (data.deliveryPhotos) job.deliveryPhotos = data.deliveryPhotos;
+    if (data.collectionSignature)
+      job.collectionSignature = data.collectionSignature;
+    if (data.deliverySignature) job.deliverySignature = data.deliverySignature;
+
+    // Split journey
+    if (data.isSplitJourney !== undefined)
+      job.isSplitJourney = data.isSplitJourney;
+    if (data.secondaryCollectionAddress)
+      job.secondaryCollectionAddress = data.secondaryCollectionAddress;
+    if (data.secondaryDeliveryAddress)
+      job.secondaryDeliveryAddress = data.secondaryDeliveryAddress;
+
+    // Notes
+    if (data.notes) job.notes = data.notes;
+
+    return job;
   }
 }

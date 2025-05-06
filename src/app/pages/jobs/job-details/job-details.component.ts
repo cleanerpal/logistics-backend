@@ -1,15 +1,16 @@
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit, ChangeDetectorRef } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { ActivatedRoute, Router } from '@angular/router';
-import { Subscription, combineLatest, forkJoin, of } from 'rxjs';
-import { catchError, switchMap } from 'rxjs/operators';
+import { Observable, Subscription, combineLatest, forkJoin, of } from 'rxjs';
+import { catchError, switchMap, tap } from 'rxjs/operators';
 import { ConfirmationDialogComponent } from '../../../dialogs/confirmation-dialog.component';
 import { AuthService } from '../../../services/auth.service';
 import { JobService } from '../../../services/job.service';
 import { Job, UserProfile } from '../../../interfaces/job.interface';
 import { DriverSelectionDialogComponent } from '../../../dialogs/driver-selection-dialog.component';
 
+// Interface for notes
 interface Note {
   author: string;
   content: string;
@@ -17,7 +18,7 @@ interface Note {
   id?: string;
 }
 
-// Note type for FireStore storage - dates as strings
+// Interface for note data to be saved in Firestore
 interface NoteData {
   author: string;
   content: string;
@@ -25,7 +26,7 @@ interface NoteData {
   id?: string;
 }
 
-// Interface for driver info
+// Interface for driver information
 interface DriverInfo {
   id: string;
   name: string;
@@ -47,19 +48,14 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
   hasAllocatePermission = false;
   isAdmin = false;
   currentUser: UserProfile | null = null;
+  private isDestroyed = false;
 
-  // Driver information
   driverInfo: DriverInfo | null = null;
 
   jobNotes: Note[] = [];
   newNote: string = '';
-  allowedStatuses: (
-    | 'unallocated'
-    | 'allocated'
-    | 'collected'
-    | 'delivered'
-    | 'completed'
-  )[] = ['unallocated', 'allocated', 'collected', 'delivered', 'completed'];
+
+  allowedStatuses: ('unallocated' | 'allocated' | 'collected' | 'delivered' | 'completed')[] = ['unallocated', 'allocated', 'collected', 'delivered', 'completed'];
 
   private subscriptions: Subscription[] = [];
 
@@ -69,11 +65,14 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
     private jobService: JobService,
     private authService: AuthService,
     private dialog: MatDialog,
-    private snackBar: MatSnackBar
+    private snackBar: MatSnackBar,
+    private cdr: ChangeDetectorRef
   ) {}
 
+  /**
+   * Initialize the component by subscribing to route params and checking permissions
+   */
   ngOnInit() {
-    // Get the job ID from the route
     const routeSub = this.route.params.subscribe((params) => {
       this.jobId = params['id'];
       this.loadJobDetails();
@@ -81,14 +80,20 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
 
     this.subscriptions.push(routeSub);
 
-    // Check user permissions
     this.checkUserPermissions();
   }
 
+  /**
+   * Clean up subscriptions when the component is destroyed
+   */
   ngOnDestroy() {
+    this.isDestroyed = true;
     this.subscriptions.forEach((sub) => sub.unsubscribe());
   }
 
+  /**
+   * Load job details and driver information
+   */
   private loadJobDetails() {
     this.isLoading = true;
 
@@ -100,7 +105,6 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
             return of({ job: null, driverInfo: null });
           }
 
-          // If job has a driver, fetch driver information
           if (job.driverId) {
             return this.authService.getUserById(job.driverId).pipe(
               catchError(() => of(null)),
@@ -108,12 +112,7 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
                 const driver: DriverInfo | null = driverProfile
                   ? {
                       id: driverProfile.id,
-                      name:
-                        driverProfile.name ||
-                        `${driverProfile.firstName || ''} ${
-                          driverProfile.lastName || ''
-                        }`.trim() ||
-                        'Unknown Driver',
+                      name: driverProfile.name || `${driverProfile.firstName || ''} ${driverProfile.lastName || ''}`.trim() || 'Unknown Driver',
                       phoneNumber: driverProfile.phoneNumber,
                     }
                   : null;
@@ -131,8 +130,8 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
           this.job = result.job;
           this.driverInfo = result.driverInfo;
           this.isLoading = false;
+          this.cdr.detectChanges();
 
-          // Load job notes if available
           if (this.job && this.job.notes) {
             this.processJobNotes(this.job);
           }
@@ -141,40 +140,38 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
           this.isLoading = false;
           console.error('Error loading job details:', error);
           this.showSnackbar('Error loading job details');
+          this.cdr.detectChanges();
         },
       });
 
     this.subscriptions.push(jobSub);
   }
 
+  /**
+   * Process job notes from various possible formats
+   */
   private processJobNotes(job: Job) {
-    // Process notes based on the format they're stored in
     const rawNotes: Note[] = [];
 
     if (Array.isArray(job.notes)) {
       rawNotes.push(...(job.notes as Note[]));
     } else if (typeof job.notes === 'string') {
-      // If it's a single string, create a note from it
       rawNotes.push({
         author: job.createdBy || 'System',
         content: job.notes,
         date: job.createdAt,
       });
     } else if (typeof job.notes === 'object' && job.notes !== null) {
-      // If it's an object of notes, convert to array
       try {
         const notesObject = job.notes as Record<string, any>;
-        const noteEntries = Object.entries(notesObject).map(
-          ([id, noteData]) => {
-            // Ensure the note data has the needed structure
-            const note: Note = {
-              author: (noteData as any).author || 'Unknown',
-              content: (noteData as any).content || '',
-              date: new Date((noteData as any).date || new Date()),
-            };
-            return note;
-          }
-        );
+        const noteEntries = Object.entries(notesObject).map(([id, noteData]) => {
+          const note: Note = {
+            author: (noteData as any).author || 'Unknown',
+            content: (noteData as any).content || '',
+            date: new Date((noteData as any).date || new Date()),
+          };
+          return note;
+        });
 
         rawNotes.push(...noteEntries);
       } catch (error) {
@@ -182,78 +179,76 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
       }
     }
 
-    // If there are no notes, set empty array and return
     if (rawNotes.length === 0) {
       this.jobNotes = [];
       return;
     }
 
-    // Fetch author names for each note
     const authorIds = new Set<string>();
 
-    // Collect all unique author IDs that look like user IDs
     rawNotes.forEach((note) => {
-      if (
-        typeof note.author === 'string' &&
-        note.author !== 'System' &&
-        note.author !== 'Unknown' &&
-        note.author.length > 20
-      ) {
-        // Only IDs are typically this long
+      if (typeof note.author === 'string' && note.author !== 'System' && note.author !== 'Unknown' && note.author.length > 20) {
         authorIds.add(note.author);
       }
     });
 
-    // If no author IDs need to be resolved, just set the notes
     if (authorIds.size === 0) {
       this.jobNotes = rawNotes;
       return;
     }
 
-    // Create a map to track author ID to name mapping
     const authorMap = new Map<string, string>();
+    const authorRequests: Observable<any>[] = [];
 
-    // Create array of promises to fetch author information
-    const authorPromises = Array.from(authorIds).map((authorId) =>
-      this.authService
-        .getUserById(authorId)
-        .toPromise()
-        .then((user) => {
+    Array.from(authorIds).forEach((authorId) => {
+      const request = this.authService.getUserById(authorId).pipe(
+        tap((user) => {
           if (user) {
-            const authorName =
-              user.name ||
-              `${user.firstName || ''} ${user.lastName || ''}`.trim() ||
-              'Unknown User';
+            const authorName = user.name || `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Unknown User';
             authorMap.set(authorId, authorName);
           }
-        })
-        .catch(() => {
-          // If we can't fetch author info, use a default name
+        }),
+        catchError(() => {
           authorMap.set(authorId, 'Unknown User');
+          return of(null);
         })
-    );
+      );
+      authorRequests.push(request);
+    });
 
-    // Wait for all author info to be fetched
-    Promise.all(authorPromises)
-      .then(() => {
-        // Process all notes with author names
-        this.jobNotes = rawNotes.map((note) => {
-          // If the note author is an ID, replace with the name
-          if (authorMap.has(note.author)) {
-            return {
-              ...note,
-              author: authorMap.get(note.author) || note.author,
-            };
+    if (authorRequests.length > 0) {
+      const authorSub = forkJoin(authorRequests).subscribe({
+        next: () => {
+          this.jobNotes = rawNotes.map((note) => {
+            if (authorMap.has(note.author)) {
+              return {
+                ...note,
+                author: authorMap.get(note.author) || note.author,
+              };
+            }
+            return note;
+          });
+          this.cdr.detectChanges();
+        },
+        error: (error) => {
+          console.error('Error fetching note author names:', error);
+          this.jobNotes = rawNotes;
+          this.cdr.detectChanges();
+        },
+        complete: () => {
+          if (authorSub) {
+            this.subscriptions.push(authorSub);
           }
-          return note;
-        });
-      })
-      .catch((error) => {
-        console.error('Error fetching note author names:', error);
-        this.jobNotes = rawNotes;
+        },
       });
+    } else {
+      this.jobNotes = rawNotes;
+    }
   }
 
+  /**
+   * Check user permissions and set flags
+   */
   private checkUserPermissions() {
     const permissionsSub = combineLatest([
       this.authService.getUserProfile(),
@@ -265,15 +260,26 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
       this.hasEditPermission = canEdit;
       this.hasAllocatePermission = canAllocate;
       this.isAdmin = isAdmin;
+      this.cdr.detectChanges();
     });
 
     this.subscriptions.push(permissionsSub);
   }
 
+  /**
+   * Set the active tab for the job details view
+   * @param tab The tab to activate
+   */
   setActiveTab(tab: 'details' | 'timeline' | 'expenses') {
     this.activeTab = tab;
+    this.cdr.detectChanges();
   }
 
+  /**
+   * Get CSS class for job status
+   * @param status The job status
+   * @returns CSS class name
+   */
   getStatusClass(status: string): string {
     const statusMap: Record<string, string> = {
       unallocated: 'status-unallocated',
@@ -285,6 +291,11 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
     return statusMap[status] || 'status-default';
   }
 
+  /**
+   * Get Material icon for timeline event
+   * @param status The job status
+   * @returns Icon name
+   */
   getTimelineIcon(status: string): string {
     const iconMap: Record<string, string> = {
       unallocated: 'assignment',
@@ -297,46 +308,51 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
     return iconMap[status] || 'radio_button_unchecked';
   }
 
+  /**
+   * Check if an event is the last in the timeline
+   * @param event The timeline event
+   * @returns True if it's the last event
+   */
   isLastEvent(event: any): boolean {
-    return (
-      this.job?.['timeline']?.indexOf(event) ===
-      this.job?.['timeline']?.length - 1
-    );
+    return this.job?.['timeline']?.indexOf(event) === this.job?.['timeline']?.length - 1;
   }
 
-  goBack() {
-    this.router.navigate(['/jobs']);
+  /**
+   * Navigate back to the jobs list
+   */
+  goBack() {}
+
+  /**
+   * Navigate to the job edit page if the user has permission
+   */
+  editJob(job: Job, event: Event): void {
+    event.stopPropagation(); // Prevent row click event
+    this.router.navigate(['/jobs', job.id, 'edit']);
   }
 
-  editJob() {
-    if (this.job && (this.hasEditPermission || this.isAdmin)) {
-      this.router.navigate(['/jobs', this.job.id, 'edit']);
-    } else {
-      this.showSnackbar('You do not have permission to edit this job');
-    }
-  }
-
+  /**
+   * Trigger the browser's print function
+   */
   printJobDetails() {
     window.print();
   }
 
+  /**
+   * Add a new note to the job
+   */
   addNote() {
     if (!this.newNote.trim() || !this.job) return;
 
-    // Create a new note
     const newNote: Note = {
       author: this.currentUser?.name || 'User',
       content: this.newNote.trim(),
       date: new Date(),
     };
 
-    // Add the note to the job
     const notesList: Note[] = [...(this.jobNotes || []), newNote];
 
-    // Update the job - convert notes to a structure Firebase can store
     this.isLoading = true;
 
-    // Create a simple object representation for Firestore
     const notesData: NoteData[] = notesList.map((note) => ({
       author: note.author,
       content: note.content,
@@ -349,41 +365,38 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
         this.newNote = '';
         this.isLoading = false;
         this.showSnackbar('Note added successfully');
+        this.cdr.detectChanges();
       },
       error: (error) => {
         console.error('Error adding note:', error);
         this.isLoading = false;
         this.showSnackbar('Error adding note');
+        this.cdr.detectChanges();
       },
     });
   }
 
-  updateJobStatus(
-    newStatus:
-      | 'unallocated'
-      | 'allocated'
-      | 'collected'
-      | 'delivered'
-      | 'completed'
-  ) {
+  /**
+   * Update the job status
+   * @param newStatus The new status to set
+   */
+  updateJobStatus(newStatus: 'unallocated' | 'allocated' | 'collected' | 'delivered' | 'completed') {
     if (!this.job) return;
 
-    // Prevent unnecessary updates
     if (this.job.status === newStatus) return;
 
-    // Different actions based on status change
     this.isLoading = true;
+    this.cdr.detectChanges();
 
-    // Check what type of transition we're making
     switch (newStatus) {
       case 'allocated':
         if (!this.hasAllocatePermission && !this.isAdmin) {
           this.showSnackbar('You do not have permission to allocate jobs');
           this.isLoading = false;
+          this.cdr.detectChanges();
           return;
         }
 
-        // Show driver selection dialog
         this.showDriverSelectionDialog();
         break;
 
@@ -391,6 +404,7 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
         if (!this.hasEditPermission && !this.isAdmin) {
           this.showSnackbar('You do not have permission to unallocate jobs');
           this.isLoading = false;
+          this.cdr.detectChanges();
           return;
         }
 
@@ -398,27 +412,26 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
           next: () => {
             this.loadJobDetails();
             this.showSnackbar('Job unallocated successfully');
+            this.cdr.detectChanges();
           },
           error: (error) => {
             console.error('Error unallocating job:', error);
             this.isLoading = false;
             this.showSnackbar('Error unallocating job');
+            this.cdr.detectChanges();
           },
         });
         break;
 
       case 'collected':
-        // Start collection process
         this.startCollection();
         break;
 
       case 'delivered':
-        // Start delivery process
         this.startDelivery();
         break;
 
       case 'completed':
-        // Update job status to completed
         this.completeJob();
         break;
     }
@@ -431,34 +444,35 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
     const dialogRef = this.dialog.open(DriverSelectionDialogComponent, {
       data: {
         jobId: this.job!.id,
-        jobTitle: `${this.job!.make} ${this.job!.model} (${
-          this.job!.registration || 'No Reg'
-        })`,
+        jobTitle: `${this.job!.make} ${this.job!.model} (${this.job!.registration || 'No Reg'})`,
       },
       width: '450px',
       panelClass: ['custom-dialog-container', 'allocation-dialog'],
     });
 
     dialogRef.afterClosed().subscribe((driver) => {
+      if (this.isDestroyed) return;
+
       if (driver) {
-        // Allocate the job to the selected driver
         this.allocateJobToDriver(driver.id);
       } else {
         this.isLoading = false;
+        this.cdr.detectChanges();
       }
     });
   }
 
   /**
    * Allocate job to a specific driver
+   * @param driverId The ID of the driver to allocate to
    */
   private allocateJobToDriver(driverId: string): void {
     if (!this.job) {
       this.isLoading = false;
+      this.cdr.detectChanges();
       return;
     }
 
-    // Prepare job data for allocation
     const jobData: Partial<Job> = {
       status: 'allocated',
       driverId: driverId,
@@ -467,20 +481,24 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
       updatedBy: this.currentUser?.id,
     };
 
-    // Update the job with driver allocation
     this.jobService.updateJob(this.job.id, jobData).subscribe({
       next: () => {
         this.loadJobDetails();
         this.showSnackbar('Job allocated successfully');
+        this.cdr.detectChanges();
       },
       error: (error) => {
         console.error('Error allocating job to driver:', error);
         this.isLoading = false;
         this.showSnackbar('Error allocating job to driver');
+        this.cdr.detectChanges();
       },
     });
   }
 
+  /**
+   * Start the collection process for a job
+   */
   startCollection() {
     if (!this.job) return;
 
@@ -490,35 +508,47 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
         message: 'Are you ready to start the collection process for this job?',
         confirmText: 'Start Collection',
         cancelText: 'Cancel',
-        icon: 'departure_board', // Add icon
+        icon: 'departure_board',
         confirmColor: 'primary',
       },
-      width: '400px', // Set width
-      panelClass: ['custom-dialog-container', 'collection-dialog'], // Add panel classes
+      width: '400px',
+      panelClass: ['custom-dialog-container', 'collection-dialog'],
     });
 
-    dialogRef.afterClosed().subscribe((result) => {
+    const dialogSub = dialogRef.afterClosed().subscribe((result) => {
+      if (this.isDestroyed) return;
+
       if (result) {
-        this.jobService.startCollection(this.job!.id).subscribe({
+        this.isLoading = true;
+        this.cdr.detectChanges();
+
+        const collectionSub = this.jobService.startCollection(this.job!.id).subscribe({
           next: () => {
             this.loadJobDetails();
             this.showSnackbar('Collection started successfully');
-
-            // Navigate to collection process
-            this.router.navigate(['/jobs', this.job!.id, 'collection']);
+            this.cdr.detectChanges();
           },
           error: (error) => {
             console.error('Error starting collection:', error);
             this.isLoading = false;
-            this.showSnackbar('Error starting collection');
+            this.showSnackbar('Error starting collection: ' + error.message);
+            this.cdr.detectChanges();
           },
         });
+
+        this.subscriptions.push(collectionSub);
       } else {
         this.isLoading = false;
+        this.cdr.detectChanges();
       }
     });
+
+    this.subscriptions.push(dialogSub);
   }
 
+  /**
+   * Start the delivery process for a job
+   */
   startDelivery() {
     if (!this.job) return;
 
@@ -528,7 +558,7 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
         message: 'Are you ready to start the delivery process for this job?',
         confirmText: 'Start Delivery',
         cancelText: 'Cancel',
-        icon: 'local_shipping', // Add icon
+        icon: 'local_shipping',
         confirmColor: 'primary',
       },
       width: '400px',
@@ -536,27 +566,36 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
     });
 
     dialogRef.afterClosed().subscribe((result) => {
+      if (this.isDestroyed) return;
+
       if (result) {
+        this.isLoading = true;
+        this.cdr.detectChanges();
+
         this.jobService.startDelivery(this.job!.id).subscribe({
           next: () => {
             this.loadJobDetails();
             this.showSnackbar('Delivery started successfully');
 
-            // Navigate to delivery process
-            this.router.navigate(['/jobs', this.job!.id, 'delivery']);
+            this.cdr.detectChanges();
           },
           error: (error) => {
             console.error('Error starting delivery:', error);
             this.isLoading = false;
             this.showSnackbar('Error starting delivery');
+            this.cdr.detectChanges();
           },
         });
       } else {
         this.isLoading = false;
+        this.cdr.detectChanges();
       }
     });
   }
 
+  /**
+   * Mark the job as completed
+   */
   completeJob() {
     if (!this.job) return;
 
@@ -566,15 +605,20 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
         message: 'Are you sure you want to mark this job as completed?',
         confirmText: 'Complete Job',
         cancelText: 'Cancel',
-        icon: 'check_circle', // Add icon
+        icon: 'check_circle',
         confirmColor: 'primary',
       },
       width: '400px',
-      panelClass: 'custom-dialog-container',
+      panelClass: ['custom-dialog-container'],
     });
 
     dialogRef.afterClosed().subscribe((result) => {
+      if (this.isDestroyed) return;
+
       if (result) {
+        this.isLoading = true;
+        this.cdr.detectChanges();
+
         this.jobService
           .updateJob(this.job!.id, {
             status: 'completed',
@@ -584,19 +628,26 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
             next: () => {
               this.loadJobDetails();
               this.showSnackbar('Job marked as completed');
+              this.cdr.detectChanges();
             },
             error: (error) => {
               console.error('Error completing job:', error);
               this.isLoading = false;
               this.showSnackbar('Error completing job');
+              this.cdr.detectChanges();
             },
           });
       } else {
         this.isLoading = false;
+        this.cdr.detectChanges();
       }
     });
   }
 
+  /**
+   * Get the name of the assigned driver
+   * @returns Driver name or 'Unassigned'/'Unknown Driver'
+   */
   getDriverName(): string {
     if (this.driverInfo) {
       return this.driverInfo.name;
@@ -609,6 +660,11 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
     return 'Unknown Driver';
   }
 
+  /**
+   * Format a date for display
+   * @param date The date to format
+   * @returns Formatted date string
+   */
   formatDate(date: Date | undefined): string {
     if (!date) return 'N/A';
 
@@ -616,7 +672,6 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
       return new Date(date).toLocaleString();
     }
 
-    // Handle Firebase Timestamp
     if (date && typeof date === 'object' && 'toDate' in date) {
       const timestamp = date as unknown as { toDate: () => Date };
       return timestamp.toDate().toLocaleString();
@@ -627,6 +682,8 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
 
   /**
    * Format date to UK format (DD/MM/YYYY)
+   * @param date The date to format
+   * @returns Formatted date string
    */
   formatUKDate(date: Date | undefined): string {
     if (!date) return 'N/A';
@@ -635,7 +692,6 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
       date = new Date(date);
     }
 
-    // Handle Firebase Timestamp
     if (date && typeof date === 'object' && 'toDate' in date) {
       const timestamp = date as unknown as { toDate: () => Date };
       date = timestamp.toDate();
@@ -650,6 +706,8 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
 
   /**
    * Format date and time to UK format (DD/MM/YYYY HH:MM)
+   * @param date The date to format
+   * @returns Formatted date-time string
    */
   formatUKDateTime(date: Date | undefined): string {
     if (!date) return 'N/A';
@@ -658,7 +716,6 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
       date = new Date(date);
     }
 
-    // Handle Firebase Timestamp
     if (date && typeof date === 'object' && 'toDate' in date) {
       const timestamp = date as unknown as { toDate: () => Date };
       date = timestamp.toDate();
@@ -675,27 +732,22 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
 
   /**
    * Get the progress percentage for the status flow display
+   * @returns Progress percentage
    */
   getStatusFlowProgress(): number {
     if (!this.job) return 0;
 
-    const statusOrder = [
-      'unallocated',
-      'allocated',
-      'collected',
-      'delivered',
-      'completed',
-    ];
+    const statusOrder = ['unallocated', 'allocated', 'collected', 'delivered', 'completed'];
 
     const currentStatusIndex = statusOrder.indexOf(this.job.status);
     if (currentStatusIndex === -1) return 0;
 
-    // Calculate percentage based on position in flow
     return (currentStatusIndex / (statusOrder.length - 1)) * 100;
   }
 
   /**
    * Get status steps for the status flow visualization
+   * @returns Array of status steps
    */
   getStatusFlow() {
     if (!this.job) return [];
@@ -708,9 +760,7 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
       { key: 'completed', label: 'Completed' },
     ];
 
-    const currentStatusIndex = statusOrder.findIndex(
-      (s) => s.key === this.job?.status
-    );
+    const currentStatusIndex = statusOrder.findIndex((s) => s.key === this.job?.status);
 
     return statusOrder.map((status, index) => {
       return {
@@ -729,7 +779,6 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
   getVehicleLogo(make: string): string {
     if (!make) return 'assets/images/car-logos/default.png';
 
-    // Special cases mapping for certain manufacturers
     const specialCases: Record<string, string> = {
       'mercedes-benz': 'mercedes',
       'mercedes benz': 'mercedes',
@@ -761,15 +810,12 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
       mini: 'mini',
     };
 
-    // Normalize the make name
     const normalized = make.toLowerCase().trim();
 
-    // Check if it's a special case first
     if (specialCases[normalized]) {
       return `assets/images/car-logos/${specialCases[normalized]}.png`;
     }
 
-    // Regular normalization: lowercase, replace spaces with underscores, replace hyphens with underscores
     const normalizedFilename = normalized
       .replace(/\s+/g, '_')
       .replace(/-/g, '_')
@@ -787,6 +833,10 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
     imgElement.src = 'assets/images/car-logos/default.png';
   }
 
+  /**
+   * Show a snackbar notification
+   * @param message The message to display
+   */
   showSnackbar(message: string): void {
     this.snackBar.open(message, 'Close', {
       duration: 3000,

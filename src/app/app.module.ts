@@ -20,6 +20,7 @@ import { TopbarComponent } from './layout/topbar/topbar.component';
 import { JobListComponent } from './pages/jobs/job-list/job-list.component';
 import { JobDetailsComponent } from './pages/jobs/job-details/job-details.component';
 import { JobCreateComponent } from './pages/jobs/job-create/job-create.component';
+import { JobEditComponent } from './pages/jobs/job-edit/job-edit.component'; // Added the new component
 import { DriverListComponent } from './pages/drivers/driver-list/driver-list.component';
 import { VehicleModelsComponent } from './pages/vehicles/vehicle-models/vehicle-models.component';
 import { CompaniesListComponent } from './pages/companies/companies-list/companies-list.component';
@@ -54,8 +55,8 @@ import { NotificationService } from './services/notification.service';
 // Other providers
 import { provideNgxMask } from 'ngx-mask';
 import { FirebaseService } from './services/firebase.service';
-import { environment } from '../environments/environment.prod';
 import { DriverSelectionDialogComponent } from './dialogs/driver-selection-dialog.component';
+import { environment } from '../environments/environment.prod';
 
 @NgModule({
   declarations: [
@@ -69,6 +70,7 @@ import { DriverSelectionDialogComponent } from './dialogs/driver-selection-dialo
     JobListComponent,
     JobCreateComponent,
     JobDetailsComponent,
+    JobEditComponent, // Added here
     CompaniesListComponent,
     CompanyCreateComponent,
     CompanyDetailsComponent,

@@ -1,0 +1,213 @@
+<div class="edit-job-container">
+  <!-- Loading Spinner -->
+  <div class="loading-overlay" *ngIf="isLoading">
+    <mat-spinner diameter="40"></mat-spinner>
+    <span>Loading...</span>
+  </div>
+
+  <div class="edit-job-content">
+    <div class="form-header">
+      <h1>Edit Job</h1>
+      <div class="header-actions">
+        <button type="button" class="action-btn secondary-btn" (click)="onCancel()">
+          <span class="material-icons">close</span>
+          Cancel
+        </button>
+        <button type="button" class="action-btn primary-btn" (click)="onSubmit()" [disabled]="!jobForm.valid || isSubmitting || jobForm.pristine">
+          <span class="material-icons">save</span>
+          {{ isSubmitting ? 'Saving...' : 'Save Changes' }}
+        </button>
+      </div>
+    </div>
+
+    <form [formGroup]="jobForm" class="job-form">
+      <!-- Customer Information Section -->
+      <div class="form-section">
+        <h2>Customer Information</h2>
+        <div class="form-grid">
+          <div class="form-group full-width">
+            <label for="customerId">Customer</label>
+            <select id="customerId" formControlName="customerId" (change)="onCustomerSelected($event)">
+              <option value="">Select a customer</option>
+              <option *ngFor="let customer of customers" [value]="customer.id">
+                {{ customer.name }}
+                {{ customer.city ? '- ' + customer.city : '' }}
+              </option>
+            </select>
+            <span class="error-message">{{ getErrorMessage('customerId') }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Vehicle Information Section -->
+      <div class="form-section">
+        <h2>Vehicle Information</h2>
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="vehicleMake">Make</label>
+            <select id="vehicleMake" formControlName="vehicleMake">
+              <option value="">Select make</option>
+              <option *ngFor="let make of vehicleMakes" [value]="make.id">
+                {{ make.displayName }}
+              </option>
+            </select>
+            <span class="error-message">{{ getErrorMessage('vehicleMake') }}</span>
+          </div>
+
+          <div class="form-group">
+            <label for="vehicleModel">Model</label>
+            <select id="vehicleModel" formControlName="vehicleModel">
+              <option value="">Select model</option>
+              <option *ngFor="let model of availableModels" [value]="model.id">
+                {{ model.name }}
+              </option>
+            </select>
+            <span class="error-message">{{ getErrorMessage('vehicleModel') }}</span>
+          </div>
+
+          <div class="form-group">
+            <label for="vehicleType">Type</label>
+            <select id="vehicleType" formControlName="vehicleType">
+              <option value="">Select type</option>
+              <option *ngFor="let type of vehicleTypes" [value]="type">
+                {{ type }}
+              </option>
+            </select>
+            <span class="error-message">{{ getErrorMessage('vehicleType') }}</span>
+          </div>
+
+          <div class="form-group">
+            <label for="registration">Registration (UPPERCASE, NO SPACES)</label>
+            <input id="registration" type="text" formControlName="registration" style="text-transform: uppercase" />
+            <span class="error-message">{{ getErrorMessage('registration') }}</span>
+          </div>
+
+          <div class="form-group">
+            <label for="chassisNumber">Chassis Number (optional)</label>
+            <input id="chassisNumber" type="text" formControlName="chassisNumber" style="text-transform: uppercase" />
+            <span class="error-message">{{ getErrorMessage('chassisNumber') }}</span>
+          </div>
+
+          <div class="form-group">
+            <label for="color">Color (optional)</label>
+            <input id="color" type="text" formControlName="color" />
+          </div>
+
+          <div class="form-group">
+            <label for="year">Year (optional)</label>
+            <input id="year" type="number" formControlName="year" />
+          </div>
+        </div>
+
+        <div class="previous-selections" *ngIf="previousSelections.length > 0">
+          <h3>Previously Used Vehicles</h3>
+          <div class="selection-pills">
+            <div *ngFor="let item of previousSelections" class="selection-pill" (click)="applyPreviousSelection(item)">
+              {{ item.makeName }} {{ item.modelName }} ({{ item.registration }})
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Collection Details Section -->
+      <div class="form-section">
+        <h2>Collection Details</h2>
+        <div class="form-grid">
+          <div class="form-group full-width">
+            <label for="collectionAddress">Address</label>
+            <input id="collectionAddress" type="text" formControlName="collectionAddress" />
+            <span class="error-message">{{ getErrorMessage('collectionAddress') }}</span>
+          </div>
+
+          <div class="form-group">
+            <label for="collectionCity">City</label>
+            <input id="collectionCity" type="text" formControlName="collectionCity" />
+          </div>
+
+          <div class="form-group">
+            <label for="collectionPostcode">Postcode</label>
+            <input id="collectionPostcode" type="text" formControlName="collectionPostcode" />
+          </div>
+
+          <div class="form-group">
+            <label for="collectionContactName">Contact Name</label>
+            <input id="collectionContactName" type="text" formControlName="collectionContactName" />
+          </div>
+
+          <div class="form-group">
+            <label for="collectionContactPhone">Contact Phone</label>
+            <input id="collectionContactPhone" type="text" formControlName="collectionContactPhone" />
+          </div>
+
+          <div class="form-group full-width">
+            <label for="collectionNotes">Notes</label>
+            <textarea id="collectionNotes" formControlName="collectionNotes" rows="2"></textarea>
+          </div>
+        </div>
+      </div>
+
+      <!-- Delivery Details Section -->
+      <div class="form-section">
+        <h2>Delivery Details</h2>
+        <div class="form-grid">
+          <div class="form-group full-width">
+            <label for="deliveryAddress">Address</label>
+            <input id="deliveryAddress" type="text" formControlName="deliveryAddress" />
+            <span class="error-message">{{ getErrorMessage('deliveryAddress') }}</span>
+          </div>
+
+          <div class="form-group">
+            <label for="deliveryCity">City</label>
+            <input id="deliveryCity" type="text" formControlName="deliveryCity" />
+          </div>
+
+          <div class="form-group">
+            <label for="deliveryPostcode">Postcode</label>
+            <input id="deliveryPostcode" type="text" formControlName="deliveryPostcode" />
+          </div>
+
+          <div class="form-group">
+            <label for="deliveryContactName">Contact Name</label>
+            <input id="deliveryContactName" type="text" formControlName="deliveryContactName" />
+          </div>
+
+          <div class="form-group">
+            <label for="deliveryContactPhone">Contact Phone</label>
+            <input id="deliveryContactPhone" type="text" formControlName="deliveryContactPhone" />
+          </div>
+
+          <div class="form-group full-width">
+            <label for="deliveryNotes">Notes</label>
+            <textarea id="deliveryNotes" formControlName="deliveryNotes" rows="2"></textarea>
+          </div>
+        </div>
+      </div>
+
+      <!-- Additional Details Section -->
+      <div class="form-section">
+        <h2>Additional Information</h2>
+        <div class="form-grid">
+          <div class="form-group">
+            <div class="checkbox-group">
+              <input type="checkbox" id="isSplitJourney" formControlName="isSplitJourney" />
+              <label for="isSplitJourney">Split Journey</label>
+            </div>
+          </div>
+
+          <div class="form-group full-width">
+            <label for="notes">Job Notes</label>
+            <textarea id="notes" formControlName="notes" rows="4"></textarea>
+          </div>
+        </div>
+      </div>
+
+      <!-- Form Actions Bottom -->
+      <div class="form-actions">
+        <button type="button" class="cancel-btn" (click)="onCancel()">Cancel</button>
+        <button type="submit" class="submit-btn" [disabled]="!jobForm.valid || isSubmitting || jobForm.pristine" (click)="onSubmit()">
+          {{ isSubmitting ? 'Saving...' : 'Save Changes' }}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

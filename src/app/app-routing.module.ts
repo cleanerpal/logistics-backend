@@ -6,6 +6,7 @@ import { JobListComponent } from './pages/jobs/job-list/job-list.component';
 import { DriverListComponent } from './pages/drivers/driver-list/driver-list.component';
 import { VehicleModelsComponent } from './pages/vehicles/vehicle-models/vehicle-models.component';
 import { JobCreateComponent } from './pages/jobs/job-create/job-create.component';
+import { JobEditComponent } from './pages/jobs/job-edit/job-edit.component'; // Import the new component
 import { CompaniesListComponent } from './pages/companies/companies-list/companies-list.component';
 import { CompanyCreateComponent } from './pages/companies/company-create/company-create.component';
 import { CompanyDetailsComponent } from './pages/companies/company-details/company-details.component';
@@ -24,8 +25,7 @@ const routes: Routes = [
   // Auth routes (lazy loaded)
   {
     path: 'auth',
-    loadChildren: () =>
-      import('./pages/auth/auth.module').then((m) => m.AuthModule),
+    loadChildren: () => import('./pages/auth/auth.module').then((m) => m.AuthModule),
   },
 
   // Protected routes
@@ -51,6 +51,12 @@ const routes: Routes = [
         data: { permissions: ['canCreateJobs', 'isAdmin'] },
       },
       { path: ':id', component: JobDetailsComponent },
+      {
+        path: ':id/edit',
+        component: JobEditComponent,
+        canActivate: [RoleGuard],
+        data: { permissions: ['canEditJobs', 'isAdmin'] },
+      },
     ],
   },
   {

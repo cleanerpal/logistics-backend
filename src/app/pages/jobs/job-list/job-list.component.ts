@@ -1,10 +1,4 @@
-import {
-  Component,
-  OnInit,
-  ViewChild,
-  AfterViewInit,
-  OnDestroy,
-} from '@angular/core';
+import { Component, OnInit, ViewChild, AfterViewInit, OnDestroy } from '@angular/core';
 import { Router } from '@angular/router';
 import { MatTableDataSource } from '@angular/material/table';
 import { MatSort } from '@angular/material/sort';
@@ -32,16 +26,7 @@ interface JobFilters {
   standalone: false,
 })
 export class JobListComponent implements OnInit, AfterViewInit, OnDestroy {
-  displayedColumns: string[] = [
-    'id',
-    'regNumber',
-    'make',
-    'model',
-    'collectionDate',
-    'status',
-    'driver',
-    'actions',
-  ];
+  displayedColumns: string[] = ['id', 'regNumber', 'make', 'model', 'collectionDate', 'status', 'driver', 'actions'];
 
   isLoading = false;
   dataSource = new MatTableDataSource<Job>([]);
@@ -53,13 +38,7 @@ export class JobListComponent implements OnInit, AfterViewInit, OnDestroy {
   @ViewChild(MatSort) sort!: MatSort;
   @ViewChild(MatPaginator) paginator!: MatPaginator;
 
-  statusOptions = [
-    'unallocated',
-    'allocated',
-    'collected',
-    'delivered',
-    'completed',
-  ];
+  statusOptions = ['unallocated', 'allocated', 'collected', 'delivered', 'completed'];
   drivers: string[] = [];
   driverMap: { [key: string]: string } = {};
 
@@ -72,11 +51,7 @@ export class JobListComponent implements OnInit, AfterViewInit, OnDestroy {
     },
   };
 
-  constructor(
-    private router: Router,
-    private jobService: JobService,
-    private authService: AuthService
-  ) {
+  constructor(private router: Router, private jobService: JobService, private authService: AuthService) {
     this.filterForm = new FormGroup({
       status: new FormControl('All'),
       driver: new FormControl('All'),
@@ -99,9 +74,7 @@ export class JobListComponent implements OnInit, AfterViewInit, OnDestroy {
     this.subscriptions.push(jobsSub);
 
     // Subscribe to loading state
-    const loadingSub = this.jobService.loading$.subscribe(
-      (loading) => (this.isLoading = loading)
-    );
+    const loadingSub = this.jobService.loading$.subscribe((loading) => (this.isLoading = loading));
     this.subscriptions.push(loadingSub);
 
     // Load initial jobs data
@@ -113,11 +86,9 @@ export class JobListComponent implements OnInit, AfterViewInit, OnDestroy {
 
   private setupFilterListeners(): void {
     // Subscribe to search input changes
-    const searchSub = this.searchControl.valueChanges
-      .pipe(debounceTime(300), distinctUntilChanged())
-      .subscribe((value) => {
-        this.applyFilter(value || '');
-      });
+    const searchSub = this.searchControl.valueChanges.pipe(debounceTime(300), distinctUntilChanged()).subscribe((value) => {
+      this.applyFilter(value || '');
+    });
     this.subscriptions.push(searchSub);
 
     // Subscribe to filter form changes
@@ -155,18 +126,12 @@ export class JobListComponent implements OnInit, AfterViewInit, OnDestroy {
       const searchStr = filter.toLowerCase();
 
       // Apply status filter
-      if (
-        this.filters.status !== 'All' &&
-        data.status !== this.filters.status
-      ) {
+      if (this.filters.status !== 'All' && data.status !== this.filters.status) {
         return false;
       }
 
       // Apply driver filter
-      if (
-        this.filters.driver !== 'All' &&
-        this.driverMap[data.driverId || ''] !== this.filters.driver
-      ) {
+      if (this.filters.driver !== 'All' && this.driverMap[data.driverId || ''] !== this.filters.driver) {
         return false;
       }
 
