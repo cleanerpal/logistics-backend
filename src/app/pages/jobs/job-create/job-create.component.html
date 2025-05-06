@@ -21,20 +21,14 @@
         <div class="form-grid">
           <div class="form-group full-width">
             <label for="customerId">Customer</label>
-            <select
-              id="customerId"
-              formControlName="customerId"
-              (change)="onCustomerSelected($event)"
-            >
+            <select id="customerId" formControlName="customerId" (change)="onCustomerSelected($event)">
               <option value="">Select a customer</option>
               <option *ngFor="let customer of customers" [value]="customer.id">
                 {{ customer.name }}
-                {{ customer.city ? "- " + customer.city : "" }}
+                {{ customer.city ? '- ' + customer.city : '' }}
               </option>
             </select>
-            <span class="error-message">{{
-              getErrorMessage("customerId")
-            }}</span>
+            <span class="error-message">{{ getErrorMessage('customerId') }}</span>
           </div>
         </div>
       </div>
@@ -51,9 +45,7 @@
                 {{ make.displayName }}
               </option>
             </select>
-            <span class="error-message">{{
-              getErrorMessage("vehicleMake")
-            }}</span>
+            <span class="error-message">{{ getErrorMessage('vehicleMake') }}</span>
           </div>
 
           <div class="form-group">
@@ -64,9 +56,7 @@
                 {{ model.name }}
               </option>
             </select>
-            <span class="error-message">{{
-              getErrorMessage("vehicleModel")
-            }}</span>
+            <span class="error-message">{{ getErrorMessage('vehicleModel') }}</span>
           </div>
 
           <div class="form-group">
@@ -77,37 +67,19 @@
                 {{ type }}
               </option>
             </select>
-            <span class="error-message">{{
-              getErrorMessage("vehicleType")
-            }}</span>
+            <span class="error-message">{{ getErrorMessage('vehicleType') }}</span>
           </div>
 
           <div class="form-group">
-            <label for="registration"
-              >Registration (UPPERCASE, NO SPACES)</label
-            >
-            <input
-              id="registration"
-              type="text"
-              formControlName="registration"
-              style="text-transform: uppercase"
-            />
-            <span class="error-message">{{
-              getErrorMessage("registration")
-            }}</span>
+            <label for="registration">Registration (UPPERCASE, NO SPACES)</label>
+            <input id="registration" type="text" formControlName="registration" style="text-transform: uppercase" />
+            <span class="error-message">{{ getErrorMessage('registration') }}</span>
           </div>
 
           <div class="form-group">
             <label for="chassisNumber">Chassis Number (optional)</label>
-            <input
-              id="chassisNumber"
-              type="text"
-              formControlName="chassisNumber"
-              style="text-transform: uppercase"
-            />
-            <span class="error-message">{{
-              getErrorMessage("chassisNumber")
-            }}</span>
+            <input id="chassisNumber" type="text" formControlName="chassisNumber" style="text-transform: uppercase" />
+            <span class="error-message">{{ getErrorMessage('chassisNumber') }}</span>
           </div>
 
           <div class="form-group">
@@ -124,139 +96,211 @@
         <div class="previous-selections" *ngIf="previousSelections.length > 0">
           <h3>Previously Used Vehicles</h3>
           <div class="selection-pills">
-            <div
-              *ngFor="let item of previousSelections"
-              class="selection-pill"
-              (click)="applyPreviousSelection(item)"
-            >
+            <div *ngFor="let item of previousSelections" class="selection-pill" (click)="applyPreviousSelection(item)">
               {{ item.makeName }} {{ item.modelName }} ({{ item.registration }})
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Collection Details Section -->
+      <!-- Journey Type Selection -->
       <div class="form-section">
-        <h2>Collection Details</h2>
-        <div class="form-grid">
-          <div class="form-group full-width">
-            <label for="collectionAddress">Address</label>
-            <input
-              id="collectionAddress"
-              type="text"
-              formControlName="collectionAddress"
-            />
-            <span class="error-message">{{
-              getErrorMessage("collectionAddress")
-            }}</span>
+        <div class="journey-type-header">
+          <h2>Journey Type</h2>
+          <div class="split-journey-toggle">
+            <button type="button" class="toggle-btn" (click)="toggleSplitJourney()">
+              <span class="material-icons">{{ jobForm.get('isSplitJourney')?.value ? 'check_box' : 'check_box_outline_blank' }}</span>
+              Split Journey
+            </button>
+            <div class="journey-info" *ngIf="jobForm.get('isSplitJourney')?.value">
+              <span class="material-icons info-icon">info</span>
+              <span class="info-text">Split journey enables multiple collection and delivery points</span>
+            </div>
           </div>
+        </div>
 
-          <div class="form-group">
-            <label for="collectionCity">City</label>
-            <input
-              id="collectionCity"
-              type="text"
-              formControlName="collectionCity"
-            />
+        <!-- Journey Visualization -->
+        <div class="journey-visualization">
+          <div class="journey-step primary">
+            <div class="step-icon">
+              <span class="material-icons">location_on</span>
+            </div>
+            <div class="step-label">Primary Collection</div>
           </div>
-
-          <div class="form-group">
-            <label for="collectionPostcode">Postcode</label>
-            <input
-              id="collectionPostcode"
-              type="text"
-              formControlName="collectionPostcode"
-            />
+          <div class="journey-arrow">
+            <span class="material-icons">arrow_forward</span>
           </div>
-
-          <div class="form-group">
-            <label for="collectionContactName">Contact Name</label>
-            <input
-              id="collectionContactName"
-              type="text"
-              formControlName="collectionContactName"
-            />
+          <div class="journey-step secondary" *ngIf="jobForm.get('isSplitJourney')?.value">
+            <div class="step-icon">
+              <span class="material-icons">add_location</span>
+            </div>
+            <div class="step-label">Secondary Collection</div>
           </div>
-
-          <div class="form-group">
-            <label for="collectionContactPhone">Contact Phone</label>
-            <input
-              id="collectionContactPhone"
-              type="text"
-              formControlName="collectionContactPhone"
-            />
+          <div class="journey-arrow" *ngIf="jobForm.get('isSplitJourney')?.value">
+            <span class="material-icons">arrow_forward</span>
           </div>
-
-          <div class="form-group full-width">
-            <label for="collectionNotes">Notes</label>
-            <textarea
-              id="collectionNotes"
-              formControlName="collectionNotes"
-              rows="2"
-            ></textarea>
+          <div class="journey-step secondary" *ngIf="jobForm.get('isSplitJourney')?.value">
+            <div class="step-icon">
+              <span class="material-icons">add_location</span>
+            </div>
+            <div class="step-label">Secondary Delivery</div>
+          </div>
+          <div class="journey-arrow">
+            <span class="material-icons">arrow_forward</span>
+          </div>
+          <div class="journey-step primary">
+            <div class="step-icon">
+              <span class="material-icons">flag</span>
+            </div>
+            <div class="step-label">Final Delivery</div>
           </div>
         </div>
       </div>
 
-      <!-- Delivery Details Section -->
+      <!-- Primary Collection Details Section -->
       <div class="form-section">
-        <h2>Delivery Details</h2>
+        <h2>Primary Collection Details</h2>
+        <div class="form-grid">
+          <div class="form-group full-width">
+            <label for="collectionAddress">Address</label>
+            <input id="collectionAddress" type="text" formControlName="collectionAddress" />
+            <span class="error-message">{{ getErrorMessage('collectionAddress') }}</span>
+          </div>
+
+          <div class="form-group">
+            <label for="collectionCity">City</label>
+            <input id="collectionCity" type="text" formControlName="collectionCity" />
+          </div>
+
+          <div class="form-group">
+            <label for="collectionPostcode">Postcode</label>
+            <input id="collectionPostcode" type="text" formControlName="collectionPostcode" />
+          </div>
+
+          <div class="form-group">
+            <label for="collectionContactName">Contact Name</label>
+            <input id="collectionContactName" type="text" formControlName="collectionContactName" />
+          </div>
+
+          <div class="form-group">
+            <label for="collectionContactPhone">Contact Phone</label>
+            <input id="collectionContactPhone" type="text" formControlName="collectionContactPhone" />
+          </div>
+
+          <div class="form-group full-width">
+            <label for="collectionNotes">Notes</label>
+            <textarea id="collectionNotes" formControlName="collectionNotes" rows="2"></textarea>
+          </div>
+        </div>
+      </div>
+
+      <!-- Secondary Collection Details Section - Only shown for split journeys -->
+      <div class="form-section" *ngIf="jobForm.get('isSplitJourney')?.value">
+        <h2>Secondary Collection Details</h2>
+        <div class="form-grid">
+          <div class="form-group full-width">
+            <label for="secondaryCollectionAddress">Address</label>
+            <input id="secondaryCollectionAddress" type="text" formControlName="secondaryCollectionAddress" />
+            <span class="error-message">{{ getErrorMessage('secondaryCollectionAddress') }}</span>
+          </div>
+
+          <div class="form-group">
+            <label for="secondaryCollectionCity">City</label>
+            <input id="secondaryCollectionCity" type="text" formControlName="secondaryCollectionCity" />
+          </div>
+
+          <div class="form-group">
+            <label for="secondaryCollectionPostcode">Postcode</label>
+            <input id="secondaryCollectionPostcode" type="text" formControlName="secondaryCollectionPostcode" />
+          </div>
+
+          <div class="form-group">
+            <label for="secondaryCollectionContactName">Contact Name</label>
+            <input id="secondaryCollectionContactName" type="text" formControlName="secondaryCollectionContactName" />
+          </div>
+
+          <div class="form-group">
+            <label for="secondaryCollectionContactPhone">Contact Phone</label>
+            <input id="secondaryCollectionContactPhone" type="text" formControlName="secondaryCollectionContactPhone" />
+          </div>
+
+          <div class="form-group full-width">
+            <label for="secondaryCollectionNotes">Notes</label>
+            <textarea id="secondaryCollectionNotes" formControlName="secondaryCollectionNotes" rows="2"></textarea>
+          </div>
+        </div>
+      </div>
+
+      <!-- Secondary Delivery Details Section - Only shown for split journeys -->
+      <div class="form-section" *ngIf="jobForm.get('isSplitJourney')?.value">
+        <h2>Secondary Delivery Details</h2>
+        <div class="form-grid">
+          <div class="form-group full-width">
+            <label for="secondaryDeliveryAddress">Address</label>
+            <input id="secondaryDeliveryAddress" type="text" formControlName="secondaryDeliveryAddress" />
+            <span class="error-message">{{ getErrorMessage('secondaryDeliveryAddress') }}</span>
+          </div>
+
+          <div class="form-group">
+            <label for="secondaryDeliveryCity">City</label>
+            <input id="secondaryDeliveryCity" type="text" formControlName="secondaryDeliveryCity" />
+          </div>
+
+          <div class="form-group">
+            <label for="secondaryDeliveryPostcode">Postcode</label>
+            <input id="secondaryDeliveryPostcode" type="text" formControlName="secondaryDeliveryPostcode" />
+          </div>
+
+          <div class="form-group">
+            <label for="secondaryDeliveryContactName">Contact Name</label>
+            <input id="secondaryDeliveryContactName" type="text" formControlName="secondaryDeliveryContactName" />
+          </div>
+
+          <div class="form-group">
+            <label for="secondaryDeliveryContactPhone">Contact Phone</label>
+            <input id="secondaryDeliveryContactPhone" type="text" formControlName="secondaryDeliveryContactPhone" />
+          </div>
+
+          <div class="form-group full-width">
+            <label for="secondaryDeliveryNotes">Notes</label>
+            <textarea id="secondaryDeliveryNotes" formControlName="secondaryDeliveryNotes" rows="2"></textarea>
+          </div>
+        </div>
+      </div>
+
+      <!-- Final Delivery Details Section -->
+      <div class="form-section">
+        <h2>Final Delivery Details</h2>
         <div class="form-grid">
           <div class="form-group full-width">
             <label for="deliveryAddress">Address</label>
-            <input
-              id="deliveryAddress"
-              type="text"
-              formControlName="deliveryAddress"
-            />
-            <span class="error-message">{{
-              getErrorMessage("deliveryAddress")
-            }}</span>
+            <input id="deliveryAddress" type="text" formControlName="deliveryAddress" />
+            <span class="error-message">{{ getErrorMessage('deliveryAddress') }}</span>
           </div>
 
           <div class="form-group">
             <label for="deliveryCity">City</label>
-            <input
-              id="deliveryCity"
-              type="text"
-              formControlName="deliveryCity"
-            />
+            <input id="deliveryCity" type="text" formControlName="deliveryCity" />
           </div>
 
           <div class="form-group">
             <label for="deliveryPostcode">Postcode</label>
-            <input
-              id="deliveryPostcode"
-              type="text"
-              formControlName="deliveryPostcode"
-            />
+            <input id="deliveryPostcode" type="text" formControlName="deliveryPostcode" />
           </div>
 
           <div class="form-group">
             <label for="deliveryContactName">Contact Name</label>
-            <input
-              id="deliveryContactName"
-              type="text"
-              formControlName="deliveryContactName"
-            />
+            <input id="deliveryContactName" type="text" formControlName="deliveryContactName" />
           </div>
 
           <div class="form-group">
             <label for="deliveryContactPhone">Contact Phone</label>
-            <input
-              id="deliveryContactPhone"
-              type="text"
-              formControlName="deliveryContactPhone"
-            />
+            <input id="deliveryContactPhone" type="text" formControlName="deliveryContactPhone" />
           </div>
 
           <div class="form-group full-width">
             <label for="deliveryNotes">Notes</label>
-            <textarea
-              id="deliveryNotes"
-              formControlName="deliveryNotes"
-              rows="2"
-            ></textarea>
+            <textarea id="deliveryNotes" formControlName="deliveryNotes" rows="2"></textarea>
           </div>
         </div>
       </div>
@@ -265,17 +309,6 @@
       <div class="form-section">
         <h2>Additional Information</h2>
         <div class="form-grid">
-          <div class="form-group">
-            <div class="checkbox-group">
-              <input
-                type="checkbox"
-                id="isSplitJourney"
-                formControlName="isSplitJourney"
-              />
-              <label for="isSplitJourney">Split Journey</label>
-            </div>
-          </div>
-
           <div class="form-group full-width">
             <label for="notes">Job Notes</label>
             <textarea id="notes" formControlName="notes" rows="4"></textarea>
@@ -285,12 +318,8 @@
 
       <!-- Form Actions -->
       <div class="form-actions">
-        <button
-          type="submit"
-          class="submit-btn"
-          [disabled]="!jobForm.valid || isSubmitting"
-        >
-          {{ isSubmitting ? "Creating..." : "Create Job" }}
+        <button type="submit" class="submit-btn" [disabled]="!jobForm.valid || isSubmitting">
+          {{ isSubmitting ? 'Creating...' : 'Create Job' }}
         </button>
       </div>
     </form>

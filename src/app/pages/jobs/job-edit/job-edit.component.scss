@@ -235,6 +235,127 @@
   background-color: #e0e0e0;
 }
 
+/* Journey Type Section */
+.journey-type-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.split-journey-toggle {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.toggle-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: none;
+  border: none;
+  color: #333;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 6px 12px;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.toggle-btn:hover {
+  background-color: #f0f0f0;
+}
+
+.toggle-btn .material-icons {
+  color: #007bff;
+  font-size: 20px;
+}
+
+.journey-info {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #666;
+  font-size: 13px;
+}
+
+.info-icon {
+  color: #007bff;
+  font-size: 16px;
+}
+
+/* Journey Visualization */
+.journey-visualization {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.journey-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 12px;
+  border-radius: 8px;
+  min-width: 120px;
+}
+
+.journey-step.primary {
+  background-color: #e3f2fd;
+}
+
+.journey-step.secondary {
+  background-color: #fff8e1;
+}
+
+.step-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background-color: white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.journey-step.primary .step-icon {
+  color: #1976d2;
+}
+
+.journey-step.secondary .step-icon {
+  color: #f57c00;
+}
+
+.step-icon .material-icons {
+  font-size: 20px;
+}
+
+.step-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: #555;
+}
+
+.journey-arrow {
+  display: flex;
+  align-items: center;
+  color: #999;
+}
+
+.journey-arrow .material-icons {
+  font-size: 20px;
+}
+
 /* Checkbox Group */
 .checkbox-group {
   display: flex;
@@ -295,42 +416,6 @@
   cursor: not-allowed;
 }
 
-/* Status Badge */
-.status-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 6px 12px;
-  border-radius: 16px;
-  font-size: 13px;
-  font-weight: 500;
-  margin-left: 12px;
-}
-
-.status-badge.unallocated {
-  background-color: #e0e0e0;
-  color: #616161;
-}
-
-.status-badge.allocated {
-  background-color: #e1f5fe;
-  color: #0288d1;
-}
-
-.status-badge.collected {
-  background-color: #fff8e1;
-  color: #ff8f00;
-}
-
-.status-badge.delivered {
-  background-color: #e8f5e9;
-  color: #2e7d32;
-}
-
-.status-badge.completed {
-  background-color: #c8e6c9;
-  color: #388e3c;
-}
-
 /* Responsive Design */
 @media (max-width: 1200px) {
   .form-grid {
@@ -339,6 +424,11 @@
 
   .form-header {
     padding: 20px;
+  }
+
+  .journey-visualization {
+    flex-wrap: wrap;
+    justify-content: center;
   }
 }
 
@@ -390,6 +480,33 @@
     padding: 12px;
   }
 
+  .journey-type-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .split-journey-toggle {
+    width: 100%;
+  }
+
+  .journey-visualization {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .journey-step {
+    width: 100%;
+    flex-direction: row;
+    justify-content: flex-start;
+    min-width: 0;
+  }
+
+  .journey-arrow {
+    transform: rotate(90deg);
+    margin: 4px 0;
+  }
+
   .form-actions {
     padding-top: 24px;
     margin-top: 24px;
@@ -431,7 +548,8 @@
   }
 
   .header-actions,
-  .form-actions {
+  .form-actions,
+  .split-journey-toggle {
     display: none;
   }
 

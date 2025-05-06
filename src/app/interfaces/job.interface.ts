@@ -3,11 +3,7 @@ export interface Job {
   vehicleId: string;
   driverId: string | null;
   status: 'unallocated' | 'allocated' | 'collected' | 'delivered' | 'completed';
-  stage?:
-    | 'collection-complete'
-    | 'in-transit'
-    | 'ready-for-delivery'
-    | 'awaiting-confirmation';
+  stage?: 'collection-complete' | 'in-transit' | 'ready-for-delivery' | 'awaiting-confirmation';
   collectionStartTime?: Date;
   collectionCompleteTime?: Date;
   deliveryStartTime?: Date;
@@ -39,7 +35,7 @@ export interface Job {
   customerContact?: string;
   customerContactPhone?: string;
 
-  // Location details
+  // Primary Collection details
   collectionAddress?: string;
   collectionCity?: string;
   collectionPostcode?: string;
@@ -47,6 +43,7 @@ export interface Job {
   collectionContactPhone?: string;
   collectionNotes?: string;
 
+  // Final Delivery details
   deliveryAddress?: string;
   deliveryCity?: string;
   deliveryPostcode?: string;
@@ -65,8 +62,22 @@ export interface Job {
 
   // Split journey
   isSplitJourney?: boolean;
+
+  // Secondary Collection details
   secondaryCollectionAddress?: string;
+  secondaryCollectionCity?: string;
+  secondaryCollectionPostcode?: string;
+  secondaryCollectionContactName?: string;
+  secondaryCollectionContactPhone?: string;
+  secondaryCollectionNotes?: string;
+
+  // Secondary Delivery details
   secondaryDeliveryAddress?: string;
+  secondaryDeliveryCity?: string;
+  secondaryDeliveryPostcode?: string;
+  secondaryDeliveryContactName?: string;
+  secondaryDeliveryContactPhone?: string;
+  secondaryDeliveryNotes?: string;
 
   // Timestamps from job process
   collectionActualDateTime?: Date;

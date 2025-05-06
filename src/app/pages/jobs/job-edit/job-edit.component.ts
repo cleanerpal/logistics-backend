@@ -1,5 +1,5 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
-import { FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { FormBuilder, FormGroup, Validators, FormArray } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Observable, Subscription, forkJoin, of } from 'rxjs';
 import { finalize, switchMap, catchError, tap, map } from 'rxjs/operators';
@@ -140,7 +140,7 @@ export class JobEditComponent implements OnInit, OnDestroy {
       color: [''],
       year: [''],
 
-      // Collection Details
+      // Primary Collection Details
       collectionAddress: ['', Validators.required],
       collectionCity: [''],
       collectionPostcode: [''],
@@ -148,7 +148,7 @@ export class JobEditComponent implements OnInit, OnDestroy {
       collectionContactPhone: [''],
       collectionNotes: [''],
 
-      // Delivery Details
+      // Final Delivery Details
       deliveryAddress: ['', Validators.required],
       deliveryCity: [''],
       deliveryPostcode: [''],
@@ -158,6 +158,22 @@ export class JobEditComponent implements OnInit, OnDestroy {
 
       // Job Settings
       isSplitJourney: [false],
+
+      // Secondary Collection Details
+      secondaryCollectionAddress: [''],
+      secondaryCollectionCity: [''],
+      secondaryCollectionPostcode: [''],
+      secondaryCollectionContactName: [''],
+      secondaryCollectionContactPhone: [''],
+      secondaryCollectionNotes: [''],
+
+      // Secondary Delivery Details
+      secondaryDeliveryAddress: [''],
+      secondaryDeliveryCity: [''],
+      secondaryDeliveryPostcode: [''],
+      secondaryDeliveryContactName: [''],
+      secondaryDeliveryContactPhone: [''],
+      secondaryDeliveryNotes: [''],
 
       // General notes
       notes: [''],
@@ -181,6 +197,47 @@ export class JobEditComponent implements OnInit, OnDestroy {
     });
 
     if (modelSub) this.subscriptions.push(modelSub);
+
+    // Listen to split journey toggle to update validation
+    const splitJourneySub = this.jobForm.get('isSplitJourney')?.valueChanges.subscribe((isSplit) => {
+      this.updateSplitJourneyValidation(isSplit);
+    });
+
+    if (splitJourneySub) this.subscriptions.push(splitJourneySub);
+  }
+
+  private updateSplitJourneyValidation(isSplit: boolean) {
+    // Get the form controls for secondary addresses
+    const secondaryCollectionAddress = this.jobForm.get('secondaryCollectionAddress');
+    const secondaryDeliveryAddress = this.jobForm.get('secondaryDeliveryAddress');
+
+    if (isSplit) {
+      // If it's a split journey, make secondary addresses required
+      secondaryCollectionAddress?.setValidators([Validators.required]);
+      secondaryDeliveryAddress?.setValidators([Validators.required]);
+    } else {
+      // Otherwise, remove validators
+      secondaryCollectionAddress?.clearValidators();
+      secondaryDeliveryAddress?.clearValidators();
+
+      // Reset secondary address values
+      secondaryCollectionAddress?.setValue('');
+      secondaryDeliveryAddress?.setValue('');
+      this.jobForm.get('secondaryCollectionCity')?.setValue('');
+      this.jobForm.get('secondaryCollectionPostcode')?.setValue('');
+      this.jobForm.get('secondaryCollectionContactName')?.setValue('');
+      this.jobForm.get('secondaryCollectionContactPhone')?.setValue('');
+      this.jobForm.get('secondaryCollectionNotes')?.setValue('');
+      this.jobForm.get('secondaryDeliveryCity')?.setValue('');
+      this.jobForm.get('secondaryDeliveryPostcode')?.setValue('');
+      this.jobForm.get('secondaryDeliveryContactName')?.setValue('');
+      this.jobForm.get('secondaryDeliveryContactPhone')?.setValue('');
+      this.jobForm.get('secondaryDeliveryNotes')?.setValue('');
+    }
+
+    // Update validation status
+    secondaryCollectionAddress?.updateValueAndValidity();
+    secondaryDeliveryAddress?.updateValueAndValidity();
   }
 
   private updateAvailableModels(makeId: string) {
@@ -232,6 +289,9 @@ export class JobEditComponent implements OnInit, OnDestroy {
           modelId = model.id;
         }
 
+        // Check if this is a split journey
+        const isSplitJourney = job.isSplitJourney || false;
+
         // Now patch the form with all values including model
         this.jobForm.patchValue({
           customerId: job.customerId || '',
@@ -254,12 +314,30 @@ export class JobEditComponent implements OnInit, OnDestroy {
           deliveryContactName: job.deliveryContactName || '',
           deliveryContactPhone: job.deliveryContactPhone || '',
           deliveryNotes: job.deliveryNotes || '',
-          isSplitJourney: job.isSplitJourney || false,
+          isSplitJourney: isSplitJourney,
+          secondaryCollectionAddress: job.secondaryCollectionAddress || '',
+          secondaryCollectionCity: job.secondaryCollectionCity || '',
+          secondaryCollectionPostcode: job.secondaryCollectionPostcode || '',
+          secondaryCollectionContactName: job.secondaryCollectionContactName || '',
+          secondaryCollectionContactPhone: job.secondaryCollectionContactPhone || '',
+          secondaryCollectionNotes: job.secondaryCollectionNotes || '',
+          secondaryDeliveryAddress: job.secondaryDeliveryAddress || '',
+          secondaryDeliveryCity: job.secondaryDeliveryCity || '',
+          secondaryDeliveryPostcode: job.secondaryDeliveryPostcode || '',
+          secondaryDeliveryContactName: job.secondaryDeliveryContactName || '',
+          secondaryDeliveryContactPhone: job.secondaryDeliveryContactPhone || '',
+          secondaryDeliveryNotes: job.secondaryDeliveryNotes || '',
           notes: typeof job.notes === 'string' ? job.notes : '',
         });
+
+        // Make sure split journey validation is updated
+        this.updateSplitJourneyValidation(isSplitJourney);
       }, 100);
     } else {
       // If no model ID, just patch everything else
+      // Check if this is a split journey
+      const isSplitJourney = job.isSplitJourney || false;
+
       this.jobForm.patchValue({
         customerId: job.customerId || '',
         vehicleMake: makeId,
@@ -280,9 +358,24 @@ export class JobEditComponent implements OnInit, OnDestroy {
         deliveryContactName: job.deliveryContactName || '',
         deliveryContactPhone: job.deliveryContactPhone || '',
         deliveryNotes: job.deliveryNotes || '',
-        isSplitJourney: job.isSplitJourney || false,
+        isSplitJourney: isSplitJourney,
+        secondaryCollectionAddress: job.secondaryCollectionAddress || '',
+        secondaryCollectionCity: job.secondaryCollectionCity || '',
+        secondaryCollectionPostcode: job.secondaryCollectionPostcode || '',
+        secondaryCollectionContactName: job.secondaryCollectionContactName || '',
+        secondaryCollectionContactPhone: job.secondaryCollectionContactPhone || '',
+        secondaryCollectionNotes: job.secondaryCollectionNotes || '',
+        secondaryDeliveryAddress: job.secondaryDeliveryAddress || '',
+        secondaryDeliveryCity: job.secondaryDeliveryCity || '',
+        secondaryDeliveryPostcode: job.secondaryDeliveryPostcode || '',
+        secondaryDeliveryContactName: job.secondaryDeliveryContactName || '',
+        secondaryDeliveryContactPhone: job.secondaryDeliveryContactPhone || '',
+        secondaryDeliveryNotes: job.secondaryDeliveryNotes || '',
         notes: typeof job.notes === 'string' ? job.notes : '',
       });
+
+      // Make sure split journey validation is updated
+      this.updateSplitJourneyValidation(isSplitJourney);
     }
   }
 
@@ -363,6 +456,41 @@ export class JobEditComponent implements OnInit, OnDestroy {
     }, 100);
   }
 
+  /**
+   * Toggle split journey mode
+   */
+  toggleSplitJourney() {
+    const currentValue = this.jobForm.get('isSplitJourney')?.value;
+    this.jobForm.get('isSplitJourney')?.setValue(!currentValue);
+
+    // If turning on split journey, show a dialog with information
+    if (!currentValue) {
+      this.showSplitJourneyInfo();
+    }
+  }
+
+  /**
+   * Show information dialog about split journey
+   */
+  showSplitJourneyInfo() {
+    const dialogRef = this.dialog.open(ConfirmationDialogComponent, {
+      data: {
+        title: 'Split Journey',
+        message: 'You have enabled split journey mode. This allows you to specify additional collection and delivery points. Please fill in all required address fields.',
+        confirmText: 'Got it',
+        cancelText: 'Disable Split Journey',
+        icon: 'call_split',
+      },
+      width: '400px',
+    });
+
+    dialogRef.afterClosed().subscribe((result) => {
+      if (result === false) {
+        this.jobForm.get('isSplitJourney')?.setValue(false);
+      }
+    });
+  }
+
   onCancel() {
     // Show confirmation dialog if there are changes
     if (this.jobForm.dirty) {
@@ -418,7 +546,7 @@ export class JobEditComponent implements OnInit, OnDestroy {
       customerContact: selectedCustomer?.contactName || '',
       customerContactPhone: selectedCustomer?.contactPhone || '',
 
-      // Collection
+      // Primary Collection
       collectionAddress: formValue.collectionAddress,
       collectionCity: formValue.collectionCity,
       collectionPostcode: formValue.collectionPostcode,
@@ -426,7 +554,7 @@ export class JobEditComponent implements OnInit, OnDestroy {
       collectionContactPhone: formValue.collectionContactPhone,
       collectionNotes: formValue.collectionNotes,
 
-      // Delivery
+      // Final Delivery
       deliveryAddress: formValue.deliveryAddress,
       deliveryCity: formValue.deliveryCity,
       deliveryPostcode: formValue.deliveryPostcode,
@@ -440,8 +568,27 @@ export class JobEditComponent implements OnInit, OnDestroy {
       chassisNumber: formValue.chassisNumber ? formValue.chassisNumber.toUpperCase() : '',
       vehicleType: formValue.vehicleType,
 
-      // Split journey
+      // Split journey flag
       isSplitJourney: formValue.isSplitJourney,
+
+      // Only include secondary addresses if this is a split journey
+      ...(formValue.isSplitJourney && {
+        // Secondary Collection
+        secondaryCollectionAddress: formValue.secondaryCollectionAddress,
+        secondaryCollectionCity: formValue.secondaryCollectionCity,
+        secondaryCollectionPostcode: formValue.secondaryCollectionPostcode,
+        secondaryCollectionContactName: formValue.secondaryCollectionContactName,
+        secondaryCollectionContactPhone: formValue.secondaryCollectionContactPhone,
+        secondaryCollectionNotes: formValue.secondaryCollectionNotes,
+
+        // Secondary Delivery
+        secondaryDeliveryAddress: formValue.secondaryDeliveryAddress,
+        secondaryDeliveryCity: formValue.secondaryDeliveryCity,
+        secondaryDeliveryPostcode: formValue.secondaryDeliveryPostcode,
+        secondaryDeliveryContactName: formValue.secondaryDeliveryContactName,
+        secondaryDeliveryContactPhone: formValue.secondaryDeliveryContactPhone,
+        secondaryDeliveryNotes: formValue.secondaryDeliveryNotes,
+      }),
 
       // Notes
       notes: formValue.notes,

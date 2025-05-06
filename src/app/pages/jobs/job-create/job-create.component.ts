@@ -5,13 +5,11 @@ import { Observable, Subscription, forkJoin } from 'rxjs';
 import { finalize } from 'rxjs/operators';
 import { JobService } from '../../../services/job.service';
 import { AuthService } from '../../../services/auth.service';
-import {
-  VehicleService,
-  VehicleMake,
-  VehicleModel,
-} from '../../../services/vehicle.service';
+import { VehicleService, VehicleMake, VehicleModel } from '../../../services/vehicle.service';
 import { CustomerService, Customer } from '../../../services/customer.service';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { MatDialog } from '@angular/material/dialog';
+import { ConfirmationDialogComponent } from '../../../dialogs/confirmation-dialog.component';
 
 @Component({
   selector: 'app-job-create',
@@ -43,7 +41,8 @@ export class JobCreateComponent implements OnInit, OnDestroy {
     private authService: AuthService,
     private vehicleService: VehicleService,
     private customerService: CustomerService,
-    private snackBar: MatSnackBar
+    private snackBar: MatSnackBar,
+    private dialog: MatDialog
   ) {
     this.createForm();
   }
@@ -72,15 +71,12 @@ export class JobCreateComponent implements OnInit, OnDestroy {
       vehicleMake: ['', Validators.required],
       vehicleModel: ['', Validators.required],
       vehicleType: ['', Validators.required],
-      registration: [
-        '',
-        [Validators.required, Validators.pattern(/^[A-Z0-9]+$/)],
-      ],
+      registration: ['', [Validators.required, Validators.pattern(/^[A-Z0-9]+$/)]],
       chassisNumber: ['', Validators.pattern(/^[A-Z0-9]+$/)],
       color: [''],
       year: [''],
 
-      // Collection Details
+      // Primary Collection Details
       collectionAddress: ['', Validators.required],
       collectionCity: [''],
       collectionPostcode: [''],
@@ -88,7 +84,7 @@ export class JobCreateComponent implements OnInit, OnDestroy {
       collectionContactPhone: [''],
       collectionNotes: [''],
 
-      // Delivery Details
+      // Final Delivery Details
       deliveryAddress: ['', Validators.required],
       deliveryCity: [''],
       deliveryPostcode: [''],
@@ -98,6 +94,22 @@ export class JobCreateComponent implements OnInit, OnDestroy {
 
       // Job Settings
       isSplitJourney: [false],
+
+      // Secondary Collection Details
+      secondaryCollectionAddress: [''],
+      secondaryCollectionCity: [''],
+      secondaryCollectionPostcode: [''],
+      secondaryCollectionContactName: [''],
+      secondaryCollectionContactPhone: [''],
+      secondaryCollectionNotes: [''],
+
+      // Secondary Delivery Details
+      secondaryDeliveryAddress: [''],
+      secondaryDeliveryCity: [''],
+      secondaryDeliveryPostcode: [''],
+      secondaryDeliveryContactName: [''],
+      secondaryDeliveryContactPhone: [''],
+      secondaryDeliveryNotes: [''],
 
       // General notes
       notes: [''],
@@ -129,39 +141,77 @@ export class JobCreateComponent implements OnInit, OnDestroy {
     });
 
     this.subscriptions.push(referenceDataSub);
+
+    // Load previous vehicle selections
+    this.loadPreviousVehicleSelections();
   }
 
   private checkPermissions() {
-    const permissionSub = this.authService
-      .hasPermission('canCreateJobs')
-      .subscribe((hasPermission) => {
-        if (!hasPermission) {
-          this.showSnackbar('You do not have permission to create jobs');
-          this.router.navigate(['/jobs']);
-        }
-      });
+    const permissionSub = this.authService.hasPermission('canCreateJobs').subscribe((hasPermission) => {
+      if (!hasPermission) {
+        this.showSnackbar('You do not have permission to create jobs');
+        this.router.navigate(['/jobs']);
+      }
+    });
 
     this.subscriptions.push(permissionSub);
   }
 
   private setupFormListeners() {
     // Listen to make changes to update models
-    const makeSub = this.jobForm
-      .get('vehicleMake')
-      ?.valueChanges.subscribe((makeId) => {
-        this.updateAvailableModels(makeId);
-      });
+    const makeSub = this.jobForm.get('vehicleMake')?.valueChanges.subscribe((makeId) => {
+      this.updateAvailableModels(makeId);
+    });
 
     if (makeSub) this.subscriptions.push(makeSub);
 
     // Listen to model changes to update vehicle type
-    const modelSub = this.jobForm
-      .get('vehicleModel')
-      ?.valueChanges.subscribe((modelId) => {
-        this.updateVehicleType(modelId);
-      });
+    const modelSub = this.jobForm.get('vehicleModel')?.valueChanges.subscribe((modelId) => {
+      this.updateVehicleType(modelId);
+    });
 
     if (modelSub) this.subscriptions.push(modelSub);
+
+    // Listen to split journey toggle to update validation
+    const splitJourneySub = this.jobForm.get('isSplitJourney')?.valueChanges.subscribe((isSplit) => {
+      this.updateSplitJourneyValidation(isSplit);
+    });
+
+    if (splitJourneySub) this.subscriptions.push(splitJourneySub);
+  }
+
+  private updateSplitJourneyValidation(isSplit: boolean) {
+    // Get the form controls for secondary addresses
+    const secondaryCollectionAddress = this.jobForm.get('secondaryCollectionAddress');
+    const secondaryDeliveryAddress = this.jobForm.get('secondaryDeliveryAddress');
+
+    if (isSplit) {
+      // If it's a split journey, make secondary addresses required
+      secondaryCollectionAddress?.setValidators([Validators.required]);
+      secondaryDeliveryAddress?.setValidators([Validators.required]);
+    } else {
+      // Otherwise, remove validators
+      secondaryCollectionAddress?.clearValidators();
+      secondaryDeliveryAddress?.clearValidators();
+
+      // Reset secondary address values
+      secondaryCollectionAddress?.setValue('');
+      secondaryDeliveryAddress?.setValue('');
+      this.jobForm.get('secondaryCollectionCity')?.setValue('');
+      this.jobForm.get('secondaryCollectionPostcode')?.setValue('');
+      this.jobForm.get('secondaryCollectionContactName')?.setValue('');
+      this.jobForm.get('secondaryCollectionContactPhone')?.setValue('');
+      this.jobForm.get('secondaryCollectionNotes')?.setValue('');
+      this.jobForm.get('secondaryDeliveryCity')?.setValue('');
+      this.jobForm.get('secondaryDeliveryPostcode')?.setValue('');
+      this.jobForm.get('secondaryDeliveryContactName')?.setValue('');
+      this.jobForm.get('secondaryDeliveryContactPhone')?.setValue('');
+      this.jobForm.get('secondaryDeliveryNotes')?.setValue('');
+    }
+
+    // Update validation status
+    secondaryCollectionAddress?.updateValueAndValidity();
+    secondaryDeliveryAddress?.updateValueAndValidity();
   }
 
   private updateAvailableModels(makeId: string) {
@@ -171,9 +221,7 @@ export class JobCreateComponent implements OnInit, OnDestroy {
     }
 
     // If we already loaded all models, filter them locally for faster performance
-    this.availableModels = this.allModels.filter(
-      (model) => model.makeId === makeId && model.isActive
-    );
+    this.availableModels = this.allModels.filter((model) => model.makeId === makeId && model.isActive);
 
     // Reset model selection
     this.jobForm.get('vehicleModel')?.setValue('');
@@ -189,6 +237,20 @@ export class JobCreateComponent implements OnInit, OnDestroy {
 
     if (selectedModel) {
       this.jobForm.get('vehicleType')?.setValue(selectedModel.type);
+    }
+  }
+
+  private loadPreviousVehicleSelections() {
+    // Retrieve previous selections from localStorage
+    const savedSelections = localStorage.getItem('previousVehicleSelections');
+
+    if (savedSelections) {
+      try {
+        this.previousSelections = JSON.parse(savedSelections);
+      } catch (e) {
+        console.error('Error parsing saved vehicle selections:', e);
+        this.previousSelections = [];
+      }
     }
   }
 
@@ -221,20 +283,165 @@ export class JobCreateComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * For easy re-use of previous vehicle information
+   * Apply previously used vehicle details
    */
-  updatePreviousSelections() {
-    // Retrieve previous selections from localStorage
-    const savedSelections = localStorage.getItem('previousVehicleSelections');
+  applyPreviousSelection(selection: any) {
+    this.jobForm.patchValue({
+      vehicleMake: selection.makeId,
+      vehicleModel: selection.modelId,
+      registration: selection.registration,
+      chassisNumber: selection.chassisNumber || '',
+      color: selection.color || '',
+      year: selection.year || '',
+    });
 
-    if (savedSelections) {
-      try {
-        this.previousSelections = JSON.parse(savedSelections);
-      } catch (e) {
-        console.error('Error parsing saved vehicle selections:', e);
-        this.previousSelections = [];
-      }
+    // Make sure models list is updated
+    this.updateAvailableModels(selection.makeId);
+
+    // Delay setting the model to ensure the models list is populated
+    setTimeout(() => {
+      this.jobForm.patchValue({
+        vehicleModel: selection.modelId,
+      });
+    }, 100);
+  }
+
+  /**
+   * Toggle split journey mode
+   */
+  toggleSplitJourney() {
+    const currentValue = this.jobForm.get('isSplitJourney')?.value;
+    this.jobForm.get('isSplitJourney')?.setValue(!currentValue);
+
+    // If turning on split journey, show a dialog with information
+    if (!currentValue) {
+      this.showSplitJourneyInfo();
     }
+  }
+
+  /**
+   * Show information dialog about split journey
+   */
+  showSplitJourneyInfo() {
+    const dialogRef = this.dialog.open(ConfirmationDialogComponent, {
+      data: {
+        title: 'Split Journey',
+        message: 'You have enabled split journey mode. This allows you to specify additional collection and delivery points. Please fill in all required address fields.',
+        confirmText: 'Got it',
+        cancelText: 'Disable Split Journey',
+        icon: 'call_split',
+      },
+      width: '400px',
+    });
+
+    dialogRef.afterClosed().subscribe((result) => {
+      if (result === false) {
+        this.jobForm.get('isSplitJourney')?.setValue(false);
+      }
+    });
+  }
+
+  onCancel() {
+    this.router.navigate(['/jobs']);
+  }
+
+  onSubmit() {
+    if (this.jobForm.invalid) {
+      this.markFormGroupTouched(this.jobForm);
+      this.showSnackbar('Please complete all required fields');
+      return;
+    }
+
+    this.isSubmitting = true;
+
+    const formValue = this.jobForm.value;
+
+    // Get make and model display names
+    const selectedMake = this.vehicleMakes.find((m) => m.id === formValue.vehicleMake);
+    const selectedModel = this.availableModels.find((m) => m.id === formValue.vehicleModel);
+
+    // Customer info
+    const selectedCustomer = this.customers.find((c) => c.id === formValue.customerId);
+
+    // Prepare job data matching the Job interface
+    const jobData = {
+      vehicleId: formValue.chassisNumber || formValue.registration, // Using reg/chassis as vehicle ID
+      status: 'unallocated' as 'unallocated',
+      make: selectedMake?.displayName || '',
+      model: selectedModel?.name || '',
+      registration: formValue.registration.toUpperCase(),
+
+      // Customer info
+      customerId: formValue.customerId,
+      customerName: selectedCustomer?.name || '',
+      customerContact: selectedCustomer?.contactName || '',
+      customerContactPhone: selectedCustomer?.contactPhone || '',
+
+      // Primary Collection
+      collectionAddress: formValue.collectionAddress,
+      collectionCity: formValue.collectionCity,
+      collectionPostcode: formValue.collectionPostcode,
+      collectionContactName: formValue.collectionContactName,
+      collectionContactPhone: formValue.collectionContactPhone,
+      collectionNotes: formValue.collectionNotes,
+
+      // Final Delivery
+      deliveryAddress: formValue.deliveryAddress,
+      deliveryCity: formValue.deliveryCity,
+      deliveryPostcode: formValue.deliveryPostcode,
+      deliveryContactName: formValue.deliveryContactName,
+      deliveryContactPhone: formValue.deliveryContactPhone,
+      deliveryNotes: formValue.deliveryNotes,
+
+      // Vehicle details
+      color: formValue.color,
+      year: formValue.year,
+      chassisNumber: formValue.chassisNumber ? formValue.chassisNumber.toUpperCase() : '',
+      vehicleType: formValue.vehicleType,
+
+      // Split journey flag
+      isSplitJourney: formValue.isSplitJourney,
+
+      // Only include secondary addresses if this is a split journey
+      ...(formValue.isSplitJourney && {
+        // Secondary Collection
+        secondaryCollectionAddress: formValue.secondaryCollectionAddress,
+        secondaryCollectionCity: formValue.secondaryCollectionCity,
+        secondaryCollectionPostcode: formValue.secondaryCollectionPostcode,
+        secondaryCollectionContactName: formValue.secondaryCollectionContactName,
+        secondaryCollectionContactPhone: formValue.secondaryCollectionContactPhone,
+        secondaryCollectionNotes: formValue.secondaryCollectionNotes,
+
+        // Secondary Delivery
+        secondaryDeliveryAddress: formValue.secondaryDeliveryAddress,
+        secondaryDeliveryCity: formValue.secondaryDeliveryCity,
+        secondaryDeliveryPostcode: formValue.secondaryDeliveryPostcode,
+        secondaryDeliveryContactName: formValue.secondaryDeliveryContactName,
+        secondaryDeliveryContactPhone: formValue.secondaryDeliveryContactPhone,
+        secondaryDeliveryNotes: formValue.secondaryDeliveryNotes,
+      }),
+
+      // Notes
+      notes: formValue.notes,
+    };
+
+    // Save the vehicle selection for future use
+    this.saveToRecentSelections();
+
+    // Create the job
+    this.jobService
+      .createJob(jobData)
+      .pipe(finalize(() => (this.isSubmitting = false)))
+      .subscribe({
+        next: (jobId) => {
+          this.showSnackbar('Job created successfully');
+          this.router.navigate(['/jobs', jobId]);
+        },
+        error: (error) => {
+          console.error('Error creating job:', error);
+          this.showSnackbar(`Error creating job: ${error.message}`);
+        },
+      });
   }
 
   /**
@@ -244,20 +451,12 @@ export class JobCreateComponent implements OnInit, OnDestroy {
     const formValue = this.jobForm.value;
 
     // Only save if we have the minimum required information
-    if (
-      !formValue.vehicleMake ||
-      !formValue.vehicleModel ||
-      !formValue.registration
-    ) {
+    if (!formValue.vehicleMake || !formValue.vehicleModel || !formValue.registration) {
       return;
     }
 
-    const selectedMake = this.vehicleMakes.find(
-      (m) => m.id === formValue.vehicleMake
-    );
-    const selectedModel = this.availableModels.find(
-      (m) => m.id === formValue.vehicleModel
-    );
+    const selectedMake = this.vehicleMakes.find((m) => m.id === formValue.vehicleMake);
+    const selectedModel = this.availableModels.find((m) => m.id === formValue.vehicleModel);
 
     if (!selectedMake || !selectedModel) {
       return;
@@ -286,11 +485,7 @@ export class JobCreateComponent implements OnInit, OnDestroy {
     }
 
     // Check if this registration already exists
-    const existingIndex = selections.findIndex(
-      (s: { registration: string }) =>
-        s.registration.toLowerCase() ===
-        vehicleSelection.registration.toLowerCase()
-    );
+    const existingIndex = selections.findIndex((s: { registration: string }) => s.registration.toLowerCase() === vehicleSelection.registration.toLowerCase());
 
     if (existingIndex >= 0) {
       // Update existing entry
@@ -306,129 +501,10 @@ export class JobCreateComponent implements OnInit, OnDestroy {
     }
 
     // Save back to localStorage
-    localStorage.setItem(
-      'previousVehicleSelections',
-      JSON.stringify(selections)
-    );
+    localStorage.setItem('previousVehicleSelections', JSON.stringify(selections));
 
     // Update the component state
     this.previousSelections = selections;
-  }
-
-  /**
-   * Apply previously used vehicle details
-   */
-  applyPreviousSelection(selection: any) {
-    this.jobForm.patchValue({
-      vehicleMake: selection.makeId,
-      vehicleModel: selection.modelId,
-      registration: selection.registration,
-      chassisNumber: selection.chassisNumber || '',
-      color: selection.color || '',
-      year: selection.year || '',
-    });
-
-    // Make sure models list is updated
-    this.updateAvailableModels(selection.makeId);
-
-    // Delay setting the model to ensure the models list is populated
-    setTimeout(() => {
-      this.jobForm.patchValue({
-        vehicleModel: selection.modelId,
-      });
-    }, 100);
-  }
-
-  onCancel() {
-    this.router.navigate(['/jobs']);
-  }
-
-  onSubmit() {
-    if (this.jobForm.invalid) {
-      this.markFormGroupTouched(this.jobForm);
-      this.showSnackbar('Please complete all required fields');
-      return;
-    }
-
-    this.isSubmitting = true;
-
-    const formValue = this.jobForm.value;
-
-    // Get make and model display names
-    const selectedMake = this.vehicleMakes.find(
-      (m) => m.id === formValue.vehicleMake
-    );
-    const selectedModel = this.availableModels.find(
-      (m) => m.id === formValue.vehicleModel
-    );
-
-    // Customer info
-    const selectedCustomer = this.customers.find(
-      (c) => c.id === formValue.customerId
-    );
-
-    // Prepare job data matching the Job interface
-    const jobData = {
-      vehicleId: formValue.chassisNumber || formValue.registration, // Using reg/chassis as vehicle ID
-      status: 'unallocated' as 'unallocated',
-      make: selectedMake?.displayName || '',
-      model: selectedModel?.name || '',
-      registration: formValue.registration.toUpperCase(),
-
-      // Customer info
-      customerId: formValue.customerId,
-      customerName: selectedCustomer?.name || '',
-      customerContact: selectedCustomer?.contactName || '',
-      customerContactPhone: selectedCustomer?.contactPhone || '',
-
-      // Collection
-      collectionAddress: formValue.collectionAddress,
-      collectionCity: formValue.collectionCity,
-      collectionPostcode: formValue.collectionPostcode,
-      collectionContactName: formValue.collectionContactName,
-      collectionContactPhone: formValue.collectionContactPhone,
-      collectionNotes: formValue.collectionNotes,
-
-      // Delivery
-      deliveryAddress: formValue.deliveryAddress,
-      deliveryCity: formValue.deliveryCity,
-      deliveryPostcode: formValue.deliveryPostcode,
-      deliveryContactName: formValue.deliveryContactName,
-      deliveryContactPhone: formValue.deliveryContactPhone,
-      deliveryNotes: formValue.deliveryNotes,
-
-      // Vehicle details
-      color: formValue.color,
-      year: formValue.year,
-      chassisNumber: formValue.chassisNumber
-        ? formValue.chassisNumber.toUpperCase()
-        : '',
-      vehicleType: formValue.vehicleType,
-
-      // Split journey
-      isSplitJourney: formValue.isSplitJourney,
-
-      // Notes
-      notes: formValue.notes,
-    };
-
-    // Save the vehicle selection for future use
-    this.saveToRecentSelections();
-
-    // Create the job
-    this.jobService
-      .createJob(jobData)
-      .pipe(finalize(() => (this.isSubmitting = false)))
-      .subscribe({
-        next: (jobId) => {
-          this.showSnackbar('Job created successfully');
-          this.router.navigate(['/jobs', jobId]);
-        },
-        error: (error) => {
-          console.error('Error creating job:', error);
-          this.showSnackbar(`Error creating job: ${error.message}`);
-        },
-      });
   }
 
   private markFormGroupTouched(formGroup: FormGroup) {

@@ -2,9 +2,9 @@
 
 .job-details-page {
   min-height: 100vh;
-  background-color: #f8f9fa;
-  margin-left: 250px; /* Account for sidebar */
-  padding-top: 64px; /* Account for topbar height */
+  background-color: var(--background-color);
+  margin-left: var(--sidebar-width); /* Use global variable */
+  padding-top: var(--topbar-height); /* Use global variable */
 }
 
 /* Loading Overlay */
@@ -34,7 +34,7 @@
 /* Sticky Header */
 .sticky-header {
   position: sticky;
-  top: 64px; /* Start right below the topbar */
+  top: var(--topbar-height); /* Start right below the topbar */
   background-color: white;
   border-bottom: 1px solid #eee;
   z-index: 99; /* Less than topbar z-index (100) */
@@ -87,12 +87,16 @@
   flex-direction: column;
 }
 
-.job-details-header h1 {
-  margin: 0;
-  font-size: 24px;
-  color: #333;
-  line-height: 1.2;
+.job-id-wrapper {
+  display: flex;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.job-id {
+  font-size: 18px;
   font-weight: 600;
+  color: var(--primary-color);
 }
 
 .vehicle-summary {
@@ -123,6 +127,35 @@
   margin: 0 auto;
   /* Add a slight fade-in effect when image loads */
   transition: opacity 0.2s ease-in-out;
+}
+
+/* Journey Type Badge */
+.journey-type-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px 3px 3px;
+  border-radius: 16px;
+  font-size: 12px;
+  font-weight: 500;
+  margin-left: 8px;
+}
+
+.journey-type-badge.normal {
+  background-color: #e3f2fd;
+  color: #0d47a1;
+}
+
+.journey-type-badge.split {
+  background-color: #fff8e1;
+  color: #f57f17;
+}
+
+.journey-type-badge .material-icons {
+  font-size: 16px;
+  background: white;
+  border-radius: 50%;
+  padding: 2px;
 }
 
 .header-actions {
@@ -180,7 +213,7 @@
 }
 
 .tab-navigation button.active::after {
-  content: "";
+  content: '';
   position: absolute;
   bottom: 0;
   left: 0;
@@ -489,7 +522,7 @@
 }
 
 .status-step.completed .step-circle::after {
-  content: "✓";
+  content: '✓';
   color: white;
   position: absolute;
   top: 50%;
@@ -569,17 +602,13 @@
 }
 
 .current-status::after {
-  content: "";
+  content: '';
   position: absolute;
   top: 0;
   bottom: 0;
   right: 0;
   width: 50px;
-  background: linear-gradient(
-    90deg,
-    rgba(255, 255, 255, 0) 0%,
-    rgba(255, 255, 255, 1) 100%
-  );
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 1) 100%);
   z-index: 1;
   pointer-events: none;
 }
@@ -703,7 +732,7 @@
 }
 
 .timeline-container::before {
-  content: "";
+  content: '';
   position: absolute;
   top: 0;
   bottom: 0;
@@ -1061,6 +1090,95 @@
   background-color: #0056b3;
 }
 
+/* Journey Flow Visualization */
+.journey-flow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.journey-flow .journey-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 12px;
+  border-radius: 8px;
+  min-width: 110px;
+}
+
+.journey-flow .journey-step:nth-child(1),
+.journey-flow .journey-step:nth-child(7) {
+  background-color: #e3f2fd;
+}
+
+.journey-flow .journey-step:nth-child(3),
+.journey-flow .journey-step:nth-child(5) {
+  background-color: #fff8e1;
+}
+
+.step-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background-color: white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.journey-flow .journey-step:nth-child(1) .step-icon,
+.journey-flow .journey-step:nth-child(7) .step-icon {
+  color: #1976d2;
+}
+
+.journey-flow .journey-step:nth-child(3) .step-icon,
+.journey-flow .journey-step:nth-child(5) .step-icon {
+  color: #f57c00;
+}
+
+.step-icon .material-icons {
+  font-size: 20px;
+}
+
+.step-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: #555;
+  text-align: center;
+}
+
+.journey-arrow {
+  display: flex;
+  align-items: center;
+  color: #999;
+}
+
+.journey-arrow .material-icons {
+  font-size: 20px;
+}
+
+/* Secondary address styling */
+.address-section.secondary {
+  background-color: #fffde7;
+  border-left-color: #fbc02d;
+}
+
+.address-section.collection.secondary h3 {
+  color: #f57f17;
+}
+
+.address-section.delivery.secondary h3 {
+  color: #ff6f00;
+}
+
 /* Responsive Adjustments */
 @media (max-width: 1024px) {
   .header-content {
@@ -1115,6 +1233,29 @@
 
   .vehicle-brand-logo {
     margin-bottom: 16px;
+  }
+
+  /* Split journey responsive adjustments */
+  .journey-flow {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .journey-flow .journey-step {
+    width: 100%;
+    flex-direction: row;
+    justify-content: flex-start;
+    min-width: 0;
+  }
+
+  .journey-flow .journey-arrow {
+    transform: rotate(90deg);
+    margin: 4px 0;
+  }
+
+  .step-label {
+    text-align: left;
+    margin-left: 12px;
   }
 }
 

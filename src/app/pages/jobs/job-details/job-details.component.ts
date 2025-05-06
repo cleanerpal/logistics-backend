@@ -320,7 +320,9 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
   /**
    * Navigate back to the jobs list
    */
-  goBack() {}
+  goBack() {
+    this.router.navigate(['/jobs']);
+  }
 
   /**
    * Navigate to the job edit page if the user has permission

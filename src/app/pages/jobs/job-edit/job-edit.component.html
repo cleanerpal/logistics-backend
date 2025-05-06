@@ -109,9 +109,63 @@
         </div>
       </div>
 
-      <!-- Collection Details Section -->
+      <!-- Journey Type Selection -->
       <div class="form-section">
-        <h2>Collection Details</h2>
+        <div class="journey-type-header">
+          <h2>Journey Type</h2>
+          <div class="split-journey-toggle">
+            <button type="button" class="toggle-btn" (click)="toggleSplitJourney()">
+              <span class="material-icons">{{ jobForm.get('isSplitJourney')?.value ? 'check_box' : 'check_box_outline_blank' }}</span>
+              Split Journey
+            </button>
+            <div class="journey-info" *ngIf="jobForm.get('isSplitJourney')?.value">
+              <span class="material-icons info-icon">info</span>
+              <span class="info-text">Split journey enables multiple collection and delivery points</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Journey Visualization -->
+        <div class="journey-visualization">
+          <div class="journey-step primary">
+            <div class="step-icon">
+              <span class="material-icons">location_on</span>
+            </div>
+            <div class="step-label">Primary Collection</div>
+          </div>
+          <div class="journey-arrow">
+            <span class="material-icons">arrow_forward</span>
+          </div>
+          <div class="journey-step secondary" *ngIf="jobForm.get('isSplitJourney')?.value">
+            <div class="step-icon">
+              <span class="material-icons">add_location</span>
+            </div>
+            <div class="step-label">Secondary Collection</div>
+          </div>
+          <div class="journey-arrow" *ngIf="jobForm.get('isSplitJourney')?.value">
+            <span class="material-icons">arrow_forward</span>
+          </div>
+          <div class="journey-step secondary" *ngIf="jobForm.get('isSplitJourney')?.value">
+            <div class="step-icon">
+              <span class="material-icons">add_location</span>
+            </div>
+            <div class="step-label">Secondary Delivery</div>
+          </div>
+          <div class="journey-arrow">
+            <span class="material-icons">arrow_forward</span>
+          </div>
+          <div class="journey-step primary">
+            <div class="step-icon">
+              <span class="material-icons">flag</span>
+            </div>
+            <div class="step-label">Final Delivery</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Primary Collection Details Section -->
+      <div class="form-section">
+        <h2>Primary Collection Details</h2>
         <div class="form-grid">
           <div class="form-group full-width">
             <label for="collectionAddress">Address</label>
@@ -146,9 +200,83 @@
         </div>
       </div>
 
-      <!-- Delivery Details Section -->
+      <!-- Secondary Collection Details Section - Only shown for split journeys -->
+      <div class="form-section" *ngIf="jobForm.get('isSplitJourney')?.value">
+        <h2>Secondary Collection Details</h2>
+        <div class="form-grid">
+          <div class="form-group full-width">
+            <label for="secondaryCollectionAddress">Address</label>
+            <input id="secondaryCollectionAddress" type="text" formControlName="secondaryCollectionAddress" />
+            <span class="error-message">{{ getErrorMessage('secondaryCollectionAddress') }}</span>
+          </div>
+
+          <div class="form-group">
+            <label for="secondaryCollectionCity">City</label>
+            <input id="secondaryCollectionCity" type="text" formControlName="secondaryCollectionCity" />
+          </div>
+
+          <div class="form-group">
+            <label for="secondaryCollectionPostcode">Postcode</label>
+            <input id="secondaryCollectionPostcode" type="text" formControlName="secondaryCollectionPostcode" />
+          </div>
+
+          <div class="form-group">
+            <label for="secondaryCollectionContactName">Contact Name</label>
+            <input id="secondaryCollectionContactName" type="text" formControlName="secondaryCollectionContactName" />
+          </div>
+
+          <div class="form-group">
+            <label for="secondaryCollectionContactPhone">Contact Phone</label>
+            <input id="secondaryCollectionContactPhone" type="text" formControlName="secondaryCollectionContactPhone" />
+          </div>
+
+          <div class="form-group full-width">
+            <label for="secondaryCollectionNotes">Notes</label>
+            <textarea id="secondaryCollectionNotes" formControlName="secondaryCollectionNotes" rows="2"></textarea>
+          </div>
+        </div>
+      </div>
+
+      <!-- Secondary Delivery Details Section - Only shown for split journeys -->
+      <div class="form-section" *ngIf="jobForm.get('isSplitJourney')?.value">
+        <h2>Secondary Delivery Details</h2>
+        <div class="form-grid">
+          <div class="form-group full-width">
+            <label for="secondaryDeliveryAddress">Address</label>
+            <input id="secondaryDeliveryAddress" type="text" formControlName="secondaryDeliveryAddress" />
+            <span class="error-message">{{ getErrorMessage('secondaryDeliveryAddress') }}</span>
+          </div>
+
+          <div class="form-group">
+            <label for="secondaryDeliveryCity">City</label>
+            <input id="secondaryDeliveryCity" type="text" formControlName="secondaryDeliveryCity" />
+          </div>
+
+          <div class="form-group">
+            <label for="secondaryDeliveryPostcode">Postcode</label>
+            <input id="secondaryDeliveryPostcode" type="text" formControlName="secondaryDeliveryPostcode" />
+          </div>
+
+          <div class="form-group">
+            <label for="secondaryDeliveryContactName">Contact Name</label>
+            <input id="secondaryDeliveryContactName" type="text" formControlName="secondaryDeliveryContactName" />
+          </div>
+
+          <div class="form-group">
+            <label for="secondaryDeliveryContactPhone">Contact Phone</label>
+            <input id="secondaryDeliveryContactPhone" type="text" formControlName="secondaryDeliveryContactPhone" />
+          </div>
+
+          <div class="form-group full-width">
+            <label for="secondaryDeliveryNotes">Notes</label>
+            <textarea id="secondaryDeliveryNotes" formControlName="secondaryDeliveryNotes" rows="2"></textarea>
+          </div>
+        </div>
+      </div>
+
+      <!-- Final Delivery Details Section -->
       <div class="form-section">
-        <h2>Delivery Details</h2>
+        <h2>Final Delivery Details</h2>
         <div class="form-grid">
           <div class="form-group full-width">
             <label for="deliveryAddress">Address</label>
@@ -187,13 +315,6 @@
       <div class="form-section">
         <h2>Additional Information</h2>
         <div class="form-grid">
-          <div class="form-group">
-            <div class="checkbox-group">
-              <input type="checkbox" id="isSplitJourney" formControlName="isSplitJourney" />
-              <label for="isSplitJourney">Split Journey</label>
-            </div>
-          </div>
-
           <div class="form-group full-width">
             <label for="notes">Job Notes</label>
             <textarea id="notes" formControlName="notes" rows="4"></textarea>

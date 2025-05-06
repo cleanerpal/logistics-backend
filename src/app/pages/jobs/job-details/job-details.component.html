@@ -23,6 +23,14 @@
               <img [src]="getVehicleLogo(job.make)" [alt]="job.make + ' logo'" (error)="handleImageError($event)" />
             </div>
             <div class="job-details-header">
+              <div class="job-id-wrapper">
+                <span class="job-id">{{ job.id }}</span>
+                <!-- Journey Type Badge -->
+                <span class="journey-type-badge" [ngClass]="job.isSplitJourney ? 'split' : 'normal'">
+                  <span class="material-icons">{{ job.isSplitJourney ? 'call_split' : 'arrow_forward' }}</span>
+                  {{ job.isSplitJourney ? 'Split Journey' : 'Direct Journey' }}
+                </span>
+              </div>
               <div class="vehicle-summary" *ngIf="job.make && job.model">
                 {{ job.make }} {{ job.model }}
                 {{ job.registration ? '(' + job.registration + ')' : '' }}
@@ -121,10 +129,48 @@
               <div class="info-card addresses-card">
                 <h2>Addresses</h2>
                 <div class="card-content">
+                  <!-- Journey Visualization for Split Journeys -->
+                  <div class="journey-flow" *ngIf="job.isSplitJourney">
+                    <div class="journey-step">
+                      <div class="step-icon">
+                        <span class="material-icons">location_on</span>
+                      </div>
+                      <div class="step-label">Primary Collection</div>
+                    </div>
+                    <div class="journey-arrow">
+                      <span class="material-icons">arrow_forward</span>
+                    </div>
+                    <div class="journey-step">
+                      <div class="step-icon">
+                        <span class="material-icons">add_location</span>
+                      </div>
+                      <div class="step-label">Secondary Collection</div>
+                    </div>
+                    <div class="journey-arrow">
+                      <span class="material-icons">arrow_forward</span>
+                    </div>
+                    <div class="journey-step">
+                      <div class="step-icon">
+                        <span class="material-icons">add_location</span>
+                      </div>
+                      <div class="step-label">Secondary Delivery</div>
+                    </div>
+                    <div class="journey-arrow">
+                      <span class="material-icons">arrow_forward</span>
+                    </div>
+                    <div class="journey-step">
+                      <div class="step-icon">
+                        <span class="material-icons">flag</span>
+                      </div>
+                      <div class="step-label">Final Delivery</div>
+                    </div>
+                  </div>
+
+                  <!-- Primary Collection -->
                   <div class="address-section collection">
                     <h3>
                       <span class="material-icons">location_on</span>
-                      Collection
+                      {{ job.isSplitJourney ? 'Primary Collection' : 'Collection' }}
                     </h3>
                     <p class="address-main">
                       {{ job.collectionAddress || 'Not specified' }}
@@ -138,10 +184,50 @@
                       {{ job.collectionNotes }}
                     </p>
                   </div>
+
+                  <!-- Secondary Collection - Only if Split Journey -->
+                  <div class="address-section collection secondary" *ngIf="job.isSplitJourney">
+                    <h3>
+                      <span class="material-icons">add_location</span>
+                      Secondary Collection
+                    </h3>
+                    <p class="address-main">
+                      {{ job.secondaryCollectionAddress || 'Not specified' }}
+                    </p>
+                    <p *ngIf="job.secondaryCollectionCity"><strong>City:</strong> {{ job.secondaryCollectionCity }}</p>
+                    <p *ngIf="job.secondaryCollectionPostcode"><strong>Postcode:</strong> {{ job.secondaryCollectionPostcode }}</p>
+                    <p *ngIf="job.secondaryCollectionContactName"><strong>Contact:</strong> {{ job.secondaryCollectionContactName }}</p>
+                    <p *ngIf="job.secondaryCollectionContactPhone"><strong>Phone:</strong> {{ job.secondaryCollectionContactPhone }}</p>
+                    <p *ngIf="job.secondaryCollectionNotes" class="instructions">
+                      <span class="material-icons">info</span>
+                      {{ job.secondaryCollectionNotes }}
+                    </p>
+                  </div>
+
+                  <!-- Secondary Delivery - Only if Split Journey -->
+                  <div class="address-section delivery secondary" *ngIf="job.isSplitJourney">
+                    <h3>
+                      <span class="material-icons">add_location</span>
+                      Secondary Delivery
+                    </h3>
+                    <p class="address-main">
+                      {{ job.secondaryDeliveryAddress || 'Not specified' }}
+                    </p>
+                    <p *ngIf="job.secondaryDeliveryCity"><strong>City:</strong> {{ job.secondaryDeliveryCity }}</p>
+                    <p *ngIf="job.secondaryDeliveryPostcode"><strong>Postcode:</strong> {{ job.secondaryDeliveryPostcode }}</p>
+                    <p *ngIf="job.secondaryDeliveryContactName"><strong>Contact:</strong> {{ job.secondaryDeliveryContactName }}</p>
+                    <p *ngIf="job.secondaryDeliveryContactPhone"><strong>Phone:</strong> {{ job.secondaryDeliveryContactPhone }}</p>
+                    <p *ngIf="job.secondaryDeliveryNotes" class="instructions">
+                      <span class="material-icons">info</span>
+                      {{ job.secondaryDeliveryNotes }}
+                    </p>
+                  </div>
+
+                  <!-- Final Delivery -->
                   <div class="address-section delivery">
                     <h3>
                       <span class="material-icons">flag</span>
-                      Delivery
+                      {{ job.isSplitJourney ? 'Final Delivery' : 'Delivery' }}
                     </h3>
                     <p class="address-main">
                       {{ job.deliveryAddress || 'Not specified' }}
