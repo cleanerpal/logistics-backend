@@ -5,7 +5,6 @@ import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTableDataSource } from '@angular/material/table';
 import { Subscription } from 'rxjs';
-import { switchMap } from 'rxjs/operators';
 import { CustomerService } from '../../../services/customer.service';
 import { JobService } from '../../../services/job.service';
 import { NotificationService } from '../../../services/notification.service';
@@ -122,8 +121,6 @@ export class CustomerDetailsComponent implements OnInit, OnDestroy {
     this.subscriptions.push(jobsSub);
   }
 
-  // Add this code to your DriverDetailsComponent class (src/app/pages/drivers/driver-details/driver-details.component.ts)
-
   /**
    * Get status class for CSS styling
    * This accepts a string status value and returns the appropriate CSS class name
@@ -133,53 +130,12 @@ export class CustomerDetailsComponent implements OnInit, OnDestroy {
 
     switch (status.toLowerCase()) {
       case 'active':
-        return 'status-green';
+        return 'status-active';
       case 'pending':
-        return 'status-orange';
+        return 'status-pending';
       case 'inactive':
       default:
-        return 'status-gray';
-    }
-  }
-
-  /**
-   * Get type class for CSS styling
-   * This accepts a string type value and returns the appropriate CSS class name
-   */
-  getTypeClass(type: string | undefined): string {
-    if (!type) return 'type-blue';
-
-    switch (type.toLowerCase()) {
-      case 'customer':
-        return 'type-blue';
-      case 'supplier':
-        return 'type-purple';
-      case 'partner':
-        return 'type-orange';
-      default:
-        return 'type-blue';
-    }
-  }
-
-  /**
-   * Get role class for CSS styling
-   * This accepts a string role value and returns the appropriate CSS class name
-   */
-  getRoleClass(role: string | undefined): string {
-    if (!role) return 'role-driver';
-
-    switch (role.toLowerCase()) {
-      case 'admin':
-        return 'role-admin';
-      case 'manager':
-        return 'role-manager';
-      case 'dispatcher':
-        return 'role-dispatcher';
-      case 'driver':
-        return 'role-driver';
-      case 'user':
-      default:
-        return 'role-user';
+        return 'status-inactive';
     }
   }
 

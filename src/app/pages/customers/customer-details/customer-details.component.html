@@ -15,8 +15,8 @@
       <div class="title-content">
         <h1>{{ customer?.name }}</h1>
         <div class="customer-status" *ngIf="customer">
-          <span class="status-chip small" [class]="getStatusClass(driver?.status)">
-            {{ driver?.status || 'Unknown' }}
+          <span class="status-chip small" [ngClass]="getStatusClass(customer.status)">
+            {{ customer.status || 'Unknown' }}
           </span>
         </div>
       </div>
@@ -53,8 +53,8 @@
               <div class="info-item">
                 <label>Industry</label>
                 <div class="value-with-icon">
-                  <!-- <mat-icon>{{ getIndustryIcon(customer.industry) }}</mat-icon> -->
-                  <span>{{ customer.industry }}</span>
+                  <mat-icon>{{ getIndustryIcon(customer.industry || '') }}</mat-icon>
+                  <span>{{ customer.industry || 'Not specified' }}</span>
                 </div>
               </div>
               <div class="info-item">
@@ -171,8 +171,8 @@
               <ng-container matColumnDef="status">
                 <th mat-header-cell *matHeaderCellDef>Status</th>
                 <td mat-cell *matCellDef="let job">
-                  <span class="status-chip small" [class]="getStatusClass(driver?.status)">
-                    {{ driver?.status || 'Unknown' }}
+                  <span class="status-chip small" [ngClass]="getStatusClass(job.status)">
+                    {{ job.status || 'Unknown' }}
                   </span>
                 </td>
               </ng-container>

@@ -1,7 +1,7 @@
+import { Component, OnInit, OnDestroy, ViewChild, TemplateRef } from '@angular/core';
 import { Location } from '@angular/common';
-import { Component, OnDestroy, OnInit, TemplateRef, ViewChild } from '@angular/core';
 import { Auth, User, onAuthStateChanged } from '@angular/fire/auth';
-import { Firestore, addDoc, collection, deleteDoc, doc, getDocs, orderBy, query, serverTimestamp, updateDoc, where } from '@angular/fire/firestore';
+import { Firestore, collection, doc, getDoc, getDocs, query, where, orderBy, serverTimestamp, addDoc, updateDoc, deleteDoc } from '@angular/fire/firestore';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
 import { MatPaginator } from '@angular/material/paginator';
@@ -764,9 +764,39 @@ export class DriverDetailsComponent implements OnInit, OnDestroy {
 
   /**
    * Get status class for CSS styling
+   * This accepts a string status value and returns the appropriate CSS class name
    */
-  getStatusClass(isActive: boolean | undefined): string {
-    return isActive ? 'status-green' : 'status-gray';
+  getStatusClass(status: string | undefined): string {
+    if (!status) return 'status-gray';
+
+    switch (status.toLowerCase()) {
+      case 'active':
+        return 'status-green';
+      case 'pending':
+        return 'status-orange';
+      case 'inactive':
+      default:
+        return 'status-gray';
+    }
+  }
+
+  /**
+   * Get type class for CSS styling
+   * This accepts a string type value and returns the appropriate CSS class name
+   */
+  getTypeClass(type: string | undefined): string {
+    if (!type) return 'type-blue';
+
+    switch (type.toLowerCase()) {
+      case 'customer':
+        return 'type-blue';
+      case 'supplier':
+        return 'type-purple';
+      case 'partner':
+        return 'type-orange';
+      default:
+        return 'type-blue';
+    }
   }
 
   /**
@@ -783,7 +813,7 @@ export class DriverDetailsComponent implements OnInit, OnDestroy {
       user: 'role-user',
     };
 
-    return roleMap[role] || 'role-driver';
+    return roleMap[role.toLowerCase()] || 'role-driver';
   }
 
   /**
@@ -905,21 +935,5 @@ export class DriverDetailsComponent implements OnInit, OnDestroy {
 
     // String or number timestamp
     return new Date(timestamp);
-  }
-
-  /**
-   * Add a document to a collection
-   */
-  private addDoc(collectionPath: string, data: any): Promise<any> {
-    const collectionRef = collection(this.firestore, collectionPath);
-    return addDoc(collectionRef, data);
-  }
-
-  /**
-   * Update a document in a collection
-   */
-  private updateDoc(docPath: string, data: any): Promise<void> {
-    const docRef = doc(this.firestore, docPath);
-    return updateDoc(docRef, data);
   }
 }
