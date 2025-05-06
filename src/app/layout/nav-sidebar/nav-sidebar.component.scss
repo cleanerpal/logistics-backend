@@ -1,4 +1,5 @@
-/* nav-sidebar.component.scss */
+/* nav-sidebar.component.scss - simplified version */
+
 .sidebar {
   width: 250px;
   height: 100vh;
@@ -17,11 +18,11 @@
   padding: 24px 20px;
   text-align: center;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
 
-  .logo {
-    max-width: 120px;
-    height: auto;
-  }
+.logo {
+  max-width: 120px;
+  height: auto;
 }
 
 .nav-list {
@@ -30,19 +31,19 @@
   margin: 16px 0;
   flex: 1;
   overflow-y: auto;
+}
 
-  &::-webkit-scrollbar {
-    width: 4px;
-  }
+.nav-list::-webkit-scrollbar {
+  width: 4px;
+}
 
-  &::-webkit-scrollbar-track {
-    background: transparent;
-  }
+.nav-list::-webkit-scrollbar-track {
+  background: transparent;
+}
 
-  &::-webkit-scrollbar-thumb {
-    background-color: rgba(255, 255, 255, 0.3);
-    border-radius: 2px;
-  }
+.nav-list::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.3);
+  border-radius: 2px;
 }
 
 .nav-item {
@@ -50,20 +51,19 @@
   align-items: center;
   padding: 12px 20px;
   cursor: pointer;
-  transition: all 0.3s ease;
   border-left: 4px solid transparent;
   color: rgba(255, 255, 255, 0.85);
+}
 
-  &:hover {
-    background-color: rgba(255, 255, 255, 0.1);
-    color: white;
-  }
+.nav-item:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: white;
+}
 
-  &.active {
-    background-color: rgba(255, 255, 255, 0.15);
-    border-left: 4px solid var(--secondary-color);
-    color: white;
-  }
+.nav-item.active {
+  background-color: rgba(255, 255, 255, 0.15);
+  border-left: 4px solid var(--secondary-color);
+  color: white;
 }
 
 .nav-icon {
@@ -82,63 +82,7 @@
   letter-spacing: 0.1px;
 }
 
-// User profile section
-.user-profile {
-  padding: 16px;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-  display: flex;
-  align-items: center;
-  gap: 12px;
-
-  .avatar {
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    background-color: var(--secondary-color);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 500;
-    color: white;
-  }
-
-  .user-info {
-    overflow: hidden;
-
-    .user-name {
-      font-size: 14px;
-      font-weight: 500;
-      color: white;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .user-role {
-      font-size: 12px;
-      color: rgba(255, 255, 255, 0.7);
-    }
-  }
-
-  .logout-icon {
-    margin-left: auto;
-    width: 32px;
-    height: 32px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    border-radius: 50%;
-    color: rgba(255, 255, 255, 0.7);
-
-    &:hover {
-      background-color: rgba(255, 255, 255, 0.1);
-      color: white;
-    }
-  }
-}
-
-// Responsive Design
+/* Responsive Design */
 @media (max-width: 768px) {
   .sidebar {
     width: 60px;
@@ -147,10 +91,10 @@
 
   .logo-container {
     padding: 16px 10px;
+  }
 
-    .logo {
-      max-width: 40px;
-    }
+  .logo {
+    max-width: 40px;
   }
 
   .nav-label {
@@ -160,29 +104,14 @@
   .nav-item {
     padding: 16px 0;
     justify-content: center;
+  }
 
-    &.active {
-      border-left: none;
-      border-right: 4px solid var(--secondary-color);
-    }
+  .nav-item.active {
+    border-left: none;
+    border-right: 4px solid var(--secondary-color);
   }
 
   .nav-icon {
     margin-right: 0;
-  }
-
-  .user-profile {
-    padding: 12px 8px;
-    justify-content: center;
-
-    .avatar {
-      width: 32px;
-      height: 32px;
-    }
-
-    .user-info,
-    .logout-icon {
-      display: none;
-    }
   }
 }

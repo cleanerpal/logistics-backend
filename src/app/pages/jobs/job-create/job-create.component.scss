@@ -1,13 +1,10 @@
-/* job-create.component.scss */
+/* job-create.component.scss - corrected for sidebar */
+
 .create-job-container {
   min-height: 100vh;
   background-color: #f8f9fa;
   padding: 24px;
-
-  @media (max-width: 768px) {
-    margin-left: 60px;
-    padding: 16px;
-  }
+  margin-left: 250px; /* Account for sidebar */
 }
 
 .create-job-content {
@@ -18,19 +15,41 @@
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-// Header
+/* Loading Overlay */
+.loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.9);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  gap: 16px;
+}
+
+.loading-overlay span {
+  color: rgba(0, 0, 0, 0.6);
+  font-size: 14px;
+  margin-top: 8px;
+}
+
+/* Header */
 .form-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 24px;
   border-bottom: 1px solid #eee;
+}
 
-  h1 {
-    margin: 0;
-    font-size: 24px;
-    color: #333;
-  }
+.form-header h1 {
+  margin: 0;
+  font-size: 24px;
+  color: #333;
 }
 
 .cancel-btn {
@@ -43,19 +62,18 @@
   background-color: white;
   color: #666;
   cursor: pointer;
-  transition: all 0.3s ease;
-
-  &:hover {
-    border-color: #dc3545;
-    color: #dc3545;
-  }
-
-  .material-icons {
-    font-size: 18px;
-  }
 }
 
-// Form
+.cancel-btn:hover {
+  border-color: #dc3545;
+  color: #dc3545;
+}
+
+.cancel-btn .material-icons {
+  font-size: 18px;
+}
+
+/* Form */
 .job-form {
   padding: 24px;
 }
@@ -64,77 +82,94 @@
   margin-bottom: 32px;
   padding-bottom: 32px;
   border-bottom: 1px solid #eee;
+}
 
-  &:last-child {
-    border-bottom: none;
-    margin-bottom: 0;
-    padding-bottom: 0;
-  }
+.form-section:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
 
-  h2 {
-    font-size: 18px;
-    color: #333;
-    margin: 0 0 20px 0;
-  }
+.form-section h2 {
+  font-size: 18px;
+  color: #333;
+  margin: 0 0 20px 0;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
 }
 
 .form-group {
   margin-bottom: 20px;
+}
 
-  label {
-    display: block;
-    margin-bottom: 8px;
-    color: #666;
-    font-size: 14px;
-  }
+.form-group.full-width {
+  grid-column: 1 / -1;
+}
 
-  input,
-  select,
-  textarea {
-    width: 100%;
-    padding: 10px 12px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    background-color: white;
-    color: #333;
-    font-family: "Montserrat", sans-serif;
-    font-size: 14px;
-    font-weight: 400;
-    transition: all 0.3s ease;
+.form-group label {
+  display: block;
+  margin-bottom: 8px;
+  color: #666;
+  font-size: 14px;
+}
 
-    &::placeholder {
-      color: #999;
-      font-weight: 300;
-    }
+.form-group input,
+.form-group select,
+.form-group textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background-color: white;
+  color: #333;
+  font-family: "UberMove", sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+}
 
-    &:focus {
-      outline: none;
-      border-color: #007bff;
-      box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
-    }
+.form-group input::placeholder,
+.form-group select::placeholder,
+.form-group textarea::placeholder {
+  color: #999;
+  font-weight: 300;
+}
 
-    &.ng-touched.ng-invalid {
-      border-color: #dc3545;
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+}
 
-      &:focus {
-        box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.1);
-      }
-    }
-  }
+.form-group input.ng-touched.ng-invalid,
+.form-group select.ng-touched.ng-invalid,
+.form-group textarea.ng-touched.ng-invalid {
+  border-color: #dc3545;
+}
 
-  textarea {
-    resize: vertical;
-    min-height: 100px;
-  }
+.form-group input.ng-touched.ng-invalid:focus,
+.form-group select.ng-touched.ng-invalid:focus,
+.form-group textarea.ng-touched.ng-invalid:focus {
+  box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.1);
+}
 
-  select {
-    appearance: none;
-    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
-    background-repeat: no-repeat;
-    background-position: right 12px center;
-    background-size: 16px;
-    padding-right: 40px;
-  }
+.form-group textarea {
+  resize: vertical;
+  min-height: 100px;
+}
+
+.form-group select {
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 16px;
+  padding-right: 40px;
 }
 
 .error-message {
@@ -145,7 +180,40 @@
   min-height: 20px;
 }
 
-// Form Actions
+/* Previous Selections */
+.selection-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.selection-pill {
+  background-color: #f0f0f0;
+  padding: 8px 12px;
+  border-radius: 20px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.selection-pill:hover {
+  background-color: #e0e0e0;
+}
+
+/* Checkbox Group */
+.checkbox-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.checkbox-group input[type="checkbox"] {
+  width: auto;
+}
+
+/* Form Actions */
 .form-actions {
   display: flex;
   justify-content: center;
@@ -163,30 +231,38 @@
   font-size: 16px;
   font-weight: 500;
   cursor: pointer;
-  transition: background-color 0.3s ease;
-
-  &:hover {
-    background-color: #0056b3;
-  }
-
-  &:disabled {
-    background-color: #ccc;
-    cursor: not-allowed;
-  }
 }
 
-// Responsive Design
+.submit-btn:hover {
+  background-color: #0056b3;
+}
+
+.submit-btn:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
+/* Responsive Design */
 @media (max-width: 768px) {
+  .create-job-container {
+    margin-left: 60px; /* Collapsed sidebar width */
+    padding: 16px;
+  }
+
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+
   .form-header {
     flex-direction: column;
     align-items: flex-start;
     gap: 16px;
     padding: 16px;
+  }
 
-    .cancel-btn {
-      width: 100%;
-      justify-content: center;
-    }
+  .form-header .cancel-btn {
+    width: 100%;
+    justify-content: center;
   }
 
   .job-form {
@@ -196,92 +272,55 @@
   .form-section {
     margin-bottom: 24px;
     padding-bottom: 24px;
+  }
 
-    h2 {
-      font-size: 16px;
-      margin-bottom: 16px;
-    }
+  .form-section h2 {
+    font-size: 16px;
+    margin-bottom: 16px;
   }
 
   .form-group {
     margin-bottom: 16px;
+  }
 
-    input,
-    select,
-    textarea {
-      font-size: 16px; // Prevent zoom on iOS
-      padding: 12px;
-    }
+  .form-group input,
+  .form-group select,
+  .form-group textarea {
+    font-size: 16px; /* Prevent zoom on iOS */
+    padding: 12px;
   }
 
   .form-actions {
     padding-top: 24px;
     margin-top: 24px;
+  }
 
-    .submit-btn {
-      width: 100%;
-      padding: 14px 32px;
-    }
+  .submit-btn {
+    width: 100%;
+    padding: 14px 32px;
   }
 }
 
-// Dark mode support
-@media (prefers-color-scheme: dark) {
+@media (max-width: 600px) {
   .create-job-container {
-    background-color: #1a1a1a;
+    padding: 8px;
+  }
+}
+
+/* Print Styles */
+@media print {
+  .create-job-container {
+    margin-left: 0; /* No sidebar in print */
+    padding: 0;
+    background: white;
   }
 
   .create-job-content {
-    background-color: #2d2d2d;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-  }
-
-  .form-header {
-    border-bottom-color: #404040;
-
-    h1 {
-      color: #fff;
-    }
-  }
-
-  .form-section {
-    border-bottom-color: #404040;
-
-    h2 {
-      color: #fff;
-    }
-  }
-
-  .form-group {
-    label {
-      color: #ccc;
-    }
-
-    input,
-    select,
-    textarea {
-      background-color: #333;
-      border-color: #404040;
-      color: #fff;
-
-      &:focus {
-        border-color: #007bff;
-      }
-    }
+    box-shadow: none;
+    max-width: none;
   }
 
   .cancel-btn {
-    background-color: #2d2d2d;
-    border-color: #404040;
-    color: #ccc;
-
-    &:hover {
-      border-color: #dc3545;
-      color: #dc3545;
-    }
-  }
-
-  select {
-    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+    display: none;
   }
 }

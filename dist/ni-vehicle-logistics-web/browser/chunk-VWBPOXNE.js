@@ -1,1 +1,0 @@
-import{Lb as s,Mb as n,fc as i,pb as o}from"./chunk-NXWLSP6D.js";import"./chunk-RA2WU32H.js";var p=class t{static \u0275fac=function(e){return new(e||t)};static \u0275cmp=o({type:t,selectors:[["app-jobs-list"]],decls:2,vars:0,template:function(e,m){e&1&&(s(0,"p"),i(1,"jobs-list works!"),n())},encapsulation:2})};export{p as JobsListComponent};

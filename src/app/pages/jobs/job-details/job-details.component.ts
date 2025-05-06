@@ -433,6 +433,21 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
     return date.toLocaleString();
   }
 
+  /**
+   * Get vehicle brand logo path
+   * @param make The vehicle manufacturer name
+   * @returns Path to the logo image
+   */
+  getVehicleLogo(make: string): string {
+    if (!make) return 'assets/images/car-logos/default.png';
+
+    // Convert to lowercase and remove spaces/special characters for file matching
+    const normalizedMake = make.toLowerCase().replace(/[^a-z0-9]/g, '');
+
+    // Return the path to the logo - add error handling with default logo
+    return `assets/images/car-logos/${normalizedMake}.png`;
+  }
+
   showSnackbar(message: string): void {
     this.snackBar.open(message, 'Close', {
       duration: 3000,

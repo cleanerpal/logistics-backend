@@ -1,1 +1,0 @@
-import{Lb as n,Mb as s,fc as a,pb as o}from"./chunk-NXWLSP6D.js";import"./chunk-RA2WU32H.js";var i=class t{static \u0275fac=function(e){return new(e||t)};static \u0275cmp=o({type:t,selectors:[["app-job-details"]],decls:2,vars:0,template:function(e,l){e&1&&(n(0,"p"),a(1,"job-details works!"),s())},encapsulation:2})};export{i as JobDetailsComponent};

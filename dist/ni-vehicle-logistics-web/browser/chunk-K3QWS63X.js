@@ -1,1 +1,0 @@
-import{b as o}from"./chunk-W6YWG2VD.js";import"./chunk-M4BJXN77.js";import"./chunk-4PPYA6ZN.js";import"./chunk-3O2P3FIP.js";import"./chunk-NXWLSP6D.js";import"./chunk-RA2WU32H.js";var r=[{path:"",loadComponent:()=>import("./chunk-BJC2M6HB.js").then(t=>t.ReportsComponent),canActivate:[o],data:{roles:["SuperAdmin","Admin"]}}];export{r as REPORTS_ROUTES};
