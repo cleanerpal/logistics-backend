@@ -1,101 +1,140 @@
-import { Component, OnInit, ViewChild, AfterViewInit, TemplateRef } from '@angular/core';
+import { Component, OnInit, ViewChild, AfterViewInit, OnDestroy } from '@angular/core';
+import { Router } from '@angular/router';
 import { MatTableDataSource } from '@angular/material/table';
 import { MatSort } from '@angular/material/sort';
 import { MatPaginator } from '@angular/material/paginator';
-import { MatDialog } from '@angular/material/dialog';
-import { FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { Router } from '@angular/router';
+import { FormControl, FormGroup } from '@angular/forms';
+import { Subscription } from 'rxjs';
+import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { MatSlideToggleChange } from '@angular/material/slide-toggle';
-import { MatCheckboxChange } from '@angular/material/checkbox';
-
-interface Manufacturer {
-  id: string;
-  name: string;
-  logoUrl: string;
-  modelCount: number;
-  activeJobs: number;
-  lastUpdated: Date;
-  isActive: boolean;
-}
+import { AuthService } from '../../../services/auth.service';
+import { VehicleService, Vehicle } from '../../../services/vehicle.service';
 
 @Component({
   selector: 'app-vehicle-list',
   templateUrl: './vehicle-list.component.html',
-  styleUrl: './vehicle-list.component.scss',
+  styleUrls: ['./vehicle-list.component.scss'],
   standalone: false,
 })
-export class VehicleListComponent implements OnInit, AfterViewInit {
-  // Data source and pagination
-  dataSource = new MatTableDataSource<Manufacturer>([]);
-  allManufacturers: Manufacturer[] = [];
+export class VehicleListComponent implements OnInit, AfterViewInit, OnDestroy {
+  displayedColumns: string[] = ['registration', 'make', 'model', 'type', 'color', 'lastProcessedDate', 'jobCount', 'actions'];
+
+  isLoading = false;
+  dataSource = new MatTableDataSource<Vehicle>([]);
+  hasCreatePermission = false;
+  hasEditPermission = false;
+
+  // Form controls
+  searchControl = new FormControl('');
+  filterForm: FormGroup;
+
+  // Dropdown options
+  makes: string[] = [];
+  vehicleTypes: string[] = [];
+  colors: string[] = [];
+
+  // Color mapping for visualization
+  colorMap: { [key: string]: string } = {
+    Black: '#333333',
+    White: '#FFFFFF',
+    Silver: '#C0C0C0',
+    Grey: '#808080',
+    Blue: '#0000FF',
+    Red: '#FF0000',
+    Green: '#008000',
+    Yellow: '#FFFF00',
+    Brown: '#A52A2A',
+    Orange: '#FFA500',
+    Purple: '#800080',
+    Gold: '#FFD700',
+    Beige: '#F5F5DC',
+  };
+
+  private subscriptions: Subscription[] = [];
+
   @ViewChild(MatSort) sort!: MatSort;
   @ViewChild(MatPaginator) paginator!: MatPaginator;
 
-  // Search and sort
-  searchTerm = '';
-  sortOption: 'alphabetical' | 'mostUsed' | 'recent' = 'alphabetical';
-  showInactive = false;
-
-  // Loading and admin states
-  isLoading = false;
-  isAdmin = false; // Should be set by auth service
-
-  // Stats
-  totalModels = 0;
-
-  // Form
-  manufacturerForm: FormGroup;
-
-  // Dialog state
-  dialogData: Manufacturer | null = null;
-  manufacturerToDelete: Manufacturer | null = null;
-
-  // Template References
-  @ViewChild('addManufacturerDialog')
-  addManufacturerDialog!: TemplateRef<any>;
-
-  @ViewChild('deleteConfirmDialog')
-  deleteConfirmDialog!: TemplateRef<any>;
-
-  constructor(private router: Router, private dialog: MatDialog, private formBuilder: FormBuilder, private snackBar: MatSnackBar) {
-    this.manufacturerForm = this.formBuilder.group({
-      name: ['', Validators.required],
-      logoUrl: [''],
-      isActive: [true],
+  constructor(private router: Router, private vehicleService: VehicleService, private authService: AuthService, private snackBar: MatSnackBar) {
+    this.filterForm = new FormGroup({
+      make: new FormControl('All'),
+      type: new FormControl('All'),
+      color: new FormControl('All'),
     });
   }
 
-  ngOnInit() {
-    this.loadManufacturers();
+  ngOnInit(): void {
+    this.checkPermissions();
+    this.loadVehicles();
+    this.setupFilterListeners();
+  }
+
+  ngAfterViewInit(): void {
+    this.dataSource.sort = this.sort;
+    this.dataSource.paginator = this.paginator;
     this.setupCustomFilter();
   }
 
-  ngAfterViewInit() {
-    this.dataSource.paginator = this.paginator;
-    this.dataSource.sort = this.sort;
+  ngOnDestroy(): void {
+    this.subscriptions.forEach((sub) => sub.unsubscribe());
   }
 
-  private setupCustomFilter() {
-    this.dataSource.filterPredicate = (data: Manufacturer, filter: string) => {
-      // Check if we should show the item based on active status
-      if (!data.isActive && !this.showInactive) {
+  private checkPermissions(): void {
+    const authSub = this.authService.getUserProfile().subscribe((user) => {
+      this.hasCreatePermission = user?.permissions?.canManageUsers || user?.permissions?.isAdmin || false;
+      this.hasEditPermission = user?.permissions?.canManageUsers || user?.permissions?.isAdmin || false;
+    });
+    this.subscriptions.push(authSub);
+  }
+
+  private setupFilterListeners(): void {
+    // Subscribe to search input changes
+    const searchSub = this.searchControl.valueChanges.pipe(debounceTime(300), distinctUntilChanged()).subscribe((value) => {
+      this.applyFilter(value || '');
+    });
+    this.subscriptions.push(searchSub);
+
+    // Subscribe to filter form changes
+    const filterSub = this.filterForm.valueChanges.subscribe(() => {
+      this.applyFilters();
+    });
+    this.subscriptions.push(filterSub);
+  }
+
+  private setupCustomFilter(): void {
+    this.dataSource.filterPredicate = (data: Vehicle, filter: string) => {
+      const searchStr = filter.toLowerCase();
+
+      // Apply dropdown filters first
+      const makeFilter = this.filterForm.get('make')?.value;
+      if (makeFilter !== 'All' && data.makeName !== makeFilter) {
         return false;
       }
 
-      // If there's no search filter, show the item
-      if (!filter) {
-        return true;
+      const typeFilter = this.filterForm.get('type')?.value;
+      if (typeFilter !== 'All' && data.type !== typeFilter) {
+        return false;
       }
 
-      // Apply the search filter
-      const searchStr = filter.toLowerCase();
-      return data.name.toLowerCase().includes(searchStr) || data.modelCount.toString().includes(searchStr) || data.activeJobs.toString().includes(searchStr);
+      const colorFilter = this.filterForm.get('color')?.value;
+      if (colorFilter !== 'All' && data.color !== colorFilter) {
+        return false;
+      }
+
+      // Then apply search text filter
+      return (
+        data.registration?.toLowerCase().includes(searchStr) ||
+        data.chassisNumber?.toLowerCase().includes(searchStr) ||
+        data.makeName?.toLowerCase().includes(searchStr) ||
+        data.modelName?.toLowerCase().includes(searchStr) ||
+        data.vin?.toLowerCase().includes(searchStr) ||
+        data.color?.toLowerCase().includes(searchStr) ||
+        (data.year?.toString() || '').includes(searchStr)
+      );
     };
   }
 
-  applyFilter(event: Event) {
-    const filterValue = (event.target as HTMLInputElement).value;
+  applyFilter(filterValue: string): void {
     this.dataSource.filter = filterValue.trim().toLowerCase();
 
     if (this.dataSource.paginator) {
@@ -103,192 +142,100 @@ export class VehicleListComponent implements OnInit, AfterViewInit {
     }
   }
 
-  toggleShowInactive(event: MatSlideToggleChange) {
-    this.showInactive = event.checked;
-
-    // Force a refresh of the filtered data
-    const currentFilter = this.dataSource.filter;
-    this.dataSource.filter = ''; // Clear filter
-    this.dataSource.filter = currentFilter; // Reapply filter
-
-    // If we're showing inactive items, make sure we have all data available
-    if (this.showInactive) {
-      // Restore any filtered out inactive items
-      this.dataSource.data = [...this.allManufacturers];
-    }
-  }
-
-  toggleManufacturerActive(manufacturer: Manufacturer, event: MatCheckboxChange) {
-    manufacturer.isActive = event.checked;
-
-    // Update the manufacturer in the allManufacturers array
-    const index = this.allManufacturers.findIndex((m) => m.id === manufacturer.id);
-    if (index !== -1) {
-      this.allManufacturers[index].isActive = event.checked;
-    }
-
-    // If manufacturer is being deactivated and show inactive is false,
-    // update the visible data
-    if (!manufacturer.isActive && !this.showInactive) {
-      this.dataSource.data = this.dataSource.data.filter((m) => m.id !== manufacturer.id);
-    }
-
-    // Force filter refresh
-    const currentFilter = this.dataSource.filter || '';
+  applyFilters(): void {
+    // This will trigger the filterPredicate function with the current search value
+    const currentFilter = this.dataSource.filter || ' ';
     this.dataSource.filter = '';
     this.dataSource.filter = currentFilter;
-
-    // Show success message
-    this.showSuccessMessage(`${manufacturer.name} ${manufacturer.isActive ? 'activated' : 'deactivated'} successfully`);
-
-    // Here you would typically make an API call to update the status
   }
 
-  loadManufacturers() {
+  loadVehicles(): void {
     this.isLoading = true;
 
-    // Simulate API call
-    setTimeout(() => {
-      this.allManufacturers = [
-        {
-          id: '1',
-          name: 'Abarth',
-          logoUrl: '/assets/images/car-logos/abarth.jpg',
-          modelCount: 42,
-          activeJobs: 25,
-          lastUpdated: new Date('2025-01-30T13:34:46.045172'),
-          isActive: true,
-        },
-      ];
+    const vehiclesSub = this.vehicleService.getVehicles().subscribe({
+      next: (vehicles) => {
+        this.dataSource.data = vehicles;
+        this.extractFilterOptions(vehicles);
+        this.isLoading = false;
+      },
+      error: (error) => {
+        console.error('Error loading vehicles:', error);
+        this.showSnackbar('Error loading vehicles. Please try again.');
+        this.isLoading = false;
+      },
+    });
 
-      // Initialize the data source with all manufacturers
-      this.dataSource.data = [...this.allManufacturers];
-
-      // Calculate total models
-      this.totalModels = this.allManufacturers.reduce((sum, make) => sum + make.modelCount, 0);
-
-      this.isLoading = false;
-    }, 1000);
+    this.subscriptions.push(vehiclesSub);
   }
 
-  sortManufacturers(option: 'alphabetical' | 'mostUsed' | 'recent') {
-    this.sortOption = option;
-    const sortData = [...this.dataSource.data];
+  private extractFilterOptions(vehicles: Vehicle[]): void {
+    // Extract unique makes, types, and colors for filters
+    const makesSet = new Set<string>();
+    const typesSet = new Set<string>();
+    const colorsSet = new Set<string>();
 
-    switch (option) {
-      case 'alphabetical':
-        sortData.sort((a, b) => a.name.localeCompare(b.name));
-        break;
-      case 'mostUsed':
-        sortData.sort((a, b) => b.activeJobs - a.activeJobs);
-        break;
-      case 'recent':
-        sortData.sort((a, b) => b.lastUpdated.getTime() - a.lastUpdated.getTime());
-        break;
+    vehicles.forEach((vehicle) => {
+      if (vehicle.makeName) makesSet.add(vehicle.makeName);
+      if (vehicle.type) typesSet.add(vehicle.type);
+      if (vehicle.color) colorsSet.add(vehicle.color);
+    });
+
+    this.makes = Array.from(makesSet).sort();
+    this.vehicleTypes = Array.from(typesSet).sort();
+    this.colors = Array.from(colorsSet).sort();
+  }
+
+  refreshVehicles(): void {
+    this.loadVehicles();
+  }
+
+  createNewVehicle(): void {
+    this.router.navigate(['/vehicles/new']);
+  }
+
+  viewVehicleDetails(vehicle: Vehicle): void {
+    this.router.navigate(['/vehicles', vehicle.registration]);
+  }
+
+  editVehicle(vehicle: Vehicle, event: Event): void {
+    event.stopPropagation(); // Prevent row click event
+    this.router.navigate(['/vehicles', vehicle.registration, 'edit']);
+  }
+
+  viewVehicleJobs(vehicle: Vehicle, event: Event): void {
+    event.stopPropagation(); // Prevent row click event
+    this.router.navigate(['/jobs'], {
+      queryParams: {
+        registration: vehicle.registration,
+      },
+    });
+  }
+
+  formatDate(date: Date | undefined): string {
+    if (!date) return 'N/A';
+
+    if (typeof date === 'string') {
+      date = new Date(date);
     }
 
-    this.dataSource.data = sortData;
-  }
-
-  // Navigation
-  viewModels(manufacturer: Manufacturer) {
-    this.router.navigate(['/vehicles/models']);
-  }
-
-  // CRUD Operations
-  addManufacturer() {
-    this.dialogData = null;
-    this.manufacturerForm.reset({ isActive: true });
-
-    const dialogRef = this.dialog.open(this.addManufacturerDialog, {
-      width: '400px',
-    });
-
-    dialogRef.afterClosed().subscribe((result) => {
-      if (result) {
-        this.saveManufacturer();
-      }
-      this.dialogData = null;
-    });
-  }
-
-  editManufacturer(manufacturer: Manufacturer, event: Event) {
-    event.stopPropagation();
-
-    this.dialogData = manufacturer;
-    this.manufacturerForm.patchValue({
-      name: manufacturer.name,
-      logoUrl: manufacturer.logoUrl,
-      isActive: manufacturer.isActive,
-    });
-
-    const dialogRef = this.dialog.open(this.addManufacturerDialog, {
-      width: '400px',
-    });
-
-    dialogRef.afterClosed().subscribe((result) => {
-      if (result) {
-        this.updateManufacturer(manufacturer.id);
-      }
-      this.dialogData = null;
-    });
-  }
-
-  deleteManufacturer(manufacturer: Manufacturer, event: Event) {
-    event.stopPropagation();
-    this.manufacturerToDelete = manufacturer;
-
-    const dialogRef = this.dialog.open(this.deleteConfirmDialog, {
-      width: '400px',
-    });
-
-    dialogRef.afterClosed().subscribe((result) => {
-      if (result) {
-        this.confirmDelete();
-      }
-      this.manufacturerToDelete = null;
-    });
-  }
-
-  saveManufacturer() {
-    if (this.manufacturerForm.valid) {
-      // Implement save logic
-      console.log('Saving manufacturer:', this.manufacturerForm.value);
-
-      this.dialog.closeAll();
-      this.showSuccessMessage('Manufacturer added successfully');
-      this.loadManufacturers(); // Reload data
+    // Handle Firebase Timestamp
+    if (date && typeof date === 'object' && 'toDate' in date) {
+      const timestamp = date as unknown as { toDate: () => Date };
+      date = timestamp.toDate();
     }
+
+    return date.toLocaleDateString();
   }
 
-  updateManufacturer(id: string) {
-    if (this.manufacturerForm.valid) {
-      // Implement update logic
-      console.log('Updating manufacturer:', id, this.manufacturerForm.value);
-
-      this.dialog.closeAll();
-      this.showSuccessMessage('Manufacturer updated successfully');
-      this.loadManufacturers(); // Reload data
-    }
+  getColorHex(colorName: string): string {
+    return this.colorMap[colorName] || '#CCCCCC'; // Default gray if not found
   }
 
-  confirmDelete() {
-    if (this.manufacturerToDelete) {
-      // Implement delete logic
-      console.log('Deleting manufacturer:', this.manufacturerToDelete.id);
-
-      this.dialog.closeAll();
-      this.showSuccessMessage('Manufacturer deleted successfully');
-      this.loadManufacturers(); // Reload data
-    }
-  }
-
-  // Utility Methods
-  private showSuccessMessage(message: string) {
+  showSnackbar(message: string): void {
     this.snackBar.open(message, 'Close', {
-      duration: 3000,
-      horizontalPosition: 'end',
-      verticalPosition: 'top',
+      duration: 5000,
+      horizontalPosition: 'center',
+      verticalPosition: 'bottom',
     });
   }
 }

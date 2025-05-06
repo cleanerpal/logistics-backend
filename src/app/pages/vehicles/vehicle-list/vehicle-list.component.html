@@ -1,11 +1,9 @@
-<mat-card class="mat-elevation-z3">
+<mat-card class="mat-elevation-z3 main-card">
   <!-- Header -->
   <div class="header-wrapper">
     <div class="header-title">
-      <h1>Vehicle Manufacturers</h1>
-      <p class="subtitle">
-        {{ dataSource.filteredData.length }} Makes, {{ totalModels }} Models
-      </p>
+      <h1>Vehicles</h1>
+      <p class="subtitle">{{ dataSource.filteredData.length }} total vehicles</p>
     </div>
   </div>
 
@@ -14,219 +12,157 @@
     <div class="filters-section">
       <!-- Search Bar -->
       <mat-form-field appearance="outline" class="search-field">
-        <mat-label>Search manufacturers</mat-label>
-        <input
-          matInput
-          [(ngModel)]="searchTerm"
-          (keyup)="applyFilter($event)"
-          placeholder="Search by name or details"
-        />
+        <mat-label>Search vehicles</mat-label>
+        <input matInput [formControl]="searchControl" placeholder="Search by registration, make, model, or chassis" />
         <mat-icon matSuffix>search</mat-icon>
       </mat-form-field>
 
-      <!-- Active/Inactive Filter -->
-      <mat-slide-toggle
-        [checked]="showInactive"
-        (change)="toggleShowInactive($event)"
-        class="show-inactive-toggle"
-      >
-        Show Inactive Manufacturers
-      </mat-slide-toggle>
+      <div class="filters-group" [formGroup]="filterForm">
+        <mat-form-field appearance="outline">
+          <mat-label>Make</mat-label>
+          <mat-select formControlName="make">
+            <mat-option value="All">All</mat-option>
+            <mat-option *ngFor="let make of makes" [value]="make">
+              {{ make }}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
 
-      <!-- Sort Options -->
-      <div class="sort-options">
-        <mat-button-toggle-group [value]="sortOption">
-          <mat-button-toggle
-            value="alphabetical"
-            (click)="sortManufacturers('alphabetical')"
-          >
-            <mat-icon>sort_by_alpha</mat-icon>
-            Alphabetical
-          </mat-button-toggle>
-          <mat-button-toggle
-            value="mostUsed"
-            (click)="sortManufacturers('mostUsed')"
-          >
-            <mat-icon>trending_up</mat-icon>
-            Most Used
-          </mat-button-toggle>
-          <mat-button-toggle
-            value="recent"
-            (click)="sortManufacturers('recent')"
-          >
-            <mat-icon>update</mat-icon>
-            Recently Added
-          </mat-button-toggle>
-        </mat-button-toggle-group>
+        <mat-form-field appearance="outline">
+          <mat-label>Type</mat-label>
+          <mat-select formControlName="type">
+            <mat-option value="All">All</mat-option>
+            <mat-option *ngFor="let type of vehicleTypes" [value]="type">
+              {{ type }}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Color</mat-label>
+          <mat-select formControlName="color">
+            <mat-option value="All">All</mat-option>
+            <mat-option *ngFor="let color of colors" [value]="color">
+              {{ color }}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
       </div>
     </div>
 
-    <!-- Action Buttons -->
     <div class="actions-group">
-      <button
-        mat-flat-button
-        color="primary"
-        *ngIf="isAdmin"
-        (click)="addManufacturer()"
-      >
+      <button mat-flat-button color="primary" (click)="refreshVehicles()" class="refresh-button" matTooltip="Refresh vehicles list">
+        <mat-icon>refresh</mat-icon>
+      </button>
+      <button mat-flat-button color="primary" (click)="createNewVehicle()" class="create-button" *ngIf="hasCreatePermission">
         <mat-icon>add</mat-icon>
-        Add Manufacturer
+        New Vehicle
       </button>
     </div>
   </div>
 
-  <!-- Main Content Area -->
-  <div class="manufacturers-grid-container">
+  <!-- Table Container -->
+  <div class="table-container">
     <!-- Loading Overlay -->
     <div class="loading-overlay" *ngIf="isLoading">
       <mat-spinner diameter="40"></mat-spinner>
-      <span>Loading manufacturers...</span>
+      <span>Loading vehicles...</span>
     </div>
 
-    <!-- Manufacturers Grid -->
-    <div class="manufacturers-grid" [class.loading]="isLoading">
-      <mat-card
-        class="manufacturer-card"
-        *ngFor="let manufacturer of dataSource.filteredData"
-        (click)="viewModels(manufacturer)"
-        [class.active]="manufacturer.isActive"
-      >
-        <mat-card-content>
-          <img
-            [src]="manufacturer.logoUrl"
-            [alt]="manufacturer.name + ' logo'"
-            class="manufacturer-logo"
-          />
-          <h2>{{ manufacturer.name }}</h2>
+    <!-- Table -->
+    <table mat-table [dataSource]="dataSource" matSort matSortActive="lastProcessedDate" matSortDirection="desc" [class.loading]="isLoading">
+      <!-- Registration Column -->
+      <ng-container matColumnDef="registration">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>Registration</th>
+        <td mat-cell *matCellDef="let vehicle" class="registration">
+          {{ vehicle.registration }}
+        </td>
+      </ng-container>
 
-          <!-- Active Status -->
-          <div class="active-status">
-            <mat-checkbox
-              [checked]="manufacturer.isActive"
-              (change)="toggleManufacturerActive(manufacturer, $event)"
-              (click)="$event.stopPropagation()"
-              color="primary"
-            >
-              Active
-            </mat-checkbox>
-          </div>
+      <!-- Make Column -->
+      <ng-container matColumnDef="make">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>Make</th>
+        <td mat-cell *matCellDef="let vehicle">{{ vehicle.makeName }}</td>
+      </ng-container>
 
-          <div class="stats">
-            <div class="stat">
-              <span class="label">Models</span>
-              <span class="value">{{ manufacturer.modelCount }}</span>
-            </div>
-            <div class="stat">
-              <span class="label">Active Jobs</span>
-              <span class="value">{{ manufacturer.activeJobs }}</span>
-            </div>
-          </div>
+      <!-- Model Column -->
+      <ng-container matColumnDef="model">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>Model</th>
+        <td mat-cell *matCellDef="let vehicle">{{ vehicle.modelName }}</td>
+      </ng-container>
 
-          <!-- Actions Menu -->
-          <button
-            mat-icon-button
-            class="more-button"
-            [matMenuTriggerFor]="menu"
-            (click)="$event.stopPropagation()"
-            *ngIf="isAdmin"
-          >
+      <!-- Type Column -->
+      <ng-container matColumnDef="type">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>Type</th>
+        <td mat-cell *matCellDef="let vehicle">{{ vehicle.type }}</td>
+      </ng-container>
+
+      <!-- Color Column -->
+      <ng-container matColumnDef="color">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>Color</th>
+        <td mat-cell *matCellDef="let vehicle">
+          <span class="color-chip" [style.background]="getColorHex(vehicle.color)"></span>
+          {{ vehicle.color }}
+        </td>
+      </ng-container>
+
+      <!-- Last Processed Date Column -->
+      <ng-container matColumnDef="lastProcessedDate">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>Last Job</th>
+        <td mat-cell *matCellDef="let vehicle">
+          {{ formatDate(vehicle.lastProcessedDate) }}
+        </td>
+      </ng-container>
+
+      <!-- Job Count Column -->
+      <ng-container matColumnDef="jobCount">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>Jobs</th>
+        <td mat-cell *matCellDef="let vehicle" class="jobs-count">
+          {{ vehicle.jobCount }}
+        </td>
+      </ng-container>
+
+      <!-- Actions Column -->
+      <ng-container matColumnDef="actions">
+        <th mat-header-cell *matHeaderCellDef></th>
+        <td mat-cell *matCellDef="let vehicle">
+          <button mat-icon-button [matMenuTriggerFor]="menu">
             <mat-icon>more_vert</mat-icon>
           </button>
           <mat-menu #menu="matMenu" xPosition="before">
-            <button
-              mat-menu-item
-              (click)="editManufacturer(manufacturer, $event)"
-            >
+            <button mat-menu-item (click)="viewVehicleDetails(vehicle)">
+              <mat-icon>visibility</mat-icon>
+              <span>View Details</span>
+            </button>
+            <button mat-menu-item (click)="editVehicle(vehicle, $event)" *ngIf="hasEditPermission">
               <mat-icon>edit</mat-icon>
               <span>Edit</span>
             </button>
-            <button
-              mat-menu-item
-              (click)="deleteManufacturer(manufacturer, $event)"
-              class="delete-action"
-            >
-              <mat-icon>delete</mat-icon>
-              <span>Delete</span>
+            <button mat-menu-item (click)="viewVehicleJobs(vehicle, $event)">
+              <mat-icon>work</mat-icon>
+              <span>View Jobs</span>
             </button>
           </mat-menu>
-        </mat-card-content>
-      </mat-card>
-    </div>
+        </td>
+      </ng-container>
+
+      <!-- Header and Data Rows -->
+      <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns" (click)="viewVehicleDetails(row)" class="vehicle-row"></tr>
+    </table>
 
     <!-- Empty State -->
-    <div
-      class="empty-state"
-      *ngIf="!isLoading && dataSource.filteredData.length === 0"
-    >
+    <div class="empty-state" *ngIf="!isLoading && dataSource.filteredData.length === 0">
       <mat-icon class="empty-icon">directions_car</mat-icon>
-      <h3>No manufacturers found</h3>
-      <p>Try adjusting your search or add a new manufacturer</p>
-      <button
-        mat-flat-button
-        color="primary"
-        *ngIf="isAdmin"
-        (click)="addManufacturer()"
-      >
+      <h3>No vehicles found</h3>
+      <p>Try adjusting your filters or add a new vehicle</p>
+      <button mat-flat-button color="primary" (click)="createNewVehicle()" *ngIf="hasCreatePermission">
         <mat-icon>add</mat-icon>
-        Add Manufacturer
+        New Vehicle
       </button>
     </div>
   </div>
 
   <!-- Paginator -->
-  <mat-paginator
-    [length]="dataSource.filteredData.length"
-    [pageSize]="12"
-    [pageSizeOptions]="[12, 24, 36, 48]"
-    showFirstLastButtons
-  >
-  </mat-paginator>
+  <mat-paginator [length]="dataSource.filteredData.length" [pageSize]="25" [pageSizeOptions]="[10, 25, 50, 100]" showFirstLastButtons> </mat-paginator>
 </mat-card>
-
-<!-- Add/Edit Manufacturer Dialog -->
-<ng-template #addManufacturerDialog>
-  <h2 mat-dialog-title>{{ dialogData ? "Edit" : "Add New" }} Manufacturer</h2>
-  <mat-dialog-content>
-    <form [formGroup]="manufacturerForm" class="manufacturer-form">
-      <mat-form-field appearance="outline">
-        <mat-label>Name</mat-label>
-        <input matInput formControlName="name" required />
-      </mat-form-field>
-
-      <mat-form-field appearance="outline">
-        <mat-label>Logo URL</mat-label>
-        <input matInput formControlName="logoUrl" />
-      </mat-form-field>
-
-      <mat-checkbox formControlName="isActive" color="primary">
-        Active
-      </mat-checkbox>
-    </form>
-  </mat-dialog-content>
-  <mat-dialog-actions align="end">
-    <button mat-button mat-dialog-close>Cancel</button>
-    <button
-      mat-flat-button
-      color="primary"
-      [disabled]="manufacturerForm.invalid"
-      (click)="saveManufacturer()"
-    >
-      Save
-    </button>
-  </mat-dialog-actions>
-</ng-template>
-
-<!-- Delete Confirmation Dialog -->
-<ng-template #deleteConfirmDialog>
-  <h2 mat-dialog-title>Delete Manufacturer</h2>
-  <mat-dialog-content>
-    Are you sure you want to delete this manufacturer? This action cannot be
-    undone.
-  </mat-dialog-content>
-  <mat-dialog-actions align="end">
-    <button mat-button mat-dialog-close>Cancel</button>
-    <button mat-flat-button color="warn" (click)="confirmDelete()">
-      Delete
-    </button>
-  </mat-dialog-actions>
-</ng-template>

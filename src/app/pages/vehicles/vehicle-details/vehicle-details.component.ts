@@ -1,67 +1,17 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy, ViewChild, TemplateRef } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
+import { MatDialog } from '@angular/material/dialog';
+import { MatSnackBar } from '@angular/material/snack-bar';
+import { Subscription, forkJoin, of } from 'rxjs';
+import { switchMap, catchError, finalize } from 'rxjs/operators';
+import { AuthService } from '../../../services/auth.service';
+import { VehicleService, Vehicle, VehiclePhoto, ConditionReport } from '../../../services/vehicle.service';
+import { JobService } from '../../../services/job.service';
+// Import the Job interface with a different name to avoid conflicts
+import { Job as JobInterface } from '../../../interfaces/job.interface';
 
-interface Dimensions {
-  length: number;
-  width: number;
-  height: number;
-  wheelbase: number;
-}
-
-interface Weight {
-  empty: number;
-  maxLoad: number;
-}
-
-interface HandlingInstructions {
-  loadingProcedure: string[];
-  securingPoints: string[];
-  specialConsiderations: string[];
-  safetyRequirements: string[];
-  equipment: string[];
-}
-
-interface Specifications {
-  dimensions: Dimensions;
-  weight: Weight;
-  loadingRequirements: string[];
-  transportRestrictions: string[];
-  requiredEquipment: string[];
-}
-
-interface Document {
-  name: string;
-  type: string;
-  url: string;
-  lastUpdated: Date;
-}
-
-interface JobHistory {
-  jobId: string;
-  date: Date;
-  customer: string;
-  distance: number;
-  duration: number;
-  issues: string[];
-}
-
-interface VehicleModel {
-  id: string;
-  manufacturerId: string;
-  manufacturerName: string;
-  name: string;
-  yearStart: number;
-  yearEnd: number | null;
-  images: string[];
-  specifications: Specifications;
-  handlingInstructions: HandlingInstructions;
-  documents: Document[];
-  jobHistory: JobHistory[];
-  status: 'Active' | 'Archived';
-  activeJobs: number;
-}
-
-type TabType = 'overview' | 'specifications' | 'handling' | 'history';
+// Create a type alias to make it clear we're using the imported interface
+type VehicleJob = JobInterface;
 
 @Component({
   selector: 'app-vehicle-details',
@@ -69,203 +19,278 @@ type TabType = 'overview' | 'specifications' | 'handling' | 'history';
   styleUrls: ['./vehicle-details.component.scss'],
   standalone: false,
 })
-export class VehicleDetailsComponent implements OnInit {
-  model: VehicleModel | null = null;
-  activeTab: TabType = 'overview';
-  currentImageIndex = 0;
-  isAdmin = true; // For demo purposes
-  loading = true;
+export class VehicleDetailsComponent implements OnInit, OnDestroy {
+  vehicleId: string = '';
+  vehicle: Vehicle | null = null;
+  activeTab: 'overview' | 'photos' | 'history' | 'reports' = 'overview';
+  loading = false;
   error: string | null = null;
+  hasEditPermission = false;
 
-  constructor(private route: ActivatedRoute, private router: Router) {}
+  // For photos tab
+  filteredPhotos: VehiclePhoto[] = [];
+  selectedJobFilter: string = 'all';
+  photosSort: 'newest' | 'oldest' = 'newest';
+  jobsWithPhotos: { id: string; createdAt: Date }[] = [];
+
+  // For history tab
+  jobs: VehicleJob[] = [];
+
+  // Photo viewer
+  selectedPhoto: VehiclePhoto | null = null;
+  @ViewChild('photoViewerDialog') photoViewerDialog!: TemplateRef<any>;
+
+  // Color mapping for visualization
+  colorMap: { [key: string]: string } = {
+    Black: '#333333',
+    White: '#FFFFFF',
+    Silver: '#C0C0C0',
+    Grey: '#808080',
+    Blue: '#0000FF',
+    Red: '#FF0000',
+    Green: '#008000',
+    Yellow: '#FFFF00',
+    Brown: '#A52A2A',
+    Orange: '#FFA500',
+    Purple: '#800080',
+    Gold: '#FFD700',
+    Beige: '#F5F5DC',
+  };
+
+  private subscriptions: Subscription[] = [];
+
+  constructor(
+    private route: ActivatedRoute,
+    private router: Router,
+    private vehicleService: VehicleService,
+    private jobService: JobService,
+    private authService: AuthService,
+    private dialog: MatDialog,
+    private snackBar: MatSnackBar
+  ) {}
 
   ngOnInit(): void {
-    this.route.params.subscribe((params) => {
-      const modelId = params['id'];
-      if (modelId) {
-        this.loadModelDetails(modelId);
-      }
+    this.checkPermissions();
+
+    const routeSub = this.route.params.subscribe((params) => {
+      this.vehicleId = params['id'];
+      this.loadVehicleDetails(this.vehicleId);
     });
+
+    this.subscriptions.push(routeSub);
   }
 
-  loadModelDetails(modelId: string): void {
+  ngOnDestroy(): void {
+    this.subscriptions.forEach((sub) => sub.unsubscribe());
+  }
+
+  private checkPermissions(): void {
+    const authSub = this.authService.getUserProfile().subscribe((user) => {
+      this.hasEditPermission = user?.permissions?.canManageUsers || user?.permissions?.isAdmin || false;
+    });
+    this.subscriptions.push(authSub);
+  }
+
+  loadVehicleDetails(vehicleId: string): void {
     this.loading = true;
     this.error = null;
 
-    // Simulate API delay
-    setTimeout(() => {
-      try {
-        // Return same dummy data regardless of ID
-        this.model = {
-          id: modelId,
-          manufacturerId: '1',
-          manufacturerName: 'Toyota',
-          name: 'Corolla',
-          yearStart: 2018,
-          yearEnd: null,
-          status: 'Active',
-          activeJobs: 5,
-          images: [
-            '/assets/images/corolla.jpg',
-            '/assets/images/corolla1.jpg',
-            '/assets/images/corolla2.jpg',
-          ],
-          specifications: {
-            dimensions: {
-              length: 192.7,
-              width: 72.4,
-              height: 56.9,
-              wheelbase: 111.2,
-            },
-            weight: {
-              empty: 3310,
-              maxLoad: 4500,
-            },
-            loadingRequirements: [
-              'Clear overhead clearance of 7 feet',
-              'Minimum ramp angle of 10 degrees',
-              'Secure all loose items',
-            ],
-            transportRestrictions: [
-              'No stacking',
-              'Climate controlled transport recommended',
-            ],
-            requiredEquipment: [
-              'Wheel straps',
-              'Soft tie-downs',
-              'Wheel chocks',
-            ],
-          },
-          handlingInstructions: {
-            loadingProcedure: [
-              'Inspect vehicle for existing damage',
-              'Position vehicle straight with loading ramp',
-              'Drive slowly onto transport',
-              'Set parking brake',
-            ],
-            securingPoints: [
-              'Front tow hooks',
-              'Rear tow hooks',
-              'Wheel straps',
-            ],
-            specialConsiderations: [
-              'Low ground clearance',
-              'Sport suspension package available',
-            ],
-            safetyRequirements: [
-              'Use wheel chocks',
-              'Verify tie-down tension',
-              'Check ground clearance',
-            ],
-            equipment: [
-              'Wheel straps',
-              'Soft tie-downs',
-              'Wheel chocks',
-              'Loading ramps',
-            ],
-          },
-          documents: [
-            {
-              name: 'Loading Guidelines',
-              type: 'PDF',
-              url: '/documents/loading-guidelines.pdf',
-              lastUpdated: new Date('2024-01-15'),
-            },
-            {
-              name: 'Safety Protocol',
-              type: 'PDF',
-              url: '/documents/safety-protocol.pdf',
-              lastUpdated: new Date('2024-01-15'),
-            },
-          ],
-          jobHistory: [
-            {
-              jobId: 'J123',
-              date: new Date('2024-01-10'),
-              customer: 'ABC Motors',
-              distance: 450,
-              duration: 8,
-              issues: ['Minor delay due to weather'],
-            },
-            {
-              jobId: 'J124',
-              date: new Date('2024-01-15'),
-              customer: 'XYZ Transport',
-              distance: 300,
-              duration: 6,
-              issues: [],
-            },
-          ],
-        };
-        this.loading = false;
-      } catch (error) {
-        this.error = 'Failed to load model details';
-        this.loading = false;
+    const vehicleSub = this.vehicleService
+      .getVehicleById(vehicleId)
+      .pipe(
+        switchMap((vehicle) => {
+          if (!vehicle) {
+            throw new Error('Vehicle not found');
+          }
+
+          this.vehicle = vehicle;
+
+          // Load jobs for this vehicle
+          return forkJoin({
+            jobs: this.jobService.getJobsByVehicle(vehicleId),
+            // Additional data can be loaded here if needed
+          });
+        }),
+        catchError((error) => {
+          this.error = error.message || 'Failed to load vehicle details';
+          console.error('Error loading vehicle details:', error);
+          return of({ jobs: [] });
+        }),
+        finalize(() => {
+          this.loading = false;
+        })
+      )
+      .subscribe((result) => {
+        if (this.vehicle) {
+          // Handle jobs - make sure we handle the case where jobs might be undefined or null
+          this.jobs = result.jobs || [];
+
+          // Set up photos filtering
+          this.setupPhotosData();
+        }
+      });
+
+    this.subscriptions.push(vehicleSub);
+  }
+
+  private setupPhotosData(): void {
+    if (!this.vehicle || !this.vehicle.photos) return;
+
+    // Set filtered photos initially to all photos
+    this.filteredPhotos = [...this.vehicle.photos];
+
+    // Apply initial sort
+    this.sortPhotos();
+
+    // Build list of jobs with photos for filter dropdown
+    const jobsMap = new Map<string, Date>();
+
+    this.vehicle.photos.forEach((photo) => {
+      if (!photo.jobId) return; // Skip photos without jobId
+
+      // If we have the job in our jobs array, get the created date
+      const job = this.jobs.find((j) => j.id === photo.jobId);
+      if (job) {
+        jobsMap.set(photo.jobId, job.createdAt);
+      } else {
+        // If we don't have the job details, use the photo date as fallback
+        jobsMap.set(photo.jobId, photo.takenAt);
       }
-    }, 1000); // Simulate network delay
+    });
+
+    // Convert map to array
+    this.jobsWithPhotos = Array.from(jobsMap.entries()).map(([id, createdAt]) => ({
+      id,
+      createdAt,
+    }));
+
+    // Sort jobs by date (newest first)
+    this.jobsWithPhotos.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   }
 
-  get currentImage(): string {
-    return this.model?.images[this.currentImageIndex] || '';
+  filterPhotos(): void {
+    if (!this.vehicle || !this.vehicle.photos) return;
+
+    if (this.selectedJobFilter === 'all') {
+      this.filteredPhotos = [...this.vehicle.photos];
+    } else {
+      this.filteredPhotos = this.vehicle.photos.filter((photo) => photo.jobId === this.selectedJobFilter);
+    }
+
+    // Apply current sort
+    this.sortPhotos();
   }
 
-  get hasImages(): boolean {
-    return (this.model?.images?.length || 0) > 0;
+  sortPhotos(): void {
+    this.filteredPhotos.sort((a, b) => {
+      const dateA = new Date(a.takenAt).getTime();
+      const dateB = new Date(b.takenAt).getTime();
+
+      return this.photosSort === 'newest'
+        ? dateB - dateA // Newest first
+        : dateA - dateB; // Oldest first
+    });
   }
 
-  get totalImages(): number {
-    return this.model?.images?.length || 0;
+  // Update the method to accept a string parameter and then cast it to the expected type
+  setActiveTab(tab: string): void {
+    this.activeTab = tab as 'overview' | 'photos' | 'history' | 'reports';
   }
 
-  get averageTransportTime(): number {
-    if (!this.model?.jobHistory.length) return 0;
-    const total = this.model.jobHistory.reduce(
-      (sum, job) => sum + job.duration,
-      0
-    );
-    return Math.round((total / this.model.jobHistory.length) * 10) / 10;
+  editVehicle(): void {
+    this.router.navigate(['/vehicles', this.vehicleId, 'edit']);
   }
 
-  get totalJobs(): number {
-    return this.model?.jobHistory?.length || 0;
-  }
-
-  nextImage(): void {
-    if (this.model?.images.length) {
-      this.currentImageIndex =
-        (this.currentImageIndex + 1) % this.model.images.length;
+  viewJob(jobId?: string): void {
+    if (jobId) {
+      this.router.navigate(['/jobs', jobId]);
     }
   }
 
-  previousImage(): void {
-    if (this.model?.images.length) {
-      this.currentImageIndex =
-        this.currentImageIndex === 0
-          ? this.model.images.length - 1
-          : this.currentImageIndex - 1;
+  viewAllJobs(): void {
+    this.router.navigate(['/jobs'], {
+      queryParams: {
+        registration: this.vehicle?.registration,
+      },
+    });
+  }
+
+  get latestPhoto(): VehiclePhoto | undefined {
+    if (!this.vehicle || !this.vehicle.photos || this.vehicle.photos.length === 0) {
+      return undefined;
     }
+
+    // Return the most recent photo
+    return [...this.vehicle.photos].sort((a, b) => new Date(b.takenAt).getTime() - new Date(a.takenAt).getTime())[0];
   }
 
-  switchTab(tab: TabType): void {
-    this.activeTab = tab;
+  get latestJob(): VehicleJob | undefined {
+    if (!this.jobs || this.jobs.length === 0) {
+      return undefined;
+    }
+
+    // Return the most recent job
+    return [...this.jobs].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
   }
 
-  archiveModel(): void {
-    if (!this.model) return;
-    // TODO: Implement archive functionality
-    console.log(`Archiving model: ${this.model.id}`);
+  openPhotoViewer(photo: VehiclePhoto): void {
+    this.selectedPhoto = photo;
+    this.dialog.open(this.photoViewerDialog, {
+      width: '800px',
+      maxWidth: '95vw',
+      panelClass: 'photo-viewer-dialog',
+    });
   }
 
-  downloadDocument(doc: Document): void {
-    // TODO: Implement document download
-    console.log(`Downloading document: ${doc.name}`);
+  closePhotoViewer(): void {
+    this.dialog.closeAll();
   }
 
-  getSpecificationList(type: keyof Specifications): string[] {
-    return (this.model?.specifications[type] as string[]) || [];
+  getJobReference(jobId?: string): string {
+    if (!jobId) return 'Unknown';
+
+    const job = this.jobs.find((j) => j.id === jobId);
+    return job ? job.id : jobId;
   }
 
-  getHandlingInstructionList(type: keyof HandlingInstructions): string[] {
-    return this.model?.handlingInstructions[type] || [];
+  getReportAuthorName(authorId: string): string {
+    // In a real app, you would look up the author's name
+    return authorId || 'Unknown';
+  }
+
+  formatDate(date: Date | undefined): string {
+    if (!date) return 'N/A';
+
+    if (typeof date === 'string') {
+      date = new Date(date);
+    }
+
+    // Handle Firebase Timestamp
+    if (date && typeof date === 'object' && 'toDate' in date) {
+      const timestamp = date as unknown as { toDate: () => Date };
+      date = timestamp.toDate();
+    }
+
+    return date.toLocaleDateString();
+  }
+
+  getColorHex(colorName: string): string {
+    return this.colorMap[colorName] || '#CCCCCC'; // Default gray if not found
+  }
+
+  showSnackbar(message: string): void {
+    this.snackBar.open(message, 'Close', {
+      duration: 5000,
+      horizontalPosition: 'center',
+      verticalPosition: 'bottom',
+    });
+  }
+
+  /**
+   * Safely access job properties - helper method to avoid index signature errors in template
+   */
+  getJobProperty(job: VehicleJob | undefined, property: string): any {
+    if (!job) return undefined;
+    return (job as any)[property];
   }
 }

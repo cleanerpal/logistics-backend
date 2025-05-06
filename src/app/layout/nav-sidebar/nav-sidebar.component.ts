@@ -20,9 +20,9 @@ export class NavSidebarComponent {
     { label: 'Jobs', icon: 'work', route: '/jobs', active: false },
     { label: 'Drivers', icon: 'people', route: '/drivers', active: false },
     {
-      label: 'Companies',
+      label: 'Customers',
       icon: 'business',
-      route: '/companies',
+      route: '/customers',
       active: false,
     },
     {

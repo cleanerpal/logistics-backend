@@ -1,52 +1,43 @@
-<div class="model-details-container">
+<div class="vehicle-details-container">
   <!-- Loading State -->
   <div class="loading-state" *ngIf="loading">
-    <span class="material-icons spinning">refresh</span>
-    Loading...
+    <mat-spinner diameter="40"></mat-spinner>
+    <span>Loading vehicle details...</span>
   </div>
 
   <!-- Error State -->
   <div class="error-state" *ngIf="error">
     <span class="material-icons">error</span>
     {{ error }}
-    <button class="retry-button" (click)="loadModelDetails(model?.id || '')">
-      Retry
-    </button>
+    <button class="retry-button" (click)="loadVehicleDetails(vehicleId)">Retry</button>
   </div>
 
   <!-- Content -->
-  <ng-container *ngIf="!loading && !error && model">
+  <ng-container *ngIf="!loading && !error && vehicle">
     <!-- Header -->
     <header class="details-header">
       <div class="breadcrumb">
-        <a routerLink="/vehicles">Makes</a>
+        <a routerLink="/vehicles">Vehicles</a>
         <span class="material-icons">chevron_right</span>
-        <a routerLink="/vehicles/models">Models</a>
-        <span class="material-icons">chevron_right</span>
-        <span>{{ model.name }}</span>
+        <span>{{ vehicle.registration }}</span>
       </div>
 
       <div class="header-content">
-        <div class="model-info">
-          <h1>{{ model.name }}</h1>
-          <div class="model-meta">
-            <span class="year-range"
-              >{{ model.yearStart }} - {{ model.yearEnd || "Present" }}</span
-            >
-            <span [class]="'status-badge ' + model.status.toLowerCase()">{{
-              model.status
-            }}</span>
+        <div class="vehicle-info">
+          <h1>{{ vehicle.makeName }} {{ vehicle.modelName }}</h1>
+          <div class="vehicle-meta">
+            <span class="registration-badge">{{ vehicle.registration }}</span>
+            <span class="year">{{ vehicle.year }}</span>
+            <span class="color-badge" [style.background]="getColorHex(vehicle.color)">
+              {{ vehicle.color }}
+            </span>
           </div>
         </div>
 
-        <div class="header-actions" *ngIf="isAdmin">
-          <button class="edit-button">
+        <div class="header-actions" *ngIf="hasEditPermission">
+          <button class="edit-button" (click)="editVehicle()">
             <span class="material-icons">edit</span>
             Edit
-          </button>
-          <button class="archive-button" (click)="archiveModel()">
-            <span class="material-icons">archive</span>
-            Archive
           </button>
         </div>
       </div>
@@ -54,13 +45,7 @@
 
     <!-- Navigation Tabs -->
     <nav class="tabs">
-      <button
-        *ngFor="
-          let tab of ['overview', 'specifications', 'handling', 'history']
-        "
-        [class.active]="activeTab === tab"
-        class="tab-button"
-      >
+      <button *ngFor="let tab of ['overview', 'photos', 'history', 'reports']" [class.active]="activeTab === tab" class="tab-button" (click)="setActiveTab(tab)">
         {{ tab | titlecase }}
       </button>
     </nav>
@@ -69,292 +54,344 @@
     <div class="tab-content" [ngSwitch]="activeTab">
       <!-- Overview Tab -->
       <div *ngSwitchCase="'overview'" class="overview-tab">
-        <div class="image-gallery" *ngIf="hasImages">
-          <div class="main-image">
-            <button
-              class="nav-button prev"
-              (click)="previousImage()"
-              [disabled]="!hasImages"
-            >
-              <span class="material-icons">chevron_left</span>
-            </button>
-            <img
-              [src]="currentImage"
-              [alt]="model.name"
-              class="vehicle-image"
-            />
-            <button
-              class="nav-button next"
-              (click)="nextImage()"
-              [disabled]="!hasImages"
-            >
-              <span class="material-icons">chevron_right</span>
-            </button>
-          </div>
-          <div class="thumbnail-strip">
-            <img
-              *ngFor="let image of model.images; let i = index"
-              [src]="image"
-              [alt]="model.name + ' view ' + (i + 1)"
-              [class.active]="i === currentImageIndex"
-              (click)="currentImageIndex = i"
-              class="thumbnail"
-            />
-          </div>
-        </div>
-
-        <div class="stats-grid">
-          <div class="stat-card">
-            <span class="material-icons">speed</span>
-            <div class="stat-content">
-              <span class="label">Active Jobs</span>
-              <span class="value">{{ model.activeJobs }}</span>
-            </div>
-          </div>
-          <div class="stat-card">
-            <span class="material-icons">access_time</span>
-            <div class="stat-content">
-              <span class="label">Avg Transport Time</span>
-              <span class="value">{{ averageTransportTime }}h</span>
-            </div>
-          </div>
-        </div>
-
-        <div
-          class="quick-specs"
-          *ngIf="model.specifications.loadingRequirements.length > 0"
-        >
-          <h2>Special Requirements</h2>
-          <ul class="requirements-list">
-            <li *ngFor="let req of model.specifications.loadingRequirements">
-              <span class="material-icons">check_circle</span>
-              {{ req }}
-            </li>
-          </ul>
-        </div>
-      </div>
-
-      <!-- Specifications Tab -->
-      <div *ngSwitchCase="'specifications'" class="specifications-tab">
-        <div class="specs-section">
-          <h2>Dimensions</h2>
-          <div class="specs-grid">
-            <div class="spec-item">
-              <span class="label">Length</span>
-              <span class="value"
-                >{{ model.specifications.dimensions.length }} in</span
-              >
-            </div>
-            <div class="spec-item">
-              <span class="label">Width</span>
-              <span class="value"
-                >{{ model.specifications.dimensions.width }} in</span
-              >
-            </div>
-            <div class="spec-item">
-              <span class="label">Height</span>
-              <span class="value"
-                >{{ model.specifications.dimensions.height }} in</span
-              >
-            </div>
-            <div class="spec-item">
-              <span class="label">Wheelbase</span>
-              <span class="value"
-                >{{ model.specifications.dimensions.wheelbase }} in</span
-              >
-            </div>
-          </div>
-        </div>
-
-        <div class="specs-section">
-          <h2>Weight Information</h2>
-          <div class="specs-grid">
-            <div class="spec-item">
-              <span class="label">Empty Weight</span>
-              <span class="value"
-                >{{ model.specifications.weight.empty }} lbs</span
-              >
-            </div>
-            <div class="spec-item">
-              <span class="label">Max Load</span>
-              <span class="value"
-                >{{ model.specifications.weight.maxLoad }} lbs</span
-              >
-            </div>
-          </div>
-        </div>
-
-        <div class="specs-section">
-          <h2>Transport Requirements</h2>
-          <div class="requirements-list">
-            <div class="requirement-group">
-              <h3>Loading Requirements</h3>
-              <ul>
-                <li
-                  *ngFor="let req of model.specifications.loadingRequirements"
-                >
-                  <span class="material-icons">arrow_right</span>
-                  {{ req }}
-                </li>
-              </ul>
-            </div>
-            <div class="requirement-group">
-              <h3>Transport Restrictions</h3>
-              <ul>
-                <li
-                  *ngFor="
-                    let restriction of model.specifications
-                      .transportRestrictions
-                  "
-                >
-                  <span class="material-icons">warning</span>
-                  {{ restriction }}
-                </li>
-              </ul>
-            </div>
-            <div class="requirement-group">
-              <h3>Required Equipment</h3>
-              <ul>
-                <li
-                  *ngFor="
-                    let equipment of model.specifications.requiredEquipment
-                  "
-                >
-                  <span class="material-icons">construction</span>
-                  {{ equipment }}
-                </li>
-              </ul>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Handling Instructions Tab -->
-      <div *ngSwitchCase="'handling'" class="handling-tab">
-        <div class="instructions-section">
-          <h2>Loading Procedure</h2>
-          <ol class="numbered-list">
-            <li
-              *ngFor="
-                let step of model.handlingInstructions.loadingProcedure;
-                let i = index
-              "
-            >
-              <span class="step-number">{{ i + 1 }}</span>
-              {{ step }}
-            </li>
-          </ol>
-        </div>
-
-        <div class="instructions-section">
-          <h2>Securing Points</h2>
-          <ul class="securing-points">
-            <li *ngFor="let point of model.handlingInstructions.securingPoints">
-              <span class="material-icons">link</span>
-              {{ point }}
-            </li>
-          </ul>
-        </div>
-
-        <div class="instructions-grid">
-          <div class="instructions-section">
-            <h2>Special Considerations</h2>
-            <ul class="considerations-list">
-              <li
-                *ngFor="
-                  let consideration of model.handlingInstructions
-                    .specialConsiderations
-                "
-              >
-                <span class="material-icons">priority_high</span>
-                {{ consideration }}
-              </li>
-            </ul>
-          </div>
-
-          <div class="instructions-section">
-            <h2>Safety Requirements</h2>
-            <ul class="safety-list">
-              <li
-                *ngFor="
-                  let req of model.handlingInstructions.safetyRequirements
-                "
-              >
-                <span class="material-icons">shield</span>
-                {{ req }}
-              </li>
-            </ul>
-          </div>
-        </div>
-
-        <div class="documents-section">
-          <h2>Related Documents</h2>
-          <div class="documents-grid">
-            <div class="document-card" *ngFor="let doc of model.documents">
-              <span class="material-icons">description</span>
-              <div class="document-info">
-                <span class="document-name">{{ doc.name }}</span>
-                <span class="document-meta"
-                  >{{ doc.type }} • Updated
-                  {{ doc.lastUpdated | date : "mediumDate" }}</span
-                >
+        <div class="two-column-layout">
+          <div class="left-column">
+            <!-- Vehicle Details Card -->
+            <div class="info-card">
+              <h2>Vehicle Details</h2>
+              <div class="card-content">
+                <div class="info-row">
+                  <span class="label">Registration</span>
+                  <span class="value">{{ vehicle.registration }}</span>
+                </div>
+                <div class="info-row">
+                  <span class="label">Make</span>
+                  <span class="value">{{ vehicle.makeName }}</span>
+                </div>
+                <div class="info-row">
+                  <span class="label">Model</span>
+                  <span class="value">{{ vehicle.modelName }}</span>
+                </div>
+                <div class="info-row">
+                  <span class="label">Type</span>
+                  <span class="value">{{ vehicle.type }}</span>
+                </div>
+                <div class="info-row">
+                  <span class="label">Color</span>
+                  <span class="value">
+                    <span class="color-chip" [style.background]="getColorHex(vehicle.color)"></span>
+                    {{ vehicle.color }}
+                  </span>
+                </div>
+                <div class="info-row">
+                  <span class="label">Year</span>
+                  <span class="value">{{ vehicle.year }}</span>
+                </div>
               </div>
-              <button (click)="downloadDocument(doc)" class="download-button">
-                <span class="material-icons">download</span>
-              </button>
             </div>
+
+            <!-- Technical Details Card -->
+            <div class="info-card">
+              <h2>Technical Details</h2>
+              <div class="card-content">
+                <div class="info-row">
+                  <span class="label">Chassis Number</span>
+                  <span class="value">{{ vehicle.chassisNumber || 'Not recorded' }}</span>
+                </div>
+                <div class="info-row">
+                  <span class="label">VIN</span>
+                  <span class="value">{{ vehicle.vin || 'Not recorded' }}</span>
+                </div>
+                <div class="info-row">
+                  <span class="label">Engine Size</span>
+                  <span class="value">{{ vehicle.engineSize || 'Not recorded' }}</span>
+                </div>
+                <div class="info-row">
+                  <span class="label">Fuel Type</span>
+                  <span class="value">{{ vehicle.fuelType || 'Not recorded' }}</span>
+                </div>
+                <div class="info-row">
+                  <span class="label">Transmission</span>
+                  <span class="value">{{ vehicle.transmission || 'Not recorded' }}</span>
+                </div>
+                <div class="info-row">
+                  <span class="label">Last Recorded Mileage</span>
+                  <span class="value">{{ vehicle.mileage | number }} miles</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="right-column">
+            <!-- Quick Stats Card -->
+            <div class="info-card stats-card">
+              <h2>Activity Summary</h2>
+              <div class="card-content">
+                <div class="stats-grid">
+                  <div class="stat-item">
+                    <span class="stat-value">{{ vehicle.jobCount }}</span>
+                    <span class="stat-label">Total Jobs</span>
+                  </div>
+                  <div class="stat-item">
+                    <span class="stat-value">{{ formatDate(vehicle.firstProcessedDate) }}</span>
+                    <span class="stat-label">First Processed</span>
+                  </div>
+                  <div class="stat-item">
+                    <span class="stat-value">{{ formatDate(vehicle.lastProcessedDate) }}</span>
+                    <span class="stat-label">Last Processed</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Primary Photo Card -->
+            <div class="info-card photo-card" *ngIf="latestPhoto">
+              <h2>Primary Photo</h2>
+              <div class="card-content">
+                <div class="primary-photo">
+                  <img [src]="latestPhoto.url" [alt]="vehicle.registration + ' photo'" />
+                  <div class="photo-meta">
+                    <div class="photo-info">
+                      <span class="photo-date">{{ formatDate(latestPhoto.takenAt) }}</span>
+                      <span class="photo-job">Job: {{ getJobReference(latestPhoto.jobId) }}</span>
+                    </div>
+                    <button class="view-all-button" (click)="setActiveTab('photos')">View All Photos</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Recent Job Card -->
+            <div class="info-card" *ngIf="latestJob">
+              <h2>Latest Job</h2>
+              <div class="card-content">
+                <div class="job-preview">
+                  <div class="job-preview-header">
+                    <span class="job-id">{{ latestJob.id }}</span>
+                    <span [class]="'status-badge status-' + latestJob.status">
+                      {{ latestJob.status | titlecase }}
+                    </span>
+                  </div>
+                  <div class="job-preview-content">
+                    <div class="info-row">
+                      <span class="label">Collection</span>
+                      <span class="value">{{ latestJob.collectionAddress }}</span>
+                    </div>
+                    <div class="info-row">
+                      <span class="label">Delivery</span>
+                      <span class="value">{{ latestJob.deliveryAddress }}</span>
+                    </div>
+                    <div class="info-row">
+                      <span class="label">Date</span>
+                      <span class="value">{{ formatDate(latestJob.createdAt) }}</span>
+                    </div>
+                  </div>
+                  <button class="view-job-button" (click)="viewJob(latestJob.id)">View Job Details</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Photos Tab -->
+      <div *ngSwitchCase="'photos'" class="photos-tab">
+        <div class="photos-wrapper">
+          <div class="photos-header">
+            <h2>Vehicle Photos</h2>
+            <div class="photos-filter">
+              <mat-form-field appearance="outline">
+                <mat-label>Filter by Job</mat-label>
+                <mat-select [(value)]="selectedJobFilter" (selectionChange)="filterPhotos()">
+                  <mat-option value="all">All Jobs</mat-option>
+                  <mat-option *ngFor="let job of jobsWithPhotos" [value]="job.id"> {{ job.id }} - {{ formatDate(job.createdAt) }} </mat-option>
+                </mat-select>
+              </mat-form-field>
+              <mat-form-field appearance="outline">
+                <mat-label>Sort by</mat-label>
+                <mat-select [(value)]="photosSort" (selectionChange)="sortPhotos()">
+                  <mat-option value="newest">Newest First</mat-option>
+                  <mat-option value="oldest">Oldest First</mat-option>
+                </mat-select>
+              </mat-form-field>
+            </div>
+          </div>
+
+          <div class="photos-grid" *ngIf="filteredPhotos.length > 0">
+            <div class="photo-item" *ngFor="let photo of filteredPhotos" (click)="openPhotoViewer(photo)">
+              <div class="photo-thumbnail">
+                <img [src]="photo.url" [alt]="'Photo of ' + vehicle.registration" />
+              </div>
+              <div class="photo-info">
+                <span class="photo-date">{{ formatDate(photo.takenAt) }}</span>
+                <span class="photo-type">{{ photo.type | titlecase }}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="empty-photos" *ngIf="filteredPhotos.length === 0">
+            <mat-icon>photo_library</mat-icon>
+            <p>No photos available for this vehicle</p>
+            <p class="sub-message">Photos will be added when processing jobs</p>
           </div>
         </div>
       </div>
 
       <!-- History Tab -->
       <div *ngSwitchCase="'history'" class="history-tab">
-        <div class="job-history">
-          <h2>Transport History</h2>
-          <div class="table-container">
-            <table class="history-table">
-              <thead>
-                <tr>
-                  <th>Job ID</th>
-                  <th>Date</th>
-                  <th>Customer</th>
-                  <th>Distance</th>
-                  <th>Duration</th>
-                  <th>Issues</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr *ngFor="let job of model.jobHistory">
-                  <td class="job-id">{{ job.jobId }}</td>
-                  <td>{{ job.date | date : "mediumDate" }}</td>
-                  <td>{{ job.customer }}</td>
-                  <td>{{ job.distance }} miles</td>
-                  <td>{{ job.duration }} hours</td>
-                  <td>
-                    <ul class="issues-list">
-                      <li *ngFor="let issue of job.issues">
-                        <span class="material-icons">error_outline</span>
-                        {{ issue }}
-                      </li>
-                    </ul>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+        <div class="history-wrapper">
+          <div class="history-header">
+            <h2>Job History</h2>
+            <button class="view-all-jobs-button" (click)="viewAllJobs()" *ngIf="jobs.length > 0">View All Jobs</button>
+          </div>
+
+          <div class="job-timeline" *ngIf="jobs.length > 0">
+            <div class="job-entry" *ngFor="let job of jobs">
+              <div class="timeline-marker">
+                <div class="timeline-line"></div>
+                <div class="timeline-dot" [ngClass]="'status-' + job.status"></div>
+              </div>
+              <div class="job-card" (click)="viewJob(job.id)">
+                <div class="job-header">
+                  <span class="job-id">{{ job.id }}</span>
+                  <span [class]="'status-badge status-' + job.status">
+                    {{ job.status | titlecase }}
+                  </span>
+                </div>
+                <div class="job-details">
+                  <div class="job-route">
+                    <div class="route-point collection">
+                      <span class="material-icons">location_on</span>
+                      <span class="location">{{ job.collectionAddress }}</span>
+                    </div>
+                    <div class="route-arrow">
+                      <span class="material-icons">arrow_downward</span>
+                    </div>
+                    <div class="route-point delivery">
+                      <span class="material-icons">flag</span>
+                      <span class="location">{{ job.deliveryAddress }}</span>
+                    </div>
+                  </div>
+                  <div class="job-meta">
+                    <span class="job-date">{{ formatDate(job.createdAt) }}</span>
+                    <span class="job-driver" *ngIf="job.driverName">Driver: {{ job.driverName }}</span>
+                    <span class="job-mileage" *ngIf="getJobProperty(job, 'deliveryMileage') && getJobProperty(job, 'collectionMileage')">
+                      Mileage: {{ getJobProperty(job, 'collectionMileage') }} →
+                      {{ getJobProperty(job, 'deliveryMileage') }}
+                      ({{ getJobProperty(job, 'deliveryMileage') - getJobProperty(job, 'collectionMileage') }} miles)
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="empty-history" *ngIf="jobs.length === 0">
+            <mat-icon>history</mat-icon>
+            <p>No job history available for this vehicle</p>
           </div>
         </div>
+      </div>
 
-        <div class="history-stats">
-          <div class="stat-card">
-            <h3>Total Jobs</h3>
-            <span class="value">{{ totalJobs }}</span>
+      <!-- Reports Tab -->
+      <div *ngSwitchCase="'reports'" class="reports-tab">
+        <div class="reports-wrapper">
+          <div class="reports-header">
+            <h2>Condition Reports</h2>
           </div>
-          <div class="stat-card">
-            <h3>Average Duration</h3>
-            <span class="value">{{ averageTransportTime }} hours</span>
+
+          <div class="reports-timeline" *ngIf="vehicle.conditionReports && vehicle.conditionReports.length > 0">
+            <div class="report-entry" *ngFor="let report of vehicle.conditionReports">
+              <div class="timeline-marker">
+                <div class="timeline-line"></div>
+                <div class="timeline-dot"></div>
+              </div>
+              <div class="report-card">
+                <div class="report-header">
+                  <span class="report-job">Job: {{ getJobReference(report.jobId) }}</span>
+                  <span class="report-date">{{ formatDate(report.createdAt) }}</span>
+                </div>
+                <div class="report-content">
+                  <div class="report-column">
+                    <div class="report-item">
+                      <span class="report-label">Mileage</span>
+                      <span class="report-value">{{ report.mileage | number }} miles</span>
+                    </div>
+                    <div class="report-item">
+                      <span class="report-label">Fuel Level</span>
+                      <span class="report-value">{{ report.fuelLevel }}</span>
+                    </div>
+                    <div class="report-item">
+                      <span class="report-label">Cleanliness</span>
+                      <span class="report-value">{{ report.cleanliness }}</span>
+                    </div>
+                  </div>
+                  <div class="report-column">
+                    <div class="report-item">
+                      <span class="report-label">Interior</span>
+                      <span class="report-value">{{ report.interiorCondition }}</span>
+                    </div>
+                    <div class="report-item">
+                      <span class="report-label">Exterior</span>
+                      <span class="report-value">{{ report.exteriorCondition }}</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="report-notes" *ngIf="report.damageNotes">
+                  <span class="report-label">Damage Notes:</span>
+                  <span class="report-notes-text">{{ report.damageNotes }}</span>
+                </div>
+                <div class="report-notes" *ngIf="report.additionalNotes">
+                  <span class="report-label">Additional Notes:</span>
+                  <span class="report-notes-text">{{ report.additionalNotes }}</span>
+                </div>
+                <div class="report-footer">
+                  <span class="report-author">Recorded by: {{ getReportAuthorName(report.createdBy) }}</span>
+                  <button class="view-job-button" (click)="viewJob(report.jobId)">View Job</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="empty-reports" *ngIf="!vehicle.conditionReports || vehicle.conditionReports.length === 0">
+            <mat-icon>description</mat-icon>
+            <p>No condition reports available for this vehicle</p>
+            <p class="sub-message">Reports will be added when processing jobs</p>
           </div>
         </div>
       </div>
     </div>
   </ng-container>
 </div>
+
+<!-- Photo Viewer Dialog -->
+<ng-template #photoViewerDialog>
+  <div class="photo-viewer">
+    <div class="photo-viewer-header">
+      <h2>{{ selectedPhoto?.type | titlecase }} Photo</h2>
+      <button mat-icon-button (click)="closePhotoViewer()">
+        <mat-icon>close</mat-icon>
+      </button>
+    </div>
+    <div class="photo-viewer-content">
+      <img [src]="selectedPhoto?.url" [alt]="'Photo of ' + vehicle?.registration" />
+    </div>
+    <div class="photo-viewer-footer">
+      <div class="photo-info">
+        <div class="info-item">
+          <span class="label">Date:</span>
+          <span class="value">{{ formatDate(selectedPhoto?.takenAt) }}</span>
+        </div>
+        <div class="info-item">
+          <span class="label">Job:</span>
+          <span class="value">{{ getJobReference(selectedPhoto?.jobId) }}</span>
+        </div>
+        <div class="info-item" *ngIf="selectedPhoto?.notes">
+          <span class="label">Notes:</span>
+          <span class="value">{{ selectedPhoto?.notes }}</span>
+        </div>
+      </div>
+      <button mat-flat-button color="primary" (click)="viewJob(selectedPhoto?.jobId)">View Job</button>
+    </div>
+  </div>
+</ng-template>

@@ -1,15 +1,13 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, ActivatedRoute } from '@angular/router';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatDialog } from '@angular/material/dialog';
+import { Subscription, forkJoin, of } from 'rxjs';
+import { switchMap, catchError, finalize } from 'rxjs/operators';
+import { VehicleService, VehicleMake, VehicleModel } from '../../../services/vehicle.service';
+import { AuthService } from '../../../services/auth.service';
 import { ConfirmationDialogComponent } from '../../../dialogs/confirmation-dialog.component';
-import { VehicleType } from '../../../shared/models/vehicle-type.enum';
-
-interface Manufacturer {
-  id: string;
-  name: string;
-}
 
 @Component({
   selector: 'app-vehicle-create',
@@ -17,197 +15,307 @@ interface Manufacturer {
   styleUrls: ['./vehicle-create.component.scss'],
   standalone: false,
 })
-export class VehicleCreateComponent implements OnInit {
+export class VehicleCreateComponent implements OnInit, OnDestroy {
   vehicleForm!: FormGroup;
-  currentYear = new Date().getFullYear();
-  images: string[] = [];
+  isEditMode = false;
+  isLoading = false;
   isSubmitting = false;
-  previousSelections: any[] = [];
+  vehicleId: string = '';
+  currentYear = new Date().getFullYear();
 
-  // Mock data - should come from a service
-  manufacturers: Manufacturer[] = [
-    { id: '1', name: 'Toyota' },
-    { id: '2', name: 'Honda' },
-    { id: '3', name: 'Ford' },
-    { id: '4', name: 'Mercedes' },
-    { id: '5', name: 'BMW' },
-  ];
+  // Reference data
+  vehicleMakes: VehicleMake[] = [];
+  availableModels: VehicleModel[] = [];
+  allModels: VehicleModel[] = [];
 
-  vehicleTypes = Object.values(VehicleType);
+  // Dropdown options
+  colors: string[] = ['Black', 'White', 'Silver', 'Grey', 'Blue', 'Red', 'Green', 'Yellow', 'Brown', 'Orange', 'Purple', 'Gold', 'Beige'];
 
-  loadingRequirements = [
-    'Clear overhead clearance required',
-    'Minimum ramp angle required',
-    'Special lifting equipment needed',
-    'Extra securing points required',
-    'Climate-controlled transport required',
-  ];
+  fuelTypes: string[] = ['Petrol', 'Diesel', 'Hybrid', 'Electric', 'LPG', 'Hydrogen', 'Other'];
 
-  transportRestrictions = [
-    'No stacking',
-    'No outdoor storage',
-    'Temperature sensitive',
-    'Humidity sensitive',
-    'Special route requirements',
-  ];
+  transmissionTypes: string[] = ['Manual', 'Automatic', 'Semi-Automatic', 'CVT'];
 
-  requiredEquipment = [
-    'Wheel straps',
-    'Soft tie-downs',
-    'Wheel chocks',
-    'Loading ramps',
-    'Lift gate',
-    'Enclosed trailer',
-  ];
+  // Color mapping for visualization
+  colorMap: { [key: string]: string } = {
+    Black: '#333333',
+    White: '#FFFFFF',
+    Silver: '#C0C0C0',
+    Grey: '#808080',
+    Blue: '#0000FF',
+    Red: '#FF0000',
+    Green: '#008000',
+    Yellow: '#FFFF00',
+    Brown: '#A52A2A',
+    Orange: '#FFA500',
+    Purple: '#800080',
+    Gold: '#FFD700',
+    Beige: '#F5F5DC',
+  };
+
+  private subscriptions: Subscription[] = [];
 
   constructor(
     private formBuilder: FormBuilder,
     private router: Router,
+    private route: ActivatedRoute,
+    private vehicleService: VehicleService,
+    private authService: AuthService,
     private snackBar: MatSnackBar,
     private dialog: MatDialog
   ) {
-    this.initializeForm();
-    this.loadPreviousVehicleData();
+    this.createForm();
   }
 
   ngOnInit(): void {
-    // Additional initialization if needed
-  }
+    this.loadReferenceData();
 
-  private initializeForm(): void {
-    this.vehicleForm = this.formBuilder.group({
-      manufacturerId: ['', Validators.required],
-      name: ['', Validators.required],
-      type: [VehicleType.CAR, Validators.required],
-      yearStart: [
-        this.currentYear,
-        [
-          Validators.required,
-          Validators.min(1990),
-          Validators.max(this.currentYear),
-        ],
-      ],
-      yearEnd: [null, [Validators.min(1990), Validators.max(this.currentYear)]],
-      // Dimensions
-      length: ['', [Validators.required, Validators.min(0)]],
-      width: ['', [Validators.required, Validators.min(0)]],
-      height: ['', [Validators.required, Validators.min(0)]],
-      wheelbase: ['', [Validators.required, Validators.min(0)]],
-      // Weight
-      emptyWeight: ['', [Validators.required, Validators.min(0)]],
-      maxLoad: ['', [Validators.required, Validators.min(0)]],
-      // Requirements
-      loadingRequirements: [[]],
-      transportRestrictions: [[]],
-      requiredEquipment: [[]],
-    });
-
-    // Add year validation
-    this.vehicleForm.get('yearEnd')?.valueChanges.subscribe((endYear) => {
-      const startYear = this.vehicleForm.get('yearStart')?.value;
-      if (endYear && startYear && endYear < startYear) {
-        this.vehicleForm.get('yearEnd')?.setErrors({ invalidRange: true });
+    // Check if we're in edit mode (URL contains an ID)
+    const routeSub = this.route.params.subscribe((params) => {
+      if (params['id']) {
+        this.isEditMode = true;
+        this.vehicleId = params['id'];
+        this.loadVehicleDetails(this.vehicleId);
       }
     });
+
+    this.subscriptions.push(routeSub);
+    this.checkPermissions();
   }
 
-  private loadPreviousVehicleData(): void {
-    // In a real app, this would be loaded from a service
-    // For now, using mock data
-    this.previousSelections = [
-      {
-        manufacturerId: '1',
-        name: 'Corolla',
-        type: VehicleType.CAR,
-        yearStart: 2020,
-        length: 185,
-        width: 71,
-        height: 56,
-        wheelbase: 106,
-        emptyWeight: 2800,
-        maxLoad: 900,
+  ngOnDestroy(): void {
+    this.subscriptions.forEach((sub) => sub.unsubscribe());
+  }
+
+  private createForm(): void {
+    this.vehicleForm = this.formBuilder.group({
+      registration: ['', [Validators.required, Validators.pattern(/^[A-Z0-9]+$/)]],
+      chassisNumber: ['', [Validators.pattern(/^[A-Z0-9]+$/)]],
+      makeId: ['', Validators.required],
+      modelId: ['', Validators.required],
+      type: [{ value: '', disabled: true }],
+      color: ['', Validators.required],
+      year: ['', [Validators.required, Validators.min(1900), Validators.max(this.currentYear)]],
+      vin: [''],
+      engineSize: [''],
+      fuelType: [''],
+      transmission: [''],
+      mileage: [null, Validators.min(0)],
+      notes: [''],
+    });
+  }
+
+  private checkPermissions(): void {
+    const authSub = this.authService.hasPermission('canManageUsers').subscribe((hasPermission) => {
+      if (!hasPermission) {
+        this.showSnackbar('You do not have permission to manage vehicles');
+        this.router.navigate(['/vehicles']);
+      }
+    });
+
+    this.subscriptions.push(authSub);
+  }
+
+  private loadReferenceData(): void {
+    this.isLoading = true;
+
+    const dataSub = forkJoin({
+      makes: this.vehicleService.getVehicleMakes(),
+      models: this.vehicleService.getVehicleModels(),
+    }).subscribe({
+      next: (data) => {
+        this.vehicleMakes = data.makes;
+        this.allModels = data.models;
+        this.isLoading = false;
       },
-      {
-        manufacturerId: '3',
-        name: 'Transit',
-        type: VehicleType.VAN,
-        yearStart: 2019,
-        length: 220,
-        width: 81,
-        height: 82,
-        wheelbase: 148,
-        emptyWeight: 5200,
-        maxLoad: 2200,
+      error: (error) => {
+        console.error('Error loading reference data:', error);
+        this.showSnackbar('Error loading data. Please try again.');
+        this.isLoading = false;
       },
-    ];
+    });
+
+    this.subscriptions.push(dataSub);
   }
 
-  applyPreviousData(data: any): void {
-    // Update form with previously used data
-    this.vehicleForm.patchValue(data);
+  private loadVehicleDetails(vehicleId: string): void {
+    this.isLoading = true;
+
+    const vehicleSub = this.vehicleService
+      .getVehicleById(vehicleId)
+      .pipe(
+        catchError((error) => {
+          console.error('Error loading vehicle details:', error);
+          this.showSnackbar('Error loading vehicle details');
+          this.router.navigate(['/vehicles']);
+          return of(null);
+        }),
+        finalize(() => {
+          this.isLoading = false;
+        })
+      )
+      .subscribe((vehicle) => {
+        if (vehicle) {
+          // Update available models based on the make
+          if (vehicle.makeId) {
+            this.updateAvailableModels(vehicle.makeId);
+          }
+
+          // Populate form with vehicle data
+          this.vehicleForm.patchValue({
+            registration: vehicle.registration,
+            chassisNumber: vehicle.chassisNumber || '',
+            makeId: vehicle.makeId,
+            modelId: vehicle.modelId,
+            type: vehicle.type,
+            color: vehicle.color,
+            year: vehicle.year,
+            vin: vehicle.vin || '',
+            engineSize: vehicle.engineSize || '',
+            fuelType: vehicle.fuelType || '',
+            transmission: vehicle.transmission || '',
+            mileage: vehicle.mileage || 0,
+            notes: vehicle.notes || '',
+          });
+        }
+      });
+
+    this.subscriptions.push(vehicleSub);
   }
 
-  addImage(): void {
-    // In a real application, this would open a file picker or image upload dialog
-    // For now, we'll add a mock image URL
-    const mockImageUrl = `/assets/images/vehicle-${this.images.length + 1}.jpg`;
-    this.images.push(mockImageUrl);
+  onMakeChange(): void {
+    const makeId = this.vehicleForm.get('makeId')?.value;
+    if (makeId) {
+      this.updateAvailableModels(makeId);
+
+      // Reset model selection and type
+      this.vehicleForm.get('modelId')?.setValue('');
+      this.vehicleForm.get('type')?.setValue('');
+    }
   }
 
-  removeImage(index: number): void {
-    this.images.splice(index, 1);
+  onModelChange(): void {
+    const modelId = this.vehicleForm.get('modelId')?.value;
+    if (modelId) {
+      const selectedModel = this.availableModels.find((model) => model.id === modelId);
+      if (selectedModel) {
+        this.vehicleForm.get('type')?.setValue(selectedModel.type);
+      }
+    }
   }
 
-  async save(): Promise<void> {
+  private updateAvailableModels(makeId: string): void {
+    if (!makeId) {
+      this.availableModels = [];
+      return;
+    }
+
+    // Filter models by the selected make
+    this.availableModels = this.allModels.filter((model) => model.makeId === makeId && model.isActive);
+  }
+
+  save(): void {
     if (this.vehicleForm.invalid || this.isSubmitting) {
       return;
     }
 
     this.isSubmitting = true;
 
-    try {
-      const formValue = this.vehicleForm.value;
-      const vehicleData = {
-        ...formValue,
-        images: this.images,
-        dimensions: {
-          length: formValue.length,
-          width: formValue.width,
-          height: formValue.height,
-          wheelbase: formValue.wheelbase,
-        },
-        weight: {
-          empty: formValue.emptyWeight,
-          maxLoad: formValue.maxLoad,
-        },
+    // Get form values
+    const formValues = this.vehicleForm.getRawValue();
+
+    // Get make and model names for storing in denormalized fields
+    const selectedMake = this.vehicleMakes.find((make) => make.id === formValues.makeId);
+    const selectedModel = this.availableModels.find((model) => model.id === formValues.modelId);
+
+    if (this.isEditMode) {
+      // For updates, we only send the fields we want to update
+      const updateData = {
+        registration: formValues.registration.toUpperCase(),
+        chassisNumber: formValues.chassisNumber ? formValues.chassisNumber.toUpperCase() : '',
+        makeId: formValues.makeId,
+        makeName: selectedMake?.displayName || '',
+        modelId: formValues.modelId,
+        modelName: selectedModel?.name || '',
+        type: formValues.type,
+        color: formValues.color,
+        year: formValues.year,
+        vin: formValues.vin ? formValues.vin.toUpperCase() : '',
+        engineSize: formValues.engineSize,
+        fuelType: formValues.fuelType,
+        transmission: formValues.transmission,
+        mileage: formValues.mileage || 0,
+        notes: formValues.notes,
       };
 
-      // TODO: Replace with actual API call
-      console.log('Saving vehicle:', vehicleData);
+      // Update existing vehicle
+      this.vehicleService
+        .updateVehicle(this.vehicleId, updateData)
+        .pipe(finalize(() => (this.isSubmitting = false)))
+        .subscribe({
+          next: () => {
+            this.showSnackbar('Vehicle updated successfully');
+            this.router.navigate(['/vehicles', this.vehicleId]);
+          },
+          error: (error) => {
+            console.error('Error updating vehicle:', error);
+            this.showSnackbar('Error updating vehicle. Please try again.');
+          },
+        });
+    } else {
+      // For new vehicles, we need to provide all required fields
+      const newVehicleData = {
+        registration: formValues.registration.toUpperCase(),
+        chassisNumber: formValues.chassisNumber ? formValues.chassisNumber.toUpperCase() : '',
+        makeId: formValues.makeId,
+        makeName: selectedMake?.displayName || '',
+        modelId: formValues.modelId,
+        modelName: selectedModel?.name || '',
+        type: formValues.type,
+        color: formValues.color,
+        year: formValues.year,
+        vin: formValues.vin ? formValues.vin.toUpperCase() : '',
+        engineSize: formValues.engineSize,
+        fuelType: formValues.fuelType,
+        transmission: formValues.transmission,
+        mileage: formValues.mileage || 0,
+        notes: formValues.notes,
 
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+        // These required fields will be initialized by the service
+        firstProcessedDate: new Date(),
+        lastProcessedDate: new Date(),
+        jobCount: 0,
+        jobHistory: [],
+      };
 
-      this.showSuccessMessage('Vehicle created successfully');
-      this.router.navigate(['/vehicles']);
-    } catch (error) {
-      this.showErrorMessage('Failed to create vehicle. Please try again.');
-    } finally {
-      this.isSubmitting = false;
+      // Create new vehicle
+      this.vehicleService
+        .createVehicle(newVehicleData)
+        .pipe(finalize(() => (this.isSubmitting = false)))
+        .subscribe({
+          next: (id) => {
+            this.showSnackbar('Vehicle created successfully');
+            this.router.navigate(['/vehicles', id]);
+          },
+          error: (error) => {
+            console.error('Error creating vehicle:', error);
+            this.showSnackbar('Error creating vehicle. Please try again.');
+          },
+        });
     }
   }
 
   cancel(): void {
-    // Show confirmation dialog if form is dirty
-    if (this.vehicleForm.dirty || this.images.length > 0) {
+    // Show confirmation dialog if there are unsaved changes
+    if (this.vehicleForm.dirty) {
       const dialogRef = this.dialog.open(ConfirmationDialogComponent, {
-        width: '400px',
         data: {
           title: 'Discard Changes',
           message: 'Are you sure you want to discard your changes?',
           confirmText: 'Discard',
           cancelText: 'Continue Editing',
+          confirmColor: 'warn',
         },
+        width: '400px',
       });
 
       dialogRef.afterClosed().subscribe((result) => {
@@ -221,36 +329,22 @@ export class VehicleCreateComponent implements OnInit {
   }
 
   private navigateBack(): void {
-    this.router.navigate(['/vehicles']);
+    if (this.isEditMode) {
+      this.router.navigate(['/vehicles', this.vehicleId]);
+    } else {
+      this.router.navigate(['/vehicles']);
+    }
   }
 
-  // Form Validation Helpers
-  hasError(controlName: string, errorName: string): boolean {
-    return this.vehicleForm.get(controlName)?.hasError(errorName) ?? false;
+  getColorHex(colorName: string): string {
+    return this.colorMap[colorName] || '#CCCCCC'; // Default gray if not found
   }
 
-  isFieldInvalid(controlName: string): boolean {
-    const control = this.vehicleForm.get(controlName);
-    return control
-      ? control.invalid && (control.dirty || control.touched)
-      : false;
-  }
-
-  private showSuccessMessage(message: string): void {
+  showSnackbar(message: string): void {
     this.snackBar.open(message, 'Close', {
       duration: 5000,
-      horizontalPosition: 'end',
-      verticalPosition: 'top',
-      panelClass: ['success-snackbar'],
-    });
-  }
-
-  private showErrorMessage(message: string): void {
-    this.snackBar.open(message, 'Close', {
-      duration: 5000,
-      horizontalPosition: 'end',
-      verticalPosition: 'top',
-      panelClass: ['error-snackbar'],
+      horizontalPosition: 'center',
+      verticalPosition: 'bottom',
     });
   }
 }

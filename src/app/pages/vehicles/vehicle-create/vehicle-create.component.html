@@ -1,280 +1,160 @@
-<mat-card class="mat-elevation-z3">
-  <!-- Header -->
-  <div class="header-wrapper">
-    <div class="header-title">
-      <h1>Add New Vehicle</h1>
-      <p class="subtitle">
-        Create a new vehicle with specifications and requirements
-      </p>
-    </div>
-    <div class="header-actions">
-      <button mat-stroked-button (click)="cancel()">
-        <mat-icon>close</mat-icon>
-        Cancel
-      </button>
-      <button
-        mat-flat-button
-        color="primary"
-        (click)="save()"
-        [disabled]="!vehicleForm.valid"
-      >
-        <mat-icon>save</mat-icon>
-        Save Vehicle
-      </button>
-    </div>
+<div class="vehicle-form-container">
+  <!-- Loading Overlay -->
+  <div class="loading-overlay" *ngIf="isLoading">
+    <mat-spinner diameter="40"></mat-spinner>
+    <span>Loading...</span>
   </div>
 
-  <!-- Form Content -->
-  <div class="form-content">
-    <form [formGroup]="vehicleForm">
-      <!-- Previous Selections -->
-      <section class="form-section" *ngIf="previousSelections.length > 0">
-        <h2>Previously Added Vehicles</h2>
-        <div class="previous-selections">
-          <div class="selection-grid">
-            <div
-              *ngFor="let selection of previousSelections"
-              class="selection-card"
-              (click)="applyPreviousData(selection)"
-            >
-              <div class="selection-header">
-                <span class="manufacturer">
-                  <!-- {{ manufacturers.find(m => m.id === selection.manufacturerId)?.name }} -->
-                </span>
-                <span class="model-name">{{ selection.name }}</span>
-              </div>
-              <div class="selection-details">
-                <div class="detail-item">
-                  <span class="label">Type:</span>
-                  <span class="value">{{ selection.type }}</span>
-                </div>
-                <div class="detail-item">
-                  <span class="label">Year:</span>
-                  <span class="value">{{ selection.yearStart }}</span>
-                </div>
-                <div class="detail-item">
-                  <span class="label">Size:</span>
-                  <span class="value"
-                    >{{ selection.length }}L x {{ selection.width }}W x
-                    {{ selection.height }}H</span
-                  >
-                </div>
-              </div>
-              <div class="selection-action">
-                <mat-icon>content_copy</mat-icon>
-                <span>Use This Data</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+  <mat-card class="form-card">
+    <!-- Header -->
+    <div class="header-wrapper">
+      <div class="header-title">
+        <h1>{{ isEditMode ? 'Edit Vehicle' : 'Add New Vehicle' }}</h1>
+        <p class="subtitle">
+          {{ isEditMode ? 'Update vehicle details' : 'Create a new vehicle entry' }}
+        </p>
+      </div>
+      <div class="header-actions">
+        <button mat-stroked-button (click)="cancel()">
+          <mat-icon>close</mat-icon>
+          Cancel
+        </button>
+        <button mat-flat-button color="primary" (click)="save()" [disabled]="!vehicleForm.valid || isSubmitting">
+          <mat-icon>save</mat-icon>
+          Save Vehicle
+        </button>
+      </div>
+    </div>
 
-      <!-- Basic Information -->
-      <section class="form-section">
-        <h2>Basic Information</h2>
-        <div class="form-grid">
-          <mat-form-field appearance="outline">
-            <mat-label>Manufacturer</mat-label>
-            <mat-select formControlName="manufacturerId" required>
-              <mat-option
-                *ngFor="let manufacturer of manufacturers"
-                [value]="manufacturer.id"
-              >
-                {{ manufacturer.name }}
-              </mat-option>
-            </mat-select>
-            <mat-error
-              *ngIf="vehicleForm.get('manufacturerId')?.hasError('required')"
-            >
-              Manufacturer is required
-            </mat-error>
-          </mat-form-field>
-
-          <mat-form-field appearance="outline">
-            <mat-label>Model Name</mat-label>
-            <input matInput formControlName="name" required />
-            <mat-error *ngIf="vehicleForm.get('name')?.hasError('required')">
-              Model name is required
-            </mat-error>
-          </mat-form-field>
-
-          <mat-form-field appearance="outline">
-            <mat-label>Vehicle Type</mat-label>
-            <mat-select formControlName="type" required>
-              <mat-option *ngFor="let type of vehicleTypes" [value]="type">
-                {{ type }}
-              </mat-option>
-            </mat-select>
-          </mat-form-field>
-
-          <div class="year-range">
+    <!-- Form Content -->
+    <div class="form-content">
+      <form [formGroup]="vehicleForm">
+        <!-- Basic Information -->
+        <section class="form-section">
+          <h2>Basic Information</h2>
+          <div class="form-grid">
             <mat-form-field appearance="outline">
-              <mat-label>Year Start</mat-label>
-              <input
-                matInput
-                type="number"
-                formControlName="yearStart"
-                required
-              />
-              <mat-error *ngIf="vehicleForm.get('yearStart')?.hasError('min')">
-                Year must be 1990 or later
-              </mat-error>
+              <mat-label>Registration Number</mat-label>
+              <input matInput formControlName="registration" required placeholder="e.g. AB12CDE" style="text-transform: uppercase" />
+              <mat-hint>Registration number (uppercase, no spaces)</mat-hint>
+              <mat-error *ngIf="vehicleForm.get('registration')?.hasError('required')"> Registration number is required </mat-error>
+              <mat-error *ngIf="vehicleForm.get('registration')?.hasError('pattern')"> Invalid format (letters and numbers only, no spaces) </mat-error>
             </mat-form-field>
 
             <mat-form-field appearance="outline">
-              <mat-label>Year End</mat-label>
-              <input matInput type="number" formControlName="yearEnd" />
-              <mat-hint>Leave empty for current models</mat-hint>
+              <mat-label>Chassis Number</mat-label>
+              <input matInput formControlName="chassisNumber" placeholder="e.g. ABCD1234567890" style="text-transform: uppercase" />
+              <mat-hint>Chassis/VIN number (if available)</mat-hint>
+              <mat-error *ngIf="vehicleForm.get('chassisNumber')?.hasError('pattern')"> Invalid format (letters and numbers only) </mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Make</mat-label>
+              <mat-select formControlName="makeId" required (selectionChange)="onMakeChange()">
+                <mat-option *ngFor="let make of vehicleMakes" [value]="make.id">
+                  {{ make.displayName }}
+                </mat-option>
+              </mat-select>
+              <mat-error *ngIf="vehicleForm.get('makeId')?.hasError('required')"> Make is required </mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Model</mat-label>
+              <mat-select formControlName="modelId" required (selectionChange)="onModelChange()">
+                <mat-option *ngFor="let model of availableModels" [value]="model.id">
+                  {{ model.name }}
+                </mat-option>
+              </mat-select>
+              <mat-error *ngIf="vehicleForm.get('modelId')?.hasError('required')"> Model is required </mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Vehicle Type</mat-label>
+              <input matInput formControlName="type" readonly />
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Color</mat-label>
+              <mat-select formControlName="color" required>
+                <mat-option *ngFor="let color of colors" [value]="color">
+                  <div class="color-option">
+                    <span class="color-swatch" [ngStyle]="{ 'background-color': getColorHex(color) }"></span>
+                    {{ color }}
+                  </div>
+                </mat-option>
+              </mat-select>
+              <mat-error *ngIf="vehicleForm.get('color')?.hasError('required')"> Color is required </mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Year</mat-label>
+              <input matInput type="number" formControlName="year" required min="1900" [max]="currentYear" />
+              <mat-error *ngIf="vehicleForm.get('year')?.hasError('required')"> Year is required </mat-error>
+              <mat-error *ngIf="vehicleForm.get('year')?.hasError('min')"> Year must be 1900 or later </mat-error>
+              <mat-error *ngIf="vehicleForm.get('year')?.hasError('max')"> Year cannot be in the future </mat-error>
             </mat-form-field>
           </div>
-        </div>
-      </section>
+        </section>
 
-      <!-- Dimensions -->
-      <section class="form-section">
-        <h2>Dimensions</h2>
-        <div class="form-grid dimensions-grid">
-          <mat-form-field appearance="outline">
-            <mat-label>Length (inches)</mat-label>
-            <input matInput type="number" formControlName="length" required />
-            <mat-error *ngIf="vehicleForm.get('length')?.hasError('required')">
-              Length is required
-            </mat-error>
-          </mat-form-field>
+        <!-- Additional Details -->
+        <section class="form-section">
+          <h2>Additional Details</h2>
+          <div class="form-grid">
+            <mat-form-field appearance="outline">
+              <mat-label>VIN Number</mat-label>
+              <input matInput formControlName="vin" placeholder="Vehicle Identification Number" />
+            </mat-form-field>
 
-          <mat-form-field appearance="outline">
-            <mat-label>Width (inches)</mat-label>
-            <input matInput type="number" formControlName="width" required />
-            <mat-error *ngIf="vehicleForm.get('width')?.hasError('required')">
-              Width is required
-            </mat-error>
-          </mat-form-field>
+            <mat-form-field appearance="outline">
+              <mat-label>Engine Size</mat-label>
+              <input matInput formControlName="engineSize" placeholder="e.g. 2.0L" />
+            </mat-form-field>
 
-          <mat-form-field appearance="outline">
-            <mat-label>Height (inches)</mat-label>
-            <input matInput type="number" formControlName="height" required />
-            <mat-error *ngIf="vehicleForm.get('height')?.hasError('required')">
-              Height is required
-            </mat-error>
-          </mat-form-field>
+            <mat-form-field appearance="outline">
+              <mat-label>Fuel Type</mat-label>
+              <mat-select formControlName="fuelType">
+                <mat-option *ngFor="let fuel of fuelTypes" [value]="fuel">
+                  {{ fuel }}
+                </mat-option>
+              </mat-select>
+            </mat-form-field>
 
-          <mat-form-field appearance="outline">
-            <mat-label>Wheelbase (inches)</mat-label>
-            <input
-              matInput
-              type="number"
-              formControlName="wheelbase"
-              required
-            />
-            <mat-error
-              *ngIf="vehicleForm.get('wheelbase')?.hasError('required')"
-            >
-              Wheelbase is required
-            </mat-error>
-          </mat-form-field>
-        </div>
-      </section>
+            <mat-form-field appearance="outline">
+              <mat-label>Transmission</mat-label>
+              <mat-select formControlName="transmission">
+                <mat-option *ngFor="let trans of transmissionTypes" [value]="trans">
+                  {{ trans }}
+                </mat-option>
+              </mat-select>
+            </mat-form-field>
 
-      <!-- Weight Information -->
-      <section class="form-section">
-        <h2>Weight Information</h2>
-        <div class="form-grid weight-grid">
-          <mat-form-field appearance="outline">
-            <mat-label>Empty Weight (lbs)</mat-label>
-            <input
-              matInput
-              type="number"
-              formControlName="emptyWeight"
-              required
-            />
-            <mat-error
-              *ngIf="vehicleForm.get('emptyWeight')?.hasError('required')"
-            >
-              Empty weight is required
-            </mat-error>
-          </mat-form-field>
-
-          <mat-form-field appearance="outline">
-            <mat-label>Maximum Load (lbs)</mat-label>
-            <input matInput type="number" formControlName="maxLoad" required />
-            <mat-error *ngIf="vehicleForm.get('maxLoad')?.hasError('required')">
-              Maximum load is required
-            </mat-error>
-          </mat-form-field>
-        </div>
-      </section>
-
-      <!-- Requirements and Restrictions -->
-      <section class="form-section">
-        <h2>Requirements and Restrictions</h2>
-        <div class="form-grid">
-          <mat-form-field appearance="outline">
-            <mat-label>Loading Requirements</mat-label>
-            <mat-select formControlName="loadingRequirements" multiple>
-              <mat-option *ngFor="let req of loadingRequirements" [value]="req">
-                {{ req }}
-              </mat-option>
-            </mat-select>
-          </mat-form-field>
-
-          <mat-form-field appearance="outline">
-            <mat-label>Transport Restrictions</mat-label>
-            <mat-select formControlName="transportRestrictions" multiple>
-              <mat-option
-                *ngFor="let restriction of transportRestrictions"
-                [value]="restriction"
-              >
-                {{ restriction }}
-              </mat-option>
-            </mat-select>
-          </mat-form-field>
-
-          <mat-form-field appearance="outline">
-            <mat-label>Required Equipment</mat-label>
-            <mat-select formControlName="requiredEquipment" multiple>
-              <mat-option
-                *ngFor="let equipment of requiredEquipment"
-                [value]="equipment"
-              >
-                {{ equipment }}
-              </mat-option>
-            </mat-select>
-          </mat-form-field>
-        </div>
-      </section>
-
-      <!-- Images -->
-      <section class="form-section">
-        <h2>Images</h2>
-        <div class="image-upload-container">
-          <div
-            class="image-preview"
-            *ngFor="let image of images; let i = index"
-          >
-            <img [src]="image" alt="Vehicle image preview" />
-            <button mat-icon-button color="warn" (click)="removeImage(i)">
-              <mat-icon>delete</mat-icon>
-            </button>
+            <mat-form-field appearance="outline">
+              <mat-label>Current Mileage</mat-label>
+              <input matInput type="number" formControlName="mileage" min="0" placeholder="Current mileage in miles" />
+              <mat-error *ngIf="vehicleForm.get('mileage')?.hasError('min')"> Mileage cannot be negative </mat-error>
+            </mat-form-field>
           </div>
-          <button mat-stroked-button (click)="addImage()">
-            <mat-icon>add_photo_alternate</mat-icon>
-            Add Image
-          </button>
-        </div>
-      </section>
-    </form>
-  </div>
+        </section>
 
-  <!-- Footer Actions -->
-  <div class="footer-actions">
-    <button mat-stroked-button (click)="cancel()">Cancel</button>
-    <button
-      mat-flat-button
-      color="primary"
-      (click)="save()"
-      [disabled]="!vehicleForm.valid"
-    >
-      Save Vehicle
-    </button>
-  </div>
-</mat-card>
+        <!-- Notes Section -->
+        <section class="form-section">
+          <h2>Notes</h2>
+          <div class="form-grid">
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Additional Notes</mat-label>
+              <textarea matInput formControlName="notes" rows="4" placeholder="Any additional information about this vehicle"></textarea>
+            </mat-form-field>
+          </div>
+        </section>
+      </form>
+    </div>
+
+    <!-- Footer Actions -->
+    <div class="footer-actions">
+      <button mat-stroked-button (click)="cancel()">Cancel</button>
+      <button mat-flat-button color="primary" (click)="save()" [disabled]="!vehicleForm.valid || isSubmitting">
+        {{ isSubmitting ? 'Saving...' : 'Save Vehicle' }}
+      </button>
+    </div>
+  </mat-card>
+</div>
