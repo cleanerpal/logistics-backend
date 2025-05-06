@@ -55,6 +55,7 @@ import { NotificationService } from './services/notification.service';
 import { provideNgxMask } from 'ngx-mask';
 import { FirebaseService } from './services/firebase.service';
 import { environment } from '../environments/environment.prod';
+import { DriverSelectionDialogComponent } from './dialogs/driver-selection-dialog.component';
 
 @NgModule({
   declarations: [
@@ -76,6 +77,7 @@ import { environment } from '../environments/environment.prod';
     VehicleDetailsComponent,
     VehicleCreateComponent,
     ConfirmationDialogComponent,
+    DriverSelectionDialogComponent,
     ExpenseCreateComponent,
     ExpenseListComponent,
     VehicleMovementComponent,

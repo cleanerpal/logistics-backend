@@ -154,6 +154,35 @@ export class AuthService {
   }
 
   /**
+   * Get a user profile by ID
+   */
+  getUserById(userId: string): Observable<UserProfile | null> {
+    if (!userId) {
+      return of(null);
+    }
+
+    const userDocRef = doc(this.firestore, `users/${userId}`);
+
+    return from(getDoc(userDocRef)).pipe(
+      map((docSnap) => {
+        if (docSnap.exists()) {
+          const profile = this.convertFirebaseUserToProfile(
+            userId,
+            docSnap.data()
+          );
+          return profile;
+        } else {
+          return null;
+        }
+      }),
+      catchError((error) => {
+        console.error('Error fetching user profile by ID:', error);
+        return of(null);
+      })
+    );
+  }
+
+  /**
    * Check if the current user has a specific permission
    */
   hasPermission(permission: string | UserPermissionKey): Observable<boolean> {

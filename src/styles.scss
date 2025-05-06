@@ -239,6 +239,149 @@ a:hover {
   color: white;
 }
 
+/* Dialog Styles */
+.mat-mdc-dialog-container {
+  --mdc-dialog-container-color: white;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15) !important;
+}
+
+.custom-dialog-container .mat-mdc-dialog-surface {
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.custom-dialog-container .mat-mdc-dialog-container {
+  padding: 0;
+}
+
+.mat-mdc-dialog-container .mdc-dialog__surface {
+  border-radius: 8px !important;
+}
+
+/* Collection dialog */
+.collection-dialog .dialog-header {
+  background-color: #fff8e1;
+}
+
+/* Delivery dialog */
+.delivery-dialog .dialog-header {
+  background-color: #e8f5e9;
+}
+
+/* Warning dialog */
+.warning-dialog .dialog-header {
+  background-color: #ffebee;
+}
+
+/* Allocation dialog */
+.allocation-dialog .dialog-header {
+  background-color: #e1f5fe;
+}
+
+/* Fade in animation for dialogs */
+.mat-mdc-dialog-container.mdc-dialog__container {
+  animation: dialogFadeIn 0.2s ease-out;
+}
+
+@keyframes dialogFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Driver Selection Dialog */
+.driver-selection-dialog {
+  min-width: 350px;
+}
+
+.driver-selection-dialog .dialog-content {
+  padding: 0 !important;
+  max-height: 350px;
+  overflow-y: auto;
+}
+
+.driver-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.driver-item {
+  padding: 12px 24px;
+  border-bottom: 1px solid #f0f0f0;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.driver-item:hover {
+  background-color: #f5f9fd;
+}
+
+.driver-item:last-child {
+  border-bottom: none;
+}
+
+.driver-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: #e1f5fe;
+  color: #0288d1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 500;
+  font-size: 16px;
+}
+
+.driver-info {
+  flex: 1;
+}
+
+.driver-name {
+  font-weight: 500;
+  color: #333;
+  margin-bottom: 4px;
+}
+
+.driver-details {
+  font-size: 13px;
+  color: #666;
+}
+
+.driver-actions {
+  display: flex;
+  align-items: center;
+}
+
+/* Responsive dialog styles */
+@media (max-width: 599px) {
+  .mat-mdc-dialog-container {
+    max-width: 100vw !important;
+    width: 100vw !important;
+    margin: 0;
+    border-radius: 0;
+  }
+
+  .custom-dialog-container .mat-mdc-dialog-surface {
+    border-radius: 0;
+  }
+
+  .mat-mdc-dialog-container .mdc-dialog__surface {
+    border-radius: 0 !important;
+  }
+}
+
 /* Mobile optimization */
 @media (max-width: 768px) {
   html,

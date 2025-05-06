@@ -18,11 +18,6 @@
     <div class="sticky-header">
       <div class="header-content">
         <div class="header-left">
-          <button class="back-btn" (click)="goBack()">
-            <span class="material-icons">arrow_back</span>
-            Back to Jobs
-          </button>
-
           <div class="job-identifier">
             <div class="vehicle-badge" *ngIf="job.make">
               <img
@@ -31,7 +26,13 @@
                 (error)="handleImageError($event)"
               />
             </div>
-            <h1>{{ job.id }}</h1>
+            <div class="job-details-header">
+              <!-- <h1>{{ job.id }}</h1> -->
+              <div class="vehicle-summary" *ngIf="job.make && job.model">
+                {{ job.make }} {{ job.model }}
+                {{ job.registration ? "(" + job.registration + ")" : "" }}
+              </div>
+            </div>
             <span
               class="status-badge"
               [ngClass]="
@@ -91,6 +92,75 @@
         <div *ngSwitchCase="'details'" class="details-tab">
           <div class="two-column-layout">
             <div class="left-column">
+              <!-- Status Card - Moved to top -->
+              <div
+                class="info-card status-card"
+                [ngClass]="
+                  job.status
+                    ? 'status-' + job.status.toLowerCase().replace(' ', '-')
+                    : ''
+                "
+              >
+                <h2>Current Status</h2>
+                <div class="current-status">
+                  <span class="status-indicator"></span>
+                  <div class="status-details">
+                    <span class="status-text">{{
+                      job.status | titlecase
+                    }}</span>
+                    <span class="current-driver" *ngIf="job.driverId">
+                      Driver: {{ getDriverName() }}
+                    </span>
+                    <span class="status-date" *ngIf="job['statusUpdatedAt']">
+                      Updated: {{ formatUKDateTime(job["statusUpdatedAt"]) }}
+                    </span>
+                  </div>
+                </div>
+
+                <!-- Status flow visualization -->
+                <div class="status-flow">
+                  <div class="status-flow-line"></div>
+                  <div
+                    class="status-flow-progress"
+                    [style.width.%]="getStatusFlowProgress()"
+                  ></div>
+
+                  <div
+                    *ngFor="let step of getStatusFlow()"
+                    class="status-step"
+                    [ngClass]="{
+                      active: step.active,
+                      completed: step.completed
+                    }"
+                  >
+                    <div class="step-circle"></div>
+                    <p class="step-label">{{ step.label }}</p>
+                  </div>
+                </div>
+
+                <!-- Status Change section -->
+                <div
+                  class="status-change"
+                  *ngIf="
+                    hasEditPermission ||
+                    isAdmin ||
+                    job.driverId === currentUser?.id
+                  "
+                >
+                  <h3>Change Status</h3>
+                  <div class="status-buttons">
+                    <button
+                      *ngFor="let status of allowedStatuses"
+                      [class.active]="job.status === status"
+                      (click)="updateJobStatus(status)"
+                      class="status-button"
+                    >
+                      {{ status | titlecase }}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
               <!-- Addresses Card -->
               <div class="info-card addresses-card">
                 <h2>Addresses</h2>
@@ -148,41 +218,6 @@
                 </div>
               </div>
 
-              <!-- Vehicle Card -->
-              <div class="info-card">
-                <h2>Vehicle Information</h2>
-                <div class="card-content">
-                  <div class="info-row">
-                    <span class="label">Make</span>
-                    <span class="value">{{ job.make || "N/A" }}</span>
-                  </div>
-                  <div class="info-row">
-                    <span class="label">Model</span>
-                    <span class="value">{{ job.model || "N/A" }}</span>
-                  </div>
-                  <div class="info-row">
-                    <span class="label">Registration</span>
-                    <span class="value">{{ job.registration || "N/A" }}</span>
-                  </div>
-                  <div class="info-row">
-                    <span class="label">Type</span>
-                    <span class="value">{{ job.vehicleType || "N/A" }}</span>
-                  </div>
-                  <div class="info-row">
-                    <span class="label">Color</span>
-                    <span class="value">{{ job.color || "N/A" }}</span>
-                  </div>
-                  <div class="info-row">
-                    <span class="label">Year</span>
-                    <span class="value">{{ job.year || "N/A" }}</span>
-                  </div>
-                  <div class="info-row">
-                    <span class="label">Chassis Number</span>
-                    <span class="value">{{ job.chassisNumber || "N/A" }}</span>
-                  </div>
-                </div>
-              </div>
-
               <!-- Customer Card -->
               <div class="info-card">
                 <h2>Customer Information</h2>
@@ -206,6 +241,47 @@
                 </div>
               </div>
 
+              <!-- Vehicle Card -->
+              <div class="info-card">
+                <h2>Vehicle Information</h2>
+                <div class="card-content vehicle-card-content">
+                  <div class="vehicle-details">
+                    <div class="info-row">
+                      <span class="label">Make</span>
+                      <span class="value">{{ job.make || "N/A" }}</span>
+                    </div>
+                    <div class="info-row">
+                      <span class="label">Model</span>
+                      <span class="value">{{ job.model || "N/A" }}</span>
+                    </div>
+                    <div class="info-row">
+                      <span class="label">Registration</span>
+                      <span class="value">{{ job.registration || "N/A" }}</span>
+                    </div>
+                    <div class="info-row">
+                      <span class="label">Type</span>
+                      <span class="value">{{ job.vehicleType || "N/A" }}</span>
+                    </div>
+                    <div class="info-row">
+                      <span class="label">Color</span>
+                      <span class="value">{{ job.color || "N/A" }}</span>
+                    </div>
+                    <div class="info-row">
+                      <span class="label">Year</span>
+                      <span class="value">{{ job.year || "N/A" }}</span>
+                    </div>
+                    <div class="info-row">
+                      <span class="label">Chassis Number</span>
+                      <span class="value">{{
+                        job.chassisNumber || "N/A"
+                      }}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="right-column">
               <!-- Notes Section -->
               <div class="info-card">
                 <h2>Notes</h2>
@@ -249,78 +325,6 @@
                         Add Note
                       </button>
                     </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div class="right-column">
-              <!-- Status Card -->
-              <div
-                class="info-card status-card"
-                [ngClass]="
-                  job.status
-                    ? 'status-' + job.status.toLowerCase().replace(' ', '-')
-                    : ''
-                "
-              >
-                <h2>Current Status</h2>
-                <div class="current-status">
-                  <span class="status-indicator"></span>
-                  <div class="status-details">
-                    <span class="status-text">{{
-                      job.status | titlecase
-                    }}</span>
-                    <span class="current-driver" *ngIf="job.driverId"
-                      >Driver ID: {{ job.driverId }}</span
-                    >
-                    <span class="status-date" *ngIf="job['statusUpdatedAt']"
-                      >Updated:
-                      {{ formatUKDateTime(job["statusUpdatedAt"]) }}</span
-                    >
-                  </div>
-                </div>
-
-                <!-- Status flow visualization -->
-                <div class="status-flow">
-                  <div class="status-flow-line"></div>
-                  <div
-                    class="status-flow-progress"
-                    [style.width.%]="getStatusFlowProgress()"
-                  ></div>
-
-                  <div
-                    *ngFor="let step of getStatusFlow()"
-                    class="status-step"
-                    [ngClass]="{
-                      active: step.active,
-                      completed: step.completed
-                    }"
-                  >
-                    <div class="step-circle"></div>
-                    <p class="step-label">{{ step.label }}</p>
-                  </div>
-                </div>
-
-                <!-- Status Change section -->
-                <div
-                  class="status-change"
-                  *ngIf="
-                    hasEditPermission ||
-                    isAdmin ||
-                    job.driverId === currentUser?.id
-                  "
-                >
-                  <h3>Change Status</h3>
-                  <div class="status-buttons">
-                    <button
-                      *ngFor="let status of allowedStatuses"
-                      [class.active]="job.status === status"
-                      (click)="updateJobStatus(status)"
-                      class="status-button"
-                    >
-                      {{ status | titlecase }}
-                    </button>
                   </div>
                 </div>
               </div>
@@ -397,7 +401,7 @@
                   <div class="event-metadata">
                     <span class="metadata-item">
                       <span class="material-icons">person</span>
-                      Driver: {{ job.driverId || "Unknown" }}
+                      Driver: {{ getDriverName() }}
                     </span>
                   </div>
                 </div>
@@ -423,7 +427,7 @@
                   <div class="event-metadata">
                     <span class="metadata-item">
                       <span class="material-icons">person</span>
-                      {{ job.driverId || "Unknown" }}
+                      {{ getDriverName() }}
                     </span>
                     <span class="metadata-item" *ngIf="job.collectionAddress">
                       <span class="material-icons">location_on</span>
@@ -453,7 +457,7 @@
                   <div class="event-metadata">
                     <span class="metadata-item">
                       <span class="material-icons">person</span>
-                      {{ job.driverId || "Unknown" }}
+                      {{ getDriverName() }}
                     </span>
                   </div>
                 </div>
@@ -479,7 +483,7 @@
                   <div class="event-metadata">
                     <span class="metadata-item">
                       <span class="material-icons">person</span>
-                      {{ job.driverId || "Unknown" }}
+                      {{ getDriverName() }}
                     </span>
                     <span class="metadata-item" *ngIf="job.deliveryAddress">
                       <span class="material-icons">flag</span>
@@ -509,7 +513,7 @@
                   <div class="event-metadata">
                     <span class="metadata-item">
                       <span class="material-icons">person</span>
-                      {{ job.driverId || "Unknown" }}
+                      {{ getDriverName() }}
                     </span>
                   </div>
                 </div>

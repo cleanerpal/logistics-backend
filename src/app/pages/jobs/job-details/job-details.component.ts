@@ -2,11 +2,13 @@ import { Component, OnDestroy, OnInit } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { ActivatedRoute, Router } from '@angular/router';
-import { Subscription, combineLatest } from 'rxjs';
+import { Subscription, combineLatest, forkJoin, of } from 'rxjs';
+import { catchError, switchMap } from 'rxjs/operators';
 import { ConfirmationDialogComponent } from '../../../dialogs/confirmation-dialog.component';
 import { AuthService } from '../../../services/auth.service';
 import { JobService } from '../../../services/job.service';
 import { Job, UserProfile } from '../../../interfaces/job.interface';
+import { DriverSelectionDialogComponent } from '../../../dialogs/driver-selection-dialog.component';
 
 interface Note {
   author: string;
@@ -21,6 +23,13 @@ interface NoteData {
   content: string;
   date: string | Date;
   id?: string;
+}
+
+// Interface for driver info
+interface DriverInfo {
+  id: string;
+  name: string;
+  phoneNumber?: string;
 }
 
 @Component({
@@ -38,6 +47,9 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
   hasAllocatePermission = false;
   isAdmin = false;
   currentUser: UserProfile | null = null;
+
+  // Driver information
+  driverInfo: DriverInfo | null = null;
 
   jobNotes: Note[] = [];
   newNote: string = '';
@@ -62,10 +74,12 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
 
   ngOnInit() {
     // Get the job ID from the route
-    this.route.params.subscribe((params) => {
+    const routeSub = this.route.params.subscribe((params) => {
       this.jobId = params['id'];
       this.loadJobDetails();
     });
+
+    this.subscriptions.push(routeSub);
 
     // Check user permissions
     this.checkUserPermissions();
@@ -78,60 +92,166 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
   private loadJobDetails() {
     this.isLoading = true;
 
-    const jobSub = this.jobService.getJobById(this.jobId).subscribe({
-      next: (job) => {
-        this.job = job;
-        this.isLoading = false;
+    const jobSub = this.jobService
+      .getJobById(this.jobId)
+      .pipe(
+        switchMap((job) => {
+          if (!job) {
+            return of({ job: null, driverInfo: null });
+          }
 
-        // Load job notes if available
-        if (job && job.notes) {
-          this.processJobNotes(job);
-        }
-      },
-      error: (error) => {
-        this.isLoading = false;
-        console.error('Error loading job details:', error);
-        this.showSnackbar('Error loading job details');
-      },
-    });
+          // If job has a driver, fetch driver information
+          if (job.driverId) {
+            return this.authService.getUserById(job.driverId).pipe(
+              catchError(() => of(null)),
+              switchMap((driverProfile) => {
+                const driver: DriverInfo | null = driverProfile
+                  ? {
+                      id: driverProfile.id,
+                      name:
+                        driverProfile.name ||
+                        `${driverProfile.firstName || ''} ${
+                          driverProfile.lastName || ''
+                        }`.trim() ||
+                        'Unknown Driver',
+                      phoneNumber: driverProfile.phoneNumber,
+                    }
+                  : null;
+
+                return of({ job, driverInfo: driver });
+              })
+            );
+          } else {
+            return of({ job, driverInfo: null });
+          }
+        })
+      )
+      .subscribe({
+        next: (result) => {
+          this.job = result.job;
+          this.driverInfo = result.driverInfo;
+          this.isLoading = false;
+
+          // Load job notes if available
+          if (this.job && this.job.notes) {
+            this.processJobNotes(this.job);
+          }
+        },
+        error: (error) => {
+          this.isLoading = false;
+          console.error('Error loading job details:', error);
+          this.showSnackbar('Error loading job details');
+        },
+      });
 
     this.subscriptions.push(jobSub);
   }
 
   private processJobNotes(job: Job) {
     // Process notes based on the format they're stored in
+    const rawNotes: Note[] = [];
+
     if (Array.isArray(job.notes)) {
-      this.jobNotes = job.notes as Note[];
+      rawNotes.push(...(job.notes as Note[]));
     } else if (typeof job.notes === 'string') {
       // If it's a single string, create a note from it
-      this.jobNotes = [
-        {
-          author: job.createdBy || 'System',
-          content: job.notes,
-          date: job.createdAt,
-        },
-      ];
+      rawNotes.push({
+        author: job.createdBy || 'System',
+        content: job.notes,
+        date: job.createdAt,
+      });
     } else if (typeof job.notes === 'object' && job.notes !== null) {
       // If it's an object of notes, convert to array
       try {
         const notesObject = job.notes as Record<string, any>;
-        this.jobNotes = Object.entries(notesObject).map(([id, noteData]) => {
-          // Ensure the note data has the needed structure
-          const note: Note = {
-            author: (noteData as any).author || 'Unknown',
-            content: (noteData as any).content || '',
-            date: new Date((noteData as any).date || new Date()),
-          };
-          return note;
-        });
+        const noteEntries = Object.entries(notesObject).map(
+          ([id, noteData]) => {
+            // Ensure the note data has the needed structure
+            const note: Note = {
+              author: (noteData as any).author || 'Unknown',
+              content: (noteData as any).content || '',
+              date: new Date((noteData as any).date || new Date()),
+            };
+            return note;
+          }
+        );
+
+        rawNotes.push(...noteEntries);
       } catch (error) {
         console.error('Error processing notes:', error);
-        this.jobNotes = [];
       }
-    } else {
-      // Default - no notes
-      this.jobNotes = [];
     }
+
+    // If there are no notes, set empty array and return
+    if (rawNotes.length === 0) {
+      this.jobNotes = [];
+      return;
+    }
+
+    // Fetch author names for each note
+    const authorIds = new Set<string>();
+
+    // Collect all unique author IDs that look like user IDs
+    rawNotes.forEach((note) => {
+      if (
+        typeof note.author === 'string' &&
+        note.author !== 'System' &&
+        note.author !== 'Unknown' &&
+        note.author.length > 20
+      ) {
+        // Only IDs are typically this long
+        authorIds.add(note.author);
+      }
+    });
+
+    // If no author IDs need to be resolved, just set the notes
+    if (authorIds.size === 0) {
+      this.jobNotes = rawNotes;
+      return;
+    }
+
+    // Create a map to track author ID to name mapping
+    const authorMap = new Map<string, string>();
+
+    // Create array of promises to fetch author information
+    const authorPromises = Array.from(authorIds).map((authorId) =>
+      this.authService
+        .getUserById(authorId)
+        .toPromise()
+        .then((user) => {
+          if (user) {
+            const authorName =
+              user.name ||
+              `${user.firstName || ''} ${user.lastName || ''}`.trim() ||
+              'Unknown User';
+            authorMap.set(authorId, authorName);
+          }
+        })
+        .catch(() => {
+          // If we can't fetch author info, use a default name
+          authorMap.set(authorId, 'Unknown User');
+        })
+    );
+
+    // Wait for all author info to be fetched
+    Promise.all(authorPromises)
+      .then(() => {
+        // Process all notes with author names
+        this.jobNotes = rawNotes.map((note) => {
+          // If the note author is an ID, replace with the name
+          if (authorMap.has(note.author)) {
+            return {
+              ...note,
+              author: authorMap.get(note.author) || note.author,
+            };
+          }
+          return note;
+        });
+      })
+      .catch((error) => {
+        console.error('Error fetching note author names:', error);
+        this.jobNotes = rawNotes;
+      });
   }
 
   private checkUserPermissions() {
@@ -263,17 +383,8 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
           return;
         }
 
-        this.jobService.allocateJob(this.job.id).subscribe({
-          next: () => {
-            this.loadJobDetails();
-            this.showSnackbar('Job allocated successfully');
-          },
-          error: (error) => {
-            console.error('Error allocating job:', error);
-            this.isLoading = false;
-            this.showSnackbar('Error allocating job');
-          },
-        });
+        // Show driver selection dialog
+        this.showDriverSelectionDialog();
         break;
 
       case 'unallocated':
@@ -313,6 +424,63 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
     }
   }
 
+  /**
+   * Show driver selection dialog and allocate job to selected driver
+   */
+  private showDriverSelectionDialog(): void {
+    const dialogRef = this.dialog.open(DriverSelectionDialogComponent, {
+      data: {
+        jobId: this.job!.id,
+        jobTitle: `${this.job!.make} ${this.job!.model} (${
+          this.job!.registration || 'No Reg'
+        })`,
+      },
+      width: '450px',
+      panelClass: ['custom-dialog-container', 'allocation-dialog'],
+    });
+
+    dialogRef.afterClosed().subscribe((driver) => {
+      if (driver) {
+        // Allocate the job to the selected driver
+        this.allocateJobToDriver(driver.id);
+      } else {
+        this.isLoading = false;
+      }
+    });
+  }
+
+  /**
+   * Allocate job to a specific driver
+   */
+  private allocateJobToDriver(driverId: string): void {
+    if (!this.job) {
+      this.isLoading = false;
+      return;
+    }
+
+    // Prepare job data for allocation
+    const jobData: Partial<Job> = {
+      status: 'allocated',
+      driverId: driverId,
+      allocatedAt: new Date(),
+      updatedAt: new Date(),
+      updatedBy: this.currentUser?.id,
+    };
+
+    // Update the job with driver allocation
+    this.jobService.updateJob(this.job.id, jobData).subscribe({
+      next: () => {
+        this.loadJobDetails();
+        this.showSnackbar('Job allocated successfully');
+      },
+      error: (error) => {
+        console.error('Error allocating job to driver:', error);
+        this.isLoading = false;
+        this.showSnackbar('Error allocating job to driver');
+      },
+    });
+  }
+
   startCollection() {
     if (!this.job) return;
 
@@ -322,7 +490,11 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
         message: 'Are you ready to start the collection process for this job?',
         confirmText: 'Start Collection',
         cancelText: 'Cancel',
+        icon: 'departure_board', // Add icon
+        confirmColor: 'primary',
       },
+      width: '400px', // Set width
+      panelClass: ['custom-dialog-container', 'collection-dialog'], // Add panel classes
     });
 
     dialogRef.afterClosed().subscribe((result) => {
@@ -356,7 +528,11 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
         message: 'Are you ready to start the delivery process for this job?',
         confirmText: 'Start Delivery',
         cancelText: 'Cancel',
+        icon: 'local_shipping', // Add icon
+        confirmColor: 'primary',
       },
+      width: '400px',
+      panelClass: ['custom-dialog-container', 'delivery-dialog'],
     });
 
     dialogRef.afterClosed().subscribe((result) => {
@@ -390,7 +566,11 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
         message: 'Are you sure you want to mark this job as completed?',
         confirmText: 'Complete Job',
         cancelText: 'Cancel',
+        icon: 'check_circle', // Add icon
+        confirmColor: 'primary',
       },
+      width: '400px',
+      panelClass: 'custom-dialog-container',
     });
 
     dialogRef.afterClosed().subscribe((result) => {
@@ -415,6 +595,18 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
         this.isLoading = false;
       }
     });
+  }
+
+  getDriverName(): string {
+    if (this.driverInfo) {
+      return this.driverInfo.name;
+    }
+
+    if (!this.job?.driverId) {
+      return 'Unassigned';
+    }
+
+    return 'Unknown Driver';
   }
 
   formatDate(date: Date | undefined): string {
@@ -546,6 +738,27 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
       'jaguar land rover': 'jaguar',
       'rolls-royce': 'rolls_royce',
       'rolls royce': 'rolls_royce',
+      bmw: 'bmw',
+      audi: 'audi',
+      toyota: 'toyota',
+      honda: 'honda',
+      nissan: 'nissan',
+      ford: 'ford',
+      chevrolet: 'chevrolet',
+      hyundai: 'hyundai',
+      kia: 'kia',
+      mazda: 'mazda',
+      subaru: 'subaru',
+      lexus: 'lexus',
+      jeep: 'jeep',
+      tesla: 'tesla',
+      porsche: 'porsche',
+      ferrari: 'ferrari',
+      lamborghini: 'lamborghini',
+      bentley: 'bentley',
+      maserati: 'maserati',
+      bugatti: 'bugatti',
+      mini: 'mini',
     };
 
     // Normalize the make name
