@@ -2,7 +2,7 @@ export interface Job {
   id: string;
   vehicleId: string;
   driverId: string | null;
-  status: 'unallocated' | 'allocated' | 'collected' | 'delivered' | 'completed';
+  status: 'unallocated' | 'allocated' | 'collected' | 'delivered' | 'completed' | 'loaded';
   stage?: 'collection-complete' | 'in-transit' | 'ready-for-delivery' | 'awaiting-confirmation';
   collectionStartTime?: Date;
   collectionCompleteTime?: Date;

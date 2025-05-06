@@ -6,38 +6,21 @@
       <h3 class="metric-title">Active Jobs</h3>
       <div class="metric-content">
         <div class="metric-value">{{ metrics.activeJobs }}</div>
-        <div
-          class="trend-indicator"
-          [ngClass]="getTrendClass(metrics.activeJobsTrend.increased)"
-        >
-          <i class="trend-arrow">{{
-            metrics.activeJobsTrend.increased ? "↗" : "↘"
-          }}</i>
-          <span class="trend-value"
-            >{{ metrics.activeJobsTrend.percentChange }}%</span
-          >
+        <div class="trend-indicator" [ngClass]="getTrendClass(metrics.activeJobsTrend.increased)">
+          <i class="trend-arrow">{{ metrics.activeJobsTrend.increased ? '↗' : '↘' }}</i>
+          <span class="trend-value">{{ metrics.activeJobsTrend.percentChange }}%</span>
         </div>
       </div>
     </div>
 
     <!-- Unallocated Jobs Card -->
-    <div
-      class="metric-card metric-unallocated"
-      [ngClass]="getMetricClass('unallocated')"
-    >
+    <div class="metric-card metric-unallocated" [ngClass]="getMetricClass('unallocated')">
       <h3 class="metric-title">Unallocated Jobs</h3>
       <div class="metric-content">
         <div class="metric-value">{{ metrics.unallocatedJobs }}</div>
-        <div
-          class="trend-indicator"
-          [ngClass]="getTrendClass(metrics.unallocatedJobsTrend.increased)"
-        >
-          <i class="trend-arrow">{{
-            metrics.unallocatedJobsTrend.increased ? "↗" : "↘"
-          }}</i>
-          <span class="trend-value"
-            >{{ metrics.unallocatedJobsTrend.percentChange }}%</span
-          >
+        <div class="trend-indicator" [ngClass]="getTrendClass(metrics.unallocatedJobsTrend.increased)">
+          <i class="trend-arrow">{{ metrics.unallocatedJobsTrend.increased ? '↗' : '↘' }}</i>
+          <span class="trend-value">{{ metrics.unallocatedJobsTrend.percentChange }}%</span>
         </div>
       </div>
     </div>
@@ -52,19 +35,10 @@
             <span class="period-label">Week</span>
             <div class="trend-content">
               <div class="trend-metrics">
-                <span class="current-value">{{
-                  deliveryMetrics.week.current
-                }}</span>
-                <div
-                  class="trend-indicator"
-                  [ngClass]="getTrendClass(deliveryMetrics.week.increased)"
-                >
-                  <i class="trend-arrow">{{
-                    deliveryMetrics.week.increased ? "↗" : "↘"
-                  }}</i>
-                  <span class="trend-value"
-                    >{{ deliveryMetrics.week.change }}%</span
-                  >
+                <span class="current-value">{{ deliveryMetrics.week.current }}</span>
+                <div class="trend-indicator" [ngClass]="getTrendClass(deliveryMetrics.week.increased)">
+                  <i class="trend-arrow">{{ deliveryMetrics.week.increased ? '↗' : '↘' }}</i>
+                  <span class="trend-value">{{ deliveryMetrics.week.change }}%</span>
                 </div>
               </div>
               <div class="trend-graph">
@@ -78,8 +52,7 @@
                   [showXAxisLabel]="false"
                   [showYAxisLabel]="false"
                   [curve]="curve"
-                  [tooltipDisabled]="true"
-                >
+                  [tooltipDisabled]="true">
                 </ngx-charts-line-chart>
               </div>
             </div>
@@ -92,19 +65,10 @@
             <span class="period-label">Month</span>
             <div class="trend-content">
               <div class="trend-metrics">
-                <span class="current-value">{{
-                  deliveryMetrics.month.current
-                }}</span>
-                <div
-                  class="trend-indicator"
-                  [ngClass]="getTrendClass(deliveryMetrics.month.increased)"
-                >
-                  <i class="trend-arrow">{{
-                    deliveryMetrics.month.increased ? "↗" : "↘"
-                  }}</i>
-                  <span class="trend-value"
-                    >{{ deliveryMetrics.month.change }}%</span
-                  >
+                <span class="current-value">{{ deliveryMetrics.month.current }}</span>
+                <div class="trend-indicator" [ngClass]="getTrendClass(deliveryMetrics.month.increased)">
+                  <i class="trend-arrow">{{ deliveryMetrics.month.increased ? '↗' : '↘' }}</i>
+                  <span class="trend-value">{{ deliveryMetrics.month.change }}%</span>
                 </div>
               </div>
               <div class="trend-graph">
@@ -118,8 +82,7 @@
                   [showXAxisLabel]="false"
                   [showYAxisLabel]="false"
                   [curve]="curve"
-                  [tooltipDisabled]="true"
-                >
+                  [tooltipDisabled]="true">
                 </ngx-charts-line-chart>
               </div>
             </div>
@@ -132,19 +95,10 @@
             <span class="period-label">Year</span>
             <div class="trend-content">
               <div class="trend-metrics">
-                <span class="current-value">{{
-                  deliveryMetrics.year.current
-                }}</span>
-                <div
-                  class="trend-indicator"
-                  [ngClass]="getTrendClass(deliveryMetrics.year.increased)"
-                >
-                  <i class="trend-arrow">{{
-                    deliveryMetrics.year.increased ? "↗" : "↘"
-                  }}</i>
-                  <span class="trend-value"
-                    >{{ deliveryMetrics.year.change }}%</span
-                  >
+                <span class="current-value">{{ deliveryMetrics.year.current }}</span>
+                <div class="trend-indicator" [ngClass]="getTrendClass(deliveryMetrics.year.increased)">
+                  <i class="trend-arrow">{{ deliveryMetrics.year.increased ? '↗' : '↘' }}</i>
+                  <span class="trend-value">{{ deliveryMetrics.year.change }}%</span>
                 </div>
               </div>
               <div class="trend-graph">
@@ -158,8 +112,7 @@
                   [showXAxisLabel]="false"
                   [showYAxisLabel]="false"
                   [curve]="curve"
-                  [tooltipDisabled]="true"
-                >
+                  [tooltipDisabled]="true">
                 </ngx-charts-line-chart>
               </div>
             </div>
@@ -188,12 +141,7 @@
         </div>
 
         <!-- Table -->
-        <table
-          mat-table
-          [dataSource]="jobsDataSource"
-          matSort
-          [class.loading]="isLoading"
-        >
+        <table mat-table [dataSource]="jobsDataSource" matSort [class.loading]="isLoading">
           <!-- Job ID Column -->
           <ng-container matColumnDef="id">
             <th mat-header-cell *matHeaderCellDef mat-sort-header>Job ID</th>
@@ -203,20 +151,18 @@
           <!-- Reg Column -->
           <ng-container matColumnDef="regNumber">
             <th mat-header-cell *matHeaderCellDef mat-sort-header>Reg</th>
-            <td mat-cell *matCellDef="let job">{{ job.regNumber }}</td>
+            <td mat-cell *matCellDef="let job">{{ job.registration || 'N/A' }}</td>
           </ng-container>
 
           <!-- Customer Name Column -->
           <ng-container matColumnDef="customerName">
             <th mat-header-cell *matHeaderCellDef mat-sort-header>Customer</th>
-            <td mat-cell *matCellDef="let job">{{ job.customerName }}</td>
+            <td mat-cell *matCellDef="let job">{{ job.customerName || 'N/A' }}</td>
           </ng-container>
 
           <!-- Collection Date Column -->
           <ng-container matColumnDef="collectionDate">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header>
-              Collection Date
-            </th>
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Collection Date</th>
             <td mat-cell *matCellDef="let job">
               {{ job.collectionDate | date }}
             </td>
@@ -225,13 +171,13 @@
           <!-- Collection Town Column -->
           <ng-container matColumnDef="collectionTown">
             <th mat-header-cell *matHeaderCellDef>Collection Town</th>
-            <td mat-cell *matCellDef="let job">{{ job.collectionTown }}</td>
+            <td mat-cell *matCellDef="let job">{{ job.collectionCity || 'N/A' }}</td>
           </ng-container>
 
           <!-- Delivery Town Column -->
           <ng-container matColumnDef="deliveryTown">
             <th mat-header-cell *matHeaderCellDef>Delivery Town</th>
-            <td mat-cell *matCellDef="let job">{{ job.deliveryTown }}</td>
+            <td mat-cell *matCellDef="let job">{{ job.deliveryCity || 'N/A' }}</td>
           </ng-container>
 
           <!-- Status Column -->
@@ -247,7 +193,10 @@
           <!-- Driver Column -->
           <ng-container matColumnDef="driver">
             <th mat-header-cell *matHeaderCellDef mat-sort-header>Driver</th>
-            <td mat-cell *matCellDef="let job">{{ job.driver }}</td>
+            <td mat-cell *matCellDef="let job">
+              <span *ngIf="job.driverId">Assigned</span>
+              <span *ngIf="!job.driverId">Unassigned</span>
+            </td>
           </ng-container>
 
           <!-- Actions Column -->
@@ -266,21 +215,17 @@
                   <mat-icon>edit</mat-icon>
                   <span>Edit</span>
                 </button>
+                <button mat-menu-item (click)="assignJob(job)" *ngIf="!job.driverId">
+                  <mat-icon>assignment_ind</mat-icon>
+                  <span>Assign Driver</span>
+                </button>
               </mat-menu>
             </td>
           </ng-container>
 
           <!-- Header and Data Rows -->
-          <tr
-            mat-header-row
-            *matHeaderRowDef="displayedColumns; sticky: true"
-          ></tr>
-          <tr
-            mat-row
-            *matRowDef="let row; columns: displayedColumns"
-            (click)="viewJobDetails(row)"
-            class="job-row"
-          ></tr>
+          <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+          <tr mat-row *matRowDef="let row; columns: displayedColumns" (click)="viewJobDetails(row)" class="job-row"></tr>
         </table>
 
         <!-- Empty State -->
@@ -296,25 +241,63 @@
       </div>
 
       <!-- Paginator -->
-      <mat-paginator
-        [length]="jobs.length"
-        [pageSize]="10"
-        [pageSizeOptions]="[5, 10, 25]"
-        showFirstLastButtons
-      >
-      </mat-paginator>
+      <mat-paginator [length]="jobs.length" [pageSize]="10" [pageSizeOptions]="[5, 10, 25]" showFirstLastButtons> </mat-paginator>
     </div>
 
     <!-- Drivers List -->
     <div class="drivers-list">
-      <h2>Available Drivers</h2>
-      <ul>
-        <li *ngFor="let driver of drivers">
-          <span
-            class="availability-dot"
-            [ngClass]="{ available: driver.available }"
-          ></span>
-          <span class="driver-name">{{ driver.name }}</span>
+      <h2>Driver Status</h2>
+
+      <!-- Status Filter Chips -->
+      <div class="status-filter">
+        <span class="status-chip" [class.active]="selectedDriverStatus === status" *ngFor="let status of driverStatusOptions" (click)="setDriverStatusFilter(status)">
+          {{ status }}
+        </span>
+      </div>
+
+      <!-- Loading Message -->
+      <div class="loading-message" *ngIf="isLoadingDrivers">
+        <mat-spinner diameter="30" style="margin: 0 auto 10px"></mat-spinner>
+        Loading drivers...
+      </div>
+
+      <!-- No Drivers Message -->
+      <div class="no-drivers" *ngIf="!isLoadingDrivers && filteredDrivers.length === 0">
+        <mat-icon>person_off</mat-icon>
+        <p>No drivers found with the selected status</p>
+      </div>
+
+      <!-- Driver List -->
+      <ul *ngIf="!isLoadingDrivers && filteredDrivers.length > 0">
+        <li *ngFor="let driver of filteredDrivers" (click)="viewDriverDetails(driver)">
+          <div class="driver-avatar">
+            {{ getDriverInitials(driver) }}
+            <span
+              class="availability-indicator"
+              [ngClass]="{
+                available: driver.status === 'Available',
+                busy: driver.status === 'Busy',
+                'on-leave': driver.status === 'On Leave',
+                offline: driver.status === 'Offline'
+              }"></span>
+          </div>
+          <div class="driver-info">
+            <div class="driver-name">{{ driver.profile.name }}</div>
+            <div class="driver-status">
+              {{ driver.status }}
+              <span *ngIf="driver.status !== 'On Leave' && driver.status !== 'Offline'">
+                • Jobs:
+                <span class="job-count" [ngClass]="getJobCountClass(driver.currentJobs)">
+                  {{ driver.currentJobs }}
+                </span>
+              </span>
+            </div>
+          </div>
+          <div class="driver-actions">
+            <button mat-icon-button matTooltip="View Details" (click)="$event.stopPropagation(); viewDriverDetails(driver)">
+              <mat-icon>visibility</mat-icon>
+            </button>
+          </div>
         </li>
       </ul>
     </div>

@@ -274,7 +274,7 @@
                   </div>
                   <div class="job-meta">
                     <span class="job-date">{{ formatDate(job.createdAt) }}</span>
-                    <span class="job-driver" *ngIf="job.driverName">Driver: {{ job.driverName }}</span>
+                    <span class="job-driver" *ngIf="getJobProperty(job, 'driverName')">Driver: {{ getJobProperty(job, 'driverName') }}</span>
                     <span class="job-mileage" *ngIf="getJobProperty(job, 'deliveryMileage') && getJobProperty(job, 'collectionMileage')">
                       Mileage: {{ getJobProperty(job, 'collectionMileage') }} →
                       {{ getJobProperty(job, 'deliveryMileage') }}
