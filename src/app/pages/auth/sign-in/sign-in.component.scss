@@ -1,0 +1,154 @@
+// Variables
+$primary-color: #2c3e50;
+$accent-color: #3498db;
+$background-color: #f5f6fa;
+$card-background: #ffffff;
+$text-primary: rgba(0, 0, 0, 0.87);
+$text-secondary: rgba(0, 0, 0, 0.54);
+$error-color: #e74c3c;
+$success-color: #2ecc71;
+$card-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+
+.sign-in-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background-color: $background-color;
+  padding: 20px;
+}
+
+.sign-in-card {
+  background-color: $card-background;
+  border-radius: 12px;
+  box-shadow: $card-shadow;
+  padding: 40px;
+  width: 100%;
+  max-width: 420px;
+  transition: transform 0.3s ease;
+
+  &:hover {
+    transform: translateY(-5px);
+  }
+}
+
+.logo-container {
+  text-align: center;
+  margin-bottom: 20px;
+
+  .logo {
+    max-width: 140px;
+    height: auto;
+  }
+}
+
+.sign-in-title {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 500;
+  color: $text-primary;
+  text-align: center;
+}
+
+.sign-in-subtitle {
+  margin: 10px 0 30px;
+  font-size: 14px;
+  color: $text-secondary;
+  text-align: center;
+}
+
+.sign-in-form {
+  display: flex;
+  flex-direction: column;
+
+  .form-field {
+    margin-bottom: 16px;
+  }
+
+  .form-options {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+    font-size: 14px;
+
+    .forgot-password {
+      color: $accent-color;
+      cursor: pointer;
+      text-decoration: none;
+
+      &:hover {
+        text-decoration: underline;
+      }
+    }
+  }
+
+  .sign-in-button {
+    height: 48px;
+    font-weight: 500;
+    font-size: 16px;
+    position: relative;
+
+    mat-spinner {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+    }
+  }
+
+  .sign-up-prompt {
+    text-align: center;
+    margin-top: 30px;
+    font-size: 14px;
+    color: $text-secondary;
+
+    .sign-up-link {
+      color: $accent-color;
+      margin-left: 8px;
+      cursor: pointer;
+      text-decoration: none;
+      font-weight: 500;
+
+      &:hover {
+        text-decoration: underline;
+      }
+    }
+  }
+}
+
+// Responsive styles
+@media (max-width: 480px) {
+  .sign-in-card {
+    padding: 30px 20px;
+    box-shadow: none;
+  }
+}
+
+// Dark theme support
+:host-context(.dark-theme) {
+  .sign-in-container {
+    background-color: #1a1a1a;
+  }
+
+  .sign-in-card {
+    background-color: #2d2d2d;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  }
+
+  .sign-in-title {
+    color: white;
+  }
+
+  .sign-in-subtitle {
+    color: rgba(255, 255, 255, 0.7);
+  }
+
+  .form-options {
+    color: rgba(255, 255, 255, 0.7);
+  }
+
+  .sign-up-prompt {
+    color: rgba(255, 255, 255, 0.7);
+  }
+}

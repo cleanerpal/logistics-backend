@@ -16,46 +16,98 @@ import { VehicleDetailsComponent } from './pages/vehicles/vehicle-details/vehicl
 import { VehicleCreateComponent } from './pages/vehicles/vehicle-create/vehicle-create.component';
 import { VehicleMovementComponent } from './pages/vehicles/vehicle-movement/vehicle-movement.component';
 
+// Guards
+import { AuthGuard } from './guards/auth.guard';
+import { RoleGuard } from './guards/role.guard';
+
 const routes: Routes = [
-  { path: '', redirectTo: '/dashboard', pathMatch: 'full' },
-  { path: 'dashboard', component: DashboardComponent },
+  // Auth routes (lazy loaded)
+  {
+    path: 'auth',
+    loadChildren: () =>
+      import('./pages/auth/auth.module').then((m) => m.AuthModule),
+  },
+
+  // Protected routes
+  {
+    path: '',
+    redirectTo: '/dashboard',
+    pathMatch: 'full',
+  },
+  {
+    path: 'dashboard',
+    component: DashboardComponent,
+    canActivate: [AuthGuard],
+  },
   {
     path: 'jobs',
+    canActivate: [AuthGuard],
     children: [
       { path: '', component: JobListComponent },
-      { path: 'new', component: JobCreateComponent },
+      {
+        path: 'new',
+        component: JobCreateComponent,
+        canActivate: [RoleGuard],
+        data: { permissions: ['canCreateJobs', 'isAdmin'] },
+      },
       { path: ':id', component: JobDetailsComponent },
     ],
   },
   {
     path: 'drivers',
+    canActivate: [AuthGuard],
     children: [
       { path: '', component: DriverListComponent },
-      { path: 'new', component: DriverCreateComponent },
+      {
+        path: 'new',
+        component: DriverCreateComponent,
+        canActivate: [RoleGuard],
+        data: { permissions: ['canManageUsers', 'isAdmin'] },
+      },
       { path: ':id', component: DriverDetailsComponent },
     ],
   },
   {
     path: 'companies',
+    canActivate: [AuthGuard],
     children: [
       { path: '', component: CompaniesListComponent },
-      { path: 'new', component: CompanyCreateComponent },
+      {
+        path: 'new',
+        component: CompanyCreateComponent,
+        canActivate: [RoleGuard],
+        data: { permissions: ['canManageUsers', 'isAdmin'] },
+      },
       { path: ':id', component: CompanyDetailsComponent },
     ],
   },
   {
     path: 'vehicles',
+    canActivate: [AuthGuard],
     children: [
       { path: '', component: VehicleListComponent },
-      { path: 'new', component: VehicleCreateComponent },
-      { path: 'models', component: VehicleModelsComponent },
+      {
+        path: 'new',
+        component: VehicleCreateComponent,
+        canActivate: [RoleGuard],
+        data: { permissions: ['canManageUsers', 'isAdmin'] },
+      },
+      {
+        path: 'models',
+        component: VehicleModelsComponent,
+        canActivate: [RoleGuard],
+        data: { permissions: ['canManageUsers', 'isAdmin'] },
+      },
       { path: ':id', component: VehicleDetailsComponent },
     ],
   },
   {
     path: 'vehicle-movement',
     component: VehicleMovementComponent,
+    canActivate: [AuthGuard],
   },
+
+  // Fallback route
   { path: '**', redirectTo: '/dashboard' },
 ];
 

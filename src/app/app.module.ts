@@ -43,7 +43,7 @@ import { MaterialModule } from './material.module';
 import { NgxChartsModule } from '@swimlane/ngx-charts';
 
 // Services
-import { FirebaseService } from './services/firebase.service';
+
 import { JobService } from './services/job.service';
 import { AuthService } from './services/auth.service';
 import { VehicleService } from './services/vehicle.service';
@@ -53,16 +53,8 @@ import { NotificationService } from './services/notification.service';
 
 // Other providers
 import { provideNgxMask } from 'ngx-mask';
-
-// Firebase configuration
-const firebaseConfig = {
-  apiKey: 'YOUR_API_KEY',
-  authDomain: 'YOUR_AUTH_DOMAIN',
-  projectId: 'YOUR_PROJECT_ID',
-  storageBucket: 'YOUR_STORAGE_BUCKET',
-  messagingSenderId: 'YOUR_MESSAGING_SENDER_ID',
-  appId: 'YOUR_APP_ID',
-};
+import { FirebaseService } from './services/firebase.service';
+import { environment } from '../environments/environment.prod';
 
 @NgModule({
   declarations: [
@@ -109,7 +101,7 @@ const firebaseConfig = {
     CustomerService,
     ExpenseService,
     NotificationService,
-    provideFirebaseApp(() => initializeApp(firebaseConfig)),
+    provideFirebaseApp(() => initializeApp(environment.firebase)),
     provideFirestore(() => getFirestore()),
     provideAuth(() => getAuth()),
     provideStorage(() => getStorage()),

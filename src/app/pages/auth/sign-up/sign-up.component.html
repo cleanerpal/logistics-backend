@@ -1,0 +1,148 @@
+<div class="sign-up-container">
+  <div class="sign-up-card">
+    <div class="logo-container">
+      <img src="assets/logo/logo.png" alt="Company Logo" class="logo" />
+    </div>
+
+    <h1 class="sign-up-title">Create Account</h1>
+    <p class="sign-up-subtitle">Fill in your details to create a new account</p>
+
+    <form [formGroup]="signUpForm" (ngSubmit)="onSubmit()" class="sign-up-form">
+      <div class="name-fields">
+        <mat-form-field appearance="outline" class="form-field">
+          <mat-label>First Name</mat-label>
+          <input
+            matInput
+            formControlName="firstName"
+            placeholder="Enter your first name"
+          />
+          <mat-icon matPrefix>person</mat-icon>
+          <mat-error *ngIf="signUpForm.get('firstName')?.hasError('required')">
+            First name is required
+          </mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="form-field">
+          <mat-label>Last Name</mat-label>
+          <input
+            matInput
+            formControlName="lastName"
+            placeholder="Enter your last name"
+          />
+          <mat-icon matPrefix>person</mat-icon>
+          <mat-error *ngIf="signUpForm.get('lastName')?.hasError('required')">
+            Last name is required
+          </mat-error>
+        </mat-form-field>
+      </div>
+
+      <mat-form-field appearance="outline" class="form-field">
+        <mat-label>Email</mat-label>
+        <input
+          matInput
+          formControlName="email"
+          type="email"
+          placeholder="Enter your email"
+        />
+        <mat-icon matPrefix>email</mat-icon>
+        <mat-error *ngIf="signUpForm.get('email')?.hasError('required')">
+          Email is required
+        </mat-error>
+        <mat-error *ngIf="signUpForm.get('email')?.hasError('email')">
+          Please enter a valid email address
+        </mat-error>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="form-field">
+        <mat-label>Password</mat-label>
+        <input
+          matInput
+          formControlName="password"
+          [type]="hidePassword ? 'password' : 'text'"
+          placeholder="Create a password"
+        />
+        <mat-icon matPrefix>lock</mat-icon>
+        <button
+          mat-icon-button
+          matSuffix
+          type="button"
+          (click)="hidePassword = !hidePassword"
+        >
+          <mat-icon>{{
+            hidePassword ? "visibility_off" : "visibility"
+          }}</mat-icon>
+        </button>
+        <mat-error *ngIf="signUpForm.get('password')?.hasError('required')">
+          Password is required
+        </mat-error>
+        <mat-error *ngIf="signUpForm.get('password')?.hasError('minlength')">
+          Password must be at least 6 characters
+        </mat-error>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="form-field">
+        <mat-label>Confirm Password</mat-label>
+        <input
+          matInput
+          formControlName="confirmPassword"
+          [type]="hideConfirmPassword ? 'password' : 'text'"
+          placeholder="Confirm your password"
+        />
+        <mat-icon matPrefix>lock</mat-icon>
+        <button
+          mat-icon-button
+          matSuffix
+          type="button"
+          (click)="hideConfirmPassword = !hideConfirmPassword"
+        >
+          <mat-icon>{{
+            hideConfirmPassword ? "visibility_off" : "visibility"
+          }}</mat-icon>
+        </button>
+        <mat-error
+          *ngIf="signUpForm.get('confirmPassword')?.hasError('required')"
+        >
+          Please confirm your password
+        </mat-error>
+        <mat-error
+          *ngIf="
+            signUpForm.get('confirmPassword')?.hasError('passwordMismatch')
+          "
+        >
+          Passwords do not match
+        </mat-error>
+      </mat-form-field>
+
+      <div class="terms-checkbox">
+        <mat-checkbox formControlName="acceptTerms" color="primary">
+          I agree to the <a href="#" target="_blank">Terms of Service</a> and
+          <a href="#" target="_blank">Privacy Policy</a>
+        </mat-checkbox>
+        <mat-error
+          *ngIf="
+            signUpForm.get('acceptTerms')?.hasError('required') &&
+            signUpForm.get('acceptTerms')?.touched
+          "
+        >
+          You must accept the terms and conditions
+        </mat-error>
+      </div>
+
+      <button
+        mat-flat-button
+        color="primary"
+        type="submit"
+        class="sign-up-button"
+        [disabled]="signUpForm.invalid || loading"
+      >
+        <mat-spinner diameter="20" *ngIf="loading"></mat-spinner>
+        <span *ngIf="!loading">Create Account</span>
+      </button>
+
+      <div class="sign-in-prompt">
+        <span>Already have an account?</span>
+        <a (click)="navigateToSignIn()" class="sign-in-link">Sign In</a>
+      </div>
+    </form>
+  </div>
+</div>

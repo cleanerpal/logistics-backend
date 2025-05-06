@@ -14,6 +14,8 @@ import {
   NotificationService,
   Notification,
 } from '../../services/notification.service';
+import { AuthService } from '../../services/auth.service';
+import { MatSnackBar } from '@angular/material/snack-bar';
 
 interface SearchResult {
   id: string;
@@ -57,10 +59,13 @@ export class TopbarComponent implements OnInit, OnDestroy {
   unreadCount = 0;
   private notificationsSubscription: Subscription;
   private unreadCountSubscription: Subscription;
+  private userProfileSubscription: Subscription;
 
   constructor(
     private router: Router,
-    private notificationService: NotificationService
+    private notificationService: NotificationService,
+    private authService: AuthService,
+    private snackBar: MatSnackBar
   ) {
     this.setupRouteListener();
 
@@ -74,6 +79,19 @@ export class TopbarComponent implements OnInit, OnDestroy {
     this.unreadCountSubscription =
       this.notificationService.unreadCount$.subscribe((count) => {
         this.unreadCount = count;
+      });
+
+    // Subscribe to user profile
+    this.userProfileSubscription = this.authService
+      .getUserProfile()
+      .subscribe((profile) => {
+        if (profile) {
+          this.userName =
+            profile.name || `${profile.firstName} ${profile.lastName}`.trim();
+          this.userEmail = profile.email;
+          this.userRole = profile.role || 'User';
+          this.isUserOnline = true;
+        }
       });
   }
 
@@ -89,6 +107,9 @@ export class TopbarComponent implements OnInit, OnDestroy {
     }
     if (this.unreadCountSubscription) {
       this.unreadCountSubscription.unsubscribe();
+    }
+    if (this.userProfileSubscription) {
+      this.userProfileSubscription.unsubscribe();
     }
   }
 
@@ -281,9 +302,23 @@ export class TopbarComponent implements OnInit, OnDestroy {
 
   // Logout Method
   logout(): void {
-    // Add your logout logic here
-    console.log('Logging out...');
-    this.router.navigate(['/login']);
+    this.authService.signOut().subscribe({
+      next: () => {
+        this.notificationService.addNotification({
+          type: 'info',
+          title: 'Signed Out',
+          message: 'You have been successfully signed out',
+        });
+        this.router.navigate(['/auth/sign-in']);
+      },
+      error: (error) => {
+        console.error('Logout error:', error);
+        this.snackBar.open('Failed to sign out. Please try again.', 'Dismiss', {
+          duration: 5000,
+          panelClass: ['error-snackbar'],
+        });
+      },
+    });
   }
 
   // Get notification icon based on type

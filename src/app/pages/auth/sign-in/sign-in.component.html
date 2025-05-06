@@ -1,0 +1,81 @@
+<div class="sign-in-container">
+  <div class="sign-in-card">
+    <div class="logo-container">
+      <img src="assets/logo/logo.png" alt="Company Logo" class="logo" />
+    </div>
+
+    <h1 class="sign-in-title">Sign In</h1>
+    <p class="sign-in-subtitle">Welcome back! Please sign in to continue.</p>
+
+    <form [formGroup]="signInForm" (ngSubmit)="onSubmit()" class="sign-in-form">
+      <mat-form-field appearance="outline" class="form-field">
+        <mat-label>Email</mat-label>
+        <input
+          matInput
+          formControlName="email"
+          type="email"
+          placeholder="Enter your email"
+        />
+        <mat-icon matPrefix>email</mat-icon>
+        <mat-error *ngIf="signInForm.get('email')?.hasError('required')">
+          Email is required
+        </mat-error>
+        <mat-error *ngIf="signInForm.get('email')?.hasError('email')">
+          Please enter a valid email address
+        </mat-error>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="form-field">
+        <mat-label>Password</mat-label>
+        <input
+          matInput
+          formControlName="password"
+          [type]="hidePassword ? 'password' : 'text'"
+          placeholder="Enter your password"
+        />
+        <mat-icon matPrefix>lock</mat-icon>
+        <button
+          mat-icon-button
+          matSuffix
+          type="button"
+          (click)="hidePassword = !hidePassword"
+        >
+          <mat-icon>{{
+            hidePassword ? "visibility_off" : "visibility"
+          }}</mat-icon>
+        </button>
+        <mat-error *ngIf="signInForm.get('password')?.hasError('required')">
+          Password is required
+        </mat-error>
+        <mat-error *ngIf="signInForm.get('password')?.hasError('minlength')">
+          Password must be at least 6 characters
+        </mat-error>
+      </mat-form-field>
+
+      <div class="form-options">
+        <mat-checkbox formControlName="rememberMe" color="primary"
+          >Remember me</mat-checkbox
+        >
+        <a (click)="navigateToForgotPassword()" class="forgot-password"
+          >Forgot password?</a
+        >
+      </div>
+
+      <button
+        mat-flat-button
+        color="primary"
+        type="submit"
+        class="sign-in-button"
+        [disabled]="signInForm.invalid || loading"
+      >
+        <mat-spinner diameter="20" *ngIf="loading"></mat-spinner>
+        <span *ngIf="!loading">Sign In</span>
+      </button>
+
+      <div class="sign-up-prompt">
+        <span>Don't have an account?</span>
+        <a (click)="navigateToSignUp()" class="sign-up-link">Sign Up</a>
+      </div>
+    </form>
+  </div>
+</div>
