@@ -1,0 +1,69 @@
+/* auth-layout.component.scss */
+.auth-layout {
+  min-height: 100vh;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+  background-color: var(--background-color);
+}
+
+.auth-content {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1;
+  padding: 24px;
+  width: 100%;
+}
+
+.auth-background {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  background-image: url('/assets/images/auth-background.jpg');
+  background-size: cover;
+  background-position: center;
+  filter: blur(2px);
+}
+
+.background-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, rgba(75, 62, 33, 0.7) 0%, rgba(158, 117, 32, 0.7) 100%);
+}
+
+.auth-footer {
+  text-align: center;
+  padding: 16px;
+  color: #fff;
+  background-color: rgba(0, 0, 0, 0.2);
+  position: relative;
+  z-index: 1;
+}
+
+/* Dark theme support */
+:host-context(.dark-theme) {
+  .auth-background {
+    filter: brightness(0.6) blur(2px);
+  }
+
+  .background-overlay {
+    background: linear-gradient(135deg, rgba(50, 40, 20, 0.8) 0%, rgba(100, 80, 20, 0.8) 100%);
+  }
+}
+
+@media (max-width: 768px) {
+  .auth-content {
+    padding: 16px 8px;
+    width: 100%;
+  }
+}

@@ -1,0 +1,214 @@
+/* sign-up.component.scss */
+.sign-up-container {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+}
+
+.sign-up-card {
+  width: 500px;
+  max-width: 90%;
+  padding: 32px;
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  /* Animation */
+  animation: fadeInUp 0.4s ease-out;
+}
+
+.logo-container {
+  margin-bottom: 24px;
+  text-align: center;
+}
+
+.logo {
+  max-width: 180px;
+  height: auto;
+}
+
+.sign-up-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--primary-color);
+  margin: 0 0 8px 0;
+}
+
+.sign-up-subtitle {
+  color: var(--text-secondary);
+  margin-bottom: 32px;
+  text-align: center;
+}
+
+.sign-up-form {
+  width: 100%;
+}
+
+.name-fields {
+  display: flex;
+  gap: 16px;
+}
+
+.form-field {
+  width: 100%;
+  margin-bottom: 20px;
+}
+
+.terms-checkbox {
+  margin-bottom: 24px;
+}
+
+.terms-checkbox a {
+  color: var(--secondary-color);
+  text-decoration: none;
+}
+
+.terms-checkbox a:hover {
+  text-decoration: underline;
+}
+
+.terms-checkbox mat-error {
+  margin-top: 4px;
+  display: block;
+}
+
+.sign-up-button {
+  width: 100%;
+  padding: 10px 0;
+  margin-bottom: 24px;
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+.sign-up-button:disabled {
+  background-color: rgba(75, 62, 33, 0.5);
+}
+
+.sign-up-button mat-spinner {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.sign-in-prompt {
+  text-align: center;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.sign-in-link {
+  color: var(--secondary-color);
+  margin-left: 4px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.sign-in-link:hover {
+  color: var(--tertiary-color);
+  text-decoration: underline;
+}
+
+/* Dark theme support */
+:host-context(.dark-theme) {
+  .sign-up-card {
+    background-color: #333;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  }
+
+  .sign-up-title {
+    color: #e0e0e0;
+  }
+
+  .sign-up-subtitle {
+    color: #aaa;
+  }
+
+  .terms-checkbox {
+    color: #ccc;
+  }
+}
+
+@media (max-width: 768px) {
+  .sign-up-card {
+    padding: 24px;
+    width: 100%;
+    max-width: 95%;
+  }
+
+  .name-fields {
+    flex-direction: column;
+    gap: 0;
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Material form field customizations */
+:host ::ng-deep {
+  .mat-mdc-form-field-subscript-wrapper {
+    height: 20px !important;
+  }
+
+  .mat-mdc-text-field-wrapper {
+    background-color: #f7f7f7;
+    transition: background-color 0.2s;
+  }
+
+  .mat-mdc-form-field.mat-focused .mat-mdc-text-field-wrapper {
+    background-color: #fff;
+  }
+
+  .mat-mdc-form-field-icon-prefix > .mat-icon {
+    color: var(--text-secondary);
+  }
+
+  .mat-mdc-form-field.mat-focused .mat-mdc-form-field-icon-prefix > .mat-icon {
+    color: var(--primary-color);
+  }
+
+  .mat-mdc-checkbox .mdc-checkbox .mdc-checkbox__native-control:checked ~ .mdc-checkbox__background {
+    background-color: var(--secondary-color) !important;
+    border-color: var(--secondary-color) !important;
+  }
+
+  .mat-mdc-button.mat-primary {
+    background-color: var(--primary-color);
+  }
+
+  /* Dark theme adjustments */
+  :host-context(.dark-theme) & {
+    .mat-mdc-text-field-wrapper {
+      background-color: #444;
+    }
+
+    .mat-mdc-form-field.mat-focused .mat-mdc-text-field-wrapper {
+      background-color: #555;
+    }
+
+    mat-label,
+    input,
+    .mat-mdc-form-field-icon-prefix > .mat-icon {
+      color: #ddd !important;
+    }
+
+    .mat-mdc-checkbox .mdc-checkbox__native-control:enabled:not(:checked):not(:indeterminate):not([data-indeterminate='true']) ~ .mdc-checkbox__background {
+      border-color: #aaa !important;
+    }
+  }
+}
