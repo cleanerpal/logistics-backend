@@ -10,23 +10,10 @@ import {
   signOut,
   updateProfile,
 } from '@angular/fire/auth';
-import {
-  Firestore,
-  collection,
-  doc,
-  getDoc,
-  getDocs,
-  query,
-  setDoc,
-  where,
-  serverTimestamp,
-} from '@angular/fire/firestore';
+import { Firestore, collection, doc, getDoc, getDocs, query, setDoc, where, serverTimestamp, orderBy, limit } from '@angular/fire/firestore';
 import { BehaviorSubject, Observable, from, of } from 'rxjs';
 import { catchError, map, switchMap, tap } from 'rxjs/operators';
-import {
-  UserPermissionKey,
-  UserProfile,
-} from '../interfaces/user-profile.interface';
+import { UserPermissionKey, UserProfile } from '../interfaces/user-profile.interface';
 
 @Injectable({
   providedIn: 'root',
@@ -71,24 +58,15 @@ export class AuthService {
   /**
    * Sign up with email and password, and create a user profile
    */
-  signUp(
-    email: string,
-    password: string,
-    userData: { firstName: string; lastName: string }
-  ): Observable<void> {
-    return from(
-      createUserWithEmailAndPassword(this.auth, email, password)
-    ).pipe(
+  signUp(email: string, password: string, userData: { firstName: string; lastName: string }): Observable<void> {
+    return from(createUserWithEmailAndPassword(this.auth, email, password)).pipe(
       switchMap(async (userCredential) => {
         // Update user profile with display name
         const displayName = `${userData.firstName} ${userData.lastName}`.trim();
         await updateProfile(userCredential.user, { displayName });
 
         // Create user document in Firestore
-        const userDocRef = doc(
-          this.firestore,
-          `users/${userCredential.user.uid}`
-        );
+        const userDocRef = doc(this.firestore, `users/${userCredential.user.uid}`);
         return setDoc(userDocRef, {
           email: userCredential.user.email,
           firstName: userData.firstName,
@@ -154,6 +132,67 @@ export class AuthService {
   }
 
   /**
+   * Get all users in the system
+   */
+  getAllUsers(): Observable<UserProfile[]> {
+    const usersRef = collection(this.firestore, 'users');
+    const q = query(usersRef, orderBy('lastName'));
+
+    return from(getDocs(q)).pipe(
+      map((snapshot) => {
+        return snapshot.docs.map((doc) => {
+          return this.convertFirebaseUserToProfile(doc.id, doc.data());
+        });
+      }),
+      catchError((error) => {
+        console.error('Error fetching users:', error);
+        return of([]);
+      })
+    );
+  }
+
+  /**
+   * Get a user by email
+   */
+  getUserByEmail(email: string): Observable<UserProfile | null> {
+    if (!email) {
+      return of(null);
+    }
+
+    const usersRef = collection(this.firestore, 'users');
+    const q = query(usersRef, where('email', '==', email), limit(1));
+
+    return from(getDocs(q)).pipe(
+      map((snapshot) => {
+        if (snapshot.empty) {
+          return null;
+        }
+
+        const doc = snapshot.docs[0];
+        return this.convertFirebaseUserToProfile(doc.id, doc.data());
+      }),
+      catchError((error) => {
+        console.error('Error fetching user by email:', error);
+        return of(null);
+      })
+    );
+  }
+
+  /**
+   * Get the current user
+   */
+  get currentUser(): User | null {
+    return this.auth.currentUser;
+  }
+
+  /**
+   * Get the current user's ID
+   */
+  get currentUserId(): string | null {
+    return this.auth.currentUser?.uid || null;
+  }
+
+  /**
    * Get a user profile by ID
    */
   getUserById(userId: string): Observable<UserProfile | null> {
@@ -166,10 +205,7 @@ export class AuthService {
     return from(getDoc(userDocRef)).pipe(
       map((docSnap) => {
         if (docSnap.exists()) {
-          const profile = this.convertFirebaseUserToProfile(
-            userId,
-            docSnap.data()
-          );
+          const profile = this.convertFirebaseUserToProfile(userId, docSnap.data());
           return profile;
         } else {
           return null;
@@ -194,9 +230,7 @@ export class AuthService {
         if (profile.permissions?.isAdmin) return true;
 
         // Check specific permission
-        return !!profile.permissions?.[
-          permission as keyof typeof profile.permissions
-        ];
+        return !!profile.permissions?.[permission as keyof typeof profile.permissions];
       })
     );
   }
@@ -204,9 +238,7 @@ export class AuthService {
   /**
    * Check if the current user has any of the specified permissions
    */
-  hasAnyPermission(
-    permissions: string[] | UserPermissionKey[]
-  ): Observable<boolean> {
+  hasAnyPermission(permissions: string[] | UserPermissionKey[]): Observable<boolean> {
     return this.userProfile$.pipe(
       map((profile) => {
         if (!profile) return false;
@@ -215,13 +247,7 @@ export class AuthService {
         if (profile.permissions?.isAdmin) return true;
 
         // Check if user has any of the required permissions
-        return permissions.some(
-          (permission) =>
-            profile.permissions &&
-            (profile.permissions[
-              permission as keyof typeof profile.permissions
-            ] as boolean)
-        );
+        return permissions.some((permission) => profile.permissions && (profile.permissions[permission as keyof typeof profile.permissions] as boolean));
       })
     );
   }
@@ -251,11 +277,7 @@ export class AuthService {
    */
   getUsersByRole(role: string): Observable<UserProfile[]> {
     const usersRef = collection(this.firestore, 'users');
-    const q = query(
-      usersRef,
-      where('role', '==', role),
-      where('isActive', '==', true)
-    );
+    const q = query(usersRef, where('role', '==', role), where('isActive', '==', true));
 
     return from(getDocs(q)).pipe(
       map((snapshot) => {
@@ -273,10 +295,7 @@ export class AuthService {
   /**
    * Update user profile
    */
-  updateUserProfile(
-    userId: string,
-    profileData: Partial<UserProfile>
-  ): Observable<void> {
+  updateUserProfile(userId: string, profileData: Partial<UserProfile>): Observable<void> {
     const userDocRef = doc(this.firestore, `users/${userId}`);
 
     // Remove id from the profileData to avoid overwriting it
@@ -313,9 +332,7 @@ export class AuthService {
    * Check if the current user is an admin
    */
   isAdmin(): Observable<boolean> {
-    return this.userProfile$.pipe(
-      map((profile) => !!profile?.permissions?.isAdmin)
-    );
+    return this.userProfile$.pipe(map((profile) => !!profile?.permissions?.isAdmin));
   }
 
   /**
@@ -327,10 +344,7 @@ export class AuthService {
     return from(getDoc(userDocRef)).pipe(
       map((docSnap) => {
         if (docSnap.exists()) {
-          const profile = this.convertFirebaseUserToProfile(
-            uid,
-            docSnap.data()
-          );
+          const profile = this.convertFirebaseUserToProfile(uid, docSnap.data());
           this.userProfileSubject.next(profile);
           return profile;
         } else {
@@ -370,8 +384,7 @@ export class AuthService {
     return {
       id: uid,
       email: data.email || '',
-      name:
-        data.name || `${data.firstName || ''} ${data.lastName || ''}`.trim(),
+      name: data.name || `${data.firstName || ''} ${data.lastName || ''}`.trim(),
       firstName: data.firstName || '',
       lastName: data.lastName || '',
       phoneNumber: data.phoneNumber || '',

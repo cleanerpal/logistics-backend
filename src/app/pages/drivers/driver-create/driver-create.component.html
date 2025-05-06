@@ -1,1 +1,167 @@
-<p>driver-create works!</p>
+<!-- driver-create.component.html -->
+<div class="driver-form-container">
+  <!-- Loading Overlay -->
+  <div class="loading-overlay" *ngIf="isLoading">
+    <mat-spinner diameter="40"></mat-spinner>
+    <span>{{ isEditMode ? 'Loading driver data...' : 'Preparing form...' }}</span>
+  </div>
+
+  <mat-card class="form-card">
+    <!-- Header -->
+    <div class="header-wrapper">
+      <div class="header-title">
+        <h1>{{ isEditMode ? 'Edit Driver' : 'Create New Driver' }}</h1>
+        <p class="subtitle">
+          {{ isEditMode ? 'Update driver information' : 'Add a new driver to the system' }}
+        </p>
+      </div>
+      <div class="header-actions">
+        <button mat-stroked-button (click)="cancel()">
+          <mat-icon>close</mat-icon>
+          Cancel
+        </button>
+        <button mat-flat-button color="primary" (click)="onSubmit()" [disabled]="driverForm.invalid || isSubmitting">
+          <mat-icon>save</mat-icon>
+          {{ isSubmitting ? 'Saving...' : isEditMode ? 'Update' : 'Create' }}
+        </button>
+      </div>
+    </div>
+
+    <!-- Form Content -->
+    <div class="form-content">
+      <form [formGroup]="driverForm">
+        <!-- Basic Information -->
+        <section class="form-section">
+          <h2>Basic Information</h2>
+          <div class="form-grid">
+            <mat-form-field appearance="outline">
+              <mat-label>First Name</mat-label>
+              <input matInput formControlName="firstName" placeholder="Enter first name" required />
+              <mat-error *ngIf="driverForm.get('firstName')?.hasError('required')"> First name is required </mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Last Name</mat-label>
+              <input matInput formControlName="lastName" placeholder="Enter last name" required />
+              <mat-error *ngIf="driverForm.get('lastName')?.hasError('required')"> Last name is required </mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Email</mat-label>
+              <input matInput formControlName="email" placeholder="Enter email address" required type="email" />
+              <mat-error *ngIf="driverForm.get('email')?.hasError('required')"> Email is required </mat-error>
+              <mat-error *ngIf="driverForm.get('email')?.hasError('email')"> Please enter a valid email address </mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Phone Number</mat-label>
+              <input matInput formControlName="phoneNumber" placeholder="Enter phone number" />
+              <mat-error *ngIf="driverForm.get('phoneNumber')?.hasError('pattern')"> Please enter a valid phone number </mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Role</mat-label>
+              <mat-select formControlName="role" required (selectionChange)="onRoleChange($event.value)">
+                <mat-option *ngFor="let role of availableRoles" [value]="role">
+                  {{ role }}
+                </mat-option>
+              </mat-select>
+              <mat-error *ngIf="driverForm.get('role')?.hasError('required')"> Role is required </mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Status</mat-label>
+              <mat-select formControlName="status" required>
+                <mat-option value="active">Active</mat-option>
+                <mat-option value="inactive">Inactive</mat-option>
+              </mat-select>
+              <mat-error *ngIf="driverForm.get('status')?.hasError('required')"> Status is required </mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Role</mat-label>
+              <mat-select formControlName="role" required (selectionChange)="onRoleChange($event.value)">
+                <mat-option *ngFor="let role of availableRoles" [value]="role">
+                  {{ role }}
+                </mat-option>
+              </mat-select>
+              <mat-error *ngIf="driverForm.get('role')?.hasError('required')"> Role is required </mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Status</mat-label>
+              <mat-select formControlName="status" required>
+                <mat-option value="active">Active</mat-option>
+                <mat-option value="inactive">Inactive</mat-option>
+                <mat-option value="pending">Pending</mat-option>
+              </mat-select>
+              <mat-error *ngIf="driverForm.get('status')?.hasError('required')"> Status is required </mat-error>
+            </mat-form-field>
+          </div>
+        </section>
+
+        <!-- Permissions Section -->
+        <section class="form-section">
+          <h2>Permissions</h2>
+          <p class="form-hint">Configure access permissions for this driver</p>
+
+          <div formGroupName="permissions" class="permissions-grid">
+            <mat-checkbox formControlName="canAllocateJobs" color="primary"> Allocate Jobs </mat-checkbox>
+
+            <mat-checkbox formControlName="canApproveExpenses" color="primary"> Approve Expenses </mat-checkbox>
+
+            <mat-checkbox formControlName="canCreateJobs" color="primary"> Create Jobs </mat-checkbox>
+
+            <mat-checkbox formControlName="canEditJobs" color="primary"> Edit Jobs </mat-checkbox>
+
+            <mat-checkbox formControlName="canManageUsers" color="primary"> Manage Users </mat-checkbox>
+
+            <mat-checkbox formControlName="canViewReports" color="primary"> View Reports </mat-checkbox>
+
+            <mat-checkbox formControlName="canViewUnallocated" color="primary"> View Unallocated Jobs </mat-checkbox>
+
+            <mat-checkbox formControlName="isAdmin" color="primary"> Administrator </mat-checkbox>
+          </div>
+        </section>
+
+        <!-- Account Setup Information (only for new driver) -->
+        <section class="form-section" *ngIf="!isEditMode">
+          <h2>Account Setup</h2>
+          <p class="form-hint">Set the initial password for this driver. They will be prompted to change it on first login.</p>
+
+          <div class="form-grid">
+            <mat-form-field appearance="outline">
+              <mat-label>Password</mat-label>
+              <input matInput formControlName="password" type="password" [type]="hidePassword ? 'password' : 'text'" required />
+              <button mat-icon-button matSuffix (click)="hidePassword = !hidePassword" type="button">
+                <mat-icon>{{ hidePassword ? 'visibility_off' : 'visibility' }}</mat-icon>
+              </button>
+              <mat-error *ngIf="driverForm.get('password')?.hasError('required')"> Password is required </mat-error>
+              <mat-error *ngIf="driverForm.get('password')?.hasError('minlength')"> Password must be at least 8 characters </mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Confirm Password</mat-label>
+              <input matInput formControlName="confirmPassword" type="password" [type]="hidePassword ? 'password' : 'text'" required />
+              <mat-error *ngIf="driverForm.get('confirmPassword')?.hasError('required')"> Please confirm password </mat-error>
+              <mat-error *ngIf="driverForm.get('confirmPassword')?.hasError('passwordMismatch')"> Passwords do not match </mat-error>
+            </mat-form-field>
+
+            <div class="send-credentials-option">
+              <mat-checkbox formControlName="sendCredentials" color="primary"> Send login credentials to driver's email </mat-checkbox>
+              <span class="helper-text">An email will be sent with login instructions</span>
+            </div>
+          </div>
+        </section>
+      </form>
+    </div>
+
+    <!-- Form Actions -->
+    <div class="form-actions">
+      <button mat-stroked-button (click)="cancel()">Cancel</button>
+      <button mat-flat-button color="primary" (click)="onSubmit()" [disabled]="driverForm.invalid || isSubmitting">
+        {{ isSubmitting ? 'Saving...' : isEditMode ? 'Update Driver' : 'Create Driver' }}
+      </button>
+    </div>
+  </mat-card>
+</div>

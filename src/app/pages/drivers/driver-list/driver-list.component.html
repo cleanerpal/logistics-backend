@@ -6,9 +6,7 @@
       <h1>Drivers</h1>
       <p class="subtitle">
         {{ dataSource.filteredData.length }} total drivers
-        <ng-container *ngIf="selection.hasValue()">
-          ({{ selection.selected.length }} selected)
-        </ng-container>
+        <ng-container *ngIf="selection.hasValue()"> ({{ selection.selected.length }} selected) </ng-container>
       </p>
     </div>
   </div>
@@ -18,21 +16,14 @@
     <div class="filters-section">
       <mat-form-field appearance="outline" class="search-field">
         <mat-label>Search drivers</mat-label>
-        <input
-          matInput
-          (keyup)="applyFilter($event)"
-          placeholder="Search by name, email, or company"
-        />
+        <input matInput (keyup)="applyFilter($event)" placeholder="Search by name, email, or company" />
         <mat-icon matSuffix>search</mat-icon>
       </mat-form-field>
 
       <div class="filters-group">
         <mat-form-field appearance="outline">
           <mat-label>Type</mat-label>
-          <mat-select
-            [(value)]="typeFilter"
-            (selectionChange)="onFilterChange()"
-          >
+          <mat-select [(value)]="typeFilter" (selectionChange)="onFilterChange()">
             <mat-option *ngFor="let type of typeOptions" [value]="type">
               {{ type }}
             </mat-option>
@@ -40,11 +31,17 @@
         </mat-form-field>
 
         <mat-form-field appearance="outline">
+          <mat-label>Role</mat-label>
+          <mat-select [(value)]="roleFilter" (selectionChange)="onFilterChange()">
+            <mat-option *ngFor="let role of roleOptions" [value]="role">
+              {{ role }}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
           <mat-label>Status</mat-label>
-          <mat-select
-            [(value)]="statusFilter"
-            (selectionChange)="onFilterChange()"
-          >
+          <mat-select [(value)]="statusFilter" (selectionChange)="onFilterChange()">
             <mat-option *ngFor="let status of statusOptions" [value]="status">
               {{ status }}
             </mat-option>
@@ -54,20 +51,11 @@
     </div>
 
     <div class="actions-group">
-      <button
-        mat-stroked-button
-        [matMenuTriggerFor]="exportMenu"
-        class="export-button"
-      >
+      <button mat-stroked-button [matMenuTriggerFor]="exportMenu" class="export-button">
         <mat-icon>download</mat-icon>
         Export
       </button>
-      <button
-        mat-flat-button
-        color="primary"
-        (click)="createNewDriver()"
-        class="create-button"
-      >
+      <button mat-flat-button color="primary" (click)="createNewDriver()" class="create-button">
         <mat-icon>add</mat-icon>
         New Driver
       </button>
@@ -83,12 +71,7 @@
     </div>
 
     <!-- Table -->
-    <table
-      mat-table
-      [dataSource]="dataSource"
-      matSort
-      [class.loading]="isLoading"
-    >
+    <table mat-table [dataSource]="dataSource" matSort [class.loading]="isLoading">
       <!-- Checkbox Column -->
       <ng-container matColumnDef="select">
         <th mat-header-cell *matHeaderCellDef>
@@ -96,8 +79,7 @@
             (change)="$event ? toggleAllRows() : null"
             [checked]="selection.hasValue() && isAllSelected()"
             [indeterminate]="selection.hasValue() && !isAllSelected()"
-            [aria-label]="checkboxLabel()"
-          >
+            [aria-label]="checkboxLabel()">
           </mat-checkbox>
         </th>
         <td mat-cell *matCellDef="let row">
@@ -105,8 +87,7 @@
             (click)="$event.stopPropagation()"
             (change)="$event ? selection.toggle(row) : null"
             [checked]="selection.isSelected(row)"
-            [aria-label]="checkboxLabel(row)"
-          >
+            [aria-label]="checkboxLabel(row)">
           </mat-checkbox>
         </td>
       </ng-container>
@@ -122,7 +103,11 @@
         <th mat-header-cell *matHeaderCellDef mat-sort-header>Name</th>
         <td mat-cell *matCellDef="let driver">
           <div class="name-cell">
-            {{ driver.firstName }} {{ driver.lastName }}
+            <div class="avatar">{{ getDriverInitials(driver) }}</div>
+            <div class="name-details">
+              <span class="primary-text">{{ driver.firstName }} {{ driver.lastName }}</span>
+              <span class="secondary-text" *ngIf="driver.company">{{ driver.company }}</span>
+            </div>
           </div>
         </td>
       </ng-container>
@@ -131,10 +116,7 @@
       <ng-container matColumnDef="email">
         <th mat-header-cell *matHeaderCellDef mat-sort-header>Email</th>
         <td mat-cell *matCellDef="let driver">
-          <a
-            [href]="'mailto:' + driver.email"
-            (click)="$event.stopPropagation()"
-          >
+          <a [href]="'mailto:' + driver.email" (click)="$event.stopPropagation()">
             {{ driver.email }}
           </a>
         </td>
@@ -150,6 +132,16 @@
       <ng-container matColumnDef="company">
         <th mat-header-cell *matHeaderCellDef mat-sort-header>Company</th>
         <td mat-cell *matCellDef="let driver">{{ driver.company }}</td>
+      </ng-container>
+
+      <!-- Role Column -->
+      <ng-container matColumnDef="role">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>Role</th>
+        <td mat-cell *matCellDef="let driver">
+          <span class="role-chip" [ngClass]="getRoleClass(driver.role)">
+            {{ driver.role || 'Driver' }}
+          </span>
+        </td>
       </ng-container>
 
       <!-- Type Column -->
@@ -172,11 +164,11 @@
         </td>
       </ng-container>
 
-      <!-- Last Driver Column -->
-      <ng-container matColumnDef="lastDriver">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header>Last Driver</th>
+      <!-- Last Activity Column -->
+      <ng-container matColumnDef="lastActivity">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>Last Activity</th>
         <td mat-cell *matCellDef="let driver">
-          {{ driver.lastDriver | date }}
+          {{ driver.lastDriver | date : 'medium' }}
         </td>
       </ng-container>
 
@@ -184,11 +176,7 @@
       <ng-container matColumnDef="actions">
         <th mat-header-cell *matHeaderCellDef></th>
         <td mat-cell *matCellDef="let driver">
-          <button
-            mat-icon-button
-            [matMenuTriggerFor]="menu"
-            (click)="$event.stopPropagation()"
-          >
+          <button mat-icon-button [matMenuTriggerFor]="menu" (click)="$event.stopPropagation()">
             <mat-icon>more_vert</mat-icon>
           </button>
           <mat-menu #menu="matMenu" xPosition="before">
@@ -196,11 +184,11 @@
               <mat-icon>edit</mat-icon>
               <span>Edit</span>
             </button>
-            <button
-              mat-menu-item
-              (click)="deleteDriver(driver, $event)"
-              class="delete-action"
-            >
+            <button mat-menu-item (click)="viewDriverJobs(driver, $event)">
+              <mat-icon>work</mat-icon>
+              <span>View Jobs</span>
+            </button>
+            <button mat-menu-item (click)="deleteDriver(driver, $event)" class="delete-action">
               <mat-icon>delete</mat-icon>
               <span>Delete</span>
             </button>
@@ -210,20 +198,11 @@
 
       <!-- Header and Data Rows -->
       <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
-      <tr
-        mat-row
-        *matRowDef="let row; columns: displayedColumns"
-        (click)="editDriver(row)"
-        [class.selected]="selection.isSelected(row)"
-        class="driver-row"
-      ></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns" (click)="editDriver(row)" [class.selected]="selection.isSelected(row)" class="driver-row"></tr>
     </table>
 
     <!-- Empty State -->
-    <div
-      class="empty-state"
-      *ngIf="!isLoading && dataSource.filteredData.length === 0"
-    >
+    <div class="empty-state" *ngIf="!isLoading && dataSource.filteredData.length === 0">
       <mat-icon class="empty-icon">people_outline</mat-icon>
       <h3>No drivers found</h3>
       <p>Try adjusting your filters or add a new driver</p>
@@ -235,13 +214,7 @@
   </div>
 
   <!-- Paginator -->
-  <mat-paginator
-    [length]="dataSource.filteredData.length"
-    [pageSize]="25"
-    [pageSizeOptions]="[10, 25, 50, 100]"
-    showFirstLastButtons
-  >
-  </mat-paginator>
+  <mat-paginator [length]="dataSource.filteredData.length" [pageSize]="25" [pageSizeOptions]="[10, 25, 50, 100]" showFirstLastButtons> </mat-paginator>
 </mat-card>
 
 <!-- Export Menu -->
@@ -250,11 +223,7 @@
     <mat-icon>file_download</mat-icon>
     <span>Export All</span>
   </button>
-  <button
-    mat-menu-item
-    [disabled]="selection.selected.length === 0"
-    (click)="exportSelectedDrivers()"
-  >
+  <button mat-menu-item [disabled]="selection.selected.length === 0" (click)="exportSelectedDrivers()">
     <mat-icon>checklist</mat-icon>
     <span>Export Selected ({{ selection.selected.length }})</span>
   </button>

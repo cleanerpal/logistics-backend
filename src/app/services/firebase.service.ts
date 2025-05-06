@@ -1,16 +1,5 @@
 import { Injectable } from '@angular/core';
-import {
-  Firestore,
-  collection,
-  doc,
-  getDoc,
-  getDocs,
-  addDoc,
-  updateDoc,
-  query,
-  where,
-  orderBy,
-} from '@angular/fire/firestore';
+import { Firestore, collection, doc, getDoc, getDocs, addDoc, updateDoc, query, where, orderBy, deleteDoc } from '@angular/fire/firestore';
 import { Observable, from, of } from 'rxjs';
 import { map, catchError } from 'rxjs/operators';
 
@@ -41,10 +30,7 @@ export class FirebaseService {
   /**
    * Get a specific document by ID
    */
-  getDocument<T>(
-    collectionName: string,
-    documentId: string
-  ): Observable<T | null> {
+  getDocument<T>(collectionName: string, documentId: string): Observable<T | null> {
     const docRef = doc(this.firestore, `${collectionName}/${documentId}`);
     return from(getDoc(docRef)).pipe(
       map((docSnap) => {
@@ -55,10 +41,7 @@ export class FirebaseService {
         }
       }),
       catchError((error) => {
-        console.error(
-          `Error fetching document ${documentId} from ${collectionName}:`,
-          error
-        );
+        console.error(`Error fetching document ${documentId} from ${collectionName}:`, error);
         return of(null);
       })
     );
@@ -81,18 +64,11 @@ export class FirebaseService {
   /**
    * Update an existing document
    */
-  updateDocument(
-    collectionName: string,
-    documentId: string,
-    data: any
-  ): Observable<void> {
+  updateDocument(collectionName: string, documentId: string, data: any): Observable<void> {
     const docRef = doc(this.firestore, `${collectionName}/${documentId}`);
     return from(updateDoc(docRef, data)).pipe(
       catchError((error) => {
-        console.error(
-          `Error updating document ${documentId} in ${collectionName}:`,
-          error
-        );
+        console.error(`Error updating document ${documentId} in ${collectionName}:`, error);
         throw error;
       })
     );
@@ -126,6 +102,20 @@ export class FirebaseService {
       catchError((error) => {
         console.error(`Error querying collection ${collectionName}:`, error);
         return of([] as T[]);
+      })
+    );
+  }
+
+  /**
+   * Delete a document from a collection
+   */
+  deleteDocument(collectionName: string, documentId: string): Observable<void> {
+    const docRef = doc(this.firestore, `${collectionName}/${documentId}`);
+
+    return from(deleteDoc(docRef)).pipe(
+      catchError((error) => {
+        console.error(`Error deleting document ${documentId} from ${collectionName}:`, error);
+        throw error;
       })
     );
   }
