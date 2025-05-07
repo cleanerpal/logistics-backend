@@ -1,1 +1,135 @@
-<p>expense-create works!</p>
+<mat-card class="expense-create-card">
+  <div class="card-header">
+    <h1>Create Invoice</h1>
+    <p class="subtitle" *ngIf="!isLoading">Fill in the details below to create a new invoice</p>
+  </div>
+
+  <mat-spinner *ngIf="isLoading" diameter="40" class="loading-spinner"></mat-spinner>
+
+  <div *ngIf="errorMessage" class="error-container">
+    <mat-icon>error_outline</mat-icon>
+    <span>{{ errorMessage }}</span>
+  </div>
+
+  <form [formGroup]="expenseForm" (ngSubmit)="onSubmit()" *ngIf="!isLoading">
+    <!-- Job Selection -->
+    <div class="form-section">
+      <h2>Job Details</h2>
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Select Job</mat-label>
+        <mat-select formControlName="jobId">
+          <mat-option *ngFor="let job of availableJobs" [value]="job.id"> {{ job.make }} {{ job.model }} ({{ job.registration }}) - {{ job.status }} </mat-option>
+        </mat-select>
+        <mat-error *ngIf="expenseForm.get('jobId')?.hasError('required')"> Please select a job </mat-error>
+      </mat-form-field>
+
+      <!-- Job Details Card -->
+      <div class="job-details-card" *ngIf="job && !jobLoading">
+        <div class="job-header">
+          <h3>Selected Job Information</h3>
+          <span class="status-chip" [ngClass]="'status-' + job.status">
+            {{ job.status }}
+          </span>
+        </div>
+
+        <div class="job-details-grid">
+          <div class="job-detail-item">
+            <span class="label">Vehicle:</span>
+            <span class="value">{{ job.make }} {{ job.model }}</span>
+          </div>
+          <div class="job-detail-item">
+            <span class="label">Registration:</span>
+            <span class="value">{{ job.registration }}</span>
+          </div>
+          <div class="job-detail-item" *ngIf="job.collectionAddress">
+            <span class="label">Collection:</span>
+            <span class="value">{{ job.collectionAddress }}</span>
+          </div>
+          <div class="job-detail-item" *ngIf="job.deliveryAddress">
+            <span class="label">Delivery:</span>
+            <span class="value">{{ job.deliveryAddress }}</span>
+          </div>
+          <div class="job-detail-item" *ngIf="customer">
+            <span class="label">Customer:</span>
+            <span class="value">{{ customer.name }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="loading-container" *ngIf="jobLoading">
+        <mat-spinner diameter="30"></mat-spinner>
+        <span>Loading job details...</span>
+      </div>
+    </div>
+
+    <!-- Invoice Details -->
+    <div class="form-section">
+      <h2>Invoice Details</h2>
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Description</mat-label>
+        <input matInput formControlName="description" placeholder="e.g. Vehicle Transport Service" />
+        <mat-error *ngIf="expenseForm.get('description')?.hasError('required')"> Description is required </mat-error>
+      </mat-form-field>
+
+      <div class="form-row">
+        <mat-form-field appearance="outline">
+          <mat-label>Amount (£)</mat-label>
+          <input matInput type="number" formControlName="amount" min="0.01" step="0.01" />
+          <span matPrefix>£&nbsp;</span>
+          <mat-error *ngIf="expenseForm.get('amount')?.hasError('required')"> Amount is required </mat-error>
+          <mat-error *ngIf="expenseForm.get('amount')?.hasError('min')"> Amount must be greater than 0 </mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Date</mat-label>
+          <input matInput [matDatepicker]="picker" formControlName="date" />
+          <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+          <mat-datepicker #picker></mat-datepicker>
+          <mat-error *ngIf="expenseForm.get('date')?.hasError('required')"> Date is required </mat-error>
+        </mat-form-field>
+      </div>
+
+      <div class="form-row checkbox-row">
+        <mat-checkbox formControlName="isChargeable" color="primary"> Chargeable to customer </mat-checkbox>
+      </div>
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Notes (Optional)</mat-label>
+        <textarea matInput formControlName="notes" rows="3" placeholder="Add any additional information here"></textarea>
+      </mat-form-field>
+    </div>
+
+    <!-- Receipt Upload -->
+    <div class="form-section">
+      <h2>Attach Receipt (Optional)</h2>
+
+      <div class="file-upload-container">
+        <button type="button" mat-stroked-button (click)="fileInput.click()">
+          <mat-icon>cloud_upload</mat-icon>
+          Upload Receipt
+        </button>
+        <input hidden type="file" #fileInput (change)="uploadReceipt($event)" accept=".jpg,.jpeg,.png,.pdf" />
+
+        <span class="file-name" *ngIf="expenseForm.get('receiptUrl')?.value">
+          Receipt uploaded
+          <mat-icon class="success-icon">check_circle</mat-icon>
+        </span>
+      </div>
+
+      <div class="receipt-preview" *ngIf="expenseForm.get('receiptUrl')?.value">
+        <img [src]="expenseForm.get('receiptUrl')?.value" alt="Receipt preview" />
+      </div>
+    </div>
+
+    <!-- Form Actions -->
+    <div class="form-actions">
+      <button type="button" mat-stroked-button (click)="cancelCreate()">Cancel</button>
+      <button type="submit" mat-flat-button color="primary" [disabled]="expenseForm.invalid || isSubmitting">
+        <mat-spinner diameter="20" *ngIf="isSubmitting"></mat-spinner>
+        <span *ngIf="!isSubmitting">Create Invoice</span>
+      </button>
+    </div>
+  </form>
+</mat-card>

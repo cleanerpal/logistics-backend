@@ -1,0 +1,185 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isAdmin() {
+      return isAuthenticated() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.permissions.isAdmin == true;
+    }
+    
+    function isCurrentUser(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    function hasPermission(permission) {
+      let user = get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+      return isAuthenticated() && (user.permissions[permission] == true || user.permissions.isAdmin == true);
+    }
+    
+    function isAssignedDriver(vehicleId) {
+      let vehicle = get(/databases/$(database)/documents/vehicles/$(vehicleId)).data;
+      return isAuthenticated() && vehicle.assignedDriverId == request.auth.uid;
+    }
+    
+    function isValidTimestamp(field) {
+      return field is timestamp;
+    }
+    
+    // Users collection
+    match /users/{userId} {
+      allow read: if isCurrentUser(userId) || isAdmin() || hasPermission('canManageUsers');
+      allow create: if isAdmin();
+      allow update: if isCurrentUser(userId) || isAdmin() || hasPermission('canManageUsers');
+      allow delete: if isAdmin();
+      
+      // Nested collections within users
+      match /settings/preferences {
+        allow read, write: if isCurrentUser(userId) || isAdmin();
+      }
+    }
+    
+    // Vehicles collection
+    match /vehicles/{vehicleId} {
+      allow read: if isAuthenticated() && (
+        isAdmin() || 
+        hasPermission('canViewUnallocated') || 
+        resource.data.assignedDriverId == request.auth.uid
+      );
+      
+      allow create: if isAuthenticated() && hasPermission('canCreateJobs');
+      
+      allow update: if isAuthenticated() && (
+        isAdmin() || 
+        hasPermission('canEditJobs') || 
+        (resource.data.assignedDriverId == request.auth.uid && (
+          resource.data.status != 'delivered' && 
+          resource.data.status != 'completed'
+        ))
+      );
+      
+      allow delete: if isAdmin();
+      
+      // Nested collections within vehicles
+      match /checklist/{itemId} {
+        allow read: if isAuthenticated() && (isAdmin() || isAssignedDriver(vehicleId));
+        allow write: if isAuthenticated() && (isAdmin() || isAssignedDriver(vehicleId));
+      }
+      
+      match /events/{eventId} {
+        allow read: if isAuthenticated() && (isAdmin() || isAssignedDriver(vehicleId));
+        allow create: if isAuthenticated() && (isAdmin() || isAssignedDriver(vehicleId));
+        allow update, delete: if isAdmin();
+      }
+      
+      match /expenses/{expenseId} {
+        allow read: if isAuthenticated() && (isAdmin() || isAssignedDriver(vehicleId) || resource.data.driverId == request.auth.uid);
+        allow create: if isAuthenticated() && (isAdmin() || isAssignedDriver(vehicleId));
+        allow update: if isAuthenticated() && (isAdmin() || hasPermission('canApproveExpenses') || (resource.data.driverId == request.auth.uid && !resource.data.approved));
+        allow delete: if isAdmin();
+      }
+      
+      match /damageReports/{reportId} {
+        allow read: if isAuthenticated() && (isAdmin() || isAssignedDriver(vehicleId));
+        allow create: if isAuthenticated() && (isAdmin() || isAssignedDriver(vehicleId));
+        allow update: if isAuthenticated() && (isAdmin() || (resource.data.reportedBy == request.auth.uid && resource.data.status != 'processed'));
+        allow delete: if isAdmin();
+      }
+      
+      match /emailReports/{reportId} {
+        allow read: if isAuthenticated() && (isAdmin() || isAssignedDriver(vehicleId));
+        allow create: if isAuthenticated() && (isAdmin() || isAssignedDriver(vehicleId));
+        allow update, delete: if isAdmin();
+      }
+    }
+    
+    // Jobs collection
+    match /jobs/{jobId} {
+      allow read: if isAuthenticated() && (
+        isAdmin() || 
+        hasPermission('canViewUnallocated') || 
+        resource.data.driverId == request.auth.uid
+      );
+      
+      allow create: if isAuthenticated() && hasPermission('canCreateJobs');
+      
+      allow update: if isAuthenticated() && (
+        isAdmin() || 
+        hasPermission('canEditJobs') || 
+        (resource.data.driverId == request.auth.uid && resource.data.status != 'delivered')
+      );
+      
+      allow delete: if isAdmin();
+    }
+    
+    // Customers collection
+    match /customers/{customerId} {
+      allow read: if isAuthenticated() && (isAdmin() || hasPermission('canCreateJobs'));
+      allow create: if isAuthenticated() && (isAdmin() || hasPermission('canCreateJobs'));
+      allow update: if isAuthenticated() && (isAdmin() || hasPermission('canCreateJobs'));
+      allow delete: if isAdmin();
+    }
+    
+    // Documents collection
+    match /documents/{documentId} {
+      allow read: if isAuthenticated() && (isAdmin() || resource.data.userId == request.auth.uid);
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated() && (isAdmin() || resource.data.userId == request.auth.uid);
+      allow delete: if isAuthenticated() && (isAdmin() || resource.data.userId == request.auth.uid);
+    }
+    
+    // Expenses collection
+    match /expenses/{expenseId} {
+      allow read: if isAuthenticated() && (isAdmin() || resource.data.driverId == request.auth.uid || hasPermission('canApproveExpenses'));
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated() && (
+        isAdmin() || 
+        hasPermission('canApproveExpenses') || 
+        (resource.data.driverId == request.auth.uid && !resource.data.approved)
+      );
+      allow delete: if isAdmin();
+    }
+    
+    // Notifications collection
+    match /notifications/{notificationId} {
+      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow create: if isAdmin();
+      allow update: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow delete: if isAuthenticated() && (isAdmin() || resource.data.userId == request.auth.uid);
+    }
+    
+    // Vehicle makes and models collections
+    match /vehicleMakes/{makeId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+    
+    match /vehicleModels/{modelId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+    
+    // Data validation rules for different collections
+    match /vehicles/{vehicleId} {
+      allow update: if isAuthenticated() && 
+        (isAdmin() || hasPermission('canEditJobs') || resource.data.assignedDriverId == request.auth.uid) &&
+        (
+          request.resource.data.updatedAt is timestamp && 
+          request.resource.data.updatedAt > resource.data.updatedAt &&
+          request.resource.data.updatedBy == request.auth.uid
+        );
+    }
+    
+    match /documents/{documentId} {
+      allow update: if isAuthenticated() && 
+        (isAdmin() || resource.data.userId == request.auth.uid) &&
+        (
+          request.resource.data.updatedAt is timestamp && 
+          request.resource.data.updatedAt > resource.data.updatedAt
+        );
+    }
+  }
+}

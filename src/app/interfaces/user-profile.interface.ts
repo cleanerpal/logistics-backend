@@ -8,7 +8,7 @@ export interface UserProfile {
   phoneNumber?: string;
   phone?: string;
   role?: string;
-  status?: 'active' | 'inactive' | 'pending';
+  status?: 'active' | 'inactive' | 'pending' | 'on_leave';
   isActive?: boolean;
   company?: string;
   type?: 'customer' | 'supplier' | 'partner';

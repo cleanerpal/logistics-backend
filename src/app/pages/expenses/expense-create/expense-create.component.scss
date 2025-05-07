@@ -1,0 +1,200 @@
+.expense-create-card {
+  max-width: 900px;
+  margin: 24px auto;
+  padding: 24px;
+}
+
+.card-header {
+  margin-bottom: 24px;
+
+  h1 {
+    margin-bottom: 8px;
+  }
+
+  .subtitle {
+    color: var(--text-secondary);
+    margin: 0;
+  }
+}
+
+.loading-spinner {
+  margin: 48px auto;
+}
+
+.error-container {
+  display: flex;
+  align-items: center;
+  background-color: rgba(244, 67, 54, 0.1);
+  color: #f44336;
+  padding: 16px;
+  border-radius: 4px;
+  margin-bottom: 24px;
+
+  mat-icon {
+    margin-right: 12px;
+  }
+}
+
+.form-section {
+  margin-bottom: 32px;
+
+  h2 {
+    font-size: 18px;
+    margin-bottom: 16px;
+    color: var(--primary-color);
+    font-weight: 500;
+  }
+}
+
+.form-row {
+  display: flex;
+  gap: 16px;
+
+  mat-form-field {
+    flex: 1;
+  }
+}
+
+.checkbox-row {
+  padding: 8px 0 16px;
+}
+
+.full-width {
+  width: 100%;
+}
+
+.job-details-card {
+  background-color: rgba(0, 0, 0, 0.02);
+  border-radius: 4px;
+  padding: 16px;
+  margin-top: 16px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+
+  .job-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+
+    h3 {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 500;
+    }
+
+    .status-chip {
+      padding: 4px 12px;
+      border-radius: 16px;
+      font-size: 12px;
+      font-weight: 500;
+      text-transform: uppercase;
+    }
+  }
+
+  .job-details-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 12px;
+
+    .job-detail-item {
+      display: flex;
+      flex-direction: column;
+
+      .label {
+        font-size: 12px;
+        color: var(--text-secondary);
+        margin-bottom: 4px;
+      }
+
+      .value {
+        font-size: 14px;
+        font-weight: 500;
+      }
+    }
+  }
+}
+
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 24px 0;
+
+  span {
+    margin-top: 12px;
+    font-size: 14px;
+    color: var(--text-secondary);
+  }
+}
+
+.file-upload-container {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 16px;
+
+  .file-name {
+    display: flex;
+    align-items: center;
+    color: var(--text-secondary);
+
+    .success-icon {
+      color: #4caf50;
+      margin-left: 8px;
+    }
+  }
+}
+
+.receipt-preview {
+  max-width: 300px;
+  margin-top: 16px;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 4px;
+  overflow: hidden;
+
+  img {
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 16px;
+  margin-top: 24px;
+
+  button {
+    min-width: 120px;
+  }
+}
+
+// Status colors
+.status-collected {
+  background-color: rgba(33, 150, 243, 0.12);
+  color: #2196f3;
+}
+
+.status-delivered,
+.status-completed {
+  background-color: rgba(76, 175, 80, 0.12);
+  color: #4caf50;
+}
+
+/* Responsive styles */
+@media (max-width: 768px) {
+  .expense-create-card {
+    margin: 16px;
+    padding: 16px;
+  }
+
+  .form-row {
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .job-details-grid {
+    grid-template-columns: 1fr;
+  }
+}

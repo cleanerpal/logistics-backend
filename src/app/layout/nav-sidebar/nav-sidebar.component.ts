@@ -40,6 +40,12 @@ export class NavSidebarComponent implements OnInit {
       active: false,
     },
     {
+      label: 'Invoices',
+      icon: 'receipt_long',
+      route: '/expenses',
+      active: false,
+    },
+    {
       label: 'Settings',
       icon: 'settings',
       route: '/settings',

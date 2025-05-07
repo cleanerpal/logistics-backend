@@ -7,15 +7,15 @@ import { MatDialog } from '@angular/material/dialog';
 import * as shape from 'd3-shape';
 import { JobService } from '../../services/job.service';
 import { AuthService } from '../../services/auth.service';
-import { CustomerService } from '../../services/customer.service';
 import { NotificationService } from '../../services/notification.service';
 import { ConfirmationDialogComponent } from '../../dialogs/confirmation-dialog.component';
-import { Subject, Subscription, combineLatest, forkJoin, of } from 'rxjs';
-import { catchError, map, switchMap, takeUntil } from 'rxjs/operators';
+import { DriverSelectionDialogComponent } from '../../dialogs/driver-selection-dialog.component';
+import { Subject, Subscription, combineLatest, forkJoin, interval, of, BehaviorSubject } from 'rxjs';
+import { catchError, map, switchMap, takeUntil, filter, take, finalize } from 'rxjs/operators';
 import { UserProfile } from '../../interfaces/user-profile.interface';
 import { Job } from '../../interfaces/job.interface';
 
-// Define interfaces for dashboard stats and metrics
+// Define interfaces for dashboard data
 interface TrendData {
   name: string;
   value: number;
@@ -76,14 +76,20 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
 
   displayedColumns: string[] = ['id', 'regNumber', 'customerName', 'collectionDate', 'collectionTown', 'deliveryTown', 'status', 'driver', 'actions'];
 
-  jobsDataSource: MatTableDataSource<Job>;
+  jobsDataSource = new MatTableDataSource<Job>([]);
   isLoading = true;
   isLoadingDrivers = true;
   curve = shape.curveLinear;
   jobs: Job[] = [];
 
-  // Color scheme for charts
-  colorScheme = 'cool';
+  // Previous job counts for trend calculation
+  private previousJobCounts = {
+    active: 0,
+    unallocated: 0,
+  };
+
+  // Refresh rate in milliseconds (5 minutes)
+  private readonly REFRESH_INTERVAL = 5 * 60 * 1000;
 
   // Dashboard metrics
   metrics: DashboardMetrics = {
@@ -97,6 +103,12 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
       percentChange: 0,
       increased: false,
     },
+  };
+
+  // Track metric changes over time
+  private metricHistory = {
+    activeJobs: [] as number[],
+    unallocatedJobs: [] as number[],
   };
 
   // Delivery metrics
@@ -131,311 +143,544 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
   private destroy$ = new Subject<void>();
   private subscriptions: Subscription[] = [];
 
+  // Data loading states
+  private jobsLoaded$ = new BehaviorSubject<boolean>(false);
+  private driversLoaded$ = new BehaviorSubject<boolean>(false);
+  private metricsLoaded$ = new BehaviorSubject<boolean>(false);
+
   constructor(
     private router: Router,
     private jobService: JobService,
     private authService: AuthService,
-    private customerService: CustomerService,
     private notificationService: NotificationService,
     private dialog: MatDialog
   ) {
-    this.jobsDataSource = new MatTableDataSource<Job>();
+    this.jobsDataSource = new MatTableDataSource<Job>([]);
   }
 
   ngOnInit(): void {
-    this.loadDashboardData();
-    this.setupDataRefresh();
+    this.setupDataSubscriptions();
+    this.initDashboardData();
+    this.setupRefreshInterval();
   }
 
   ngAfterViewInit(): void {
-    this.jobsDataSource.sort = this.sort;
-    this.jobsDataSource.paginator = this.paginator;
-    this.setupCustomSort();
+    if (this.sort && this.paginator) {
+      this.jobsDataSource.sort = this.sort;
+      this.jobsDataSource.paginator = this.paginator;
+      this.setupCustomSort();
+    }
   }
 
   ngOnDestroy(): void {
     // Clean up subscriptions
     this.destroy$.next();
     this.destroy$.complete();
-
     this.subscriptions.forEach((sub) => sub.unsubscribe());
+  }
+
+  private setupDataSubscriptions(): void {
+    // Monitor loading states
+    const dataLoadingSubscription = combineLatest([this.jobsLoaded$, this.driversLoaded$, this.metricsLoaded$]).subscribe(
+      ([jobsLoaded, driversLoaded, metricsLoaded]) => {
+        this.isLoading = !(jobsLoaded && metricsLoaded);
+        this.isLoadingDrivers = !driversLoaded;
+      }
+    );
+
+    this.subscriptions.push(dataLoadingSubscription);
   }
 
   private setupCustomSort(): void {
     this.jobsDataSource.sortingDataAccessor = (item, property) => {
       switch (property) {
         case 'timestamp':
-          return new Date(item['timestamp']).getTime();
+          return item['timestamp'] ? new Date(item['timestamp']).getTime() : 0;
         case 'collectionDate':
           return item['collectionDate'] ? new Date(item['collectionDate']).getTime() : 0;
         default:
-          return (item as any)[property];
+          const value = item[property as keyof Job];
+          return typeof value === 'string' ? value.toLowerCase() : value;
       }
     };
   }
 
-  private setupDataRefresh(): void {
+  private setupRefreshInterval(): void {
     // Refresh data every 5 minutes
-    const interval = setInterval(() => {
-      this.loadDashboardData();
-    }, 5 * 60 * 1000);
-
-    // Clean up on destroy
-    this.subscriptions.push(
-      new Subscription(() => {
-        clearInterval(interval);
-      })
-    );
-  }
-
-  private loadDashboardData(): void {
-    this.isLoading = true;
-    this.isLoadingDrivers = true;
-
-    // Load jobs, drivers, and stats in parallel
-    const dashboardDataSub = combineLatest([this.loadJobs(), this.loadDriversWithStatus(), this.loadDeliveryMetrics()]).subscribe({
-      next: ([jobsLoaded, driversLoaded, metricsLoaded]) => {
-        this.isLoading = false;
-        this.isLoadingDrivers = false;
-        console.log('Dashboard data loaded');
-      },
-      error: (error) => {
-        console.error('Error loading dashboard data:', error);
-        this.isLoading = false;
-        this.isLoadingDrivers = false;
-        this.notificationService.addNotification({
-          type: 'error',
-          title: 'Dashboard Error',
-          message: 'There was an error loading dashboard data. Please try refreshing the page.',
-        });
-      },
-    });
-
-    this.subscriptions.push(dashboardDataSub);
-  }
-
-  private loadJobs(): Promise<boolean> {
-    return new Promise((resolve) => {
-      // Load today's jobs
-      const todayStart = new Date();
-      todayStart.setHours(0, 0, 0, 0);
-
-      const loadJobsSub = this.jobService
-        .getRecentJobs(25)
-        .pipe(
-          takeUntil(this.destroy$),
-          catchError((error) => {
-            console.error('Error loading jobs:', error);
-            return of([]);
-          })
-        )
-        .subscribe((jobs) => {
-          this.jobs = jobs.filter((job) => {
-            // Filter to show only today's jobs and recent active jobs
-            const jobDate = job.createdAt;
-            const jobStatus = job.status;
-            return jobDate >= todayStart || (['allocated', 'collected', 'unallocated'] as string[]).includes(jobStatus);
-          });
-
-          this.jobsDataSource.data = this.jobs;
-          this.updateMetrics();
-          resolve(true);
-        });
-
-      this.subscriptions.push(loadJobsSub);
-    });
-  }
-
-  private loadDriversWithStatus(): Promise<boolean> {
-    return new Promise((resolve) => {
-      // Get all drivers
-      const driversSub = this.authService
-        .getUsersByRole('driver')
-        .pipe(
-          takeUntil(this.destroy$),
-          switchMap((drivers) => {
-            if (drivers.length === 0) {
-              return of([]);
-            }
-
-            // Get all active jobs to determine driver status
-            return this.jobService.getJobsByStatus('allocated').pipe(
-              map((allocatedJobs) => {
-                // Map jobs to drivers
-                return drivers.map((driver) => {
-                  const driverJobs = allocatedJobs.filter((job) => job.driverId === driver.id);
-
-                  // Determine driver status based on job count and other factors
-                  let status = DriverStatus.AVAILABLE;
-                  if (!driver.isActive) {
-                    status = DriverStatus.OFFLINE;
-                  } else if (driverJobs.length > 2) {
-                    status = DriverStatus.BUSY;
-                  } else if (driverJobs.length === 0 && this.isDriverOnLeave(driver)) {
-                    status = DriverStatus.ON_LEAVE;
-                  }
-
-                  return {
-                    profile: driver,
-                    status: status,
-                    currentJobs: driverJobs.length,
-                    lastActivity: this.getLastActivity(driverJobs),
-                    activeJobs: driverJobs,
-                    isAvailable: status === DriverStatus.AVAILABLE,
-                  } as EnhancedDriverInfo;
-                });
-              }),
-              catchError((error) => {
-                console.error('Error fetching allocated jobs:', error);
-                // Still return drivers with default status
-                return of(
-                  drivers.map(
-                    (driver) =>
-                      ({
-                        profile: driver,
-                        status: driver.isActive ? DriverStatus.AVAILABLE : DriverStatus.OFFLINE,
-                        currentJobs: 0,
-                        isAvailable: driver.isActive,
-                      } as EnhancedDriverInfo)
-                  )
-                );
-              })
-            );
-          }),
-          catchError((error) => {
-            console.error('Error fetching drivers:', error);
-            return of([]);
-          })
-        )
-        .subscribe((enhancedDrivers) => {
-          this.allDrivers = enhancedDrivers;
-          this.filterDrivers();
-          this.isLoadingDrivers = false;
-          resolve(true);
-        });
-
-      this.subscriptions.push(driversSub);
-    });
-  }
-
-  private loadDeliveryMetrics(): Promise<boolean> {
-    return new Promise((resolve) => {
-      // In a real app, you'd load this from an analytics service
-      // For this demo, we'll generate random data that looks realistic
-
-      // Weekly data - last 7 days
-      const weekData: TrendData[] = [];
-      const weekDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-      const currentWeekTotal = Math.floor(Math.random() * 20) + 15;
-      const lastWeekTotal = Math.floor(Math.random() * 20) + 15;
-      const weekPercentChange = this.calculatePercentChange(currentWeekTotal, lastWeekTotal);
-
-      weekDays.forEach((day) => {
-        weekData.push({
-          name: day,
-          value: Math.floor(Math.random() * 5) + 2,
-        });
+    const refreshSub = interval(this.REFRESH_INTERVAL)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => {
+        this.refreshDashboardData();
       });
 
-      // Monthly data - last 4 weeks
-      const monthData: TrendData[] = [];
-      const currentMonthTotal = Math.floor(Math.random() * 100) + 250;
-      const lastMonthTotal = Math.floor(Math.random() * 100) + 250;
-      const monthPercentChange = this.calculatePercentChange(currentMonthTotal, lastMonthTotal);
-
-      for (let i = 1; i <= 4; i++) {
-        monthData.push({
-          name: `Week ${i}`,
-          value: Math.floor(Math.random() * 30) + 70,
-        });
-      }
-
-      // Add current week
-      monthData.push({
-        name: 'Current',
-        value: Math.floor(Math.random() * 30) + 70,
-      });
-
-      // Yearly data - last 6 months
-      const yearData: TrendData[] = [];
-      const monthNames = ['Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Jan'];
-      const currentYearTotal = Math.floor(Math.random() * 500) + 4000;
-      const lastYearTotal = Math.floor(Math.random() * 500) + 4000;
-      const yearPercentChange = this.calculatePercentChange(currentYearTotal, lastYearTotal);
-
-      monthNames.forEach((month) => {
-        yearData.push({
-          name: month,
-          value: Math.floor(Math.random() * 200) + 650,
-        });
-      });
-
-      // Update delivery metrics
-      this.deliveryMetrics = {
-        week: {
-          current: currentWeekTotal,
-          change: weekPercentChange,
-          increased: weekPercentChange > 0,
-          data: weekData,
-        },
-        month: {
-          current: currentMonthTotal,
-          change: monthPercentChange,
-          increased: monthPercentChange > 0,
-          data: monthData,
-        },
-        year: {
-          current: currentYearTotal,
-          change: yearPercentChange,
-          increased: yearPercentChange > 0,
-          data: yearData,
-        },
-      };
-
-      resolve(true);
-    });
+    this.subscriptions.push(refreshSub);
   }
 
-  private updateMetrics(): void {
-    const activeJobs = this.jobs.filter((job) => job.status === 'allocated' || job.status === 'collected');
-    const unallocatedJobs = this.jobs.filter((job) => job.status === 'loaded');
+  private initDashboardData(): void {
+    // Store current metrics as previous for trends
+    this.storePreviousMetrics();
 
-    // Update metrics with current counts
-    const newMetrics = {
-      activeJobs: activeJobs.length,
-      unallocatedJobs: unallocatedJobs.length,
-      activeJobsTrend: {
-        percentChange: this.calculatePercentChange(activeJobs.length, this.metrics.activeJobs),
-        increased: activeJobs.length > this.metrics.activeJobs,
-      },
-      unallocatedJobsTrend: {
-        percentChange: this.calculatePercentChange(unallocatedJobs.length, this.metrics.unallocatedJobs),
-        increased: unallocatedJobs.length > this.metrics.unallocatedJobs,
-      },
+    // Load all data in parallel
+    this.loadJobs();
+    this.loadDriversWithJobs();
+    this.loadDeliveryMetrics();
+  }
+
+  private refreshDashboardData(): void {
+    // Store current metrics for trend calculation
+    this.storePreviousMetrics();
+
+    this.notificationService.addNotification({
+      type: 'info',
+      title: 'Dashboard Refreshing',
+      message: 'Dashboard data is being refreshed...',
+    });
+
+    // Reset loading states
+    this.jobsLoaded$.next(false);
+    this.driversLoaded$.next(false);
+    this.metricsLoaded$.next(false);
+
+    // Reload all data
+    this.loadJobs();
+    this.loadDriversWithJobs();
+    this.loadDeliveryMetrics();
+  }
+
+  private storePreviousMetrics(): void {
+    this.previousJobCounts = {
+      active: this.metrics.activeJobs,
+      unallocated: this.metrics.unallocatedJobs,
     };
 
-    this.metrics = newMetrics;
+    // Add current metrics to history for charts
+    if (this.metrics.activeJobs > 0) {
+      this.metricHistory.activeJobs.push(this.metrics.activeJobs);
+      this.metricHistory.unallocatedJobs.push(this.metrics.unallocatedJobs);
+
+      // Keep only the last 14 data points for trends
+      if (this.metricHistory.activeJobs.length > 14) {
+        this.metricHistory.activeJobs.shift();
+        this.metricHistory.unallocatedJobs.shift();
+      }
+    }
   }
 
-  private calculatePercentChange(current: number, previous: number): number {
-    if (previous === 0) return current > 0 ? 100 : 0;
-    return Math.round(((current - previous) / previous) * 100);
+  private loadJobs(): void {
+    // Get today's date at midnight for filtering
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const jobsSub = this.jobService
+      .getRecentJobs(25)
+      .pipe(
+        takeUntil(this.destroy$),
+        catchError((error) => {
+          console.error('Error loading jobs:', error);
+          this.notificationService.addNotification({
+            type: 'error',
+            title: 'Error Loading Jobs',
+            message: 'There was a problem loading job data from the database.',
+          });
+          return of([]);
+        }),
+        finalize(() => this.jobsLoaded$.next(true))
+      )
+      .subscribe((jobs) => {
+        this.jobs = jobs.filter((job) => {
+          // Filter to show only today's jobs and recent active jobs
+          const jobDate = job.createdAt;
+          const jobStatus = job.status;
+
+          // Include jobs created today or with active status
+          return jobDate >= today || ['allocated', 'collected', 'unallocated'].includes(jobStatus);
+        });
+
+        this.jobsDataSource.data = this.jobs;
+        this.updateMetrics();
+      });
+
+    this.subscriptions.push(jobsSub);
+  }
+
+  private loadDriversWithJobs(): void {
+    const driversSub = this.authService
+      .getUsersByRole('driver')
+      .pipe(
+        takeUntil(this.destroy$),
+        switchMap((drivers) => {
+          if (drivers.length === 0) {
+            this.driversLoaded$.next(true);
+            return of([]);
+          }
+
+          // Get all allocated jobs to determine driver status
+          return this.jobService.getJobsByStatus('allocated').pipe(
+            map((allocatedJobs) => {
+              // Map jobs to drivers and determine their status
+              return drivers.map((driver) => {
+                const driverJobs = allocatedJobs.filter((job) => job.driverId === driver.id);
+
+                // Determine driver status based on assigned jobs and availability
+                let status: DriverStatus = this.determineDriverStatus(driver, driverJobs);
+
+                return {
+                  profile: driver,
+                  status: status,
+                  currentJobs: driverJobs.length,
+                  lastActivity: this.getLastDriverActivity(driverJobs),
+                  activeJobs: driverJobs,
+                  isAvailable: status === DriverStatus.AVAILABLE,
+                } as EnhancedDriverInfo;
+              });
+            }),
+            catchError((error) => {
+              console.error('Error fetching allocated jobs:', error);
+              // Return drivers with default status
+              return of(
+                drivers.map(
+                  (driver) =>
+                    ({
+                      profile: driver,
+                      status: driver.isActive ? DriverStatus.AVAILABLE : DriverStatus.OFFLINE,
+                      currentJobs: 0,
+                      isAvailable: driver.isActive,
+                    } as EnhancedDriverInfo)
+                )
+              );
+            }),
+            finalize(() => this.driversLoaded$.next(true))
+          );
+        }),
+        catchError((error) => {
+          console.error('Error fetching drivers:', error);
+          this.driversLoaded$.next(true);
+          return of([]);
+        })
+      )
+      .subscribe((enhancedDrivers) => {
+        this.allDrivers = enhancedDrivers;
+        this.filterDrivers();
+      });
+
+    this.subscriptions.push(driversSub);
+  }
+
+  private determineDriverStatus(driver: UserProfile, driverJobs: Job[]): DriverStatus {
+    // Driver must be active to be available
+    if (!driver.isActive) return DriverStatus.OFFLINE;
+
+    // Check if driver has more than 2 jobs (considered busy)
+    if (driverJobs.length > 2) return DriverStatus.BUSY;
+
+    // Check if driver is on leave based on profile data or other criteria
+    if (this.isDriverOnLeave(driver)) return DriverStatus.ON_LEAVE;
+
+    // Default to available
+    return DriverStatus.AVAILABLE;
   }
 
   private isDriverOnLeave(driver: UserProfile): boolean {
-    // In a real app, you'd check against a leave management system
-    // For this demo, we'll randomly mark some drivers as on leave
-    return Math.random() < 0.1; // 10% chance a driver is on leave
+    // Check if the driver is on leave based on availability or status fields
+    return (
+      driver.availability === 'on_leave' ||
+      driver.status === 'on_leave' ||
+      (typeof driver.availability === 'string' && driver.availability.toLowerCase().includes('leave'))
+    );
   }
 
-  private getLastActivity(jobs: Job[]): Date | undefined {
+  private getLastDriverActivity(jobs: Job[]): Date | undefined {
     if (jobs.length === 0) return undefined;
 
     // Find the most recent timestamp from the jobs
     return jobs.reduce((latest, job) => {
       const jobUpdated = job.updatedAt;
-      return !latest || jobUpdated > latest ? jobUpdated : latest;
+      return !latest || (jobUpdated && jobUpdated > latest) ? jobUpdated : latest;
     }, undefined as Date | undefined);
+  }
+
+  private loadDeliveryMetrics(): void {
+    // Real implementation fetching actual metrics from Firebase
+    const deliveriesSub = this.jobService
+      .getJobsByStatus('delivered')
+      .pipe(
+        takeUntil(this.destroy$),
+        switchMap((deliveredJobs) => {
+          // Get completed jobs as well
+          return this.jobService.getJobsByStatus('completed').pipe(map((completedJobs) => [...deliveredJobs, ...completedJobs]));
+        }),
+        catchError((error) => {
+          console.error('Error fetching delivery data:', error);
+          return of([]);
+        }),
+        finalize(() => this.metricsLoaded$.next(true))
+      )
+      .subscribe((deliveryJobs) => {
+        if (deliveryJobs.length === 0) {
+          // No delivery data, use empty metrics
+          this.initializeEmptyDeliveryMetrics();
+          return;
+        }
+
+        this.calculateDeliveryMetrics(deliveryJobs);
+      });
+
+    this.subscriptions.push(deliveriesSub);
+  }
+
+  private calculateDeliveryMetrics(deliveryJobs: Job[]): void {
+    const now = new Date();
+    const weekStart = new Date(now);
+    weekStart.setDate(now.getDate() - 7);
+
+    const monthStart = new Date(now);
+    monthStart.setMonth(now.getMonth() - 1);
+
+    const yearStart = new Date(now);
+    yearStart.setFullYear(now.getFullYear() - 1);
+
+    // Get previous week data for comparison
+    const previousWeekStart = new Date(weekStart);
+    previousWeekStart.setDate(previousWeekStart.getDate() - 7);
+
+    // Get previous month data for comparison
+    const previousMonthStart = new Date(monthStart);
+    previousMonthStart.setMonth(previousMonthStart.getMonth() - 1);
+
+    // Current week data
+    const currentWeekJobs = deliveryJobs.filter((job) => job.deliveryCompleteTime && job.deliveryCompleteTime >= weekStart);
+
+    // Previous week data
+    const previousWeekJobs = deliveryJobs.filter(
+      (job) => job.deliveryCompleteTime && job.deliveryCompleteTime >= previousWeekStart && job.deliveryCompleteTime < weekStart
+    );
+
+    // Current month data
+    const currentMonthJobs = deliveryJobs.filter((job) => job.deliveryCompleteTime && job.deliveryCompleteTime >= monthStart);
+
+    // Previous month data
+    const previousMonthJobs = deliveryJobs.filter(
+      (job) => job.deliveryCompleteTime && job.deliveryCompleteTime >= previousMonthStart && job.deliveryCompleteTime < monthStart
+    );
+
+    // Current year data
+    const currentYearJobs = deliveryJobs.filter((job) => job.deliveryCompleteTime && job.deliveryCompleteTime >= yearStart);
+
+    // Calculate week metrics
+    const weeklyData = this.calculateWeeklyDeliveryData(currentWeekJobs);
+    const weekPercentChange = this.calculatePercentChange(currentWeekJobs.length, previousWeekJobs.length);
+
+    // Calculate month metrics
+    const monthlyData = this.calculateMonthlyDeliveryData(currentMonthJobs);
+    const monthPercentChange = this.calculatePercentChange(currentMonthJobs.length, previousMonthJobs.length);
+
+    // Calculate year metrics
+    const yearlyData = this.calculateYearlyDeliveryData(currentYearJobs);
+    const yearPercentChange = this.calculatePercentChange(
+      currentYearJobs.length,
+      0 // Assuming no baseline for yearly comparison yet
+    );
+
+    // Update delivery metrics
+    this.deliveryMetrics = {
+      week: {
+        current: currentWeekJobs.length,
+        change: weekPercentChange,
+        increased: weekPercentChange > 0,
+        data: weeklyData,
+      },
+      month: {
+        current: currentMonthJobs.length,
+        change: monthPercentChange,
+        increased: monthPercentChange > 0,
+        data: monthlyData,
+      },
+      year: {
+        current: currentYearJobs.length,
+        change: yearPercentChange,
+        increased: yearPercentChange > 0,
+        data: yearlyData,
+      },
+    };
+  }
+
+  private calculateWeeklyDeliveryData(jobs: Job[]): TrendData[] {
+    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const today = new Date();
+    const weekData: TrendData[] = [];
+
+    // Initialize days with 0 counts
+    for (let i = 6; i >= 0; i--) {
+      const day = new Date(today);
+      day.setDate(today.getDate() - i);
+      const dayOfWeek = dayNames[day.getDay()];
+      weekData.push({
+        name: dayOfWeek,
+        value: 0,
+      });
+    }
+
+    // Count jobs per day
+    jobs.forEach((job) => {
+      if (job.deliveryCompleteTime) {
+        const jobDate = job.deliveryCompleteTime;
+        const dayIndex = weekData.findIndex((d) => d.name === dayNames[jobDate.getDay()]);
+        if (dayIndex !== -1) {
+          weekData[dayIndex].value++;
+        }
+      }
+    });
+
+    return weekData;
+  }
+
+  private calculateMonthlyDeliveryData(jobs: Job[]): TrendData[] {
+    const now = new Date();
+    const monthData: TrendData[] = [];
+
+    // Create 4 weeks of data + current
+    for (let i = 4; i >= 0; i--) {
+      monthData.push({
+        name: i === 0 ? 'Current' : `Week ${5 - i}`,
+        value: 0,
+      });
+    }
+
+    // Count jobs per week
+    jobs.forEach((job) => {
+      if (job.deliveryCompleteTime) {
+        const jobDate = job.deliveryCompleteTime;
+        const daysDiff = Math.floor((now.getTime() - jobDate.getTime()) / (1000 * 60 * 60 * 24));
+
+        if (daysDiff < 7) {
+          // Current week
+          monthData[0].value++;
+        } else if (daysDiff < 14) {
+          // Week 2
+          monthData[1].value++;
+        } else if (daysDiff < 21) {
+          // Week 3
+          monthData[2].value++;
+        } else if (daysDiff < 28) {
+          // Week 4
+          monthData[3].value++;
+        } else if (daysDiff < 35) {
+          // Week 5
+          monthData[4].value++;
+        }
+      }
+    });
+
+    return monthData;
+  }
+
+  private calculateYearlyDeliveryData(jobs: Job[]): TrendData[] {
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const yearData: TrendData[] = [];
+
+    // Create data for the last 6 months
+    const today = new Date();
+    for (let i = 5; i >= 0; i--) {
+      const month = new Date(today);
+      month.setMonth(today.getMonth() - i);
+
+      yearData.push({
+        name: monthNames[month.getMonth()],
+        value: 0,
+      });
+    }
+
+    // Count jobs per month
+    jobs.forEach((job) => {
+      if (job.deliveryCompleteTime) {
+        const jobDate = job.deliveryCompleteTime;
+        const currentMonth = today.getMonth();
+        const jobMonth = jobDate.getMonth();
+
+        let monthDiff = (today.getFullYear() - jobDate.getFullYear()) * 12 + (currentMonth - jobMonth);
+
+        if (monthDiff >= 0 && monthDiff < 6) {
+          yearData[5 - monthDiff].value++;
+        }
+      }
+    });
+
+    return yearData;
+  }
+
+  private initializeEmptyDeliveryMetrics(): void {
+    // Weekly data
+    const weeklyData: TrendData[] = [];
+    const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    dayNames.forEach((day) => {
+      weeklyData.push({ name: day, value: 0 });
+    });
+
+    // Monthly data
+    const monthlyData: TrendData[] = [];
+    for (let i = 1; i <= 4; i++) {
+      monthlyData.push({ name: `Week ${i}`, value: 0 });
+    }
+    monthlyData.push({ name: 'Current', value: 0 });
+
+    // Yearly data
+    const yearlyData: TrendData[] = [];
+    const monthNames = ['Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Jan'];
+    monthNames.forEach((month) => {
+      yearlyData.push({ name: month, value: 0 });
+    });
+
+    this.deliveryMetrics = {
+      week: {
+        current: 0,
+        change: 0,
+        increased: false,
+        data: weeklyData,
+      },
+      month: {
+        current: 0,
+        change: 0,
+        increased: false,
+        data: monthlyData,
+      },
+      year: {
+        current: 0,
+        change: 0,
+        increased: false,
+        data: yearlyData,
+      },
+    };
+  }
+
+  private updateMetrics(): void {
+    // Calculate active and unallocated jobs
+    const activeJobs = this.jobs.filter((job) => job.status === 'allocated' || job.status === 'collected');
+
+    const unallocatedJobs = this.jobs.filter((job) => job.status === 'loaded' || job.status === 'unallocated');
+
+    // Calculate trend info based on previous metrics
+    const activeJobsTrend: TrendInfo = {
+      percentChange: this.calculatePercentChange(activeJobs.length, this.previousJobCounts.active),
+      increased: activeJobs.length > this.previousJobCounts.active,
+    };
+
+    const unallocatedJobsTrend: TrendInfo = {
+      percentChange: this.calculatePercentChange(unallocatedJobs.length, this.previousJobCounts.unallocated),
+      increased: unallocatedJobs.length > this.previousJobCounts.unallocated,
+    };
+
+    // Update metrics
+    this.metrics = {
+      activeJobs: activeJobs.length,
+      unallocatedJobs: unallocatedJobs.length,
+      activeJobsTrend,
+      unallocatedJobsTrend,
+    };
+  }
+
+  private calculatePercentChange(current: number, previous: number): number {
+    if (previous === 0) return current > 0 ? 100 : 0;
+    return Math.round(((current - previous) / previous) * 100);
   }
 
   // Filter drivers based on selected status
@@ -453,24 +698,6 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
     this.filterDrivers();
   }
 
-  // Get initials for driver avatar
-  getDriverInitials(driver: EnhancedDriverInfo): string {
-    const name = driver.profile.name || '';
-    if (!name) return '?';
-
-    const nameParts = name.split(' ');
-    if (nameParts.length === 1) {
-      return nameParts[0].charAt(0).toUpperCase();
-    }
-
-    return (nameParts[0].charAt(0) + nameParts[nameParts.length - 1].charAt(0)).toUpperCase();
-  }
-
-  // View driver details
-  viewDriverDetails(driver: EnhancedDriverInfo): void {
-    this.router.navigate(['/drivers', driver.profile.id]);
-  }
-
   // Utility Methods
   getMetricClass(metricType: string): string {
     if (metricType === 'unallocated' && this.metrics.unallocatedJobs > 5) {
@@ -486,6 +713,7 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
   getStatusClass(status: string): string {
     const statusMap: Record<string, string> = {
       loaded: 'status-loaded',
+      unallocated: 'status-loaded',
       allocated: 'status-allocated',
       collected: 'status-collected',
       delivered: 'status-delivered',
@@ -514,12 +742,28 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
     return 'low';
   }
 
+  // Get initials for driver avatar
+  getDriverInitials(driver: EnhancedDriverInfo): string {
+    const name = driver.profile.name || '';
+    if (!name) return '?';
+
+    const nameParts = name.split(' ');
+    if (nameParts.length === 1) {
+      return nameParts[0].charAt(0).toUpperCase();
+    }
+
+    return (nameParts[0].charAt(0) + nameParts[nameParts.length - 1].charAt(0)).toUpperCase();
+  }
+
   // Navigation Methods
   viewJobDetails(job: Job): void {
     this.router.navigate(['/jobs', job.id]);
   }
 
-  editJob(job: Job): void {
+  editJob(job: Job, event?: Event): void {
+    if (event) {
+      event.stopPropagation();
+    }
     this.router.navigate(['/jobs', job.id, 'edit']);
   }
 
@@ -527,24 +771,78 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
     this.router.navigate(['/jobs/new']);
   }
 
+  // View driver details
+  viewDriverDetails(driver: EnhancedDriverInfo): void {
+    this.router.navigate(['/drivers', driver.profile.id]);
+  }
+
   // Assign job to driver dialog
-  assignJob(job: Job): void {
-    // Implementation would open driver selection dialog
-    const dialogRef = this.dialog.open(ConfirmationDialogComponent, {
+  assignJob(job: Job, event?: Event): void {
+    if (event) {
+      event.stopPropagation();
+    }
+
+    // First open confirmation dialog
+    const confirmDialogRef = this.dialog.open(ConfirmationDialogComponent, {
       width: '400px',
       data: {
         title: 'Assign Job',
-        message: `Are you sure you want to allocate job ${job.id}?`,
-        confirmText: 'Assign',
+        message: `Do you want to assign job ${job.id}?`,
+        confirmText: 'Proceed',
         cancelText: 'Cancel',
         icon: 'assignment_ind',
       },
     });
 
-    dialogRef.afterClosed().subscribe((result) => {
+    confirmDialogRef.afterClosed().subscribe((result) => {
       if (result) {
-        // Navigate to job assignment page
-        this.router.navigate(['/jobs', job.id, 'assign']);
+        // Open driver selection dialog
+        this.openDriverSelectionDialog(job);
+      }
+    });
+  }
+
+  private openDriverSelectionDialog(job: Job): void {
+    const dialogRef = this.dialog.open(DriverSelectionDialogComponent, {
+      width: '500px',
+      data: {
+        jobId: job.id,
+        jobTitle: `${job.make || ''} ${job.model || ''} ${job.registration ? '(' + job.registration + ')' : ''}`,
+      },
+    });
+
+    dialogRef.afterClosed().subscribe((driver) => {
+      if (driver) {
+        this.isLoading = true;
+
+        // Assign driver to job
+        this.jobService
+          .updateJob(job.id, {
+            driverId: driver.id,
+            status: 'allocated',
+          })
+          .pipe(finalize(() => (this.isLoading = false)))
+          .subscribe({
+            next: () => {
+              this.notificationService.addNotification({
+                type: 'success',
+                title: 'Job Assigned',
+                message: `Job ${job.id} has been assigned to ${driver.name}`,
+              });
+
+              // Refresh job data
+              this.loadJobs();
+              this.loadDriversWithJobs();
+            },
+            error: (error) => {
+              console.error('Error assigning job:', error);
+              this.notificationService.addNotification({
+                type: 'error',
+                title: 'Assignment Failed',
+                message: 'Failed to assign job to driver.',
+              });
+            },
+          });
       }
     });
   }

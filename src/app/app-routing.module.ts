@@ -21,6 +21,8 @@ import { CustomerListComponent } from './pages/customers/customers-list/customer
 import { CustomerCreateComponent } from './pages/customers/customer-create/customer-create.component';
 import { CustomerDetailsComponent } from './pages/customers/customer-details/customer-details.component';
 import { DriverEditComponent } from './pages/drivers/driver-edit/driver-edit.component';
+import { ExpenseListComponent } from './pages/expenses/expense-list/expense-list.component';
+import { ExpenseCreateComponent } from './pages/expenses/expense-create/expense-create.component';
 
 const routes: Routes = [
   // Auth routes (lazy loaded)
@@ -118,6 +120,21 @@ const routes: Routes = [
         data: { permissions: ['canManageUsers', 'isAdmin'] },
       },
       { path: ':id', component: VehicleDetailsComponent },
+    ],
+  },
+  {
+    path: 'expenses',
+    canActivate: [AuthGuard],
+    children: [
+      { path: '', component: ExpenseListComponent },
+      {
+        path: 'new',
+        component: ExpenseCreateComponent,
+      },
+      {
+        path: 'new/:jobId',
+        component: ExpenseCreateComponent,
+      },
     ],
   },
   {
