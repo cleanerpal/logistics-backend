@@ -1,0 +1,29 @@
+<div class="settings-container">
+  <div class="settings-sidebar">
+    <div class="sidebar-header">
+      <h2>Settings</h2>
+      <p class="sidebar-subtitle">System configuration</p>
+    </div>
+
+    <div class="navigation-list">
+      <div *ngFor="let item of navItems" class="nav-item" [routerLink]="item.route" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">
+        <div class="nav-item-content">
+          <mat-icon class="nav-icon">{{ item.icon }}</mat-icon>
+          <div class="nav-text">
+            <span class="nav-label">{{ item.label }}</span>
+            <span class="nav-description">{{ item.description }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sidebar-footer">
+      <p class="version-info">v{{ appVersion }}</p>
+      <p class="copyright">&copy; {{ currentYear }} Logistics System</p>
+    </div>
+  </div>
+
+  <div class="settings-content">
+    <router-outlet></router-outlet>
+  </div>
+</div>

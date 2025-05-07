@@ -31,6 +31,15 @@ export interface UserProfile {
     isAdmin?: boolean;
     [key: string]: boolean | undefined;
   };
+  notes?: string;
+}
+
+// src/app/interfaces/user-profile.interface.ts
+export enum UserRole {
+  ADMIN = 'Admin',
+  DRIVER = 'Driver',
+  CONTRACTOR = 'Contractor',
+  SYSTEM_USER = 'System User',
 }
 
 export type UserPermissionKey =
@@ -41,12 +50,73 @@ export type UserPermissionKey =
   | 'canManageUsers'
   | 'canViewReports'
   | 'canViewUnallocated'
-  | 'isAdmin';
+  | 'isAdmin'
+  | 'canViewSystemSettings'
+  | 'canManageCompanies'
+  | 'canViewAllJobs'
+  | 'canViewAssignedJobs'
+  | 'canCreateExpenses';
 
-export enum UserRole {
-  ADMIN = 'admin',
-  MANAGER = 'manager',
-  DISPATCHER = 'dispatcher',
-  DRIVER = 'driver',
-  USER = 'user',
-}
+// Define preset permissions for each role
+export const ROLE_PERMISSION_PRESETS: Record<UserRole, Record<UserPermissionKey, boolean>> = {
+  [UserRole.ADMIN]: {
+    canAllocateJobs: true,
+    canApproveExpenses: true,
+    canCreateJobs: true,
+    canEditJobs: true,
+    canManageUsers: true,
+    canViewReports: true,
+    canViewUnallocated: true,
+    isAdmin: true,
+    canViewSystemSettings: true,
+    canManageCompanies: true,
+    canViewAllJobs: true,
+    canViewAssignedJobs: true,
+    canCreateExpenses: true,
+  },
+  [UserRole.DRIVER]: {
+    canAllocateJobs: false,
+    canApproveExpenses: false,
+    canCreateJobs: false,
+    canEditJobs: false,
+    canManageUsers: false,
+    canViewReports: false,
+    canViewUnallocated: false,
+    isAdmin: false,
+    canViewSystemSettings: false,
+    canManageCompanies: false,
+    canViewAllJobs: false,
+    canViewAssignedJobs: true,
+    canCreateExpenses: true,
+  },
+  [UserRole.CONTRACTOR]: {
+    canAllocateJobs: false,
+    canApproveExpenses: false,
+    canCreateJobs: false,
+    canEditJobs: false,
+    canManageUsers: false,
+    canViewReports: false,
+    canViewUnallocated: false,
+    isAdmin: false,
+    canViewSystemSettings: false,
+    canManageCompanies: false,
+    canViewAllJobs: false,
+    canViewAssignedJobs: true,
+    canCreateExpenses: true,
+  },
+  [UserRole.SYSTEM_USER]: {
+    canAllocateJobs: true,
+    canApproveExpenses: true,
+    canCreateJobs: true,
+    canEditJobs: true,
+    canManageUsers: true,
+    canViewReports: true,
+    canViewUnallocated: true,
+    isAdmin: false,
+    canViewSystemSettings: false,
+    canManageCompanies: true,
+    canViewAllJobs: true,
+    canViewAssignedJobs: true,
+    canCreateExpenses: true,
+  },
+};

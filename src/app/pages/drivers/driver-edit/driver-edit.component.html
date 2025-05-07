@@ -1,0 +1,270 @@
+<!-- driver-edit.component.html -->
+<div class="driver-edit-container">
+  <!-- Loading Overlay -->
+  <div class="loading-overlay" *ngIf="isLoading">
+    <mat-spinner diameter="40"></mat-spinner>
+    <span>Loading driver data...</span>
+  </div>
+
+  <div class="content-wrapper" *ngIf="driver">
+    <!-- Back Button and Header -->
+    <div class="page-header">
+      <button mat-icon-button class="back-button" (click)="cancel()">
+        <mat-icon>arrow_back</mat-icon>
+      </button>
+      <div class="header-content">
+        <h1>Edit Driver</h1>
+        <p class="subtitle">Update information for {{ driver.firstName }} {{ driver.lastName }}</p>
+      </div>
+    </div>
+
+    <!-- Form Cards -->
+    <div class="form-grid">
+      <!-- Basic Information Card -->
+      <mat-card class="form-card">
+        <mat-card-header>
+          <mat-icon mat-card-avatar>person</mat-icon>
+          <mat-card-title>Basic Information</mat-card-title>
+          <mat-card-subtitle>Driver profile details</mat-card-subtitle>
+        </mat-card-header>
+
+        <mat-card-content>
+          <form [formGroup]="driverForm" class="form-content">
+            <div class="form-row">
+              <mat-form-field appearance="outline">
+                <mat-label>First Name</mat-label>
+                <input matInput formControlName="firstName" placeholder="Enter first name" required />
+                <mat-error *ngIf="driverForm.get('firstName')?.hasError('required')">First name is required</mat-error>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline">
+                <mat-label>Last Name</mat-label>
+                <input matInput formControlName="lastName" placeholder="Enter last name" required />
+                <mat-error *ngIf="driverForm.get('lastName')?.hasError('required')">Last name is required</mat-error>
+              </mat-form-field>
+            </div>
+
+            <div class="form-row">
+              <mat-form-field appearance="outline">
+                <mat-label>Email</mat-label>
+                <input matInput formControlName="email" placeholder="Enter email address" required type="email" />
+                <mat-icon matSuffix>email</mat-icon>
+                <mat-error *ngIf="driverForm.get('email')?.hasError('required')">Email is required</mat-error>
+                <mat-error *ngIf="driverForm.get('email')?.hasError('email')">Please enter a valid email address</mat-error>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline">
+                <mat-label>Phone Number</mat-label>
+                <input matInput formControlName="phoneNumber" placeholder="Enter phone number" />
+                <mat-icon matSuffix>phone</mat-icon>
+                <mat-error *ngIf="driverForm.get('phoneNumber')?.hasError('pattern')">Please enter a valid phone number</mat-error>
+              </mat-form-field>
+            </div>
+
+            <div class="form-row">
+              <mat-form-field appearance="outline">
+                <mat-label>Company</mat-label>
+                <input matInput formControlName="company" placeholder="Company name (optional)" />
+                <mat-icon matSuffix>business</mat-icon>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline">
+                <mat-label>Driver Type</mat-label>
+                <mat-select formControlName="type">
+                  <mat-option *ngFor="let type of getDriverTypes()" [value]="type">
+                    {{ type | titlecase }}
+                  </mat-option>
+                </mat-select>
+                <mat-icon matSuffix>category</mat-icon>
+              </mat-form-field>
+            </div>
+          </form>
+        </mat-card-content>
+      </mat-card>
+
+      <!-- Driver Settings Card -->
+      <mat-card class="form-card">
+        <mat-card-header>
+          <mat-icon mat-card-avatar>settings</mat-icon>
+          <mat-card-title>Driver Settings</mat-card-title>
+          <mat-card-subtitle>Access and account settings</mat-card-subtitle>
+        </mat-card-header>
+
+        <mat-card-content>
+          <form [formGroup]="driverForm" class="form-content">
+            <div class="form-row">
+              <mat-form-field appearance="outline">
+                <mat-label>Role</mat-label>
+                <mat-select formControlName="role" required (selectionChange)="onRoleChange($event)">
+                  <mat-option *ngFor="let role of availableRoles" [value]="role">
+                    {{ role }}
+                  </mat-option>
+                </mat-select>
+                <mat-hint>Role will automatically set appropriate permissions</mat-hint>
+                <mat-error *ngIf="driverForm.get('role')?.hasError('required')">Role is required</mat-error>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline">
+                <mat-label>Status</mat-label>
+                <mat-select formControlName="status" required>
+                  <mat-option value="active">Active</mat-option>
+                  <mat-option value="inactive">Inactive</mat-option>
+                  <mat-option value="pending">Pending</mat-option>
+                </mat-select>
+                <mat-icon matSuffix>toggle_on</mat-icon>
+                <mat-error *ngIf="driverForm.get('status')?.hasError('required')">Status is required</mat-error>
+              </mat-form-field>
+            </div>
+
+            <!-- Admin notice -->
+            <div class="admin-notice" *ngIf="!isCurrentUserAdmin">
+              <mat-icon>info</mat-icon>
+              <p>
+                Permissions are automatically set based on the selected role. Only administrators can modify individual permissions.
+                <span *ngIf="driverForm.get('role')?.value === 'Admin'" class="warning-text">
+                  Note: You cannot edit Admin users. Contact an administrator for help.
+                </span>
+              </p>
+            </div>
+
+            <!-- Role permissions summary -->
+            <div class="role-permissions-summary">
+              <p>
+                <strong>{{ driverForm.get('role')?.value }}</strong
+                >:
+                <span *ngIf="driverForm.get('role')?.value === 'Admin'"> Has full access to all system features and settings. </span>
+                <span *ngIf="driverForm.get('role')?.value === 'Driver'"> Can view and manage assigned jobs and submit expenses. </span>
+                <span *ngIf="driverForm.get('role')?.value === 'Contractor'"> Has limited access to view only assigned jobs and submit expenses. </span>
+                <span *ngIf="driverForm.get('role')?.value === 'System User'"> Can access most features except system administration. </span>
+              </p>
+            </div>
+          </form>
+        </mat-card-content>
+      </mat-card>
+
+      <!-- Driver License Card -->
+      <mat-card class="form-card">
+        <mat-card-header>
+          <mat-icon mat-card-avatar>badge</mat-icon>
+          <mat-card-title>License Information</mat-card-title>
+          <mat-card-subtitle>Driver's license and qualifications</mat-card-subtitle>
+        </mat-card-header>
+
+        <mat-card-content>
+          <form [formGroup]="driverForm" class="form-content">
+            <div class="form-row">
+              <mat-form-field appearance="outline">
+                <mat-label>License Number</mat-label>
+                <input matInput formControlName="licenseNumber" placeholder="Driver's license number" />
+                <mat-icon matSuffix>credit_card</mat-icon>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline">
+                <mat-label>License Expiry Date</mat-label>
+                <input matInput [matDatepicker]="picker" formControlName="licenseExpiry" placeholder="License expiry date" />
+                <mat-hint>MM/DD/YYYY</mat-hint>
+                <mat-datepicker-toggle matIconSuffix [for]="picker"></mat-datepicker-toggle>
+                <mat-datepicker #picker></mat-datepicker>
+              </mat-form-field>
+            </div>
+
+            <div class="form-row">
+              <mat-form-field appearance="outline">
+                <mat-label>Vehicle Type</mat-label>
+                <input matInput formControlName="vehicleType" placeholder="Vehicle types qualified to drive" />
+                <mat-icon matSuffix>directions_car</mat-icon>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline">
+                <mat-label>Availability</mat-label>
+                <mat-select formControlName="availability">
+                  <mat-option *ngFor="let option of getAvailabilityOptions()" [value]="option">
+                    {{ option }}
+                  </mat-option>
+                </mat-select>
+                <mat-icon matSuffix>schedule</mat-icon>
+              </mat-form-field>
+            </div>
+
+            <div class="form-row full-width">
+              <mat-form-field appearance="outline">
+                <mat-label>Area Coverage</mat-label>
+                <textarea matInput formControlName="areaCoverage" placeholder="Geographic areas covered" rows="2"></textarea>
+                <mat-icon matSuffix>pin_drop</mat-icon>
+              </mat-form-field>
+            </div>
+          </form>
+        </mat-card-content>
+      </mat-card>
+
+      <!-- Permissions Section -->
+      <mat-card class="form-card" *ngIf="isCurrentUserAdmin">
+        <mat-card-header>
+          <mat-icon mat-card-avatar>security</mat-icon>
+          <mat-card-title>Advanced Permissions</mat-card-title>
+          <mat-card-subtitle>Custom permission settings (Admin only)</mat-card-subtitle>
+        </mat-card-header>
+
+        <mat-card-content>
+          <div class="admin-editor-notice">
+            <mat-icon>admin_panel_settings</mat-icon>
+            <p>As an administrator, you can override the default permissions for this role by checking or unchecking boxes below.</p>
+          </div>
+
+          <form [formGroup]="driverForm" class="form-content">
+            <div formGroupName="permissions" class="permissions-grid">
+              <!-- General Permissions -->
+              <div class="permissions-category">
+                <h3>General Permissions</h3>
+                <div class="permission-group">
+                  <mat-checkbox formControlName="isAdmin" color="primary" [class.admin-only]="true">
+                    Administrator
+                    <span class="admin-badge" *ngIf="!isCurrentUserAdmin">Admin Only</span>
+                  </mat-checkbox>
+                  <mat-checkbox formControlName="canManageUsers" color="primary"> Manage Users </mat-checkbox>
+                  <mat-checkbox formControlName="canViewSystemSettings" color="primary"> View System Settings </mat-checkbox>
+                  <mat-checkbox formControlName="canManageCompanies" color="primary"> Manage Companies </mat-checkbox>
+                </div>
+              </div>
+
+              <!-- Job Management -->
+              <div class="permissions-category">
+                <h3>Job Management</h3>
+                <div class="permission-group">
+                  <mat-checkbox formControlName="canViewAllJobs" color="primary"> View All Jobs </mat-checkbox>
+                  <mat-checkbox formControlName="canViewAssignedJobs" color="primary"> View Assigned Jobs </mat-checkbox>
+                  <mat-checkbox formControlName="canCreateJobs" color="primary"> Create Jobs </mat-checkbox>
+                  <mat-checkbox formControlName="canEditJobs" color="primary"> Edit Jobs </mat-checkbox>
+                  <mat-checkbox formControlName="canAllocateJobs" color="primary"> Allocate Jobs </mat-checkbox>
+                  <mat-checkbox formControlName="canViewUnallocated" color="primary"> View Unallocated Jobs </mat-checkbox>
+                </div>
+              </div>
+
+              <!-- Financial Permissions -->
+              <div class="permissions-category">
+                <h3>Financial Permissions</h3>
+                <div class="permission-group">
+                  <mat-checkbox formControlName="canCreateExpenses" color="primary"> Create Expenses </mat-checkbox>
+                  <mat-checkbox formControlName="canApproveExpenses" color="primary"> Approve Expenses </mat-checkbox>
+                  <mat-checkbox formControlName="canViewReports" color="primary"> View Reports </mat-checkbox>
+                </div>
+              </div>
+            </div>
+          </form>
+        </mat-card-content>
+      </mat-card>
+    </div>
+
+    <!-- Form Actions -->
+    <div class="form-actions">
+      <button mat-stroked-button (click)="cancel()">
+        <mat-icon>close</mat-icon>
+        Cancel
+      </button>
+      <button mat-flat-button color="primary" (click)="onSubmit()" [disabled]="driverForm.invalid || isSubmitting">
+        <mat-icon>save</mat-icon>
+        {{ isSubmitting ? 'Saving...' : 'Update Driver' }}
+      </button>
+    </div>
+  </div>
+</div>

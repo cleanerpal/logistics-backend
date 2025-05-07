@@ -1,4 +1,3 @@
-// src/app/app-routing.module.ts
 import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
 import { DashboardComponent } from './pages/dashboard/dashboard.component';
@@ -21,6 +20,7 @@ import { RoleGuard } from './guards/role.guard';
 import { CustomerListComponent } from './pages/customers/customers-list/customer-list.component';
 import { CustomerCreateComponent } from './pages/customers/customer-create/customer-create.component';
 import { CustomerDetailsComponent } from './pages/customers/customer-details/customer-details.component';
+import { DriverEditComponent } from './pages/drivers/driver-edit/driver-edit.component';
 
 const routes: Routes = [
   // Auth routes (lazy loaded)
@@ -72,6 +72,12 @@ const routes: Routes = [
         data: { permissions: ['canManageUsers', 'isAdmin'] },
       },
       { path: ':id', component: DriverDetailsComponent },
+      {
+        path: ':id/edit',
+        component: DriverEditComponent,
+        canActivate: [RoleGuard],
+        data: { permissions: ['canManageUsers', 'isAdmin'] },
+      },
     ],
   },
   {
@@ -118,6 +124,12 @@ const routes: Routes = [
     path: 'vehicle-movement',
     component: VehicleMovementComponent,
     canActivate: [AuthGuard],
+  },
+  {
+    path: 'settings',
+    loadChildren: () => import('./pages/settings/settings.module').then((m) => m.SettingsModule),
+    canActivate: [RoleGuard],
+    data: { permissions: ['isAdmin'] },
   },
 
   // Fallback route

@@ -444,7 +444,7 @@ export class VehicleService extends BaseFirebaseService {
    */
   getVehicleMakes(): Observable<VehicleMake[]> {
     const makesRef = collection(this.firestore, 'vehicleMakes');
-    const q = query(makesRef, where('isActive', '==', true), orderBy('displayName'));
+    const q = query(makesRef, orderBy('displayName'));
 
     return from(getDocs(q)).pipe(
       map((snapshot) => {
@@ -463,11 +463,82 @@ export class VehicleService extends BaseFirebaseService {
   }
 
   /**
+   * Create a new vehicle make
+   */
+  createVehicleMake(makeData: Partial<VehicleMake>): Observable<string> {
+    // Get the current user ID
+    const userId = this.currentUserId;
+    if (!userId) {
+      return throwError(() => new Error('User not authenticated'));
+    }
+
+    const makesRef = collection(this.firestore, 'vehicleMakes');
+
+    // Use name as document ID (make it lowercase)
+    const docId = makeData.name?.toLowerCase();
+    if (!docId) {
+      return throwError(() => new Error('Make name is required'));
+    }
+
+    const makeRef = doc(this.firestore, `vehicleMakes/${docId}`);
+
+    // Prepare make data
+    const newMakeData = {
+      ...makeData,
+      id: docId,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+      createdBy: userId,
+      updatedBy: userId,
+      vehicleTypes: makeData.vehicleTypes || [],
+    };
+
+    return from(setDoc(makeRef, newMakeData)).pipe(
+      map(() => docId),
+      catchError((error) => {
+        console.error('Error creating vehicle make:', error);
+        return throwError(() => error);
+      })
+    );
+  }
+
+  /**
+   * Update a vehicle make
+   */
+  updateVehicleMake(makeId: string, data: Partial<VehicleMake>): Observable<void> {
+    // Get the current user ID
+    const userId = this.currentUserId;
+    if (!userId) {
+      return throwError(() => new Error('User not authenticated'));
+    }
+
+    const makeRef = doc(this.firestore, `vehicleMakes/${makeId}`);
+
+    // Remove id from update data to avoid overwriting it
+    const { id, ...updateData } = data;
+
+    // Add updater and timestamp
+    const makeUpdateData = {
+      ...updateData,
+      updatedAt: serverTimestamp(),
+      updatedBy: userId,
+    };
+
+    return from(updateDoc(makeRef, makeUpdateData)).pipe(
+      map(() => void 0),
+      catchError((error) => {
+        console.error(`Error updating vehicle make ${makeId}:`, error);
+        return throwError(() => error);
+      })
+    );
+  }
+
+  /**
    * Get vehicle models
    */
   getVehicleModels(): Observable<VehicleModel[]> {
     const modelsRef = collection(this.firestore, 'vehicleModels');
-    const q = query(modelsRef, where('isActive', '==', true), orderBy('name'));
+    const q = query(modelsRef, orderBy('name'));
 
     return from(getDocs(q)).pipe(
       map((snapshot) => {
@@ -481,6 +552,80 @@ export class VehicleService extends BaseFirebaseService {
       catchError((error) => {
         console.error('Error fetching vehicle models:', error);
         return of([]);
+      })
+    );
+  }
+
+  /**
+   * Create a new vehicle model
+   */
+  createVehicleModel(modelData: Partial<VehicleModel>): Observable<string> {
+    // Get the current user ID
+    const userId = this.currentUserId;
+    if (!userId) {
+      return throwError(() => new Error('User not authenticated'));
+    }
+
+    const modelsRef = collection(this.firestore, 'vehicleModels');
+
+    // Generate a unique model ID based on make and model
+    const makeId = modelData.makeId;
+    const modelName = modelData.name;
+
+    if (!makeId || !modelName) {
+      return throwError(() => new Error('Make ID and model name are required'));
+    }
+
+    // Create a document ID by combining make ID and model name
+    const docId = `${makeId}_${modelName.toLowerCase().replace(/\s+/g, '_')}`;
+    const modelRef = doc(this.firestore, `vehicleModels/${docId}`);
+
+    // Prepare model data
+    const newModelData = {
+      ...modelData,
+      id: docId,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+      createdBy: userId,
+      updatedBy: userId,
+    };
+
+    return from(setDoc(modelRef, newModelData)).pipe(
+      map(() => docId),
+      catchError((error) => {
+        console.error('Error creating vehicle model:', error);
+        return throwError(() => error);
+      })
+    );
+  }
+
+  /**
+   * Update a vehicle model
+   */
+  updateVehicleModel(modelId: string, data: Partial<VehicleModel>): Observable<void> {
+    // Get the current user ID
+    const userId = this.currentUserId;
+    if (!userId) {
+      return throwError(() => new Error('User not authenticated'));
+    }
+
+    const modelRef = doc(this.firestore, `vehicleModels/${modelId}`);
+
+    // Remove id from update data to avoid overwriting it
+    const { id, ...updateData } = data;
+
+    // Add updater and timestamp
+    const modelUpdateData = {
+      ...updateData,
+      updatedAt: serverTimestamp(),
+      updatedBy: userId,
+    };
+
+    return from(updateDoc(modelRef, modelUpdateData)).pipe(
+      map(() => void 0),
+      catchError((error) => {
+        console.error(`Error updating vehicle model ${modelId}:`, error);
+        return throwError(() => error);
       })
     );
   }

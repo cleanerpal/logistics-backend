@@ -1,0 +1,50 @@
+.dialog-content {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 400px;
+  padding: 0 8px;
+}
+
+.form-fields-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.select-icon-preview,
+.icon-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  mat-icon {
+    font-size: 20px;
+    height: 20px;
+    width: 20px;
+  }
+}
+
+.full-width {
+  width: 100%;
+}
+
+.vehicle-types-section {
+  margin-top: 8px;
+}
+
+/* Make the mat-form-field for chips take the full width */
+.vehicle-types-section .mat-form-field {
+  width: 100%;
+}
+
+/* Responsive styles */
+@media screen and (max-width: 599px) {
+  .form-fields-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .dialog-content {
+    min-width: unset;
+  }
+}

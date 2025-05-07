@@ -5,13 +5,7 @@
   </div>
 
   <ul class="nav-list">
-    <li
-      *ngFor="let item of navItems"
-      [routerLink]="item.route"
-      routerLinkActive="active"
-      [routerLinkActiveOptions]="{ exact: true }"
-      class="nav-item"
-    >
+    <li *ngFor="let item of visibleNavItems" [routerLink]="item.route" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }" class="nav-item">
       <span class="material-icons nav-icon">{{ item.icon }}</span>
       <span class="nav-label">{{ item.label }}</span>
     </li>

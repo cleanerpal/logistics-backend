@@ -1,0 +1,113 @@
+<div class="settings-page">
+  <div class="settings-header">
+    <div class="header-title">
+      <h1>System Preferences</h1>
+      <p class="subtitle">Configure global application settings</p>
+    </div>
+    <div class="header-actions">
+      <button mat-stroked-button color="warn" (click)="resetToDefaults()">
+        <mat-icon>restore</mat-icon>
+        Reset to Defaults
+      </button>
+    </div>
+  </div>
+
+  <!-- Loading Overlay -->
+  <div class="loading-overlay" *ngIf="isLoading">
+    <mat-spinner diameter="40"></mat-spinner>
+    <span>Loading preferences...</span>
+  </div>
+
+  <!-- Preferences Content -->
+  <div class="preferences-content" *ngIf="!isLoading">
+    <mat-accordion class="preferences-accordion" multi>
+      <mat-expansion-panel
+        *ngFor="let group of preferenceGroups"
+        [expanded]="expandedPanels[group.name]"
+        (opened)="expandedPanels[group.name] = true"
+        (closed)="expandedPanels[group.name] = false">
+        <mat-expansion-panel-header>
+          <mat-panel-title>
+            <div class="panel-title-content">
+              <mat-icon>{{ group.icon }}</mat-icon>
+              <span>{{ group.name }}</span>
+            </div>
+          </mat-panel-title>
+          <mat-panel-description>
+            {{ group.description }}
+          </mat-panel-description>
+        </mat-expansion-panel-header>
+
+        <!-- Group Form -->
+        <form [formGroup]="preferenceForms[group.name]" class="preferences-form">
+          <div class="preferences-grid">
+            <div class="preference-item" *ngFor="let pref of group.preferences">
+              <!-- String Input -->
+              <mat-form-field appearance="outline" *ngIf="pref.type === 'string'">
+                <mat-label>{{ pref.name }}</mat-label>
+                <input matInput [formControlName]="pref.id" [placeholder]="pref.placeholder || ''" [required]="pref.required || false" />
+                <mat-hint>{{ pref.description }}</mat-hint>
+              </mat-form-field>
+
+              <!-- Email Input -->
+              <mat-form-field appearance="outline" *ngIf="pref.type === 'email'">
+                <mat-label>{{ pref.name }}</mat-label>
+                <input matInput type="email" [formControlName]="pref.id" [placeholder]="pref.placeholder || ''" [required]="pref.required || false" />
+                <mat-hint>{{ pref.description }}</mat-hint>
+                <mat-error *ngIf="preferenceForms[group.name].get(pref.id)?.hasError('email')"> Please enter a valid email address </mat-error>
+              </mat-form-field>
+
+              <!-- Number Input -->
+              <mat-form-field appearance="outline" *ngIf="pref.type === 'number'">
+                <mat-label>{{ pref.name }}</mat-label>
+                <input matInput type="number" [formControlName]="pref.id" [placeholder]="pref.placeholder || ''" [required]="pref.required || false" />
+                <mat-hint>{{ pref.description }}</mat-hint>
+                <mat-error *ngIf="preferenceForms[group.name].get(pref.id)?.hasError('min')"> Value must be at least {{ pref.validation?.min }} </mat-error>
+                <mat-error *ngIf="preferenceForms[group.name].get(pref.id)?.hasError('max')"> Value cannot exceed {{ pref.validation?.max }} </mat-error>
+              </mat-form-field>
+
+              <!-- Date Input -->
+              <mat-form-field appearance="outline" *ngIf="pref.type === 'date'">
+                <mat-label>{{ pref.name }}</mat-label>
+                <input matInput [matDatepicker]="picker" [formControlName]="pref.id" [required]="pref.required || false" />
+                <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+                <mat-datepicker #picker></mat-datepicker>
+                <mat-hint>{{ pref.description }}</mat-hint>
+              </mat-form-field>
+
+              <!-- Select Input -->
+              <mat-form-field appearance="outline" *ngIf="pref.type === 'select'">
+                <mat-label>{{ pref.name }}</mat-label>
+                <mat-select [formControlName]="pref.id" [required]="pref.required || false">
+                  <mat-option *ngFor="let option of pref.options" [value]="option">
+                    {{ option }}
+                  </mat-option>
+                </mat-select>
+                <mat-hint>{{ pref.description }}</mat-hint>
+              </mat-form-field>
+
+              <!-- Boolean Toggle -->
+              <div class="toggle-control" *ngIf="pref.type === 'boolean'">
+                <div class="toggle-label">
+                  <span class="toggle-name">{{ pref.name }}</span>
+                  <span class="toggle-description">{{ pref.description }}</span>
+                </div>
+                <mat-slide-toggle [formControlName]="pref.id" color="primary">
+                  {{ preferenceForms[group.name].get(pref.id)?.value ? 'Enabled' : 'Disabled' }}
+                </mat-slide-toggle>
+              </div>
+            </div>
+          </div>
+
+          <!-- Save Button -->
+          <div class="form-actions">
+            <button mat-flat-button color="primary" (click)="savePreferenceGroup(group.name)" [disabled]="preferenceForms[group.name].invalid || isSaving">
+              <mat-icon>save</mat-icon>
+              {{ isSaving ? 'Saving...' : 'Save ' + group.name + ' Settings' }}
+            </button>
+          </div>
+        </form>
+      </mat-expansion-panel>
+    </mat-accordion>
+  </div>
+</div>

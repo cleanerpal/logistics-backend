@@ -1,5 +1,5 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
-import { FormBuilder, FormGroup, Validators, AbstractControl, ValidationErrors } from '@angular/forms';
+import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Subscription } from 'rxjs';
@@ -11,18 +11,17 @@ import { NotificationService } from '../../../services/notification.service';
 import { UserProfile, UserRole, ROLE_PERMISSION_PRESETS } from '../../../interfaces/user-profile.interface';
 
 @Component({
-  selector: 'app-driver-create',
-  templateUrl: './driver-create.component.html',
-  styleUrls: ['./driver-create.component.scss'],
+  selector: 'app-driver-edit',
+  templateUrl: './driver-edit.component.html',
+  styleUrls: ['./driver-edit.component.scss'],
   standalone: false,
 })
-export class DriverCreateComponent implements OnInit, OnDestroy {
+export class DriverEditComponent implements OnInit, OnDestroy {
   driverForm!: FormGroup;
   isLoading = false;
   isSubmitting = false;
-  isEditMode = false;
   driverId: string = '';
-  hidePassword = true;
+  driver: UserProfile | null = null;
 
   // Current user permissions
   isCurrentUserAdmin = false;
@@ -60,13 +59,19 @@ export class DriverCreateComponent implements OnInit, OnDestroy {
 
     this.subscriptions.push(adminSub);
 
-    // Check if we're in edit mode by looking for an ID in the route
+    // Get driver ID from route
     const routeSub = this.route.paramMap.subscribe((params) => {
       const id = params.get('id');
       if (id) {
-        this.isEditMode = true;
         this.driverId = id;
         this.loadDriverData();
+      } else {
+        this.notificationService.addNotification({
+          type: 'error',
+          title: 'Error',
+          message: 'Driver ID not provided',
+        });
+        this.router.navigate(['/drivers']);
       }
     });
     this.subscriptions.push(routeSub);
@@ -80,52 +85,40 @@ export class DriverCreateComponent implements OnInit, OnDestroy {
    * Create the driver form with validation
    */
   private createForm(): void {
-    this.driverForm = this.fb.group(
-      {
-        firstName: ['', Validators.required],
-        lastName: ['', Validators.required],
-        email: ['', [Validators.required, Validators.email]],
-        phoneNumber: ['', Validators.pattern(/^[+]?[(]?[0-9]{3}[)]?[-\s.]?[0-9]{3}[-\s.]?[0-9]{4,6}$/)],
-        role: [UserRole.DRIVER, Validators.required],
-        status: ['active', Validators.required],
-        company: [''],
-        type: ['customer'],
-        licenseNumber: [''],
-        licenseExpiry: [null],
-        vehicleType: [''],
-        areaCoverage: [''],
-        availability: ['Full-time'],
+    this.driverForm = this.fb.group({
+      firstName: ['', Validators.required],
+      lastName: ['', Validators.required],
+      email: ['', [Validators.required, Validators.email]],
+      phoneNumber: ['', Validators.pattern(/^[+]?[(]?[0-9]{3}[)]?[-\s.]?[0-9]{3}[-\s.]?[0-9]{4,6}$/)],
+      role: [UserRole.DRIVER, Validators.required],
+      status: ['active', Validators.required],
 
-        // Permissions
-        permissions: this.fb.group({
-          canAllocateJobs: [{ value: false, disabled: true }],
-          canApproveExpenses: [{ value: false, disabled: true }],
-          canCreateJobs: [{ value: false, disabled: true }],
-          canEditJobs: [{ value: false, disabled: true }],
-          canManageUsers: [{ value: false, disabled: true }],
-          canViewReports: [{ value: false, disabled: true }],
-          canViewUnallocated: [{ value: false, disabled: true }],
-          isAdmin: [{ value: false, disabled: true }],
-          canViewSystemSettings: [{ value: false, disabled: true }],
-          canManageCompanies: [{ value: false, disabled: true }],
-          canViewAllJobs: [{ value: false, disabled: true }],
-          canViewAssignedJobs: [{ value: true, disabled: true }],
-          canCreateExpenses: [{ value: false, disabled: true }],
-        }),
+      // Additional driver details
+      company: [''],
+      type: ['customer'],
+      licenseNumber: [''],
+      licenseExpiry: [''],
+      vehicleType: [''],
+      areaCoverage: [''],
+      availability: [''],
 
-        // Account setup (only for new drivers)
-        password: ['', [Validators.required, Validators.minLength(8)]],
-        confirmPassword: ['', Validators.required],
-        sendCredentials: [true],
-        notes: [''],
-      },
-      {
-        validators: this.passwordMatchValidator,
-      }
-    );
-
-    // Apply initial role permissions
-    this.applyRolePermissions(UserRole.DRIVER);
+      // Permissions
+      permissions: this.fb.group({
+        canAllocateJobs: [{ value: false, disabled: true }],
+        canApproveExpenses: [{ value: false, disabled: true }],
+        canCreateJobs: [{ value: false, disabled: true }],
+        canEditJobs: [{ value: false, disabled: true }],
+        canManageUsers: [{ value: false, disabled: true }],
+        canViewReports: [{ value: false, disabled: true }],
+        canViewUnallocated: [{ value: false, disabled: true }],
+        isAdmin: [{ value: false, disabled: true }],
+        canViewSystemSettings: [{ value: false, disabled: true }],
+        canManageCompanies: [{ value: false, disabled: true }],
+        canViewAllJobs: [{ value: false, disabled: true }],
+        canViewAssignedJobs: [{ value: true, disabled: true }],
+        canCreateExpenses: [{ value: false, disabled: true }],
+      }),
+    });
   }
 
   /**
@@ -151,26 +144,7 @@ export class DriverCreateComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Custom validator to check if passwords match
-   */
-  private passwordMatchValidator(control: AbstractControl): ValidationErrors | null {
-    const password = control.get('password');
-    const confirmPassword = control.get('confirmPassword');
-
-    if (!password || !confirmPassword) {
-      return null;
-    }
-
-    if (password.value !== confirmPassword.value) {
-      confirmPassword.setErrors({ passwordMismatch: true });
-      return { passwordMismatch: true };
-    }
-
-    return null;
-  }
-
-  /**
-   * Load driver data when in edit mode
+   * Load driver data
    */
   private loadDriverData(): void {
     this.isLoading = true;
@@ -181,6 +155,7 @@ export class DriverCreateComponent implements OnInit, OnDestroy {
       .subscribe({
         next: (driver) => {
           if (driver) {
+            this.driver = driver;
             this.updateFormWithDriverData(driver);
           } else {
             this.notificationService.addNotification({
@@ -206,15 +181,9 @@ export class DriverCreateComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Update form with driver data in edit mode
+   * Update form with driver data
    */
   private updateFormWithDriverData(driver: UserProfile): void {
-    // Remove password fields validation in edit mode
-    this.driverForm.get('password')?.clearValidators();
-    this.driverForm.get('confirmPassword')?.clearValidators();
-    this.driverForm.get('password')?.updateValueAndValidity();
-    this.driverForm.get('confirmPassword')?.updateValueAndValidity();
-
     // Check if editing an admin and current user is not admin
     const driverRole = driver.role || '';
     if (driverRole === UserRole.ADMIN && !this.isCurrentUserAdmin) {
@@ -238,11 +207,10 @@ export class DriverCreateComponent implements OnInit, OnDestroy {
       company: driver.company || '',
       type: driver.type || 'customer',
       licenseNumber: driver.licenseNumber || '',
-      licenseExpiry: driver.licenseExpiry || null,
+      licenseExpiry: driver.licenseExpiry || '',
       vehicleType: driver.vehicleType || '',
       areaCoverage: driver.areaCoverage || '',
-      availability: driver.availability || 'Full-time',
-      notes: driver.notes || '',
+      availability: driver.availability || '',
     });
 
     // Update permissions values with null safety checks
@@ -292,7 +260,7 @@ export class DriverCreateComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Submit the form to create or update a driver
+   * Submit the form to update driver
    */
   onSubmit(): void {
     if (this.driverForm.invalid) {
@@ -311,66 +279,33 @@ export class DriverCreateComponent implements OnInit, OnDestroy {
       formValues.permissions = ROLE_PERMISSION_PRESETS[role];
 
       // Ensure non-admins can't set admin status
-      if (!this.isCurrentUserAdmin && formValues.permissions) {
+      if (!this.isCurrentUserAdmin) {
         formValues.permissions.isAdmin = false;
       }
     }
 
-    if (this.isEditMode) {
-      // Update existing driver
-      this.updateDriver(formValues);
-    } else {
-      // Create new driver
-      this.createDriver(formValues);
-    }
+    // Update driver
+    this.updateDriver(formValues);
   }
 
   /**
-   * Create a new driver
-   */
-  private createDriver(formValues: any): void {
-    const { password, confirmPassword, sendCredentials, ...userData } = formValues;
-
-    const createSub = this.driverService.createDriver(userData.email, password, userData, sendCredentials).subscribe({
-      next: (driverId) => {
-        this.isSubmitting = false;
-
-        this.notificationService.addNotification({
-          type: 'success',
-          title: 'Driver Created',
-          message: `${userData.firstName} ${userData.lastName} has been created successfully`,
-        });
-
-        this.router.navigate(['/drivers']);
-      },
-      error: (error) => {
-        this.handleError(error, 'creating driver');
-      },
-    });
-
-    this.subscriptions.push(createSub);
-  }
-
-  /**
-   * Update an existing driver
+   * Update driver
    */
   private updateDriver(formValues: any): void {
-    const { password, confirmPassword, sendCredentials, ...userData } = formValues;
-
-    const updateSub = this.driverService.updateDriver(this.driverId, userData).subscribe({
+    const updateSub = this.driverService.updateDriver(this.driverId, formValues).subscribe({
       next: () => {
         this.isSubmitting = false;
 
         this.notificationService.addNotification({
           type: 'success',
           title: 'Driver Updated',
-          message: `${userData.firstName} ${userData.lastName} has been updated successfully`,
+          message: `${formValues.firstName} ${formValues.lastName} has been updated successfully`,
         });
 
         this.router.navigate(['/drivers', this.driverId]);
       },
       error: (error) => {
-        this.handleError(error, 'updating driver');
+        this.handleError(error);
       },
     });
 
@@ -380,15 +315,15 @@ export class DriverCreateComponent implements OnInit, OnDestroy {
   /**
    * Handle form submission errors
    */
-  private handleError(error: any, context: string): void {
-    console.error(`Error ${context}:`, error);
+  private handleError(error: any): void {
+    console.error('Error updating driver:', error);
 
     this.isSubmitting = false;
 
     this.notificationService.addNotification({
       type: 'error',
       title: 'Error',
-      message: `Failed to ${this.isEditMode ? 'update' : 'create'} driver. ${error.message || ''}`,
+      message: `Failed to update driver. ${error.message || ''}`,
     });
   }
 
@@ -406,14 +341,10 @@ export class DriverCreateComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Cancel form and return to drivers list
+   * Cancel form and return to driver details
    */
   cancel(): void {
-    if (this.isEditMode) {
-      this.router.navigate(['/drivers', this.driverId]);
-    } else {
-      this.router.navigate(['/drivers']);
-    }
+    this.router.navigate(['/drivers', this.driverId]);
   }
 
   /**
@@ -421,5 +352,19 @@ export class DriverCreateComponent implements OnInit, OnDestroy {
    */
   canManageAdminPermissions(): boolean {
     return this.isCurrentUserAdmin;
+  }
+
+  /**
+   * Get available driver types
+   */
+  getDriverTypes(): string[] {
+    return ['customer', 'supplier', 'partner'];
+  }
+
+  /**
+   * Get available availability options
+   */
+  getAvailabilityOptions(): string[] {
+    return ['Full-time', 'Part-time', 'Weekdays Only', 'Weekends Only', 'On Demand'];
   }
 }

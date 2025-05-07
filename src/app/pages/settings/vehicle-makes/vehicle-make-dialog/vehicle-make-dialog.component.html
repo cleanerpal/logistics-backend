@@ -1,0 +1,85 @@
+<h2 mat-dialog-title>{{ isEdit ? 'Edit' : 'Add' }} Vehicle Make</h2>
+
+<form [formGroup]="vehicleMakeForm" (ngSubmit)="onSubmit()">
+  <mat-dialog-content>
+    <div class="dialog-content">
+      <div class="form-fields-grid">
+        <!-- Name (ID) Field -->
+        <mat-form-field appearance="outline">
+          <mat-label>Make ID</mat-label>
+          <input matInput formControlName="name" placeholder="e.g. toyota" [readonly]="isEdit" />
+          <mat-hint>Unique identifier. Use lowercase with no spaces.</mat-hint>
+          <mat-error *ngIf="vehicleMakeForm.get('name')?.hasError('required')"> Make ID is required </mat-error>
+          <mat-error *ngIf="vehicleMakeForm.get('name')?.hasError('pattern')"> Use only letters, numbers, hyphens and underscores </mat-error>
+        </mat-form-field>
+
+        <!-- Display Name Field -->
+        <mat-form-field appearance="outline">
+          <mat-label>Display Name</mat-label>
+          <input matInput formControlName="displayName" placeholder="e.g. Toyota" />
+          <mat-hint>Name shown to users</mat-hint>
+          <mat-error *ngIf="vehicleMakeForm.get('displayName')?.hasError('required')"> Display name is required </mat-error>
+        </mat-form-field>
+
+        <!-- Icon Field -->
+        <mat-form-field appearance="outline">
+          <mat-label>Icon</mat-label>
+          <mat-select formControlName="icon">
+            <mat-select-trigger>
+              <div class="select-icon-preview">
+                <mat-icon>{{ vehicleMakeForm.get('icon')?.value }}</mat-icon>
+                <span>{{ vehicleMakeForm.get('icon')?.value }}</span>
+              </div>
+            </mat-select-trigger>
+            <mat-option *ngFor="let icon of materialIcons" [value]="icon">
+              <div class="icon-option">
+                <mat-icon>{{ icon }}</mat-icon>
+                <span>{{ icon }}</span>
+              </div>
+            </mat-option>
+          </mat-select>
+          <mat-hint>Icon to represent this make</mat-hint>
+        </mat-form-field>
+
+        <!-- Status Field -->
+        <mat-form-field appearance="outline">
+          <mat-label>Status</mat-label>
+          <mat-select formControlName="isActive">
+            <mat-option [value]="true">Active</mat-option>
+            <mat-option [value]="false">Inactive</mat-option>
+          </mat-select>
+          <mat-hint>Controls visibility in the app</mat-hint>
+        </mat-form-field>
+      </div>
+
+      <!-- Vehicle Types Field -->
+      <div class="vehicle-types-section">
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Vehicle Types</mat-label>
+          <mat-chip-grid #chipGrid aria-label="Vehicle type selection">
+            <mat-chip-row *ngFor="let type of vehicleTypes" (removed)="removeVehicleType(type)">
+              {{ type }}
+              <button matChipRemove>
+                <mat-icon>cancel</mat-icon>
+              </button>
+            </mat-chip-row>
+            <input
+              placeholder="Add vehicle type..."
+              [matChipInputFor]="chipGrid"
+              [matChipInputSeparatorKeyCodes]="separatorKeysCodes"
+              (matChipInputTokenEnd)="addVehicleType($event)"
+              formControlName="type" />
+          </mat-chip-grid>
+          <mat-hint>Press Enter or comma to add</mat-hint>
+        </mat-form-field>
+      </div>
+    </div>
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    <button mat-button type="button" (click)="onCancel()">Cancel</button>
+    <button mat-flat-button color="primary" type="submit" [disabled]="vehicleMakeForm.invalid">
+      {{ isEdit ? 'Update' : 'Create' }}
+    </button>
+  </mat-dialog-actions>
+</form>

@@ -1,0 +1,89 @@
+<h2 mat-dialog-title>{{ isEdit ? 'Edit' : 'Create' }} User Role</h2>
+
+<form [formGroup]="roleForm" (ngSubmit)="onSubmit()">
+  <mat-dialog-content>
+    <div class="dialog-content">
+      <!-- Basic Information Section -->
+      <div class="form-section">
+        <h3 class="section-title">Role Information</h3>
+
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Role Name</mat-label>
+          <input matInput formControlName="name" placeholder="e.g. Dispatcher" />
+          <mat-hint>A unique name to identify this role</mat-hint>
+          <mat-error *ngIf="roleForm.get('name')?.hasError('required')"> Role name is required </mat-error>
+          <mat-error *ngIf="roleForm.get('name')?.hasError('minlength')"> Role name must be at least 3 characters </mat-error>
+          <mat-error *ngIf="roleForm.get('name')?.hasError('maxlength')"> Role name cannot exceed 50 characters </mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Description</mat-label>
+          <textarea matInput formControlName="description" placeholder="Describe the role's purpose" rows="3"></textarea>
+          <mat-hint>What this role is for and who should have it</mat-hint>
+          <mat-error *ngIf="roleForm.get('description')?.hasError('required')"> Description is required </mat-error>
+          <mat-error *ngIf="roleForm.get('description')?.hasError('maxlength')"> Description cannot exceed 200 characters </mat-error>
+        </mat-form-field>
+      </div>
+
+      <!-- Permissions Section -->
+      <div class="form-section">
+        <h3 class="section-title">Permissions</h3>
+        <p class="section-description">Configure what users with this role can do in the system</p>
+
+        <div formGroupName="permissions" class="permissions-container">
+          <!-- Admin Permission (Special) -->
+          <div class="special-permission" *ngFor="let permission of getGroupPermissions('General Permissions')">
+            <mat-checkbox [formControlName]="permission.key" color="primary" (change)="onAdminChange($event)">
+              <span class="permission-name">{{ permission.name }}</span>
+            </mat-checkbox>
+            <span class="permission-description">{{ permission.description }} <strong>(Grants all permissions)</strong></span>
+          </div>
+
+          <!-- Grouped Permissions -->
+          <mat-accordion class="permissions-accordion">
+            <!-- Job Management Permissions -->
+            <mat-expansion-panel expanded>
+              <mat-expansion-panel-header>
+                <mat-panel-title>
+                  <mat-icon class="group-icon">work</mat-icon>
+                  Job Management
+                </mat-panel-title>
+              </mat-expansion-panel-header>
+
+              <div class="permission-item" *ngFor="let permission of getGroupPermissions('Job Management')">
+                <mat-checkbox [formControlName]="permission.key" color="primary">
+                  <span class="permission-name">{{ permission.name }}</span>
+                </mat-checkbox>
+                <span class="permission-description">{{ permission.description }}</span>
+              </div>
+            </mat-expansion-panel>
+
+            <!-- Administrative Permissions -->
+            <mat-expansion-panel expanded>
+              <mat-expansion-panel-header>
+                <mat-panel-title>
+                  <mat-icon class="group-icon">admin_panel_settings</mat-icon>
+                  Administrative
+                </mat-panel-title>
+              </mat-expansion-panel-header>
+
+              <div class="permission-item" *ngFor="let permission of getGroupPermissions('Administrative')">
+                <mat-checkbox [formControlName]="permission.key" color="primary">
+                  <span class="permission-name">{{ permission.name }}</span>
+                </mat-checkbox>
+                <span class="permission-description">{{ permission.description }}</span>
+              </div>
+            </mat-expansion-panel>
+          </mat-accordion>
+        </div>
+      </div>
+    </div>
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    <button mat-button type="button" (click)="onCancel()">Cancel</button>
+    <button mat-flat-button color="primary" type="submit" [disabled]="roleForm.invalid">
+      {{ isEdit ? 'Update' : 'Create' }}
+    </button>
+  </mat-dialog-actions>
+</form>

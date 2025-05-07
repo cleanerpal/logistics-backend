@@ -57,33 +57,52 @@ import { environment } from '../environments/environment.prod';
 import { CustomerListComponent } from './pages/customers/customers-list/customer-list.component';
 import { CustomerCreateComponent } from './pages/customers/customer-create/customer-create.component';
 import { CustomerDetailsComponent } from './pages/customers/customer-details/customer-details.component';
+import { DriverEditComponent } from './pages/drivers/driver-edit/driver-edit.component';
 
 @NgModule({
   declarations: [
+    // App Core Components
     AppComponent,
     DashboardComponent,
+
+    // Layout Components
     NavSidebarComponent,
     TopbarComponent,
+
+    // Driver Components
     DriverListComponent,
     DriverCreateComponent,
     DriverDetailsComponent,
+    DriverEditComponent,
+
+    // Job Components
     JobListComponent,
     JobCreateComponent,
     JobDetailsComponent,
     JobEditComponent,
+
+    // Vehicle Components
     VehicleListComponent,
-    VehicleModelsComponent,
-    VehicleDetailsComponent,
     VehicleCreateComponent,
-    ConfirmationDialogComponent,
-    DriverSelectionDialogComponent,
-    ExpenseCreateComponent,
-    ExpenseListComponent,
+    VehicleDetailsComponent,
+    VehicleModelsComponent,
     VehicleMovementComponent,
-    TimeAgoPipe,
+
+    // Customer Components
     CustomerListComponent,
     CustomerCreateComponent,
     CustomerDetailsComponent,
+
+    // Expense Components
+    ExpenseListComponent,
+    ExpenseCreateComponent,
+
+    // Dialogs
+    ConfirmationDialogComponent,
+    DriverSelectionDialogComponent,
+
+    // Pipes
+    TimeAgoPipe,
   ],
   imports: [BrowserModule, BrowserAnimationsModule, AppRoutingModule, FormsModule, ReactiveFormsModule, NgxChartsModule, MaterialModule],
   providers: [

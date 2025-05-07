@@ -1,4 +1,3 @@
-// driver-list.component.ts
 import { Component, OnInit, ViewChild, AfterViewInit, OnDestroy } from '@angular/core';
 import { Router } from '@angular/router';
 import { MatTableDataSource } from '@angular/material/table';
@@ -8,35 +7,13 @@ import { SelectionModel } from '@angular/cdk/collections';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Subscription } from 'rxjs';
+import { finalize } from 'rxjs/operators';
+
 import { AuthService } from '../../../services/auth.service';
+import { DriverService } from '../../../services/driver.service';
 import { ConfirmationDialogComponent } from '../../../dialogs/confirmation-dialog.component';
 import { NotificationService } from '../../../services/notification.service';
-
-interface Driver {
-  id: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  phone: string;
-  company: string;
-  type: DriverType;
-  role: string;
-  status: DriverStatus;
-  lastDriver: Date;
-  permissions?: {
-    canAllocateJobs?: boolean;
-    canApproveExpenses?: boolean;
-    canCreateJobs?: boolean;
-    canEditJobs?: boolean;
-    canManageUsers?: boolean;
-    canViewReports?: boolean;
-    canViewUnallocated?: boolean;
-    isAdmin?: boolean;
-  };
-}
-
-type DriverType = 'customer' | 'supplier' | 'partner';
-type DriverStatus = 'active' | 'inactive' | 'pending';
+import { UserProfile, UserRole } from '../../../interfaces/user-profile.interface';
 
 @Component({
   selector: 'app-driver-list',
@@ -48,8 +25,8 @@ export class DriverListComponent implements OnInit, AfterViewInit, OnDestroy {
   displayedColumns: string[] = ['select', 'id', 'name', 'email', 'phone', 'company', 'role', 'type', 'status', 'lastActivity', 'actions'];
 
   isLoading = false;
-  dataSource = new MatTableDataSource<Driver>([]);
-  selection = new SelectionModel<Driver>(true, []);
+  dataSource = new MatTableDataSource<UserProfile>([]);
+  selection = new SelectionModel<UserProfile>(true, []);
   hasEditPermission = false;
 
   @ViewChild(MatSort) sort!: MatSort;
@@ -60,7 +37,7 @@ export class DriverListComponent implements OnInit, AfterViewInit, OnDestroy {
   statusFilter = 'All';
 
   typeOptions = ['All', 'Customer', 'Supplier', 'Partner'];
-  roleOptions = ['All', 'Admin', 'Manager', 'Dispatcher', 'Driver', 'User'];
+  roleOptions = ['All', ...Object.values(UserRole)];
   statusOptions = ['All', 'Active', 'Inactive', 'Pending'];
 
   private subscriptions: Subscription[] = [];
@@ -68,6 +45,7 @@ export class DriverListComponent implements OnInit, AfterViewInit, OnDestroy {
   constructor(
     private router: Router,
     private authService: AuthService,
+    private driverService: DriverService,
     private dialog: MatDialog,
     private snackBar: MatSnackBar,
     private notificationService: NotificationService
@@ -96,12 +74,12 @@ export class DriverListComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private setupCustomFilter(): void {
-    this.dataSource.filterPredicate = (data: Driver, filter: string) => {
+    this.dataSource.filterPredicate = (data: UserProfile, filter: string) => {
       const searchText = filter.toLowerCase();
-      const shouldInclude = (value: string) => value.toLowerCase().includes(searchText);
+      const shouldInclude = (value: string | undefined) => value?.toLowerCase().includes(searchText) || false;
 
       // Apply type filter
-      if (this.typeFilter !== 'All' && data.type !== this.typeFilter.toLowerCase()) {
+      if (this.typeFilter !== 'All' && data.type?.toLowerCase() !== this.typeFilter.toLowerCase()) {
         return false;
       }
 
@@ -111,12 +89,20 @@ export class DriverListComponent implements OnInit, AfterViewInit, OnDestroy {
       }
 
       // Apply status filter
-      if (this.statusFilter !== 'All' && data.status !== this.statusFilter.toLowerCase()) {
+      if (this.statusFilter !== 'All' && data.status?.toLowerCase() !== this.statusFilter.toLowerCase()) {
         return false;
       }
 
       // Apply text search
-      return shouldInclude(data.firstName) || shouldInclude(data.lastName) || shouldInclude(data.email) || shouldInclude(data.company) || shouldInclude(data.phone);
+      return (
+        shouldInclude(data.firstName) ||
+        shouldInclude(data.lastName) ||
+        shouldInclude(data.name) ||
+        shouldInclude(data.email) ||
+        shouldInclude(data.company) ||
+        shouldInclude(data.phoneNumber) ||
+        shouldInclude(data.phone)
+      );
     };
   }
 
@@ -137,86 +123,87 @@ export class DriverListComponent implements OnInit, AfterViewInit, OnDestroy {
   loadDrivers(): void {
     this.isLoading = true;
 
-    // Simulate API call with dummy data
-    setTimeout(() => {
-      const mockDrivers = Array(25)
-        .fill(null)
-        .map((_, index) => ({
-          id: `DRV${String(index + 1).padStart(4, '0')}`,
-          firstName: `John${index + 1}`,
-          lastName: `Doe${index + 1}`,
-          email: `driver${index + 1}@example.com`,
-          phone: this.generatePhoneNumber(),
-          company: `Company ${String.fromCharCode(65 + (index % 5))}`,
-          role: this.getRandomRole(),
-          type: this.getRandomType(),
-          status: this.getRandomStatus(),
-          lastDriver: new Date(2024, 0, index + 1),
-          permissions: {
-            canAllocateJobs: Math.random() > 0.5,
-            canApproveExpenses: Math.random() > 0.5,
-            canCreateJobs: Math.random() > 0.5,
-            canEditJobs: Math.random() > 0.5,
-            canManageUsers: Math.random() > 0.8,
-            canViewReports: Math.random() > 0.5,
-            canViewUnallocated: Math.random() > 0.5,
-            isAdmin: Math.random() > 0.9,
-          },
-        }));
+    const driversSub = this.driverService
+      .getAllDrivers()
+      .pipe(finalize(() => (this.isLoading = false)))
+      .subscribe({
+        next: (drivers) => {
+          this.dataSource.data = drivers;
+        },
+        error: (error) => {
+          console.error('Error loading drivers:', error);
+          this.snackBar.open('Error loading drivers', 'Close', { duration: 3000 });
+        },
+      });
 
-      this.dataSource.data = mockDrivers;
-      this.isLoading = false;
-    }, 1000); // Simulate network delay
+    this.subscriptions.push(driversSub);
   }
 
-  private generatePhoneNumber(): string {
-    const areaCode = Math.floor(Math.random() * 900 + 100);
-    const prefix = Math.floor(Math.random() * 900 + 100);
-    const lineNumber = Math.floor(Math.random() * 9000 + 1000);
-    return `+1 ${areaCode}-${prefix}-${lineNumber}`;
+  getStatusClass(status: string | undefined): string {
+    if (!status) return 'status-gray';
+
+    switch (status.toLowerCase()) {
+      case 'active':
+        return 'status-green';
+      case 'pending':
+        return 'status-orange';
+      case 'inactive':
+      default:
+        return 'status-gray';
+    }
   }
 
-  private getRandomType(): DriverType {
-    const types: DriverType[] = ['customer', 'supplier', 'partner'];
-    return types[Math.floor(Math.random() * types.length)];
+  getTypeClass(type: string | undefined): string {
+    if (!type) return 'type-blue';
+
+    switch (type.toLowerCase()) {
+      case 'customer':
+        return 'type-blue';
+      case 'supplier':
+        return 'type-purple';
+      case 'partner':
+        return 'type-orange';
+      default:
+        return 'type-blue';
+    }
   }
 
-  private getRandomStatus(): DriverStatus {
-    const statuses: DriverStatus[] = ['active', 'inactive', 'pending'];
-    return statuses[Math.floor(Math.random() * statuses.length)];
+  getRoleClass(role: string | undefined): string {
+    if (!role) return 'role-driver';
+
+    switch (role.toLowerCase()) {
+      case 'admin':
+        return 'role-admin';
+      case 'system user':
+        return 'role-manager';
+      case 'contractor':
+        return 'role-dispatcher';
+      case 'driver':
+        return 'role-driver';
+      default:
+        return 'role-driver';
+    }
   }
 
-  private getRandomRole(): string {
-    const roles = ['Admin', 'Manager', 'Dispatcher', 'Driver', 'User'];
-    return roles[Math.floor(Math.random() * roles.length)];
-  }
+  getDriverInitials(driver: UserProfile): string {
+    if (!driver) return '??';
 
-  getStatusClass(status: DriverStatus): string {
-    return status === 'active' ? 'status-green' : status === 'pending' ? 'status-orange' : 'status-gray';
-  }
+    if (driver.name && driver.name.length > 0) {
+      const nameParts = driver.name.split(' ');
+      if (nameParts.length > 1) {
+        return (nameParts[0][0] + nameParts[1][0]).toUpperCase();
+      }
+      return nameParts[0][0].toUpperCase();
+    }
 
-  getTypeClass(type: DriverType): string {
-    const typeMap: Record<DriverType, string> = {
-      customer: 'type-blue',
-      supplier: 'type-purple',
-      partner: 'type-orange',
-    };
-    return typeMap[type];
-  }
+    const firstName = driver.firstName || '';
+    const lastName = driver.lastName || '';
 
-  getRoleClass(role: string): string {
-    const roleMap: Record<string, string> = {
-      Admin: 'role-admin',
-      Manager: 'role-manager',
-      Dispatcher: 'role-dispatcher',
-      Driver: 'role-driver',
-      User: 'role-user',
-    };
-    return roleMap[role] || 'role-driver';
-  }
+    if (!firstName && !lastName) {
+      return driver.email[0].toUpperCase();
+    }
 
-  getDriverInitials(driver: Driver): string {
-    return (driver.firstName.charAt(0) + driver.lastName.charAt(0)).toUpperCase();
+    return ((firstName[0] || '') + (lastName[0] || '')).toUpperCase();
   }
 
   isAllSelected(): boolean {
@@ -233,7 +220,7 @@ export class DriverListComponent implements OnInit, AfterViewInit, OnDestroy {
     this.selection.select(...this.dataSource.data);
   }
 
-  checkboxLabel(row?: Driver): string {
+  checkboxLabel(row?: UserProfile): string {
     if (!row) {
       return `${this.isAllSelected() ? 'deselect' : 'select'} all`;
     }
@@ -244,11 +231,11 @@ export class DriverListComponent implements OnInit, AfterViewInit, OnDestroy {
     this.router.navigate(['/drivers/new']);
   }
 
-  editDriver(driver: Driver): void {
+  editDriver(driver: UserProfile): void {
     this.router.navigate(['/drivers', driver.id]);
   }
 
-  viewDriverJobs(driver: Driver, event?: Event): void {
+  viewDriverJobs(driver: UserProfile, event?: Event): void {
     if (event) {
       event.stopPropagation(); // Prevent row click event
     }
@@ -274,20 +261,20 @@ export class DriverListComponent implements OnInit, AfterViewInit, OnDestroy {
     this.downloadDriversCsv(selectedDrivers);
   }
 
-  private downloadDriversCsv(drivers: Driver[]): void {
+  private downloadDriversCsv(drivers: UserProfile[]): void {
     // Convert drivers to CSV format
     const headers = ['ID', 'First Name', 'Last Name', 'Email', 'Phone', 'Company', 'Role', 'Type', 'Status', 'Last Activity'];
     const rows = drivers.map((driver) => [
       driver.id,
-      driver.firstName,
-      driver.lastName,
-      driver.email,
-      driver.phone,
-      driver.company,
-      driver.role,
-      driver.type,
-      driver.status,
-      new Date(driver.lastDriver).toLocaleDateString(),
+      driver.firstName || '',
+      driver.lastName || '',
+      driver.email || '',
+      driver.phone || driver.phoneNumber || '',
+      driver.company || '',
+      driver.role || '',
+      driver.type || '',
+      driver.status || (driver.isActive ? 'active' : 'inactive'),
+      driver.lastActivity ? new Date(driver.lastActivity).toLocaleDateString() : '',
     ]);
 
     // Combine headers and rows
@@ -312,7 +299,7 @@ export class DriverListComponent implements OnInit, AfterViewInit, OnDestroy {
     });
   }
 
-  deleteDriver(driver: Driver, event: Event): void {
+  deleteDriver(driver: UserProfile, event: Event): void {
     event.stopPropagation();
 
     const dialogRef = this.dialog.open(ConfirmationDialogComponent, {
@@ -329,15 +316,22 @@ export class DriverListComponent implements OnInit, AfterViewInit, OnDestroy {
 
     dialogRef.afterClosed().subscribe((result) => {
       if (result) {
-        // In a real app, you would call a service to delete the driver
-        // For this demo, we'll just remove it from the table
-        this.dataSource.data = this.dataSource.data.filter((d) => d.id !== driver.id);
+        this.driverService.deactivateDriver(driver.id).subscribe({
+          next: () => {
+            // Remove from the data source
+            this.dataSource.data = this.dataSource.data.filter((d) => d.id !== driver.id);
 
-        // Show success notification
-        this.notificationService.addNotification({
-          type: 'success',
-          title: 'Driver Deleted',
-          message: `${driver.firstName} ${driver.lastName} has been deleted successfully`,
+            // Show success notification
+            this.notificationService.addNotification({
+              type: 'success',
+              title: 'Driver Deleted',
+              message: `${driver.firstName} ${driver.lastName} has been deleted successfully`,
+            });
+          },
+          error: (error) => {
+            console.error(`Error deleting driver ${driver.id}:`, error);
+            this.snackBar.open('Error deleting driver', 'Close', { duration: 3000 });
+          },
         });
       }
     });

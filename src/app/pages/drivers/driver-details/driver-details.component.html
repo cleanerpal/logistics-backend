@@ -16,7 +16,7 @@
         <h1>{{ driver.firstName }} {{ driver.lastName }}</h1>
         <div class="driver-status">
           <span class="status-chip" [ngClass]="getStatusClass(driver.status)">
-            {{ driver.status }}
+            {{ driver.status || (driver.isActive ? 'Active' : 'Inactive') }}
           </span>
           <span class="role-chip" [ngClass]="getRoleClass(driver.role)">
             {{ driver.role }}
@@ -64,7 +64,7 @@
               </div>
               <div class="info-item">
                 <label>Phone</label>
-                <a [href]="'tel:' + driver.phone">{{ driver.phone }}</a>
+                <a [href]="'tel:' + (driver.phone || driver.phoneNumber)">{{ driver.phone || driver.phoneNumber }}</a>
               </div>
               <div class="info-item">
                 <label>Company</label>
@@ -73,7 +73,7 @@
               <div class="info-item">
                 <label>Type</label>
                 <span class="status-chip small" [ngClass]="getTypeClass(driver.type)">
-                  {{ driver.type }}
+                  {{ driver.type || 'Customer' }}
                 </span>
               </div>
               <div class="info-item">
@@ -85,7 +85,7 @@
               <div class="info-item">
                 <label>Status</label>
                 <span class="status-chip small" [ngClass]="getStatusClass(driver.status)">
-                  {{ driver.status }}
+                  {{ driver.status || (driver.isActive ? 'Active' : 'Inactive') }}
                 </span>
               </div>
               <div class="info-item">
@@ -155,7 +155,7 @@
                     <mat-icon>email</mat-icon>
                     Email
                   </a>
-                  <a mat-stroked-button [href]="'tel:' + driver.phone" class="contact-button">
+                  <a mat-stroked-button [href]="'tel:' + (driver.phone || driver.phoneNumber)" class="contact-button">
                     <mat-icon>phone</mat-icon>
                     Call
                   </a>
@@ -323,16 +323,58 @@
             </div>
 
             <div class="permissions-grid">
-              <div class="permission-item" *ngFor="let perm of permissionList">
-                <div class="permission-header">
-                  <mat-icon>{{ getPermissionIcon(perm.key) }}</mat-icon>
-                  <span class="permission-name">{{ perm.name }}</span>
+              <!-- General Permissions -->
+              <div class="permissions-category">
+                <h3>General Permissions</h3>
+                <div class="permission-group">
+                  <div class="permission-item" *ngFor="let perm of permissionList | slice : 0 : 4">
+                    <div class="permission-header">
+                      <mat-icon>{{ getPermissionIcon(perm.key) }}</mat-icon>
+                      <span class="permission-name">{{ perm.name }}</span>
+                    </div>
+                    <div class="permission-status" [ngClass]="{ 'permission-granted': hasPermission(perm.key), 'permission-denied': !hasPermission(perm.key) }">
+                      <mat-icon>{{ hasPermission(perm.key) ? 'check_circle' : 'cancel' }}</mat-icon>
+                      <span>{{ hasPermission(perm.key) ? 'Granted' : 'Not Granted' }}</span>
+                    </div>
+                    <p class="permission-description">{{ perm.description }}</p>
+                  </div>
                 </div>
-                <div class="permission-status" [ngClass]="{ 'permission-granted': hasPermission(perm.key), 'permission-denied': !hasPermission(perm.key) }">
-                  <mat-icon>{{ hasPermission(perm.key) ? 'check_circle' : 'cancel' }}</mat-icon>
-                  <span>{{ hasPermission(perm.key) ? 'Granted' : 'Not Granted' }}</span>
+              </div>
+
+              <!-- Job Management Permissions -->
+              <div class="permissions-category">
+                <h3>Job Management</h3>
+                <div class="permission-group">
+                  <div class="permission-item" *ngFor="let perm of permissionList | slice : 4 : 8">
+                    <div class="permission-header">
+                      <mat-icon>{{ getPermissionIcon(perm.key) }}</mat-icon>
+                      <span class="permission-name">{{ perm.name }}</span>
+                    </div>
+                    <div class="permission-status" [ngClass]="{ 'permission-granted': hasPermission(perm.key), 'permission-denied': !hasPermission(perm.key) }">
+                      <mat-icon>{{ hasPermission(perm.key) ? 'check_circle' : 'cancel' }}</mat-icon>
+                      <span>{{ hasPermission(perm.key) ? 'Granted' : 'Not Granted' }}</span>
+                    </div>
+                    <p class="permission-description">{{ perm.description }}</p>
+                  </div>
                 </div>
-                <p class="permission-description">{{ perm.description }}</p>
+              </div>
+
+              <!-- Financial Permissions -->
+              <div class="permissions-category">
+                <h3>Financial & Reports</h3>
+                <div class="permission-group">
+                  <div class="permission-item" *ngFor="let perm of permissionList | slice : 8 : 13">
+                    <div class="permission-header">
+                      <mat-icon>{{ getPermissionIcon(perm.key) }}</mat-icon>
+                      <span class="permission-name">{{ perm.name }}</span>
+                    </div>
+                    <div class="permission-status" [ngClass]="{ 'permission-granted': hasPermission(perm.key), 'permission-denied': !hasPermission(perm.key) }">
+                      <mat-icon>{{ hasPermission(perm.key) ? 'check_circle' : 'cancel' }}</mat-icon>
+                      <span>{{ hasPermission(perm.key) ? 'Granted' : 'Not Granted' }}</span>
+                    </div>
+                    <p class="permission-description">{{ perm.description }}</p>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -403,24 +445,44 @@
       <!-- Role Selection -->
       <mat-form-field appearance="outline" class="full-width">
         <mat-label>Role</mat-label>
-        <mat-select formControlName="role" (selectionChange)="onRoleChange($event)">
+        <mat-select formControlName="role">
           <mat-option *ngFor="let role of availableRoles" [value]="role">{{ role }}</mat-option>
         </mat-select>
+        <mat-hint>Selecting a role will automatically set appropriate permissions</mat-hint>
       </mat-form-field>
 
-      <div class="permissions-checkboxes">
-        <h3>Custom Permissions</h3>
-        <p class="permissions-hint">Customize individual permissions for this driver</p>
+      <div class="permissions-info">
+        <h3>Role Permissions</h3>
 
-        <div class="checkbox-grid">
-          <mat-checkbox formControlName="canAllocateJobs" color="primary"> Allocate Jobs </mat-checkbox>
-          <mat-checkbox formControlName="canApproveExpenses" color="primary"> Approve Expenses </mat-checkbox>
-          <mat-checkbox formControlName="canCreateJobs" color="primary"> Create Jobs </mat-checkbox>
-          <mat-checkbox formControlName="canEditJobs" color="primary"> Edit Jobs </mat-checkbox>
-          <mat-checkbox formControlName="canManageUsers" color="primary"> Manage Users </mat-checkbox>
-          <mat-checkbox formControlName="canViewReports" color="primary"> View Reports </mat-checkbox>
-          <mat-checkbox formControlName="canViewUnallocated" color="primary"> View Unallocated Jobs </mat-checkbox>
-          <mat-checkbox formControlName="isAdmin" color="primary"> Administrator </mat-checkbox>
+        <div class="role-permissions-description" [ngSwitch]="permissionsForm.get('role')?.value">
+          <div *ngSwitchCase="'Admin'" class="role-description">
+            <mat-icon>admin_panel_settings</mat-icon>
+            <div>
+              <h4>Admin Role</h4>
+              <p>Full system administrator with access to all features and settings. Has complete control and can manage all aspects of the system.</p>
+            </div>
+          </div>
+          <div *ngSwitchCase="'System User'" class="role-description">
+            <mat-icon>supervisor_account</mat-icon>
+            <div>
+              <h4>System User Role</h4>
+              <p>Has access to most system features except administrative settings. Can manage jobs, drivers, and perform daily operations.</p>
+            </div>
+          </div>
+          <div *ngSwitchCase="'Driver'" class="role-description">
+            <mat-icon>directions_car</mat-icon>
+            <div>
+              <h4>Driver Role</h4>
+              <p>Can view and manage assigned jobs and submit expenses. Has limited access to system features focused on job execution.</p>
+            </div>
+          </div>
+          <div *ngSwitchCase="'Contractor'" class="role-description">
+            <mat-icon>work_outline</mat-icon>
+            <div>
+              <h4>Contractor Role</h4>
+              <p>Has very limited access to only view assigned jobs and submit expenses. Cannot access any management features.</p>
+            </div>
+          </div>
         </div>
       </div>
     </form>

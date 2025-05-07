@@ -1,7 +1,5 @@
-import { Component, OnInit, OnDestroy, ViewChild, TemplateRef } from '@angular/core';
 import { Location } from '@angular/common';
-import { Auth, User, onAuthStateChanged } from '@angular/fire/auth';
-import { Firestore, collection, doc, getDoc, getDocs, query, where, orderBy, serverTimestamp, addDoc, updateDoc, deleteDoc } from '@angular/fire/firestore';
+import { Component, OnDestroy, OnInit, TemplateRef, ViewChild } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
 import { MatPaginator } from '@angular/material/paginator';
@@ -10,31 +8,15 @@ import { MatSort } from '@angular/material/sort';
 import { MatTableDataSource } from '@angular/material/table';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Observable, Subscription, forkJoin, of } from 'rxjs';
-import { catchError, finalize, map, switchMap, tap } from 'rxjs/operators';
+import { catchError, finalize, switchMap, tap } from 'rxjs/operators';
 
 import { ConfirmationDialogComponent } from '../../../dialogs/confirmation-dialog.component';
 import { Job } from '../../../interfaces/job.interface';
 import { UserProfile, UserRole } from '../../../interfaces/user-profile.interface';
 import { AuthService } from '../../../services/auth.service';
-import { ExpenseService } from '../../../services/expense.service';
-import { FirebaseService } from '../../../services/firebase.service';
+import { DriverNote, DriverService, DriverStats } from '../../../services/driver.service';
 import { JobService } from '../../../services/job.service';
 import { NotificationService } from '../../../services/notification.service';
-
-interface DriverNote {
-  id: string;
-  content: string;
-  date: Date;
-  authorId: string;
-  authorName: string;
-}
-
-interface DriverStats {
-  totalJobs: number;
-  pendingJobs: number;
-  completedJobs: number;
-  pendingExpenses: number;
-}
 
 interface PermissionInfo {
   key: string;
@@ -122,6 +104,31 @@ export class DriverDetailsComponent implements OnInit, OnDestroy {
       name: 'Administrator',
       description: 'Full system access with all permissions granted',
     },
+    {
+      key: 'canViewSystemSettings',
+      name: 'View System Settings',
+      description: 'Access to system configuration and settings',
+    },
+    {
+      key: 'canManageCompanies',
+      name: 'Manage Companies',
+      description: 'Ability to create and edit company information',
+    },
+    {
+      key: 'canViewAllJobs',
+      name: 'View All Jobs',
+      description: 'Access to see all jobs in the system regardless of assignment',
+    },
+    {
+      key: 'canViewAssignedJobs',
+      name: 'View Assigned Jobs',
+      description: 'Ability to see jobs assigned to the driver',
+    },
+    {
+      key: 'canCreateExpenses',
+      name: 'Create Expenses',
+      description: 'Ability to submit expense claims',
+    },
   ];
 
   @ViewChild(MatSort) sort!: MatSort;
@@ -136,15 +143,12 @@ export class DriverDetailsComponent implements OnInit, OnDestroy {
     private router: Router,
     private location: Location,
     private authService: AuthService,
+    private driverService: DriverService,
     private jobService: JobService,
-    private expenseService: ExpenseService,
-    private firebaseService: FirebaseService,
     private notificationService: NotificationService,
     private dialog: MatDialog,
     private snackBar: MatSnackBar,
-    private fb: FormBuilder,
-    public firestore: Firestore,
-    public auth: Auth
+    private fb: FormBuilder
   ) {
     this.createForms();
   }
@@ -177,14 +181,6 @@ export class DriverDetailsComponent implements OnInit, OnDestroy {
     // Permissions form
     this.permissionsForm = this.fb.group({
       role: ['', Validators.required],
-      canAllocateJobs: [false],
-      canApproveExpenses: [false],
-      canCreateJobs: [false],
-      canEditJobs: [false],
-      canManageUsers: [false],
-      canViewReports: [false],
-      canViewUnallocated: [false],
-      isAdmin: [false],
     });
 
     // Note form
@@ -194,19 +190,16 @@ export class DriverDetailsComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Load driver details from Firebase
+   * Load driver details and related data
    */
   loadDriverDetails(): void {
     this.isLoading = true;
 
-    const userSub = this.authService
-      .getUserById(this.driverId)
+    const detailsSub = this.driverService
+      .getDriverById(this.driverId)
       .pipe(
         tap((driver) => {
           this.driver = driver;
-          if (driver) {
-            this.initPermissionsForm();
-          }
         }),
         switchMap((driver) => {
           if (driver) {
@@ -214,7 +207,7 @@ export class DriverDetailsComponent implements OnInit, OnDestroy {
             return forkJoin({
               jobs: this.loadDriverJobs(),
               notes: this.loadDriverNotes(),
-              stats: this.calculateDriverStats(driver.id),
+              stats: this.driverService.getDriverStats(driver.id),
             });
           }
           return of(null);
@@ -233,13 +226,17 @@ export class DriverDetailsComponent implements OnInit, OnDestroy {
           return of(null);
         })
       )
-      .subscribe();
+      .subscribe((result) => {
+        if (result && this.driver) {
+          this.driverStats = result.stats;
+        }
+      });
 
-    this.subscriptions.push(userSub);
+    this.subscriptions.push(detailsSub);
   }
 
   /**
-   * Load driver jobs from Firebase
+   * Load driver jobs
    */
   loadDriverJobs(): Observable<Job[]> {
     this.isJobsLoading = true;
@@ -264,56 +261,12 @@ export class DriverDetailsComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Calculate driver statistics based on jobs and expenses
-   */
-  calculateDriverStats(driverId: string): Observable<DriverStats> {
-    return forkJoin({
-      jobs: this.jobService.getJobsByDriver(driverId),
-      expenses: this.expenseService.getExpensesByDriver(driverId),
-    }).pipe(
-      map(({ jobs, expenses }) => {
-        const totalJobs = jobs.length;
-        const pendingJobs = jobs.filter((job) => job.status === 'allocated' || job.status === 'collected').length;
-        const completedJobs = jobs.filter((job) => job.status === 'delivered' || job.status === 'completed').length;
-        const pendingExpenses = expenses.filter((expense) => expense.status === 'Pending').length;
-
-        this.driverStats = {
-          totalJobs,
-          pendingJobs,
-          completedJobs,
-          pendingExpenses,
-        };
-
-        return this.driverStats;
-      }),
-      catchError((error) => {
-        console.error('Error calculating driver stats:', error);
-        return of(this.driverStats);
-      })
-    );
-  }
-
-  /**
-   * Load driver notes from Firebase
+   * Load driver notes
    */
   loadDriverNotes(): Observable<DriverNote[]> {
     this.isNotesLoading = true;
 
-    const notesRef = collection(this.firestore, 'driverNotes');
-    const q = query(notesRef, where('driverId', '==', this.driverId), orderBy('date', 'desc'));
-
-    return of(getDocs(q)).pipe(
-      switchMap((promise) => promise),
-      map((snapshot) => {
-        // Transform notes and add author information
-        return snapshot.docs.map((doc) => ({
-          id: doc.id,
-          content: doc.data()['content'] || '',
-          date: this.convertFirebaseTimestamp(doc.data()['date']),
-          authorId: doc.data()['authorId'] || '',
-          authorName: doc.data()['authorName'] || 'Unknown User',
-        }));
-      }),
+    return this.driverService.getDriverNotes(this.driverId).pipe(
       tap((notes) => {
         this.driverNotes = notes;
         this.isNotesLoading = false;
@@ -327,123 +280,37 @@ export class DriverDetailsComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Initialize permissions form with data from the driver
+   * Open permissions dialog
    */
-  private initPermissionsForm(): void {
-    if (!this.driver || !this.driver.permissions) return;
+  editPermissions(): void {
+    if (!this.driver) return;
 
+    // Initialize form with current role
     this.permissionsForm.patchValue({
       role: this.driver.role || UserRole.DRIVER,
-      canAllocateJobs: this.driver.permissions.canAllocateJobs || false,
-      canApproveExpenses: this.driver.permissions.canApproveExpenses || false,
-      canCreateJobs: this.driver.permissions.canCreateJobs || false,
-      canEditJobs: this.driver.permissions.canEditJobs || false,
-      canManageUsers: this.driver.permissions.canManageUsers || false,
-      canViewReports: this.driver.permissions.canViewReports || false,
-      canViewUnallocated: this.driver.permissions.canViewUnallocated || false,
-      isAdmin: this.driver.permissions.isAdmin || false,
+    });
+
+    this.dialog.open(this.permissionsDialog, {
+      width: '500px',
+      disableClose: true,
     });
   }
 
   /**
-   * Set default permissions based on selected role
-   */
-  onRoleChange(event: any): void {
-    const role = event.value;
-
-    // Set default permissions based on role
-    switch (role) {
-      case UserRole.ADMIN:
-        this.permissionsForm.patchValue({
-          canAllocateJobs: true,
-          canApproveExpenses: true,
-          canCreateJobs: true,
-          canEditJobs: true,
-          canManageUsers: true,
-          canViewReports: true,
-          canViewUnallocated: true,
-          isAdmin: true,
-        });
-        break;
-      case UserRole.MANAGER:
-        this.permissionsForm.patchValue({
-          canAllocateJobs: true,
-          canApproveExpenses: true,
-          canCreateJobs: true,
-          canEditJobs: true,
-          canManageUsers: false,
-          canViewReports: true,
-          canViewUnallocated: true,
-          isAdmin: false,
-        });
-        break;
-      case UserRole.DISPATCHER:
-        this.permissionsForm.patchValue({
-          canAllocateJobs: true,
-          canApproveExpenses: false,
-          canCreateJobs: true,
-          canEditJobs: true,
-          canManageUsers: false,
-          canViewReports: true,
-          canViewUnallocated: true,
-          isAdmin: false,
-        });
-        break;
-      case UserRole.DRIVER:
-        this.permissionsForm.patchValue({
-          canAllocateJobs: false,
-          canApproveExpenses: false,
-          canCreateJobs: false,
-          canEditJobs: false,
-          canManageUsers: false,
-          canViewReports: false,
-          canViewUnallocated: false,
-          isAdmin: false,
-        });
-        break;
-      default:
-        this.permissionsForm.patchValue({
-          canAllocateJobs: false,
-          canApproveExpenses: false,
-          canCreateJobs: false,
-          canEditJobs: false,
-          canManageUsers: false,
-          canViewReports: false,
-          canViewUnallocated: false,
-          isAdmin: false,
-        });
-    }
-  }
-
-  /**
-   * Save updated permissions to Firebase
+   * Save updated permissions based on role
    */
   savePermissions(): void {
     if (!this.driver) return;
 
-    const formValues = this.permissionsForm.value;
+    const role = this.permissionsForm.value.role as UserRole;
 
-    const updatedProfile: Partial<UserProfile> = {
-      role: formValues.role,
-      permissions: {
-        canAllocateJobs: formValues.canAllocateJobs,
-        canApproveExpenses: formValues.canApproveExpenses,
-        canCreateJobs: formValues.canCreateJobs,
-        canEditJobs: formValues.canEditJobs,
-        canManageUsers: formValues.canManageUsers,
-        canViewReports: formValues.canViewReports,
-        canViewUnallocated: formValues.canViewUnallocated,
-        isAdmin: formValues.isAdmin,
-      },
-    };
-
-    const updateSub = this.authService.updateUserProfile(this.driverId, updatedProfile).subscribe({
+    this.driverService.updateDriverPermissions(this.driverId, role).subscribe({
       next: () => {
         this.dialog.closeAll();
         this.notificationService.addNotification({
           type: 'success',
           title: 'Permissions Updated',
-          message: 'The driver permissions have been updated successfully',
+          message: `The driver permissions have been set to ${role} role successfully`,
         });
         this.loadDriverDetails(); // Refresh driver data
       },
@@ -456,22 +323,10 @@ export class DriverDetailsComponent implements OnInit, OnDestroy {
         });
       },
     });
-
-    this.subscriptions.push(updateSub);
   }
 
   /**
-   * Open permissions dialog
-   */
-  editPermissions(): void {
-    this.dialog.open(this.permissionsDialog, {
-      width: '500px',
-      disableClose: true,
-    });
-  }
-
-  /**
-   * Open note dialog for adding or editing
+   * Open note dialog for adding
    */
   addNote(): void {
     this.editingNote = null;
@@ -495,71 +350,52 @@ export class DriverDetailsComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Save new or updated note to Firebase
+   * Save new or updated note
    */
   saveNote(): void {
-    if (this.noteForm.invalid) return;
+    if (this.noteForm.invalid || !this.driver) return;
+
+    const content = this.noteForm.get('content')?.value;
 
     // Get current user for author info
-    this.getUserFromAuth().subscribe((user) => {
-      if (!user || !this.driver) {
+    this.authService.getUserProfile().subscribe((userProfile) => {
+      if (!userProfile) {
         this.snackBar.open('You must be logged in to add notes', 'Close', { duration: 3000 });
         return;
       }
 
-      const content = this.noteForm.get('content')?.value;
-
-      // Get user profile for author name
-      this.authService
-        .getUserProfile()
-        .pipe(
-          switchMap((userProfile) => {
-            const authorName = userProfile ? userProfile.name : 'Unknown User';
-
-            if (this.editingNote) {
-              // Update existing note
-              const noteRef = doc(this.firestore, 'driverNotes', this.editingNote.id);
-              return of(
-                updateDoc(noteRef, {
-                  content,
-                  updatedAt: serverTimestamp(),
-                })
-              );
-            } else {
-              // Create new note
-              const notesRef = collection(this.firestore, 'driverNotes');
-              return of(
-                addDoc(notesRef, {
-                  driverId: this.driverId,
-                  content,
-                  date: serverTimestamp(),
-                  authorId: user.uid,
-                  authorName,
-                })
-              );
-            }
-          })
-        )
-        .subscribe({
-          next: (promise) => {
-            promise.then(() => {
-              this.dialog.closeAll();
-              this.loadDriverNotes(); // Refresh notes
-
-              const message = this.editingNote ? 'Note updated successfully' : 'Note added successfully';
-              this.snackBar.open(message, 'Close', { duration: 3000 });
-            });
+      if (this.editingNote) {
+        // Update existing note
+        this.driverService.updateDriverNote(this.editingNote.id, content).subscribe({
+          next: () => {
+            this.dialog.closeAll();
+            this.loadDriverNotes(); // Refresh notes
+            this.snackBar.open('Note updated successfully', 'Close', { duration: 3000 });
           },
           error: (error) => {
-            console.error('Error saving note:', error);
-            this.snackBar.open('Error saving note', 'Close', { duration: 3000 });
+            console.error('Error updating note:', error);
+            this.snackBar.open('Error updating note', 'Close', { duration: 3000 });
           },
         });
+      } else {
+        // Add new note
+        this.driverService.addDriverNote(this.driverId, content, userProfile.id, userProfile.name).subscribe({
+          next: () => {
+            this.dialog.closeAll();
+            this.loadDriverNotes(); // Refresh notes
+            this.snackBar.open('Note added successfully', 'Close', { duration: 3000 });
+          },
+          error: (error) => {
+            console.error('Error adding note:', error);
+            this.snackBar.open('Error adding note', 'Close', { duration: 3000 });
+          },
+        });
+      }
     });
   }
 
   /**
-   * Delete note from Firebase
+   * Delete note
    */
   deleteNote(note: DriverNote): void {
     const dialogRef = this.dialog.open(ConfirmationDialogComponent, {
@@ -575,14 +411,10 @@ export class DriverDetailsComponent implements OnInit, OnDestroy {
 
     dialogRef.afterClosed().subscribe((result) => {
       if (result) {
-        // Alternative approach if deleteDocument is not available
-        const noteRef = doc(this.firestore, 'driverNotes', note.id);
-        of(deleteDoc(noteRef)).subscribe({
-          next: (promise) => {
-            promise.then(() => {
-              this.loadDriverNotes(); // Refresh notes
-              this.snackBar.open('Note deleted successfully', 'Close', { duration: 3000 });
-            });
+        this.driverService.deleteDriverNote(note.id).subscribe({
+          next: () => {
+            this.loadDriverNotes(); // Refresh notes
+            this.snackBar.open('Note deleted successfully', 'Close', { duration: 3000 });
           },
           error: (error) => {
             console.error('Error deleting note:', error);
@@ -594,7 +426,7 @@ export class DriverDetailsComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Delete driver from Firebase
+   * Delete driver
    */
   deleteDriver(): void {
     if (!this.driver) return;
@@ -613,11 +445,8 @@ export class DriverDetailsComponent implements OnInit, OnDestroy {
 
     dialogRef.afterClosed().subscribe((result) => {
       if (result) {
-        // In a real app, this would be a call to a method in the AuthService
-        // to delete the user, followed by cleanup of related data
-
-        // For now, we'll just deactivate the user
-        this.authService.updateUserProfile(this.driverId, { isActive: false }).subscribe({
+        // Deactivate the driver (soft delete)
+        this.driverService.deactivateDriver(this.driverId).subscribe({
           next: () => {
             this.notificationService.addNotification({
               type: 'success',
@@ -676,7 +505,11 @@ export class DriverDetailsComponent implements OnInit, OnDestroy {
         this.jobService.unallocateJob(job.id).subscribe({
           next: () => {
             this.loadDriverJobs(); // Refresh jobs list
-            this.calculateDriverStats(this.driverId); // Update stats
+            // Refresh driver stats
+            this.driverService.getDriverStats(this.driverId).subscribe((stats) => {
+              this.driverStats = stats;
+            });
+
             this.notificationService.addNotification({
               type: 'success',
               title: 'Job Unassigned',
@@ -746,7 +579,7 @@ export class DriverDetailsComponent implements OnInit, OnDestroy {
       return driver.email[0].toUpperCase();
     }
 
-    return (firstName[0] + lastName[0]).toUpperCase();
+    return ((firstName[0] || '') + (lastName[0] || '')).toUpperCase();
   }
 
   /**
@@ -764,7 +597,6 @@ export class DriverDetailsComponent implements OnInit, OnDestroy {
 
   /**
    * Get status class for CSS styling
-   * This accepts a string status value and returns the appropriate CSS class name
    */
   getStatusClass(status: string | undefined): string {
     if (!status) return 'status-gray';
@@ -782,7 +614,6 @@ export class DriverDetailsComponent implements OnInit, OnDestroy {
 
   /**
    * Get type class for CSS styling
-   * This accepts a string type value and returns the appropriate CSS class name
    */
   getTypeClass(type: string | undefined): string {
     if (!type) return 'type-blue';
@@ -805,15 +636,18 @@ export class DriverDetailsComponent implements OnInit, OnDestroy {
   getRoleClass(role: string | undefined): string {
     if (!role) return 'role-driver';
 
-    const roleMap: Record<string, string> = {
-      admin: 'role-admin',
-      manager: 'role-manager',
-      dispatcher: 'role-dispatcher',
-      driver: 'role-driver',
-      user: 'role-user',
-    };
-
-    return roleMap[role.toLowerCase()] || 'role-driver';
+    switch (role.toLowerCase()) {
+      case 'admin':
+        return 'role-admin';
+      case 'system user':
+        return 'role-manager';
+      case 'contractor':
+        return 'role-dispatcher';
+      case 'driver':
+        return 'role-driver';
+      default:
+        return 'role-driver';
+    }
   }
 
   /**
@@ -851,6 +685,11 @@ export class DriverDetailsComponent implements OnInit, OnDestroy {
       canViewReports: 'assessment',
       canViewUnallocated: 'visibility',
       isAdmin: 'admin_panel_settings',
+      canViewSystemSettings: 'settings',
+      canManageCompanies: 'business',
+      canViewAllJobs: 'list_alt',
+      canViewAssignedJobs: 'assignment_turned_in',
+      canCreateExpenses: 'receipt_long',
     };
 
     return icons[key] || 'check_circle';
@@ -882,12 +721,12 @@ export class DriverDetailsComponent implements OnInit, OnDestroy {
     switch (role.toLowerCase()) {
       case 'admin':
         return 'Full system administrator with access to all features and settings';
-      case 'manager':
-        return 'Manages drivers and operations with access to most features';
-      case 'dispatcher':
-        return 'Assigns and coordinates jobs between drivers and customers';
+      case 'system user':
+        return 'Access to most features except system administration';
+      case 'contractor':
+        return 'Limited access to view only assigned jobs and submit expenses';
       case 'driver':
-        return 'Handles vehicle transportation and delivery tasks';
+        return 'Can view and manage assigned jobs and submit expenses';
       default:
         return 'Standard user with limited access';
     }
@@ -898,42 +737,5 @@ export class DriverDetailsComponent implements OnInit, OnDestroy {
    */
   goBack(): void {
     this.location.back();
-  }
-
-  /**
-   * Get the current user from Auth
-   */
-  private getUserFromAuth(): Observable<User | null> {
-    return new Observable<User | null>((observer) => {
-      // Get the current auth state
-      const unsubscribe = onAuthStateChanged(
-        this.auth,
-        (user) => {
-          observer.next(user);
-          observer.complete();
-        },
-        (error) => {
-          observer.error(error);
-        }
-      );
-
-      // Return unsubscribe function for cleanup
-      return unsubscribe;
-    });
-  }
-
-  /**
-   * Convert Firebase timestamp to Date
-   */
-  private convertFirebaseTimestamp(timestamp: any): Date {
-    if (!timestamp) return new Date();
-
-    // Firebase timestamp object with toDate() method
-    if (timestamp && typeof timestamp === 'object' && 'toDate' in timestamp) {
-      return timestamp.toDate();
-    }
-
-    // String or number timestamp
-    return new Date(timestamp);
   }
 }
