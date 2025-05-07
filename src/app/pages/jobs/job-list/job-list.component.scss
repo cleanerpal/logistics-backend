@@ -1,4 +1,4 @@
-/* job-list.component.scss - corrected for sidebar */
+/* job-list.component.scss - with proper sidebar and topbar spacing */
 
 :host {
   display: block;
@@ -6,6 +6,7 @@
   background-color: #f5f5f5;
   min-height: 100vh;
   margin-left: 250px; /* Account for sidebar */
+  padding-top: 88px; /* Account for topbar height (64px) + some padding */
 }
 
 /* Card styles */
@@ -340,6 +341,11 @@ table.loading {
   margin-right: 8px;
 }
 
+/* Duplicate button styling - match styles.scss */
+.mat-menu-item .mat-icon:contains('content_copy') {
+  color: #3f51b5;
+}
+
 /* Responsive Design */
 @media screen and (max-width: 1200px) {
   .filters-section {
@@ -371,6 +377,7 @@ table.loading {
 @media screen and (max-width: 960px) {
   :host {
     padding: 16px;
+    padding-top: 80px; /* Adjusted for smaller screens */
   }
 
   .filters-actions-wrapper {
@@ -395,12 +402,14 @@ table.loading {
 @media screen and (max-width: 768px) {
   :host {
     margin-left: 60px; /* Collapsed sidebar width */
+    padding-top: 72px; /* Account for smaller topbar on mobile */
   }
 }
 
 @media screen and (max-width: 600px) {
   :host {
     padding: 8px;
+    padding-top: 72px; /* Maintain topbar spacing */
   }
 
   .header-wrapper {
@@ -441,6 +450,7 @@ table.loading {
     padding: 0;
     background: white;
     margin-left: 0; /* No sidebar in print */
+    padding-top: 0; /* No topbar in print */
   }
 
   .mat-mdc-card {

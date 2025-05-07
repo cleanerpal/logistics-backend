@@ -9,6 +9,7 @@ import { AuthService } from '../../../services/auth.service';
 import { JobService } from '../../../services/job.service';
 import { Job, UserProfile } from '../../../interfaces/job.interface';
 import { DriverSelectionDialogComponent } from '../../../dialogs/driver-selection-dialog.component';
+import { JobDuplicateDialogComponent } from '../../../dialogs/job-duplicate-dialog.component';
 
 // Interface for notes
 interface Note {
@@ -844,6 +845,53 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
       duration: 3000,
       horizontalPosition: 'center',
       verticalPosition: 'bottom',
+    });
+  }
+
+  /**
+   * Add this import to the top of your job-details.component.ts file:
+   * import { JobDuplicateDialogComponent } from '../../../dialogs/job-duplicate-dialog.component';
+   *
+   * Then add this method to your JobDetailsComponent class:
+   */
+
+  /**
+   * Duplicate the current job
+   */
+  duplicateJob(): void {
+    if (!this.job) return;
+
+    const dialogRef = this.dialog.open(JobDuplicateDialogComponent, {
+      data: {
+        jobId: this.job.id,
+        registrationNumber: this.job.registration,
+        makeModel: this.job.make && this.job.model ? `${this.job.make} ${this.job.model}` : undefined,
+      },
+      width: '400px',
+      panelClass: ['custom-dialog-container', 'duplication-dialog'],
+    });
+
+    dialogRef.afterClosed().subscribe((result) => {
+      if (this.isDestroyed) return;
+
+      if (result) {
+        this.isLoading = true;
+        this.cdr.detectChanges();
+
+        this.jobService.duplicateJob(this.job!.id).subscribe({
+          next: (newJobId) => {
+            this.isLoading = false;
+            this.showSnackbar('Job duplicated successfully');
+            this.router.navigate(['/jobs', newJobId]);
+          },
+          error: (error) => {
+            console.error('Error duplicating job:', error);
+            this.isLoading = false;
+            this.showSnackbar('Error duplicating job: ' + error.message);
+            this.cdr.detectChanges();
+          },
+        });
+      }
     });
   }
 }

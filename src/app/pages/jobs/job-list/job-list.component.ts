@@ -1,14 +1,17 @@
-import { Component, OnInit, ViewChild, AfterViewInit, OnDestroy } from '@angular/core';
-import { Router } from '@angular/router';
-import { MatTableDataSource } from '@angular/material/table';
-import { MatSort } from '@angular/material/sort';
-import { MatPaginator } from '@angular/material/paginator';
+import { AfterViewInit, Component, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { FormControl, FormGroup } from '@angular/forms';
-import { JobService } from '../../../services/job.service';
-import { AuthService } from '../../../services/auth.service';
-import { Job } from '../../../interfaces/job.interface';
+import { MatDialog } from '@angular/material/dialog';
+import { MatPaginator } from '@angular/material/paginator';
+import { MatSnackBar } from '@angular/material/snack-bar';
+import { MatSort } from '@angular/material/sort';
+import { MatTableDataSource } from '@angular/material/table';
+import { Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
+import { JobDuplicateDialogComponent } from '../../../dialogs/job-duplicate-dialog.component';
+import { Job } from '../../../interfaces/job.interface';
+import { AuthService } from '../../../services/auth.service';
+import { JobService } from '../../../services/job.service';
 
 interface JobFilters {
   status: string;
@@ -51,7 +54,7 @@ export class JobListComponent implements OnInit, AfterViewInit, OnDestroy {
     },
   };
 
-  constructor(private router: Router, private jobService: JobService, private authService: AuthService) {
+  constructor(private router: Router, private jobService: JobService, private authService: AuthService, private snackBar: MatSnackBar, private dialog: MatDialog) {
     this.filterForm = new FormGroup({
       status: new FormControl('All'),
       driver: new FormControl('All'),
@@ -247,6 +250,56 @@ export class JobListComponent implements OnInit, AfterViewInit, OnDestroy {
       error: () => {
         this.isLoading = false;
       },
+    });
+  }
+
+  /**
+   * Duplicate a job
+   * @param job The job to duplicate
+   * @param event The click event
+   */
+  duplicateJob(job: Job, event: Event): void {
+    event.stopPropagation(); // Prevent row click event
+
+    const dialogRef = this.dialog.open(JobDuplicateDialogComponent, {
+      data: {
+        jobId: job.id,
+        registrationNumber: job.registration,
+        makeModel: job.make && job.model ? `${job.make} ${job.model}` : undefined,
+      },
+      width: '400px',
+      panelClass: ['custom-dialog-container', 'duplication-dialog'],
+    });
+
+    dialogRef.afterClosed().subscribe((result: any) => {
+      if (result) {
+        this.isLoading = true;
+
+        this.jobService.duplicateJob(job.id).subscribe({
+          next: (newJobId) => {
+            this.isLoading = false;
+            this.showSnackbar('Job duplicated successfully');
+            this.router.navigate(['/jobs', newJobId]);
+          },
+          error: (error) => {
+            console.error('Error duplicating job:', error);
+            this.isLoading = false;
+            this.showSnackbar('Error duplicating job: ' + error.message);
+          },
+        });
+      }
+    });
+  }
+
+  /**
+   * Show a snackbar message
+   * @param message The message to display
+   */
+  private showSnackbar(message: string): void {
+    this.snackBar.open(message, 'Close', {
+      duration: 5000,
+      horizontalPosition: 'center',
+      verticalPosition: 'bottom',
     });
   }
 }

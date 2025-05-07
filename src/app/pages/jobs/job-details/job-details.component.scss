@@ -3,8 +3,8 @@
 .job-details-page {
   min-height: 100vh;
   background-color: var(--background-color);
-  margin-left: var(--sidebar-width); /* Use global variable */
-  padding-top: var(--topbar-height); /* Use global variable */
+  margin-left: 250px; /* Account for sidebar */
+  padding-top: 64px; /* Account for topbar height */
 }
 
 /* Loading Overlay */
@@ -34,7 +34,7 @@
 /* Sticky Header */
 .sticky-header {
   position: sticky;
-  top: var(--topbar-height); /* Start right below the topbar */
+  top: 64px; /* Start right below the topbar */
   background-color: white;
   border-bottom: 1px solid #eee;
   z-index: 99; /* Less than topbar z-index (100) */

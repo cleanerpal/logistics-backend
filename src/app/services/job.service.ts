@@ -18,18 +18,7 @@ import {
   FieldValue,
 } from '@angular/fire/firestore';
 import { Auth } from '@angular/fire/auth';
-import {
-  Observable,
-  BehaviorSubject,
-  from,
-  of,
-  throwError,
-  catchError,
-  map,
-  tap,
-  switchMap,
-  combineLatest,
-} from 'rxjs';
+import { Observable, BehaviorSubject, from, of, throwError, catchError, map, tap, switchMap, combineLatest } from 'rxjs';
 import { Job } from '../interfaces/job.interface';
 import { BaseFirebaseService } from './base-firebase.service';
 import { NotificationService } from './notification.service';
@@ -45,11 +34,7 @@ export class JobService extends BaseFirebaseService {
   public jobs$ = this.jobsSubject.asObservable();
   public loading$ = this.loadingSubject.asObservable();
 
-  constructor(
-    protected override firestore: Firestore,
-    protected override auth: Auth,
-    private notificationService: NotificationService
-  ) {
+  constructor(protected override firestore: Firestore, protected override auth: Auth, private notificationService: NotificationService) {
     super(firestore, auth);
   }
 
@@ -95,11 +80,7 @@ export class JobService extends BaseFirebaseService {
     this.loadingSubject.next(true);
 
     const jobsRef = collection(this.firestore, 'jobs');
-    const q = query(
-      jobsRef,
-      where('status', '==', 'unallocated'),
-      orderBy('createdAt', 'desc')
-    );
+    const q = query(jobsRef, where('status', '==', 'unallocated'), orderBy('createdAt', 'desc'));
 
     return from(getDocs(q)).pipe(
       map((snapshot) => {
@@ -124,11 +105,7 @@ export class JobService extends BaseFirebaseService {
     this.loadingSubject.next(true);
 
     const jobsRef = collection(this.firestore, 'jobs');
-    const q = query(
-      jobsRef,
-      where('customerId', '==', customerId),
-      orderBy('createdAt', 'desc')
-    );
+    const q = query(jobsRef, where('customerId', '==', customerId), orderBy('createdAt', 'desc'));
 
     return from(getDocs(q)).pipe(
       map((snapshot) => {
@@ -153,11 +130,7 @@ export class JobService extends BaseFirebaseService {
     this.loadingSubject.next(true);
 
     const jobsRef = collection(this.firestore, 'jobs');
-    const q = query(
-      jobsRef,
-      where('driverId', '==', driverId),
-      orderBy('createdAt', 'desc')
-    );
+    const q = query(jobsRef, where('driverId', '==', driverId), orderBy('createdAt', 'desc'));
 
     return from(getDocs(q)).pipe(
       map((snapshot) => {
@@ -182,11 +155,7 @@ export class JobService extends BaseFirebaseService {
     this.loadingSubject.next(true);
 
     const jobsRef = collection(this.firestore, 'jobs');
-    const q = query(
-      jobsRef,
-      where('status', '==', status),
-      orderBy('createdAt', 'desc')
-    );
+    const q = query(jobsRef, where('status', '==', status), orderBy('createdAt', 'desc'));
 
     return from(getDocs(q)).pipe(
       map((snapshot) => {
@@ -211,11 +180,7 @@ export class JobService extends BaseFirebaseService {
     this.loadingSubject.next(true);
 
     const jobsRef = collection(this.firestore, 'jobs');
-    const q = query(
-      jobsRef,
-      where('vehicleId', '==', vehicleId),
-      orderBy('createdAt', 'desc')
-    );
+    const q = query(jobsRef, where('vehicleId', '==', vehicleId), orderBy('createdAt', 'desc'));
 
     return from(getDocs(q)).pipe(
       map((snapshot) => {
@@ -244,12 +209,7 @@ export class JobService extends BaseFirebaseService {
     oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
 
     // Using timestamp comparison for date range
-    const q = query(
-      jobsRef,
-      where('createdAt', '>=', oneWeekAgo),
-      orderBy('createdAt', 'desc'),
-      limit(count)
-    );
+    const q = query(jobsRef, where('createdAt', '>=', oneWeekAgo), orderBy('createdAt', 'desc'), limit(count));
 
     return from(getDocs(q)).pipe(
       map((snapshot) => {
@@ -333,9 +293,7 @@ export class JobService extends BaseFirebaseService {
         this.notificationService.addNotification({
           type: 'info',
           title: 'New Job Created',
-          message: `Job for ${jobData.make || ''} ${jobData.model || ''} ${
-            jobData.registration ? '(' + jobData.registration + ')' : ''
-          } has been created`,
+          message: `Job for ${jobData.make || ''} ${jobData.model || ''} ${jobData.registration ? '(' + jobData.registration + ')' : ''} has been created`,
           actionUrl: `/jobs/${docRef.id}`,
         });
 
@@ -776,10 +734,7 @@ export class JobService extends BaseFirebaseService {
     const jobsRef = collection(this.firestore, 'jobs');
 
     // Get counts for each status
-    const unallocatedQuery = query(
-      jobsRef,
-      where('status', '==', 'unallocated')
-    );
+    const unallocatedQuery = query(jobsRef, where('status', '==', 'unallocated'));
     const allocatedQuery = query(jobsRef, where('status', '==', 'allocated'));
     const collectedQuery = query(jobsRef, where('status', '==', 'collected'));
     const deliveredQuery = query(jobsRef, where('status', '==', 'delivered'));
@@ -851,9 +806,7 @@ export class JobService extends BaseFirebaseService {
     }
 
     if (data.collectionCompleteTime) {
-      job.collectionCompleteTime = this.convertTimestamp(
-        data.collectionCompleteTime
-      );
+      job.collectionCompleteTime = this.convertTimestamp(data.collectionCompleteTime);
     }
 
     if (data.deliveryStartTime) {
@@ -861,9 +814,7 @@ export class JobService extends BaseFirebaseService {
     }
 
     if (data.deliveryCompleteTime) {
-      job.deliveryCompleteTime = this.convertTimestamp(
-        data.deliveryCompleteTime
-      );
+      job.deliveryCompleteTime = this.convertTimestamp(data.deliveryCompleteTime);
     }
 
     if (data.allocatedAt) {
@@ -902,56 +853,145 @@ export class JobService extends BaseFirebaseService {
     if (data.customerId) job.customerId = data.customerId;
     if (data.customerName) job.customerName = data.customerName;
     if (data.customerContact) job.customerContact = data.customerContact;
-    if (data.customerContactPhone)
-      job.customerContactPhone = data.customerContactPhone;
+    if (data.customerContactPhone) job.customerContactPhone = data.customerContactPhone;
 
     // Collection details
     if (data.collectionAddress) job.collectionAddress = data.collectionAddress;
     if (data.collectionCity) job.collectionCity = data.collectionCity;
-    if (data.collectionPostcode)
-      job.collectionPostcode = data.collectionPostcode;
-    if (data.collectionContactName)
-      job.collectionContactName = data.collectionContactName;
-    if (data.collectionContactPhone)
-      job.collectionContactPhone = data.collectionContactPhone;
+    if (data.collectionPostcode) job.collectionPostcode = data.collectionPostcode;
+    if (data.collectionContactName) job.collectionContactName = data.collectionContactName;
+    if (data.collectionContactPhone) job.collectionContactPhone = data.collectionContactPhone;
     if (data.collectionNotes) job.collectionNotes = data.collectionNotes;
-    if (data.collectionActualDateTime)
-      job.collectionActualDateTime = this.convertTimestamp(
-        data.collectionActualDateTime
-      );
+    if (data.collectionActualDateTime) job.collectionActualDateTime = this.convertTimestamp(data.collectionActualDateTime);
 
     // Delivery details
     if (data.deliveryAddress) job.deliveryAddress = data.deliveryAddress;
     if (data.deliveryCity) job.deliveryCity = data.deliveryCity;
     if (data.deliveryPostcode) job.deliveryPostcode = data.deliveryPostcode;
-    if (data.deliveryContactName)
-      job.deliveryContactName = data.deliveryContactName;
-    if (data.deliveryContactPhone)
-      job.deliveryContactPhone = data.deliveryContactPhone;
+    if (data.deliveryContactName) job.deliveryContactName = data.deliveryContactName;
+    if (data.deliveryContactPhone) job.deliveryContactPhone = data.deliveryContactPhone;
     if (data.deliveryNotes) job.deliveryNotes = data.deliveryNotes;
-    if (data.deliveryActualDateTime)
-      job.deliveryActualDateTime = this.convertTimestamp(
-        data.deliveryActualDateTime
-      );
+    if (data.deliveryActualDateTime) job.deliveryActualDateTime = this.convertTimestamp(data.deliveryActualDateTime);
 
     // Documentation
     if (data.collectionPhotos) job.collectionPhotos = data.collectionPhotos;
     if (data.deliveryPhotos) job.deliveryPhotos = data.deliveryPhotos;
-    if (data.collectionSignature)
-      job.collectionSignature = data.collectionSignature;
+    if (data.collectionSignature) job.collectionSignature = data.collectionSignature;
     if (data.deliverySignature) job.deliverySignature = data.deliverySignature;
 
     // Split journey
-    if (data.isSplitJourney !== undefined)
-      job.isSplitJourney = data.isSplitJourney;
-    if (data.secondaryCollectionAddress)
-      job.secondaryCollectionAddress = data.secondaryCollectionAddress;
-    if (data.secondaryDeliveryAddress)
-      job.secondaryDeliveryAddress = data.secondaryDeliveryAddress;
+    if (data.isSplitJourney !== undefined) job.isSplitJourney = data.isSplitJourney;
+    if (data.secondaryCollectionAddress) job.secondaryCollectionAddress = data.secondaryCollectionAddress;
+    if (data.secondaryDeliveryAddress) job.secondaryDeliveryAddress = data.secondaryDeliveryAddress;
 
     // Notes
     if (data.notes) job.notes = data.notes;
 
     return job;
+  }
+
+  /**
+   * Add this method to your JobService class
+   *
+   * Duplicate an existing job
+   * @param jobId The ID of the job to duplicate
+   * @returns Observable with the ID of the new job
+   */
+  duplicateJob(jobId: string): Observable<string> {
+    this.loadingSubject.next(true);
+
+    // Get the current user ID
+    const userId = this.currentUserId;
+    if (!userId) {
+      this.loadingSubject.next(false);
+      return throwError(() => new Error('User not authenticated'));
+    }
+
+    // First get the existing job
+    return this.getJobById(jobId).pipe(
+      switchMap((originalJob) => {
+        if (!originalJob) {
+          throw new Error(`Job ${jobId} not found`);
+        }
+
+        // Create a new job data object, explicitly omitting workflow-specific fields
+        const newJobData: Partial<Job> = {
+          // Vehicle information
+          vehicleId: originalJob.vehicleId,
+          make: originalJob.make,
+          model: originalJob.model,
+          registration: originalJob.registration,
+          color: originalJob.color,
+          year: originalJob.year,
+          fuelType: originalJob.fuelType,
+          chassisNumber: originalJob.chassisNumber,
+          vehicleType: originalJob.vehicleType,
+
+          // Customer information
+          customerId: originalJob.customerId,
+          customerName: originalJob.customerName,
+          customerContact: originalJob.customerContact,
+          customerContactPhone: originalJob.customerContactPhone,
+
+          // Primary Collection
+          collectionAddress: originalJob.collectionAddress,
+          collectionCity: originalJob.collectionCity,
+          collectionPostcode: originalJob.collectionPostcode,
+          collectionContactName: originalJob.collectionContactName,
+          collectionContactPhone: originalJob.collectionContactPhone,
+          collectionNotes: originalJob.collectionNotes,
+
+          // Final Delivery
+          deliveryAddress: originalJob.deliveryAddress,
+          deliveryCity: originalJob.deliveryCity,
+          deliveryPostcode: originalJob.deliveryPostcode,
+          deliveryContactName: originalJob.deliveryContactName,
+          deliveryContactPhone: originalJob.deliveryContactPhone,
+          deliveryNotes: originalJob.deliveryNotes,
+
+          // Split journey
+          isSplitJourney: originalJob.isSplitJourney,
+          secondaryCollectionAddress: originalJob.secondaryCollectionAddress,
+          secondaryCollectionCity: originalJob.secondaryCollectionCity,
+          secondaryCollectionPostcode: originalJob.secondaryCollectionPostcode,
+          secondaryCollectionContactName: originalJob.secondaryCollectionContactName,
+          secondaryCollectionContactPhone: originalJob.secondaryCollectionContactPhone,
+          secondaryCollectionNotes: originalJob.secondaryCollectionNotes,
+          secondaryDeliveryAddress: originalJob.secondaryDeliveryAddress,
+          secondaryDeliveryCity: originalJob.secondaryDeliveryCity,
+          secondaryDeliveryPostcode: originalJob.secondaryDeliveryPostcode,
+          secondaryDeliveryContactName: originalJob.secondaryDeliveryContactName,
+          secondaryDeliveryContactPhone: originalJob.secondaryDeliveryContactPhone,
+          secondaryDeliveryNotes: originalJob.secondaryDeliveryNotes,
+
+          // Job status (reset)
+          status: 'unallocated',
+          driverId: null,
+
+          // Notes and reference info
+          notes: `Duplicated from job ${jobId} on ${new Date().toLocaleDateString()}${originalJob.notes ? `\n\nOriginal notes: ${originalJob.notes}` : ''}`,
+        };
+
+        // Create the new job
+        return this.createJob(newJobData);
+      }),
+      tap((newJobId) => {
+        // Add notification about job duplication
+        this.notificationService.addNotification({
+          type: 'success',
+          title: 'Job Duplicated',
+          message: `Job ${jobId} has been duplicated successfully. New job ID: ${newJobId}`,
+          actionUrl: `/jobs/${newJobId}`,
+        });
+
+        // Refresh the jobs list to show the new job
+        this.refreshJobsList();
+      }),
+      catchError((error) => {
+        console.error(`Error duplicating job ${jobId}:`, error);
+        this.loadingSubject.next(false);
+        return throwError(() => error);
+      })
+    );
   }
 }

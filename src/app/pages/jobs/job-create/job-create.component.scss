@@ -5,6 +5,7 @@
   background-color: #f8f9fa;
   padding: 24px;
   margin-left: 250px; /* Account for sidebar */
+  padding-top: 88px; /* Account for topbar height (64px) + some padding */
 }
 
 .create-job-content {
@@ -380,6 +381,7 @@
   .create-job-container {
     margin-left: 60px; /* Collapsed sidebar width */
     padding: 16px;
+    padding-top: 80px; /* Adjusted top padding for collapsed topbar */
   }
 
   .form-grid {
@@ -464,6 +466,7 @@
 @media (max-width: 600px) {
   .create-job-container {
     padding: 8px;
+    padding-top: 72px; /* Further adjusted for smaller screens */
   }
 }
 
@@ -472,6 +475,7 @@
   .create-job-container {
     margin-left: 0; /* No sidebar in print */
     padding: 0;
+    padding-top: 0; /* No topbar in print */
     background: white;
   }
 

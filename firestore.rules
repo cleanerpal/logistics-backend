@@ -1,14 +1,15 @@
+// firestore.rules
 rules_version = '2';
-
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Helper functions
+    // Common functions
     function isAuthenticated() {
       return request.auth != null;
     }
     
     function isAdmin() {
-      return isAuthenticated() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.permissions.isAdmin == true;
+      return isAuthenticated() && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.permissions.isAdmin == true;
     }
     
     function isCurrentUser(userId) {
@@ -16,170 +17,134 @@ service cloud.firestore {
     }
     
     function hasPermission(permission) {
-      let user = get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
-      return isAuthenticated() && (user.permissions[permission] == true || user.permissions.isAdmin == true);
+      return isAuthenticated() && 
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.permissions[permission] == true ||
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.permissions.isAdmin == true);
     }
     
-    function isAssignedDriver(vehicleId) {
-      let vehicle = get(/databases/$(database)/documents/vehicles/$(vehicleId)).data;
-      return isAuthenticated() && vehicle.assignedDriverId == request.auth.uid;
-    }
-    
-    function isValidTimestamp(field) {
-      return field is timestamp;
-    }
-    
-    // Users collection
+    // Users collection rules
     match /users/{userId} {
-      allow read: if isCurrentUser(userId) || isAdmin() || hasPermission('canManageUsers');
+      allow read: if isAuthenticated();
       allow create: if isAdmin();
-      allow update: if isCurrentUser(userId) || isAdmin() || hasPermission('canManageUsers');
+      allow update: if isAdmin() || isCurrentUser(userId);
       allow delete: if isAdmin();
-      
-      // Nested collections within users
-      match /settings/preferences {
-        allow read, write: if isCurrentUser(userId) || isAdmin();
-      }
     }
     
-    // Vehicles collection
-    match /vehicles/{vehicleId} {
-      allow read: if isAuthenticated() && (
-        isAdmin() || 
-        hasPermission('canViewUnallocated') || 
-        resource.data.assignedDriverId == request.auth.uid
-      );
-      
-      allow create: if isAuthenticated() && hasPermission('canCreateJobs');
-      
-      allow update: if isAuthenticated() && (
-        isAdmin() || 
-        hasPermission('canEditJobs') || 
-        (resource.data.assignedDriverId == request.auth.uid && (
-          resource.data.status != 'delivered' && 
-          resource.data.status != 'completed'
-        ))
-      );
-      
-      allow delete: if isAdmin();
-      
-      // Nested collections within vehicles
-      match /checklist/{itemId} {
-        allow read: if isAuthenticated() && (isAdmin() || isAssignedDriver(vehicleId));
-        allow write: if isAuthenticated() && (isAdmin() || isAssignedDriver(vehicleId));
-      }
-      
-      match /events/{eventId} {
-        allow read: if isAuthenticated() && (isAdmin() || isAssignedDriver(vehicleId));
-        allow create: if isAuthenticated() && (isAdmin() || isAssignedDriver(vehicleId));
-        allow update, delete: if isAdmin();
-      }
-      
-      match /expenses/{expenseId} {
-        allow read: if isAuthenticated() && (isAdmin() || isAssignedDriver(vehicleId) || resource.data.driverId == request.auth.uid);
-        allow create: if isAuthenticated() && (isAdmin() || isAssignedDriver(vehicleId));
-        allow update: if isAuthenticated() && (isAdmin() || hasPermission('canApproveExpenses') || (resource.data.driverId == request.auth.uid && !resource.data.approved));
-        allow delete: if isAdmin();
-      }
-      
-      match /damageReports/{reportId} {
-        allow read: if isAuthenticated() && (isAdmin() || isAssignedDriver(vehicleId));
-        allow create: if isAuthenticated() && (isAdmin() || isAssignedDriver(vehicleId));
-        allow update: if isAuthenticated() && (isAdmin() || (resource.data.reportedBy == request.auth.uid && resource.data.status != 'processed'));
-        allow delete: if isAdmin();
-      }
-      
-      match /emailReports/{reportId} {
-        allow read: if isAuthenticated() && (isAdmin() || isAssignedDriver(vehicleId));
-        allow create: if isAuthenticated() && (isAdmin() || isAssignedDriver(vehicleId));
-        allow update, delete: if isAdmin();
-      }
-    }
-    
-    // Jobs collection
+    // Jobs collection rules
     match /jobs/{jobId} {
-      allow read: if isAuthenticated() && (
-        isAdmin() || 
-        hasPermission('canViewUnallocated') || 
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && hasPermission('canCreateJobs');
+      allow update: if isAuthenticated() && (
+        hasPermission('canEditJobs') || 
         resource.data.driverId == request.auth.uid
       );
-      
+      allow delete: if isAdmin();
+    }
+    
+    // Also add rules for 'Jobs' collection with capital J (from your indexes)
+    match /Jobs/{jobId} {
+      allow read: if isAuthenticated();
       allow create: if isAuthenticated() && hasPermission('canCreateJobs');
-      
       allow update: if isAuthenticated() && (
-        isAdmin() || 
         hasPermission('canEditJobs') || 
-        (resource.data.driverId == request.auth.uid && resource.data.status != 'delivered')
+        resource.data.driverId == request.auth.uid
       );
-      
       allow delete: if isAdmin();
     }
     
-    // Customers collection
+    // Customers collection rules
     match /customers/{customerId} {
-      allow read: if isAuthenticated() && (isAdmin() || hasPermission('canCreateJobs'));
-      allow create: if isAuthenticated() && (isAdmin() || hasPermission('canCreateJobs'));
-      allow update: if isAuthenticated() && (isAdmin() || hasPermission('canCreateJobs'));
-      allow delete: if isAdmin();
-    }
-    
-    // Documents collection
-    match /documents/{documentId} {
-      allow read: if isAuthenticated() && (isAdmin() || resource.data.userId == request.auth.uid);
-      allow create: if isAuthenticated();
-      allow update: if isAuthenticated() && (isAdmin() || resource.data.userId == request.auth.uid);
-      allow delete: if isAuthenticated() && (isAdmin() || resource.data.userId == request.auth.uid);
-    }
-    
-    // Expenses collection
-    match /expenses/{expenseId} {
-      allow read: if isAuthenticated() && (isAdmin() || resource.data.driverId == request.auth.uid || hasPermission('canApproveExpenses'));
-      allow create: if isAuthenticated();
-      allow update: if isAuthenticated() && (
-        isAdmin() || 
-        hasPermission('canApproveExpenses') || 
-        (resource.data.driverId == request.auth.uid && !resource.data.approved)
+      allow read: if isAuthenticated();
+      allow create, update: if isAuthenticated() && (
+        hasPermission('canManageCustomers') || isAdmin()
       );
       allow delete: if isAdmin();
     }
     
-    // Notifications collection
-    match /notifications/{notificationId} {
-      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
-      allow create: if isAdmin();
-      allow update: if isAuthenticated() && resource.data.userId == request.auth.uid;
-      allow delete: if isAuthenticated() && (isAdmin() || resource.data.userId == request.auth.uid);
+    // Vehicles collection rules
+    match /vehicles/{vehicleId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isAuthenticated() && (
+        hasPermission('canManageVehicles') || isAdmin()
+      );
+      allow delete: if isAdmin();
     }
     
-    // Vehicle makes and models collections
+    // Vehicle Makes collection rules
     match /vehicleMakes/{makeId} {
       allow read: if isAuthenticated();
-      allow write: if isAdmin();
+      allow write: if isAuthenticated() && (
+        hasPermission('canManageVehicles') || isAdmin()
+      );
     }
     
+    // Vehicle Models collection rules
     match /vehicleModels/{modelId} {
       allow read: if isAuthenticated();
-      allow write: if isAdmin();
+      allow write: if isAuthenticated() && (
+        hasPermission('canManageVehicles') || isAdmin()
+      );
     }
     
-    // Data validation rules for different collections
-    match /vehicles/{vehicleId} {
-      allow update: if isAuthenticated() && 
-        (isAdmin() || hasPermission('canEditJobs') || resource.data.assignedDriverId == request.auth.uid) &&
-        (
-          request.resource.data.updatedAt is timestamp && 
-          request.resource.data.updatedAt > resource.data.updatedAt &&
-          request.resource.data.updatedBy == request.auth.uid
-        );
-    }
-    
+    // Documents collection rules (for user documents like licenses, certificates, etc.)
     match /documents/{documentId} {
-      allow update: if isAuthenticated() && 
-        (isAdmin() || resource.data.userId == request.auth.uid) &&
-        (
-          request.resource.data.updatedAt is timestamp && 
-          request.resource.data.updatedAt > resource.data.updatedAt
-        );
+      allow read: if isAuthenticated() && (
+        resource.data.userId == request.auth.uid || 
+        hasPermission('canManageDocuments') || 
+        isAdmin()
+      );
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated() && (
+        resource.data.userId == request.auth.uid || 
+        hasPermission('canManageDocuments') || 
+        isAdmin()
+      );
+      allow delete: if isAdmin() || hasPermission('canManageDocuments');
+    }
+    
+    // Notifications collection rules
+    match /notifications/{notificationId} {
+      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow create: if isAuthenticated() && (hasPermission('canSendNotifications') || isAdmin());
+      allow update: if isAuthenticated() && (
+        resource.data.userId == request.auth.uid || 
+        hasPermission('canSendNotifications') || 
+        isAdmin()
+      );
+      allow delete: if isAuthenticated() && (
+        resource.data.userId == request.auth.uid || 
+        isAdmin()
+      );
+    }
+    
+    // Driver Notes collection rules
+    match /driverNotes/{noteId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update, delete: if isAuthenticated() && (
+        resource.data.authorId == request.auth.uid || isAdmin()
+      );
+    }
+    
+    // Expenses collection rules
+    match /expenses/{expenseId} {
+      allow read: if isAuthenticated() && (
+        resource.data.driverId == request.auth.uid || 
+        hasPermission('canApproveExpenses') || 
+        isAdmin()
+      );
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated() && (
+        resource.data.driverId == request.auth.uid || 
+        hasPermission('canApproveExpenses') || 
+        isAdmin()
+      );
+      allow delete: if isAdmin();
+    }
+    
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
     }
   }
 }

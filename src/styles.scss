@@ -279,6 +279,34 @@ a:hover {
   background-color: #e1f5fe;
 }
 
+/* Duplication dialog */
+.duplication-dialog .dialog-header {
+  background-color: #e8eaf6;
+}
+
+.duplication-dialog .dialog-header mat-icon {
+  color: #3f51b5;
+}
+
+/* Duplicate button styling */
+.action-btn:has(.material-icons) mat-icon:contains('content_copy') {
+  color: #3f51b5;
+}
+
+.action-btn:has(.material-icons:contains('content_copy')) {
+  border-color: #3f51b5;
+  color: #3f51b5;
+}
+
+.action-btn:has(.material-icons:contains('content_copy')):hover {
+  background-color: #e8eaf6;
+}
+
+/* Fallback for browsers that don't support :has() */
+.action-btn .material-icons.content_copy {
+  color: #3f51b5;
+}
+
 /* Fade in animation for dialogs */
 .mat-mdc-dialog-container.mdc-dialog__container {
   animation: dialogFadeIn 0.2s ease-out;
@@ -363,7 +391,7 @@ a:hover {
   align-items: center;
 }
 
-/* Responsive dialog styles */
+/* Mobile responsiveness for dialogs */
 @media (max-width: 599px) {
   .mat-mdc-dialog-container {
     max-width: 100vw !important;
@@ -378,6 +406,40 @@ a:hover {
 
   .mat-mdc-dialog-container .mdc-dialog__surface {
     border-radius: 0 !important;
+  }
+
+  .duplication-dialog .mat-dialog-container {
+    padding: 16px;
+  }
+
+  .duplicate-dialog .dialog-content {
+    padding: 0 16px;
+    font-size: 14px;
+  }
+
+  .duplicate-dialog .dialog-actions {
+    padding: 8px 16px 16px;
+    flex-direction: column-reverse;
+  }
+
+  .duplicate-dialog .dialog-actions button {
+    width: 100%;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    margin-bottom: 8px;
+  }
+}
+
+/* Account for sidebar when positioning dialog */
+@media (min-width: 600px) {
+  .duplication-dialog {
+    margin-left: 60px; /* For collapsed sidebar */
+  }
+}
+
+@media (min-width: 1200px) {
+  .duplication-dialog {
+    margin-left: 250px; /* For expanded sidebar */
   }
 }
 
@@ -394,5 +456,13 @@ a:hover {
 
   h2 {
     font-size: 18px;
+  }
+}
+
+/* Print styles - hide duplication button when printing */
+@media print {
+  .action-btn:has(.material-icons:contains('content_copy')),
+  .action-btn:has(.material-icons.content_copy) {
+    display: none;
   }
 }

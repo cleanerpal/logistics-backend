@@ -58,6 +58,7 @@ import { CustomerListComponent } from './pages/customers/customers-list/customer
 import { CustomerCreateComponent } from './pages/customers/customer-create/customer-create.component';
 import { CustomerDetailsComponent } from './pages/customers/customer-details/customer-details.component';
 import { DriverEditComponent } from './pages/drivers/driver-edit/driver-edit.component';
+import { JobDuplicateDialogComponent } from './dialogs/job-duplicate-dialog.component';
 
 @NgModule({
   declarations: [
@@ -80,6 +81,7 @@ import { DriverEditComponent } from './pages/drivers/driver-edit/driver-edit.com
     JobCreateComponent,
     JobDetailsComponent,
     JobEditComponent,
+    JobDuplicateDialogComponent,
 
     // Vehicle Components
     VehicleListComponent,
