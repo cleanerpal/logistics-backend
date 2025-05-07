@@ -29,6 +29,14 @@ interface Driver {
   name: string;
 }
 
+// Extended expense type that includes payment properties
+interface ExtendedExpense extends Expense {
+  isPaid?: boolean;
+  paidDate?: Date;
+  paidBy?: string;
+  paymentReference?: string;
+}
+
 @Component({
   selector: 'app-expense-list',
   templateUrl: './expense-list.component.html',
@@ -44,19 +52,19 @@ export class ExpenseListComponent implements OnInit, AfterViewInit {
 
   displayedColumns: string[] = ['id', 'description', 'amount', 'date', 'jobId', 'driver', 'status', 'paidStatus', 'chargeable', 'actions'];
 
-  dataSource = new MatTableDataSource<Expense>([]);
-  filteredExpenses: Expense[] = [];
-  allExpenses: Expense[] = [];
+  dataSource = new MatTableDataSource<ExtendedExpense>([]);
+  filteredExpenses: ExtendedExpense[] = [];
+  allExpenses: ExtendedExpense[] = [];
   isLoading = false;
   isManager = false;
   isPrintingInvoice = false;
 
   statusOptions = Object.values(ExpenseStatus);
-  selectedExpense: Expense | null = null;
+  selectedExpense: ExtendedExpense | null = null;
 
   // For rejection comment
   rejectionForm: FormGroup;
-  expenseToReject: Expense | null = null;
+  expenseToReject: ExtendedExpense | null = null;
 
   // For print invoice
   companyDetails = {
@@ -127,7 +135,7 @@ export class ExpenseListComponent implements OnInit, AfterViewInit {
   }
 
   private setupCustomFilter(): void {
-    this.dataSource.filterPredicate = (data: Expense, filter: string) => {
+    this.dataSource.filterPredicate = (data: ExtendedExpense, filter: string) => {
       const searchStr = filter.toLowerCase();
 
       // Check if the expense matches the search text
@@ -149,8 +157,9 @@ export class ExpenseListComponent implements OnInit, AfterViewInit {
         // Extend expenses with paid status if not present
         this.allExpenses = expenses.map((expense) => ({
           ...expense,
-          isPaid: expense.isPaid !== undefined ? expense.isPaid : false,
-        }));
+          isPaid: (expense as ExtendedExpense).isPaid !== undefined ? (expense as ExtendedExpense).isPaid : false,
+        })) as ExtendedExpense[];
+
         this.applyFilters();
         this.isLoading = false;
       },
@@ -228,11 +237,11 @@ export class ExpenseListComponent implements OnInit, AfterViewInit {
     return statusMap[status] || 'status-default';
   }
 
-  getPaidStatusClass(isPaid: boolean): string {
+  getPaidStatusClass(isPaid: boolean | undefined): string {
     return isPaid ? 'status-approved' : 'status-pending';
   }
 
-  getPaidStatusText(isPaid: boolean): string {
+  getPaidStatusText(isPaid: boolean | undefined): string {
     return isPaid ? 'Paid' : 'Unpaid';
   }
 
@@ -240,7 +249,7 @@ export class ExpenseListComponent implements OnInit, AfterViewInit {
     this.router.navigate(['/expenses/new']);
   }
 
-  viewExpenseDetails(expense: Expense): void {
+  viewExpenseDetails(expense: ExtendedExpense): void {
     this.selectedExpense = expense;
     this.dialog.open(this.expenseDetailDialog, {
       width: '600px',
@@ -251,7 +260,7 @@ export class ExpenseListComponent implements OnInit, AfterViewInit {
     this.dialog.closeAll();
   }
 
-  approveExpense(expense: Expense): void {
+  approveExpense(expense: ExtendedExpense): void {
     // Confirm with the manager
     const dialogRef = this.dialog.open(ConfirmationDialogComponent, {
       width: '400px',
@@ -276,7 +285,13 @@ export class ExpenseListComponent implements OnInit, AfterViewInit {
               // Update the expense in the list
               const index = this.allExpenses.findIndex((e) => e.id === updatedExpense.id);
               if (index !== -1) {
-                this.allExpenses[index] = updatedExpense;
+                // Preserve the isPaid status when updating
+                this.allExpenses[index] = {
+                  ...updatedExpense,
+                  isPaid: this.allExpenses[index].isPaid,
+                  paidDate: this.allExpenses[index].paidDate,
+                } as ExtendedExpense;
+
                 this.applyFilters();
               }
 
@@ -292,7 +307,7 @@ export class ExpenseListComponent implements OnInit, AfterViewInit {
     });
   }
 
-  openRejectDialog(expense: Expense): void {
+  openRejectDialog(expense: ExtendedExpense): void {
     this.expenseToReject = expense;
     this.rejectionForm.reset({
       reason: '',
@@ -320,9 +335,15 @@ export class ExpenseListComponent implements OnInit, AfterViewInit {
           // Update the expense in the list
           const index = this.allExpenses.findIndex((e) => e.id === updatedExpense.id);
           if (index !== -1) {
-            // Update with rejection reason
-            updatedExpense.notes = (updatedExpense.notes || '') + `\nRejection reason: ${reason}`;
-            this.allExpenses[index] = updatedExpense;
+            // Update with rejection reason and preserve payment info
+            const updatedWithNotes = {
+              ...updatedExpense,
+              notes: (updatedExpense.notes || '') + `\nRejection reason: ${reason}`,
+              isPaid: this.allExpenses[index].isPaid,
+              paidDate: this.allExpenses[index].paidDate,
+            } as ExtendedExpense;
+
+            this.allExpenses[index] = updatedWithNotes;
             this.applyFilters();
           }
 
@@ -337,11 +358,11 @@ export class ExpenseListComponent implements OnInit, AfterViewInit {
       });
   }
 
-  rejectExpense(expense: Expense): void {
+  rejectExpense(expense: ExtendedExpense): void {
     this.openRejectDialog(expense);
   }
 
-  updateChargeable(expense: Expense, event: MatCheckboxChange): void {
+  updateChargeable(expense: ExtendedExpense, event: MatCheckboxChange): void {
     if (expense.status !== ExpenseStatus.APPROVED) {
       this.showErrorMessage('Only approved invoices can be marked as chargeable');
       return;
@@ -352,7 +373,13 @@ export class ExpenseListComponent implements OnInit, AfterViewInit {
         // Update the expense in the list
         const index = this.allExpenses.findIndex((e) => e.id === updatedExpense.id);
         if (index !== -1) {
-          this.allExpenses[index] = updatedExpense;
+          // Preserve payment info when updating
+          this.allExpenses[index] = {
+            ...updatedExpense,
+            isPaid: this.allExpenses[index].isPaid,
+            paidDate: this.allExpenses[index].paidDate,
+          } as ExtendedExpense;
+
           this.applyFilters();
         }
 
@@ -365,7 +392,7 @@ export class ExpenseListComponent implements OnInit, AfterViewInit {
     });
   }
 
-  updatePaidStatus(expense: Expense, isPaid: boolean): void {
+  updatePaidStatus(expense: ExtendedExpense, isPaid: boolean): void {
     // Only allow updating paid status for approved invoices
     if (expense.status !== ExpenseStatus.APPROVED) {
       this.showErrorMessage('Only approved invoices can be marked as paid');
@@ -377,10 +404,13 @@ export class ExpenseListComponent implements OnInit, AfterViewInit {
         // Update the expense in the list
         const index = this.allExpenses.findIndex((e) => e.id === updatedExpense.id);
         if (index !== -1) {
+          // Update with payment info
           this.allExpenses[index] = {
             ...this.allExpenses[index],
             isPaid: isPaid,
-          };
+            paidDate: isPaid ? new Date() : undefined,
+          } as ExtendedExpense;
+
           this.applyFilters();
         }
 
@@ -393,7 +423,7 @@ export class ExpenseListComponent implements OnInit, AfterViewInit {
     });
   }
 
-  printInvoice(expense: Expense): void {
+  printInvoice(expense: ExtendedExpense): void {
     this.selectedExpense = expense;
     const dialogRef = this.dialog.open(this.printInvoiceDialog, {
       width: '800px',
@@ -507,7 +537,12 @@ export class ExpenseListComponent implements OnInit, AfterViewInit {
                 // Update the expense in the list
                 const index = this.allExpenses.findIndex((e) => e.id === updatedExpense.id);
                 if (index !== -1) {
-                  this.allExpenses[index] = updatedExpense;
+                  // Preserve payment info when updating
+                  this.allExpenses[index] = {
+                    ...updatedExpense,
+                    isPaid: this.allExpenses[index].isPaid,
+                    paidDate: this.allExpenses[index].paidDate,
+                  } as ExtendedExpense;
                 }
 
                 approvedCount++;
@@ -545,7 +580,7 @@ export class ExpenseListComponent implements OnInit, AfterViewInit {
     return new Date().toLocaleDateString('en-GB');
   }
 
-  getInvoiceNumber(expense: Expense): string {
+  getInvoiceNumber(expense: ExtendedExpense): string {
     return `INV-${expense.id.replace('EXP', '')}`;
   }
 

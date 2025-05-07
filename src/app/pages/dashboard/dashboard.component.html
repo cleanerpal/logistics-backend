@@ -245,8 +245,12 @@
     </div>
 
     <!-- Drivers List -->
-    <div class="drivers-list">
-      <h2>Driver Status</h2>
+    <div class="drivers-list-container mat-elevation-z3">
+      <div class="header-wrapper">
+        <div class="header-title">
+          <h2>Driver Status</h2>
+        </div>
+      </div>
 
       <!-- Status Filter Chips -->
       <div class="status-filter">
@@ -267,9 +271,9 @@
         <p>No drivers found with the selected status</p>
       </div>
 
-      <!-- Driver List -->
-      <ul *ngIf="!isLoadingDrivers && filteredDrivers.length > 0">
-        <li *ngFor="let driver of filteredDrivers" (click)="viewDriverDetails(driver)">
+      <!-- Driver Grid -->
+      <div class="driver-grid" *ngIf="!isLoadingDrivers && filteredDrivers.length > 0">
+        <div class="driver-card" *ngFor="let driver of filteredDrivers" (click)="viewDriverDetails(driver)">
           <div class="driver-avatar">
             {{ getDriverInitials(driver) }}
             <span
@@ -298,8 +302,8 @@
               <mat-icon>visibility</mat-icon>
             </button>
           </div>
-        </li>
-      </ul>
+        </div>
+      </div>
     </div>
   </div>
 </div>

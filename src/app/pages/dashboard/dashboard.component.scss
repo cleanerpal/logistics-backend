@@ -1,9 +1,14 @@
 /* Dashboard Styles */
 .dashboard-container {
   padding: 20px;
+  padding-top: 84px; /* Account for the fixed topbar (64px height + 20px padding) */
   display: flex;
   flex-direction: column;
   gap: 24px;
+  height: 100vh;
+  overflow-y: auto;
+  box-sizing: border-box;
+  margin-left: 250px; /* Account for the sidebar width */
 }
 
 /* Metric Cards Row */
@@ -161,13 +166,10 @@
 
 /* Main Content Layout */
 .main-content {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 24px;
-  grid-template-columns: 1fr;
-
-  @media (min-width: 992px) {
-    grid-template-columns: 3fr 1fr;
-  }
+  width: 100%;
 }
 
 /* Jobs Table Container */
@@ -322,44 +324,53 @@
 }
 
 /* Drivers List Section */
-.drivers-list {
+.drivers-list-container {
   background: white;
   border-radius: 8px;
   padding: 20px;
+  margin-bottom: 24px;
 
-  h2 {
-    margin: 0 0 16px;
-    font-size: 1.25rem;
-    color: var(--text-primary);
+  .header-wrapper {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
   }
 
-  ul {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-    max-height: 540px;
-    overflow-y: auto;
+  .header-title {
+    h2 {
+      margin: 0;
+      font-size: 1.25rem;
+      color: var(--text-primary);
+    }
+  }
 
-    li {
+  .driver-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+    margin-top: 16px;
+
+    .driver-card {
       display: flex;
       align-items: center;
-      padding: 12px 8px;
-      border-bottom: 1px solid var(--border-color);
+      padding: 16px;
+      background-color: #f9f9f9;
+      border-radius: 8px;
       cursor: pointer;
-
-      &:last-child {
-        border-bottom: none;
-      }
+      transition: all 0.2s ease;
 
       &:hover {
-        background-color: rgba(0, 0, 0, 0.02);
+        background-color: #f1f1f1;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
       }
     }
   }
 
   .driver-avatar {
-    width: 40px;
-    height: 40px;
+    width: 50px;
+    height: 50px;
     border-radius: 50%;
     background-color: var(--primary-color);
     color: white;
@@ -369,13 +380,14 @@
     font-weight: 600;
     position: relative;
     margin-right: 16px;
+    font-size: 18px;
 
     .availability-indicator {
       position: absolute;
       bottom: 0;
       right: 0;
-      width: 12px;
-      height: 12px;
+      width: 14px;
+      height: 14px;
       border-radius: 50%;
       border: 2px solid white;
 
@@ -403,6 +415,7 @@
     .driver-name {
       font-weight: 500;
       margin-bottom: 4px;
+      font-size: 16px;
     }
 
     .driver-status {
@@ -487,6 +500,12 @@
 
 /* Responsive fixes */
 @media (max-width: 768px) {
+  .dashboard-container {
+    margin-left: 60px; /* Account for the collapsed sidebar on mobile (60px width) */
+    padding: 15px;
+    padding-top: 74px; /* Slightly reduce top padding on mobile */
+  }
+
   .metric-cards {
     grid-template-columns: 1fr;
   }
@@ -504,11 +523,16 @@
     display: none;
   }
 
-  .main-content {
-    grid-template-columns: 1fr;
-  }
-
   .table-container {
     overflow-x: auto;
   }
+
+  .driver-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* Handle when sidebar is collapsed or in compact mode */
+:host-context(.sidebar-collapsed) .dashboard-container {
+  margin-left: 60px;
 }

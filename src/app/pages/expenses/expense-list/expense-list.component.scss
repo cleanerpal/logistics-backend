@@ -4,6 +4,34 @@
   overflow: hidden;
 }
 
+/* Account for sidebar and topbar */
+@media (min-width: 1200px) {
+  .expenses-card {
+    margin-left: 274px; /* 250px sidebar + 24px margin */
+    margin-top: 88px; /* 64px topbar + 24px margin */
+    margin-right: 24px;
+    margin-bottom: 24px;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1199px) {
+  .expenses-card {
+    margin-left: 84px; /* 60px collapsed sidebar + 24px margin */
+    margin-top: 88px; /* 64px topbar + 24px margin */
+    margin-right: 24px;
+    margin-bottom: 24px;
+  }
+}
+
+@media (max-width: 767px) {
+  .expenses-card {
+    margin-left: 16px;
+    margin-right: 16px;
+    margin-top: 80px; /* topbar + smaller margin */
+    margin-bottom: 16px;
+  }
+}
+
 .header-wrapper {
   padding: 24px 24px 0;
 
@@ -475,10 +503,6 @@ mat-paginator {
 }
 
 @media (max-width: 768px) {
-  .expenses-card {
-    margin: 16px;
-  }
-
   .header-wrapper,
   .filters-actions-wrapper {
     padding: 16px;

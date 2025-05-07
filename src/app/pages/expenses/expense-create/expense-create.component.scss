@@ -4,6 +4,39 @@
   padding: 24px;
 }
 
+/* Account for sidebar and topbar */
+@media (min-width: 1200px) {
+  .expense-create-card {
+    margin-top: 88px; /* 64px topbar + 24px margin */
+    margin-bottom: 24px;
+    margin-left: auto;
+    margin-right: auto;
+    /* Account for the sidebar by setting the card with the right offset */
+    position: relative;
+    left: 125px; /* Half the sidebar width to keep it centered in the remaining space */
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1199px) {
+  .expense-create-card {
+    margin-top: 88px; /* 64px topbar + 24px margin */
+    margin-bottom: 24px;
+    margin-left: auto;
+    margin-right: auto;
+    /* Account for collapsed sidebar */
+    position: relative;
+    left: 30px; /* Half the collapsed sidebar width */
+  }
+}
+
+@media (max-width: 767px) {
+  .expense-create-card {
+    margin: 80px 16px 16px; /* Top includes topbar height */
+    padding: 16px;
+    max-width: unset;
+  }
+}
+
 .card-header {
   margin-bottom: 24px;
 
@@ -184,11 +217,6 @@
 
 /* Responsive styles */
 @media (max-width: 768px) {
-  .expense-create-card {
-    margin: 16px;
-    padding: 16px;
-  }
-
   .form-row {
     flex-direction: column;
     gap: 0;

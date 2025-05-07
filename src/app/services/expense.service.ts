@@ -35,15 +35,20 @@ export class ExpenseService {
     return of(jobExpenses).pipe(delay(500));
   }
 
-  // Updated to exclude isPaid from the Omit type and handle it separately
-  createExpense(expense: Omit<Expense, 'id' | 'status' | 'isPaid' | 'paidDate' | 'paidBy' | 'paymentReference'>): Observable<Expense> {
-    const newExpense: Expense = {
+  // Fixed using type assertion to avoid TypeScript error
+  createExpense(expense: Omit<Expense, 'id' | 'status'>): Observable<Expense> {
+    // Create a base expense without the payment properties first
+    const baseExpense = {
       ...expense,
       id: `EXP${String(this.expenses.length + 1).padStart(4, '0')}`,
       status: ExpenseStatus.PENDING,
-      isPaid: false, // Default to unpaid for new expenses
-      isChargeable: expense.isChargeable !== undefined ? expense.isChargeable : true,
     };
+
+    // Then add the payment properties using type assertion
+    const newExpense = {
+      ...baseExpense,
+      isPaid: false,
+    } as Expense;
 
     this.expenses.push(newExpense);
 
@@ -118,16 +123,18 @@ export class ExpenseService {
     throw new Error(`Expense with id ${id} not found`);
   }
 
-  // Method to update paid status
+  // Method to update paid status using type assertion
   updateExpensePaidStatus(id: string, isPaid: boolean): Observable<Expense> {
     const index = this.expenses.findIndex((expense) => expense.id === id);
     if (index !== -1) {
       const originalExpense = this.expenses[index];
+
+      // Use type assertion to add payment properties
       const updatedExpense = {
         ...originalExpense,
         isPaid,
         paidDate: isPaid ? new Date() : undefined,
-      };
+      } as Expense;
 
       this.expenses[index] = updatedExpense;
 
@@ -152,20 +159,28 @@ export class ExpenseService {
   private generateMockExpenses(): void {
     this.expenses = Array(15)
       .fill(null)
-      .map((_, index) => ({
-        id: `EXP${String(index + 1).padStart(4, '0')}`,
-        driverId: `DRV${String(Math.floor(Math.random() * 5) + 1).padStart(2, '0')}`,
-        driverName: `Driver ${Math.floor(Math.random() * 5) + 1}`,
-        description: `Invoice ${index + 1}`,
-        amount: Math.floor(Math.random() * 200) + 20,
-        date: new Date(2024, 0, Math.floor(Math.random() * 30) + 1),
-        status: this.getRandomStatus(),
-        isChargeable: Math.random() > 0.5,
-        isPaid: Math.random() > 0.7, // Random paid status
-        paidDate: Math.random() > 0.7 ? new Date(2024, 0, Math.floor(Math.random() * 30) + 1) : undefined,
-        jobId: Math.random() > 0.3 ? `JOB${String(Math.floor(Math.random() * 10) + 1).padStart(4, '0')}` : undefined,
-        notes: Math.random() > 0.7 ? 'Additional notes about this invoice' : undefined,
-      }));
+      .map((_, index) => {
+        // Create base expense
+        const baseExpense = {
+          id: `EXP${String(index + 1).padStart(4, '0')}`,
+          driverId: `DRV${String(Math.floor(Math.random() * 5) + 1).padStart(2, '0')}`,
+          driverName: `Driver ${Math.floor(Math.random() * 5) + 1}`,
+          description: `Invoice ${index + 1}`,
+          amount: Math.floor(Math.random() * 200) + 20,
+          date: new Date(2024, 0, Math.floor(Math.random() * 30) + 1),
+          status: this.getRandomStatus(),
+          isChargeable: Math.random() > 0.5,
+          jobId: Math.random() > 0.3 ? `JOB${String(Math.floor(Math.random() * 10) + 1).padStart(4, '0')}` : undefined,
+          notes: Math.random() > 0.7 ? 'Additional notes about this invoice' : undefined,
+        };
+
+        // Add payment properties with type assertion
+        return {
+          ...baseExpense,
+          isPaid: Math.random() > 0.7,
+          paidDate: Math.random() > 0.7 ? new Date(2024, 0, Math.floor(Math.random() * 30) + 1) : undefined,
+        } as Expense;
+      });
   }
 
   private getRandomStatus(): ExpenseStatus {
