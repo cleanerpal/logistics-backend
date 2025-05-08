@@ -1,12 +1,12 @@
 import { Location } from '@angular/common';
-import { Component, OnDestroy, OnInit, TemplateRef, ViewChild } from '@angular/core';
+import { Component, OnInit, OnDestroy, ViewChild, TemplateRef } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { ActivatedRoute, Router } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
 import { MatPaginator } from '@angular/material/paginator';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatSort } from '@angular/material/sort';
 import { MatTableDataSource } from '@angular/material/table';
-import { ActivatedRoute, Router } from '@angular/router';
 import { Observable, Subscription, forkJoin, of } from 'rxjs';
 import { catchError, finalize, switchMap, tap } from 'rxjs/operators';
 
@@ -17,6 +17,10 @@ import { AuthService } from '../../../services/auth.service';
 import { DriverNote, DriverService, DriverStats } from '../../../services/driver.service';
 import { JobService } from '../../../services/job.service';
 import { NotificationService } from '../../../services/notification.service';
+import { LeaveRequest, LeaveRequestStatus } from '../../../interfaces/leave-request.interface';
+import { LeaveRequestService } from '../../../services/leave-request.service';
+import { LeaveRequestProcessDialogComponent } from '../../../pages/leave-requests/leave-request-process-dialog/leave-request-process-dialog.component';
+import { LeaveRequestCreateDialogComponent } from '../../../pages/leave-requests/leave-request-create-dialog/leave-request-create-dialog.component';
 
 interface PermissionInfo {
   key: string;
@@ -35,12 +39,18 @@ export class DriverDetailsComponent implements OnInit, OnDestroy {
   driver: UserProfile | null = null;
   isLoading = true;
   hasEditPermission = false;
-  activeTab: 'details' | 'jobs' | 'permissions' | 'notes' = 'details';
+  activeTab: 'details' | 'jobs' | 'leave' | 'permissions' | 'notes' = 'details';
 
   // Jobs table
   jobsDataSource = new MatTableDataSource<Job>([]);
   jobColumns: string[] = ['id', 'status', 'vehicle', 'collection', 'delivery', 'date', 'actions'];
   isJobsLoading = false;
+
+  // Leave requests table
+  leaveRequestsDataSource = new MatTableDataSource<LeaveRequest>([]);
+  leaveColumns: string[] = ['type', 'dates', 'duration', 'status', 'submitted', 'actions'];
+  isLeaveRequestsLoading = false;
+  hasLeaveApprovePermission = false;
 
   // Driver stats
   driverStats: DriverStats = {
@@ -146,6 +156,7 @@ export class DriverDetailsComponent implements OnInit, OnDestroy {
     private driverService: DriverService,
     private jobService: JobService,
     private notificationService: NotificationService,
+    private leaveRequestService: LeaveRequestService,
     private dialog: MatDialog,
     private snackBar: MatSnackBar,
     private fb: FormBuilder
@@ -171,6 +182,12 @@ export class DriverDetailsComponent implements OnInit, OnDestroy {
       this.hasEditPermission = hasPermission;
     });
     this.subscriptions.push(permissionSub);
+
+    // Check leave request approval permissions
+    const leavePermissionSub = this.authService.hasAnyPermission(['canApproveLeaveRequests', 'isAdmin']).subscribe((hasPermission) => {
+      this.hasLeaveApprovePermission = hasPermission;
+    });
+    this.subscriptions.push(leavePermissionSub);
   }
 
   ngOnDestroy(): void {
@@ -207,6 +224,7 @@ export class DriverDetailsComponent implements OnInit, OnDestroy {
             return forkJoin({
               jobs: this.loadDriverJobs(),
               notes: this.loadDriverNotes(),
+              leaveRequests: this.loadDriverLeaveRequests(),
               stats: this.driverService.getDriverStats(driver.id),
             });
           }
@@ -274,6 +292,31 @@ export class DriverDetailsComponent implements OnInit, OnDestroy {
       catchError((error) => {
         console.error('Error loading driver notes:', error);
         this.isNotesLoading = false;
+        return of([]);
+      })
+    );
+  }
+
+  /**
+   * Load driver leave requests
+   */
+  loadDriverLeaveRequests(): Observable<LeaveRequest[]> {
+    this.isLeaveRequestsLoading = true;
+
+    return this.leaveRequestService.getDriverLeaveRequests(this.driverId).pipe(
+      tap((leaveRequests) => {
+        this.leaveRequestsDataSource.data = leaveRequests;
+        setTimeout(() => {
+          if (this.sort && this.paginator) {
+            this.leaveRequestsDataSource.sort = this.sort;
+            this.leaveRequestsDataSource.paginator = this.paginator;
+          }
+        });
+        this.isLeaveRequestsLoading = false;
+      }),
+      catchError((error) => {
+        console.error('Error loading leave requests:', error);
+        this.isLeaveRequestsLoading = false;
         return of([]);
       })
     );
@@ -554,7 +597,7 @@ export class DriverDetailsComponent implements OnInit, OnDestroy {
   /**
    * Set active tab
    */
-  setActiveTab(tab: 'details' | 'jobs' | 'permissions' | 'notes'): void {
+  setActiveTab(tab: 'details' | 'jobs' | 'leave' | 'permissions' | 'notes'): void {
     this.activeTab = tab;
   }
 
@@ -737,5 +780,152 @@ export class DriverDetailsComponent implements OnInit, OnDestroy {
    */
   goBack(): void {
     this.location.back();
+  }
+
+  /**
+   * Calculate duration between two dates in days
+   */
+  calculateDuration(startDate: Date, endDate: Date): number {
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+
+    // Calculate the difference in milliseconds
+    const diffTime = Math.abs(end.getTime() - start.getTime());
+
+    // Convert to days and add 1 to include both start and end dates
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+
+    return diffDays;
+  }
+
+  /**
+   * Get status class for leave request status
+   */
+  getLeaveStatusClass(status: string): string {
+    switch (status) {
+      case LeaveRequestStatus.APPROVED:
+        return 'status-green';
+      case LeaveRequestStatus.DENIED:
+        return 'status-red';
+      case LeaveRequestStatus.PENDING:
+        return 'status-orange';
+      case LeaveRequestStatus.CANCELLED:
+        return 'status-gray';
+      default:
+        return 'status-gray';
+    }
+  }
+
+  /**
+   * Check if user can process a leave request
+   */
+  canProcessLeaveRequest(request: LeaveRequest): boolean {
+    return request.status === LeaveRequestStatus.PENDING && this.hasLeaveApprovePermission;
+  }
+
+  /**
+   * Open dialog to create a new leave request
+   */
+  createLeaveRequest(): void {
+    if (!this.driver) return;
+
+    const dialogRef = this.dialog.open(LeaveRequestCreateDialogComponent, {
+      width: '500px',
+      data: {
+        driverId: this.driverId,
+        driverName: `${this.driver.firstName} ${this.driver.lastName}`,
+      },
+    });
+
+    dialogRef.afterClosed().subscribe((result) => {
+      if (result) {
+        this.loadDriverLeaveRequests().subscribe();
+      }
+    });
+  }
+
+  /**
+   * Process (approve or deny) a leave request
+   */
+  processLeaveRequest(request: LeaveRequest, isApproval: boolean): void {
+    const dialogRef = this.dialog.open(LeaveRequestProcessDialogComponent, {
+      width: '500px',
+      data: {
+        request,
+        isApproval,
+      },
+    });
+
+    dialogRef.afterClosed().subscribe((result) => {
+      if (result) {
+        if (isApproval) {
+          this.approveLeaveRequest(request.id, result.notes);
+        } else {
+          this.denyLeaveRequest(request.id, result.notes);
+        }
+      }
+    });
+  }
+
+  /**
+   * Approve a leave request
+   */
+  approveLeaveRequest(requestId: string, notes?: string): void {
+    this.isLeaveRequestsLoading = true;
+
+    const approveSub = this.leaveRequestService
+      .approveLeaveRequest(requestId, notes)
+      .pipe(finalize(() => (this.isLeaveRequestsLoading = false)))
+      .subscribe({
+        next: () => {
+          this.notificationService.addNotification({
+            type: 'success',
+            title: 'Leave Request Approved',
+            message: 'The leave request has been approved successfully',
+          });
+          this.loadDriverLeaveRequests().subscribe();
+        },
+        error: (error) => {
+          console.error('Error approving leave request:', error);
+          this.notificationService.addNotification({
+            type: 'error',
+            title: 'Error',
+            message: 'Failed to approve leave request',
+          });
+        },
+      });
+
+    this.subscriptions.push(approveSub);
+  }
+
+  /**
+   * Deny a leave request
+   */
+  denyLeaveRequest(requestId: string, notes?: string): void {
+    this.isLeaveRequestsLoading = true;
+
+    const denySub = this.leaveRequestService
+      .denyLeaveRequest(requestId, notes)
+      .pipe(finalize(() => (this.isLeaveRequestsLoading = false)))
+      .subscribe({
+        next: () => {
+          this.notificationService.addNotification({
+            type: 'success',
+            title: 'Leave Request Denied',
+            message: 'The leave request has been denied',
+          });
+          this.loadDriverLeaveRequests().subscribe();
+        },
+        error: (error) => {
+          console.error('Error denying leave request:', error);
+          this.notificationService.addNotification({
+            type: 'error',
+            title: 'Error',
+            message: 'Failed to deny leave request',
+          });
+        },
+      });
+
+    this.subscriptions.push(denySub);
   }
 }

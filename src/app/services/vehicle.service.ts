@@ -22,6 +22,7 @@ import { Observable, BehaviorSubject, from, of, throwError } from 'rxjs';
 import { catchError, map, tap, switchMap } from 'rxjs/operators';
 import { BaseFirebaseService } from './base-firebase.service';
 import { NotificationService } from './notification.service';
+import { Job } from '../interfaces/job.interface';
 
 export interface VehicleMake {
   id: string;
@@ -773,6 +774,133 @@ export class VehicleService extends BaseFirebaseService {
       catchError(() => {
         // If that fails, return default types
         return of(['Car', 'Van', 'Motorbike', 'Truck', 'Bus', 'Trailer']);
+      })
+    );
+  }
+
+  /**
+   * Create or update a vehicle from job data
+   * This method ensures vehicle data is properly saved when creating a job
+   * @param jobData The job data containing vehicle information
+   * @returns Observable with the vehicle ID
+   */
+  createOrUpdateVehicleFromJob(jobData: Partial<Job>): Observable<string> {
+    this.loadingSubject.next(true);
+
+    // Check for required vehicle data
+    if (!jobData.registration) {
+      this.loadingSubject.next(false);
+      return throwError(() => new Error('Vehicle registration is required'));
+    }
+
+    // Get the current user ID
+    const userId = this.currentUserId;
+    if (!userId) {
+      this.loadingSubject.next(false);
+      return throwError(() => new Error('User not authenticated'));
+    }
+
+    // Format registration as uppercase without spaces for document ID
+    const vehicleId = jobData.registration.toUpperCase().replace(/\s+/g, '');
+
+    // First check if the vehicle already exists
+    const vehicleRef = doc(this.firestore, `vehicles/${vehicleId}`);
+
+    return from(getDoc(vehicleRef)).pipe(
+      switchMap((docSnap) => {
+        // Prepare vehicle data from job information
+        const vehicleData: Record<string, any> = {
+          registration: jobData.registration.toUpperCase(),
+          makeId: jobData['makeId'] || '',
+          makeName: jobData.make || '',
+          modelId: jobData['modelId'] || '',
+          modelName: jobData.model || '',
+          type: jobData.vehicleType || '',
+          color: jobData.color || '',
+          updatedAt: serverTimestamp(),
+          updatedBy: userId,
+          lastProcessedDate: serverTimestamp(),
+        };
+
+        // Add optional fields only if they exist in the job data
+        if (jobData.chassisNumber) {
+          vehicleData['chassisNumber'] = jobData.chassisNumber.toUpperCase();
+        }
+
+        if (jobData.year) {
+          vehicleData['year'] = Number(jobData.year);
+        }
+
+        if (docSnap.exists()) {
+          // Vehicle exists, update it
+          const existingData = docSnap.data();
+
+          // Keep existing values for these fields if present
+          const mergedData: Record<string, any> = {
+            ...vehicleData,
+            // Don't overwrite these timestamps with new server timestamps
+            firstProcessedDate: existingData['firstProcessedDate'],
+            // Preserve existing job history and increment count
+            jobCount: (existingData['jobCount'] || 0) + 1,
+          };
+
+          // Handle jobHistory array - add job ID if it doesn't exist and is provided
+          if (jobData.id) {
+            const existingJobHistory = existingData['jobHistory'] || [];
+            if (!existingJobHistory.includes(jobData.id)) {
+              mergedData['jobHistory'] = [...existingJobHistory, jobData.id];
+            } else {
+              mergedData['jobHistory'] = existingJobHistory;
+            }
+          }
+
+          // Preserve existing fields that shouldn't be overwritten
+          if (existingData['mileage'] !== undefined) {
+            mergedData['mileage'] = existingData['mileage'];
+          }
+
+          if (existingData['photos']) {
+            mergedData['photos'] = existingData['photos'];
+          }
+
+          if (existingData['conditionReports']) {
+            mergedData['conditionReports'] = existingData['conditionReports'];
+          }
+
+          return updateDoc(vehicleRef, mergedData).then(() => vehicleId);
+        } else {
+          // Vehicle doesn't exist, create new
+          const newVehicleData: Record<string, any> = {
+            ...vehicleData,
+            id: vehicleId,
+            createdAt: serverTimestamp(),
+            firstProcessedDate: serverTimestamp(),
+            createdBy: userId,
+            mileage: 0,
+            jobCount: 1,
+            jobHistory: jobData.id ? [jobData.id] : [],
+            chassisNumber: jobData.chassisNumber?.toUpperCase() || '',
+            year: jobData.year ? Number(jobData.year) : 0,
+          };
+
+          return setDoc(vehicleRef, newVehicleData).then(() => vehicleId);
+        }
+      }),
+      tap((resultVehicleId) => {
+        // Add notification
+        this.notificationService.addNotification({
+          type: 'info',
+          title: 'Vehicle Data Updated',
+          message: `Vehicle ${jobData.registration} has been updated in the system`,
+          actionUrl: `/vehicles/${resultVehicleId}`,
+        });
+
+        this.loadingSubject.next(false);
+      }),
+      catchError((error) => {
+        console.error('Error creating/updating vehicle from job:', error);
+        this.loadingSubject.next(false);
+        return throwError(() => error);
       })
     );
   }

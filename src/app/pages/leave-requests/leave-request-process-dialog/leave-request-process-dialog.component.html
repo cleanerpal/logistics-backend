@@ -1,0 +1,70 @@
+<div class="leave-process-dialog" [ngClass]="data.isApproval ? 'approval-dialog' : 'denial-dialog'">
+  <div class="dialog-header" [ngClass]="data.isApproval ? 'approval-header' : 'denial-header'">
+    <mat-icon>{{ data.isApproval ? 'check_circle' : 'cancel' }}</mat-icon>
+    <h2 mat-dialog-title>{{ data.isApproval ? 'Approve' : 'Deny' }} Leave Request</h2>
+  </div>
+
+  <mat-dialog-content class="dialog-content">
+    <div class="request-details">
+      <div class="driver-info section">
+        <h3>Driver Information</h3>
+        <p class="driver-name">{{ data.request.driverName }}</p>
+      </div>
+
+      <div class="leave-details section">
+        <h3>Leave Details</h3>
+        <ul class="details-list">
+          <li>
+            <span class="label">Type:</span>
+            <span class="value">{{ data.request.type }}</span>
+          </li>
+          <li>
+            <span class="label">Duration:</span>
+            <span class="value">{{ getDaysBetween() }} days</span>
+          </li>
+          <li>
+            <span class="label">From:</span>
+            <span class="value">{{ formatDate(data.request.startDate) }}</span>
+          </li>
+          <li>
+            <span class="label">To:</span>
+            <span class="value">{{ formatDate(data.request.endDate) }}</span>
+          </li>
+          <li *ngIf="data.request.notes">
+            <span class="label">Notes:</span>
+            <span class="value notes">{{ data.request.notes }}</span>
+          </li>
+        </ul>
+      </div>
+
+      <div class="process-section">
+        <form [formGroup]="processForm">
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Response Notes (Optional)</mat-label>
+            <textarea matInput formControlName="notes" rows="3"></textarea>
+            <mat-hint>Add any comments or instructions for the driver</mat-hint>
+          </mat-form-field>
+        </form>
+      </div>
+    </div>
+
+    <div class="confirmation-message" [ngClass]="data.isApproval ? 'approval-message' : 'denial-message'">
+      <mat-icon>{{ data.isApproval ? 'info' : 'warning' }}</mat-icon>
+      <p>
+        You are about to <strong>{{ data.isApproval ? 'approve' : 'deny' }}</strong> this leave request.
+        {{
+          data.isApproval
+            ? 'The driver will be notified that their time off has been approved.'
+            : 'Please make sure to provide a reason in the notes above if you are denying this request.'
+        }}
+      </p>
+    </div>
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end" class="dialog-actions">
+    <button mat-button class="cancel-button" (click)="onCancelClick()">Cancel</button>
+    <button mat-flat-button [color]="data.isApproval ? 'primary' : 'warn'" (click)="onSubmitClick()">
+      {{ data.isApproval ? 'Approve Leave' : 'Deny Leave' }}
+    </button>
+  </mat-dialog-actions>
+</div>

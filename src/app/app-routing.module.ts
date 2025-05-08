@@ -23,6 +23,7 @@ import { CustomerDetailsComponent } from './pages/customers/customer-details/cus
 import { DriverEditComponent } from './pages/drivers/driver-edit/driver-edit.component';
 import { ExpenseListComponent } from './pages/expenses/expense-list/expense-list.component';
 import { ExpenseCreateComponent } from './pages/expenses/expense-create/expense-create.component';
+import { LeaveRequestsListComponent } from './pages/leave-requests/leave-request-list/leave-requests-list.component';
 
 const routes: Routes = [
   // Auth routes (lazy loaded)
@@ -140,6 +141,11 @@ const routes: Routes = [
   {
     path: 'vehicle-movement',
     component: VehicleMovementComponent,
+    canActivate: [AuthGuard],
+  },
+  {
+    path: 'leave-requests',
+    component: LeaveRequestsListComponent,
     canActivate: [AuthGuard],
   },
   {

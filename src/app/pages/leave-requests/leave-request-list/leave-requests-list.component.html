@@ -1,0 +1,164 @@
+<mat-card class="mat-elevation-z3">
+  <!-- Header -->
+  <div class="header-wrapper">
+    <div class="header-title">
+      <h1>Leave Requests</h1>
+      <p class="subtitle">
+        {{ dataSource.filteredData.length }} total leave requests
+        <ng-container *ngIf="selection.hasValue()"> ({{ selection.selected.length }} selected) </ng-container>
+      </p>
+    </div>
+  </div>
+
+  <!-- Filters and Actions Bar -->
+  <div class="filters-actions-wrapper">
+    <div class="filters-section">
+      <mat-form-field appearance="outline" class="search-field">
+        <mat-label>Search leave requests</mat-label>
+        <input matInput (keyup)="applyFilter($event)" placeholder="Search by driver name or type" />
+        <mat-icon matSuffix>search</mat-icon>
+      </mat-form-field>
+
+      <div class="filters-group">
+        <mat-form-field appearance="outline">
+          <mat-label>Status</mat-label>
+          <mat-select [(value)]="statusFilter" (selectionChange)="onFilterChange()">
+            <mat-option *ngFor="let status of statusOptions" [value]="status">
+              {{ status }}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Type</mat-label>
+          <mat-select [(value)]="typeFilter" (selectionChange)="onFilterChange()">
+            <mat-option value="All">All</mat-option>
+            <mat-option value="Holiday">Holiday</mat-option>
+            <mat-option value="Sick Leave">Sick Leave</mat-option>
+            <mat-option value="Personal Leave">Personal Leave</mat-option>
+            <mat-option value="Bereavement">Bereavement</mat-option>
+            <mat-option value="Other">Other</mat-option>
+          </mat-select>
+        </mat-form-field>
+      </div>
+    </div>
+  </div>
+
+  <!-- Table Container -->
+  <div class="table-container">
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" *ngIf="isLoading">
+      <mat-spinner diameter="40"></mat-spinner>
+      <span>Loading leave requests...</span>
+    </div>
+
+    <!-- Table -->
+    <table mat-table [dataSource]="dataSource" matSort [class.loading]="isLoading">
+      <!-- Checkbox Column -->
+      <ng-container matColumnDef="select">
+        <th mat-header-cell *matHeaderCellDef>
+          <mat-checkbox
+            (change)="$event ? toggleAllRows() : null"
+            [checked]="selection.hasValue() && isAllSelected()"
+            [indeterminate]="selection.hasValue() && !isAllSelected()"
+            [aria-label]="checkboxLabel()">
+          </mat-checkbox>
+        </th>
+        <td mat-cell *matCellDef="let row">
+          <mat-checkbox
+            (click)="$event.stopPropagation()"
+            (change)="$event ? selection.toggle(row) : null"
+            [checked]="selection.isSelected(row)"
+            [aria-label]="checkboxLabel(row)">
+          </mat-checkbox>
+        </td>
+      </ng-container>
+
+      <!-- Driver Name Column -->
+      <ng-container matColumnDef="driverName">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>Driver</th>
+        <td mat-cell *matCellDef="let request">{{ request.driverName }}</td>
+      </ng-container>
+
+      <!-- Type Column -->
+      <ng-container matColumnDef="type">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>Type</th>
+        <td mat-cell *matCellDef="let request">{{ request.type }}</td>
+      </ng-container>
+
+      <!-- Start Date Column -->
+      <ng-container matColumnDef="startDate">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>Start Date</th>
+        <td mat-cell *matCellDef="let request">{{ request.startDate | date : 'MMM d, y' }}</td>
+      </ng-container>
+
+      <!-- End Date Column -->
+      <ng-container matColumnDef="endDate">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>End Date</th>
+        <td mat-cell *matCellDef="let request">{{ request.endDate | date : 'MMM d, y' }}</td>
+      </ng-container>
+
+      <!-- Submitted Column -->
+      <ng-container matColumnDef="submitted">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>Submitted</th>
+        <td mat-cell *matCellDef="let request">{{ request.submitted | date : 'MMM d, y' }}</td>
+      </ng-container>
+
+      <!-- Status Column -->
+      <ng-container matColumnDef="status">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>Status</th>
+        <td mat-cell *matCellDef="let request">
+          <span class="status-chip" [ngClass]="getStatusClass(request.status)">
+            {{ request.status }}
+          </span>
+        </td>
+      </ng-container>
+
+      <!-- Actions Column -->
+      <ng-container matColumnDef="actions">
+        <th mat-header-cell *matHeaderCellDef></th>
+        <td mat-cell *matCellDef="let request">
+          <div class="action-buttons" *ngIf="canProcessRequest(request.status)">
+            <button mat-icon-button color="primary" matTooltip="Approve" (click)="processLeaveRequest(request, true); $event.stopPropagation()">
+              <mat-icon>check_circle</mat-icon>
+            </button>
+            <button mat-icon-button color="warn" matTooltip="Deny" (click)="processLeaveRequest(request, false); $event.stopPropagation()">
+              <mat-icon>cancel</mat-icon>
+            </button>
+          </div>
+          <button mat-icon-button [matMenuTriggerFor]="menu" (click)="$event.stopPropagation()">
+            <mat-icon>more_vert</mat-icon>
+          </button>
+          <mat-menu #menu="matMenu">
+            <button mat-menu-item *ngIf="canProcessRequest(request.status)" (click)="processLeaveRequest(request, true)">
+              <mat-icon color="primary">check_circle</mat-icon>
+              <span>Approve</span>
+            </button>
+            <button mat-menu-item *ngIf="canProcessRequest(request.status)" (click)="processLeaveRequest(request, false)">
+              <mat-icon color="warn">cancel</mat-icon>
+              <span>Deny</span>
+            </button>
+            <button mat-menu-item>
+              <mat-icon>visibility</mat-icon>
+              <span>View Details</span>
+            </button>
+          </mat-menu>
+        </td>
+      </ng-container>
+
+      <!-- Header and Data Rows -->
+      <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns" class="leave-request-row"></tr>
+    </table>
+
+    <!-- Empty State -->
+    <div class="empty-state" *ngIf="!isLoading && dataSource.filteredData.length === 0">
+      <mat-icon class="empty-icon">event_busy</mat-icon>
+      <h3>No leave requests found</h3>
+      <p>No leave requests match your current filters</p>
+    </div>
+  </div>
+
+  <!-- Paginator -->
+  <mat-paginator [length]="dataSource.filteredData.length" [pageSize]="10" [pageSizeOptions]="[5, 10, 25, 50]" showFirstLastButtons> </mat-paginator>
+</mat-card>

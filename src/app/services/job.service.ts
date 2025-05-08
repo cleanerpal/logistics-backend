@@ -23,6 +23,8 @@ import { Job } from '../interfaces/job.interface';
 import { BaseFirebaseService } from './base-firebase.service';
 import { NotificationService } from './notification.service';
 import { JobStatus } from '../shared/models/job-status.enum';
+import { VehicleService } from './vehicle.service';
+import { Vehicle } from '../interfaces/vehicle.interface';
 
 @Injectable({
   providedIn: 'root',
@@ -34,7 +36,12 @@ export class JobService extends BaseFirebaseService {
   public jobs$ = this.jobsSubject.asObservable();
   public loading$ = this.loadingSubject.asObservable();
 
-  constructor(protected override firestore: Firestore, protected override auth: Auth, private notificationService: NotificationService) {
+  constructor(
+    protected override firestore: Firestore,
+    protected override auth: Auth,
+    private notificationService: NotificationService,
+    private vehicleService: VehicleService
+  ) {
     super(firestore, auth);
   }
 
@@ -258,7 +265,7 @@ export class JobService extends BaseFirebaseService {
   }
 
   /**
-   * Create a new job
+   * Create a new job and save vehicle data
    */
   createJob(jobData: Partial<Job>): Observable<string> {
     this.loadingSubject.next(true);
@@ -270,38 +277,50 @@ export class JobService extends BaseFirebaseService {
       return throwError(() => new Error('User not authenticated'));
     }
 
-    const now = new Date();
+    // First save the vehicle data and get the vehicle ID
+    return this.vehicleService.createOrUpdateVehicleFromJob(jobData).pipe(
+      switchMap((vehicleId) => {
+        // Prepare job data with timestamps, user info, and vehicle ID
+        const newJobData = {
+          ...jobData,
+          vehicleId: vehicleId, // Set the vehicle ID from the saved vehicle
+          status: jobData.status || 'unallocated',
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+          createdBy: userId,
+          updatedBy: userId,
+        };
 
-    // Prepare job data with timestamps and user info
-    const newJobData = {
-      ...jobData,
-      status: jobData.status || 'unallocated',
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-      createdBy: userId,
-      updatedBy: userId,
-    };
+        const jobsRef = collection(this.firestore, 'jobs');
 
-    const jobsRef = collection(this.firestore, 'jobs');
+        return from(addDoc(jobsRef, newJobData)).pipe(
+          map((docRef) => {
+            // After job is created, update the vehicle with the job ID if needed
+            this.updateVehicleWithJobId(vehicleId, docRef.id);
 
-    return from(addDoc(jobsRef, newJobData)).pipe(
-      map((docRef) => {
-        // Refresh the jobs list
-        this.refreshJobsList();
+            // Refresh the jobs list
+            this.refreshJobsList();
 
-        // Add notification about new job
-        this.notificationService.addNotification({
-          type: 'info',
-          title: 'New Job Created',
-          message: `Job for ${jobData.make || ''} ${jobData.model || ''} ${jobData.registration ? '(' + jobData.registration + ')' : ''} has been created`,
-          actionUrl: `/jobs/${docRef.id}`,
-        });
+            // Add notification about new job
+            this.notificationService.addNotification({
+              type: 'info',
+              title: 'New Job Created',
+              message: `Job for ${jobData.make || ''} ${jobData.model || ''} ${jobData.registration ? '(' + jobData.registration + ')' : ''} has been created`,
+              actionUrl: `/jobs/${docRef.id}`,
+            });
 
-        return docRef.id;
+            return docRef.id;
+          }),
+          catchError((error) => {
+            console.error('Error creating job:', error);
+            this.loadingSubject.next(false);
+            return throwError(() => error);
+          })
+        );
       }),
       tap(() => this.loadingSubject.next(false)),
       catchError((error) => {
-        console.error('Error creating job:', error);
+        console.error('Error in job creation process:', error);
         this.loadingSubject.next(false);
         return throwError(() => error);
       })
@@ -993,5 +1012,39 @@ export class JobService extends BaseFirebaseService {
         return throwError(() => error);
       })
     );
+  }
+
+  /**
+   * Update vehicle with job ID if it's not already in the job history
+   * Private helper method for createJob
+   */
+  private updateVehicleWithJobId(vehicleId: string, jobId: string): void {
+    // Get reference to vehicle document
+    const vehicleRef = doc(this.firestore, `vehicles/${vehicleId}`);
+
+    // Get current vehicle data
+    getDoc(vehicleRef)
+      .then((docSnap) => {
+        if (docSnap.exists()) {
+          const vehicleData = docSnap.data() as Vehicle;
+          const jobHistory = vehicleData.jobHistory || [];
+
+          // Only update if job ID is not already in history
+          if (!jobHistory.includes(jobId)) {
+            // Add job ID to history and increment count
+            updateDoc(vehicleRef, {
+              jobHistory: [...jobHistory, jobId],
+              jobCount: (vehicleData.jobCount || 0) + 1,
+              updatedAt: serverTimestamp(),
+              lastProcessedDate: serverTimestamp(),
+            }).catch((error) => {
+              console.error(`Error updating vehicle ${vehicleId} with job ID:`, error);
+            });
+          }
+        }
+      })
+      .catch((error) => {
+        console.error(`Error getting vehicle ${vehicleId}:`, error);
+      });
   }
 }

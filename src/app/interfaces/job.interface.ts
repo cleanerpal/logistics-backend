@@ -18,7 +18,6 @@ export interface Job {
   model?: string;
   registration?: string;
 
-  // Notes can be either a string, array of note objects, or an object of note objects
   notes?:
     | string
     | Array<{
@@ -29,13 +28,11 @@ export interface Job {
       }>
     | Record<string, any>;
 
-  // Additional fields based on docs
   customerId?: string;
   customerName?: string;
   customerContact?: string;
   customerContactPhone?: string;
 
-  // Primary Collection details
   collectionAddress?: string;
   collectionCity?: string;
   collectionPostcode?: string;
@@ -43,7 +40,6 @@ export interface Job {
   collectionContactPhone?: string;
   collectionNotes?: string;
 
-  // Final Delivery details
   deliveryAddress?: string;
   deliveryCity?: string;
   deliveryPostcode?: string;
@@ -51,7 +47,6 @@ export interface Job {
   deliveryContactPhone?: string;
   deliveryNotes?: string;
 
-  // Vehicle details
   color?: string;
   year?: number;
   fuelType?: string;
@@ -60,10 +55,8 @@ export interface Job {
   chassisNumber?: string;
   vehicleType?: string;
 
-  // Split journey
   isSplitJourney?: boolean;
 
-  // Secondary Collection details
   secondaryCollectionAddress?: string;
   secondaryCollectionCity?: string;
   secondaryCollectionPostcode?: string;
@@ -71,7 +64,6 @@ export interface Job {
   secondaryCollectionContactPhone?: string;
   secondaryCollectionNotes?: string;
 
-  // Secondary Delivery details
   secondaryDeliveryAddress?: string;
   secondaryDeliveryCity?: string;
   secondaryDeliveryPostcode?: string;
@@ -79,17 +71,14 @@ export interface Job {
   secondaryDeliveryContactPhone?: string;
   secondaryDeliveryNotes?: string;
 
-  // Timestamps from job process
   collectionActualDateTime?: Date;
   deliveryActualDateTime?: Date;
 
-  // Photos and documentation
   collectionPhotos?: string[];
   deliveryPhotos?: string[];
   collectionSignature?: string;
   deliverySignature?: string;
 
-  // For supporting any additional fields
   [key: string]: any;
 }
 

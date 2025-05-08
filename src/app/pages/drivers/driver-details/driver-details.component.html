@@ -40,6 +40,7 @@
   <div class="tab-navigation">
     <button [class.active]="activeTab === 'details'" (click)="setActiveTab('details')">Details</button>
     <button [class.active]="activeTab === 'jobs'" (click)="setActiveTab('jobs')">Jobs</button>
+    <button [class.active]="activeTab === 'leave'" (click)="setActiveTab('leave')">Leave</button>
     <button [class.active]="activeTab === 'permissions'" (click)="setActiveTab('permissions')">Permissions</button>
     <button [class.active]="activeTab === 'notes'" (click)="setActiveTab('notes')">Notes</button>
   </div>
@@ -300,6 +301,111 @@
 
           <!-- Jobs Paginator -->
           <mat-paginator [pageSizeOptions]="[5, 10, 25]" [length]="jobsDataSource.data.length" showFirstLastButtons> </mat-paginator>
+        </mat-card>
+      </div>
+
+      <!-- Leave Requests Tab -->
+      <div *ngSwitchCase="'leave'" class="leave-tab">
+        <mat-card class="leave-section">
+          <div class="section-header">
+            <h2>Leave Requests</h2>
+            <button mat-flat-button color="primary" (click)="createLeaveRequest()" *ngIf="driver">
+              <mat-icon>add</mat-icon>
+              New Leave Request
+            </button>
+          </div>
+
+          <!-- Loading spinner -->
+          <div class="loading-indicator" *ngIf="isLeaveRequestsLoading">
+            <mat-spinner diameter="30"></mat-spinner>
+            <span>Loading leave requests...</span>
+          </div>
+
+          <!-- Leave requests table -->
+          <div class="table-container" *ngIf="!isLeaveRequestsLoading">
+            <table mat-table [dataSource]="leaveRequestsDataSource" matSort *ngIf="leaveRequestsDataSource.data.length > 0">
+              <!-- Type Column -->
+              <ng-container matColumnDef="type">
+                <th mat-header-cell *matHeaderCellDef mat-sort-header>Type</th>
+                <td mat-cell *matCellDef="let request">{{ request.type }}</td>
+              </ng-container>
+
+              <!-- Dates Column -->
+              <ng-container matColumnDef="dates">
+                <th mat-header-cell *matHeaderCellDef mat-sort-header>Dates</th>
+                <td mat-cell *matCellDef="let request">{{ request.startDate | date : 'MMM d, y' }} - {{ request.endDate | date : 'MMM d, y' }}</td>
+              </ng-container>
+
+              <!-- Duration Column -->
+              <ng-container matColumnDef="duration">
+                <th mat-header-cell *matHeaderCellDef mat-sort-header>Duration</th>
+                <td mat-cell *matCellDef="let request">{{ calculateDuration(request.startDate, request.endDate) }} days</td>
+              </ng-container>
+
+              <!-- Status Column -->
+              <ng-container matColumnDef="status">
+                <th mat-header-cell *matHeaderCellDef mat-sort-header>Status</th>
+                <td mat-cell *matCellDef="let request">
+                  <span class="status-chip" [ngClass]="getLeaveStatusClass(request.status)">
+                    {{ request.status }}
+                  </span>
+                </td>
+              </ng-container>
+
+              <!-- Submitted Column -->
+              <ng-container matColumnDef="submitted">
+                <th mat-header-cell *matHeaderCellDef mat-sort-header>Submitted</th>
+                <td mat-cell *matCellDef="let request">{{ request.submitted | date : 'MMM d, y' }}</td>
+              </ng-container>
+
+              <!-- Actions Column -->
+              <ng-container matColumnDef="actions">
+                <th mat-header-cell *matHeaderCellDef></th>
+                <td mat-cell *matCellDef="let request">
+                  <div class="action-buttons" *ngIf="canProcessLeaveRequest(request)">
+                    <button mat-icon-button color="primary" matTooltip="Approve" (click)="processLeaveRequest(request, true); $event.stopPropagation()">
+                      <mat-icon>check_circle</mat-icon>
+                    </button>
+                    <button mat-icon-button color="warn" matTooltip="Deny" (click)="processLeaveRequest(request, false); $event.stopPropagation()">
+                      <mat-icon>cancel</mat-icon>
+                    </button>
+                  </div>
+                  <button mat-icon-button [matMenuTriggerFor]="leaveMenu" (click)="$event.stopPropagation()">
+                    <mat-icon>more_vert</mat-icon>
+                  </button>
+                  <mat-menu #leaveMenu="matMenu">
+                    <button mat-menu-item *ngIf="canProcessLeaveRequest(request)" (click)="processLeaveRequest(request, true)">
+                      <mat-icon color="primary">check_circle</mat-icon>
+                      <span>Approve</span>
+                    </button>
+                    <button mat-menu-item *ngIf="canProcessLeaveRequest(request)" (click)="processLeaveRequest(request, false)">
+                      <mat-icon color="warn">cancel</mat-icon>
+                      <span>Deny</span>
+                    </button>
+                    <button mat-menu-item>
+                      <mat-icon>visibility</mat-icon>
+                      <span>View Details</span>
+                    </button>
+                  </mat-menu>
+                </td>
+              </ng-container>
+
+              <!-- Header and Row Definitions -->
+              <tr mat-header-row *matHeaderRowDef="leaveColumns"></tr>
+              <tr mat-row *matRowDef="let row; columns: leaveColumns" class="leave-request-row"></tr>
+            </table>
+
+            <!-- Empty state -->
+            <div class="empty-state" *ngIf="leaveRequestsDataSource.data.length === 0">
+              <mat-icon>event_busy</mat-icon>
+              <h3>No Leave Requests</h3>
+              <p>This driver has no leave requests yet.</p>
+              <button mat-flat-button color="primary" (click)="createLeaveRequest()">
+                <mat-icon>add</mat-icon>
+                Create Leave Request
+              </button>
+            </div>
+          </div>
         </mat-card>
       </div>
 

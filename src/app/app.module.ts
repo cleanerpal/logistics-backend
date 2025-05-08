@@ -59,6 +59,9 @@ import { CustomerCreateComponent } from './pages/customers/customer-create/custo
 import { CustomerDetailsComponent } from './pages/customers/customer-details/customer-details.component';
 import { DriverEditComponent } from './pages/drivers/driver-edit/driver-edit.component';
 import { JobDuplicateDialogComponent } from './dialogs/job-duplicate-dialog.component';
+import { LeaveRequestCreateDialogComponent } from './pages/leave-requests/leave-request-create-dialog/leave-request-create-dialog.component';
+import { LeaveRequestProcessDialogComponent } from './pages/leave-requests/leave-request-process-dialog/leave-request-process-dialog.component';
+import { LeaveRequestsListComponent } from './pages/leave-requests/leave-request-list/leave-requests-list.component';
 
 @NgModule({
   declarations: [
@@ -102,6 +105,11 @@ import { JobDuplicateDialogComponent } from './dialogs/job-duplicate-dialog.comp
     // Dialogs
     ConfirmationDialogComponent,
     DriverSelectionDialogComponent,
+
+    // Leave Request Components
+    LeaveRequestsListComponent,
+    LeaveRequestProcessDialogComponent,
+    LeaveRequestCreateDialogComponent,
 
     // Pipes
     TimeAgoPipe,

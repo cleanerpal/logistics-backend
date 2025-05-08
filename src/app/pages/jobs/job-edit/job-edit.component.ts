@@ -516,6 +516,10 @@ export class JobEditComponent implements OnInit, OnDestroy {
     }
   }
 
+  /**
+   * Submit method for JobEditComponent
+   * This ensures vehicle details are properly updated when editing a job
+   */
   onSubmit() {
     if (this.jobForm.invalid) {
       this.markFormGroupTouched(this.jobForm);
@@ -527,19 +531,24 @@ export class JobEditComponent implements OnInit, OnDestroy {
 
     const formValue = this.jobForm.value;
 
-    // Get make and model display names
+    // Get make and model details
     const selectedMake = this.vehicleMakes.find((m) => m.id === formValue.vehicleMake);
     const selectedModel = this.availableModels.find((m) => m.id === formValue.vehicleModel);
 
     // Customer info
     const selectedCustomer = this.customers.find((c) => c.id === formValue.customerId);
 
+    // Check if vehicle registration has changed
+    const registrationChanged = this.job && this.job.registration !== formValue.registration.toUpperCase();
+
     // Prepare job data for update
     const jobData: Partial<Job> = {
-      vehicleId: formValue.chassisNumber || formValue.registration, // Using reg/chassis as vehicle ID
+      // Vehicle information with IDs
+      makeId: formValue.vehicleMake,
+      modelId: formValue.vehicleModel,
       make: selectedMake?.displayName || '',
       model: selectedModel?.name || '',
-      registration: formValue.registration.toUpperCase(),
+      registration: formValue.registration.toUpperCase().replace(/\s+/g, ''),
 
       // Customer info
       customerId: formValue.customerId,
@@ -598,20 +607,31 @@ export class JobEditComponent implements OnInit, OnDestroy {
     // Save the vehicle selection for future use
     this.saveToRecentSelections();
 
-    // Update the job
-    this.jobService
-      .updateJob(this.jobId, jobData)
-      .pipe(finalize(() => (this.isSubmitting = false)))
-      .subscribe({
-        next: () => {
-          this.showSnackbar('Job updated successfully');
-          this.router.navigate(['/jobs', this.jobId]);
-        },
-        error: (error) => {
-          console.error('Error updating job:', error);
-          this.showSnackbar(`Error updating job: ${error.message}`);
-        },
-      });
+    // First update vehicle information
+    const updateProcess$ = registrationChanged
+      ? this.vehicleService.createOrUpdateVehicleFromJob({ ...jobData, id: this.jobId }).pipe(
+          switchMap((vehicleId) => {
+            // Update job data with new vehicle ID
+            return this.jobService.updateJob(this.jobId, { ...jobData, vehicleId });
+          })
+        )
+      : this.vehicleService.createOrUpdateVehicleFromJob({ ...jobData, id: this.jobId }).pipe(
+          switchMap((vehicleId) => {
+            // Just update the job (vehicle ID remains the same)
+            return this.jobService.updateJob(this.jobId, jobData);
+          })
+        );
+
+    updateProcess$.pipe(finalize(() => (this.isSubmitting = false))).subscribe({
+      next: () => {
+        this.showSnackbar('Job updated successfully');
+        this.router.navigate(['/jobs', this.jobId]);
+      },
+      error: (error) => {
+        console.error('Error updating job:', error);
+        this.showSnackbar(`Error updating job: ${error.message}`);
+      },
+    });
   }
 
   /**
