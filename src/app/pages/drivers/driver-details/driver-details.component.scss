@@ -134,8 +134,7 @@
 .profile-section,
 .jobs-section,
 .permissions-section,
-.notes-section,
-.leave-section {
+.notes-section {
   padding: 24px;
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
@@ -222,11 +221,6 @@
   &.status-success {
     background-color: rgba(76, 175, 80, 0.12);
     color: #4caf50;
-  }
-
-  &.status-red {
-    background-color: rgba(244, 67, 54, 0.12);
-    color: #f44336;
   }
 }
 
@@ -405,9 +399,8 @@
   }
 }
 
-/* Jobs and Leave Sections */
-.jobs-section,
-.leave-section {
+/* Jobs Section */
+.jobs-section {
   .section-header {
     display: flex;
     justify-content: space-between;
@@ -442,8 +435,7 @@
       font-size: 14px;
     }
 
-    .job-row,
-    .leave-request-row {
+    .job-row {
       height: 48px;
       cursor: pointer;
       transition: background-color 0.2s;
@@ -451,12 +443,6 @@
       &:hover {
         background-color: #f5f5f5;
       }
-    }
-
-    /* Action Buttons */
-    .action-buttons {
-      display: flex;
-      gap: 8px;
     }
 
     .empty-state {
@@ -488,21 +474,6 @@
         color: rgba(0, 0, 0, 0.6);
         font-size: 14px;
       }
-    }
-  }
-
-  /* Loading indicator for leave requests */
-  .loading-indicator {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 40px 0;
-    gap: 16px;
-
-    span {
-      color: rgba(0, 0, 0, 0.6);
-      font-size: 14px;
     }
   }
 }
@@ -944,8 +915,7 @@
   .profile-section,
   .jobs-section,
   .permissions-section,
-  .notes-section,
-  .leave-section {
+  .notes-section {
     break-inside: avoid;
     box-shadow: none !important;
     border: 1px solid #ddd;

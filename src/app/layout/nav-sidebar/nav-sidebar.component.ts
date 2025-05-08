@@ -46,12 +46,6 @@ export class NavSidebarComponent implements OnInit {
       active: false,
     },
     {
-      label: 'Leave Requests',
-      icon: 'event_available',
-      route: '/leave-requests',
-      active: false,
-    },
-    {
       label: 'Settings',
       icon: 'settings',
       route: '/settings',

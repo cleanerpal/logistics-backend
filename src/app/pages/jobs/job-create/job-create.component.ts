@@ -346,10 +346,6 @@ export class JobCreateComponent implements OnInit, OnDestroy {
     this.router.navigate(['/jobs']);
   }
 
-  /**
-   * Submit method for JobCreateComponent
-   * This ensures vehicle details are properly saved when creating a job
-   */
   onSubmit() {
     if (this.jobForm.invalid) {
       this.markFormGroupTouched(this.jobForm);
@@ -361,7 +357,7 @@ export class JobCreateComponent implements OnInit, OnDestroy {
 
     const formValue = this.jobForm.value;
 
-    // Get make and model details
+    // Get make and model display names
     const selectedMake = this.vehicleMakes.find((m) => m.id === formValue.vehicleMake);
     const selectedModel = this.availableModels.find((m) => m.id === formValue.vehicleModel);
 
@@ -370,12 +366,11 @@ export class JobCreateComponent implements OnInit, OnDestroy {
 
     // Prepare job data matching the Job interface
     const jobData = {
-      // Vehicle information with IDs
-      makeId: formValue.vehicleMake,
-      modelId: formValue.vehicleModel,
+      vehicleId: formValue.chassisNumber || formValue.registration, // Using reg/chassis as vehicle ID
+      status: 'unallocated' as 'unallocated',
       make: selectedMake?.displayName || '',
       model: selectedModel?.name || '',
-      registration: formValue.registration.toUpperCase().replace(/\s+/g, ''),
+      registration: formValue.registration.toUpperCase(),
 
       // Customer info
       customerId: formValue.customerId,
@@ -434,7 +429,7 @@ export class JobCreateComponent implements OnInit, OnDestroy {
     // Save the vehicle selection for future use
     this.saveToRecentSelections();
 
-    // Create the job which will also save vehicle data
+    // Create the job
     this.jobService
       .createJob(jobData)
       .pipe(finalize(() => (this.isSubmitting = false)))
