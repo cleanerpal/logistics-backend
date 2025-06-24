@@ -447,7 +447,7 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
     const dialogRef = this.dialog.open(DriverSelectionDialogComponent, {
       data: {
         jobId: this.job!.id,
-        jobTitle: `${this.job!.make} ${this.job!.model} (${this.job!.registration || 'No Reg'})`,
+        jobTitle: `${this.job!.make} ${this.job!.model} (${this.job!['registration'] || 'No Reg'})`,
       },
       width: '450px',
       panelClass: ['custom-dialog-container', 'allocation-dialog'],
@@ -864,7 +864,7 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
     const dialogRef = this.dialog.open(JobDuplicateDialogComponent, {
       data: {
         jobId: this.job.id,
-        registrationNumber: this.job.registration,
+        registrationNumber: this.job['registration'],
         makeModel: this.job.make && this.job.model ? `${this.job.make} ${this.job.model}` : undefined,
       },
       width: '400px',

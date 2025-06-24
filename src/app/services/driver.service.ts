@@ -43,7 +43,7 @@ export class DriverService extends BaseFirebaseService {
     private authService: AuthService,
     private notificationService: NotificationService
   ) {
-    super(firestore, auth);
+    super();
   }
 
   /**

@@ -1,150 +1,98 @@
-// firestore.rules
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Common functions
-    function isAuthenticated() {
-      return request.auth != null;
-    }
-    
-    function isAdmin() {
-      return isAuthenticated() && 
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.permissions.isAdmin == true;
-    }
-    
-    function isCurrentUser(userId) {
-      return isAuthenticated() && request.auth.uid == userId;
-    }
-    
-    function hasPermission(permission) {
-      return isAuthenticated() && 
-        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.permissions[permission] == true ||
-         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.permissions.isAdmin == true);
-    }
-    
-    // Users collection rules
+    // Users collection - users can read/write their own profile
     match /users/{userId} {
-      allow read: if isAuthenticated();
-      allow create: if isAdmin();
-      allow update: if isAdmin() || isCurrentUser(userId);
-      allow delete: if isAdmin();
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read: if request.auth != null && 
+        resource.data.role == 'driver' && 
+        request.auth.token.permissions.canViewDrivers == true;
+      allow read: if request.auth != null && 
+        request.auth.token.permissions.isAdmin == true;
     }
     
-    // Jobs collection rules
+    // Jobs collection
     match /jobs/{jobId} {
-      allow read: if isAuthenticated();
-      allow create: if isAuthenticated() && hasPermission('canCreateJobs');
-      allow update: if isAuthenticated() && (
-        hasPermission('canEditJobs') || 
-        resource.data.driverId == request.auth.uid
-      );
-      allow delete: if isAdmin();
+      // Admin can read/write all jobs
+      allow read, write: if request.auth != null && 
+        request.auth.token.permissions.isAdmin == true;
+      
+      // Users with canViewUnallocated can read unallocated jobs
+      allow read: if request.auth != null && 
+        request.auth.token.permissions.canViewUnallocated == true && 
+        resource.data.status == 'unallocated';
+      
+      // Drivers can read/write their own jobs
+      allow read, write: if request.auth != null && 
+        resource.data.driverId == request.auth.uid;
+      
+      // Users with canAllocateJobs can update job allocation
+      allow write: if request.auth != null && 
+        request.auth.token.permissions.canAllocateJobs == true &&
+        request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['driverId', 'status', 'allocatedAt', 'updatedAt', 'updatedBy', 'statusUpdatedAt']);
+      
+      // Users with canCreateJobs can create jobs
+      allow create: if request.auth != null && 
+        request.auth.token.permissions.canCreateJobs == true;
+      
+      // Users with canEditJobs can edit jobs
+      allow update: if request.auth != null && 
+        request.auth.token.permissions.canEditJobs == true;
     }
     
-    // Also add rules for 'Jobs' collection with capital J (from your indexes)
-    match /Jobs/{jobId} {
-      allow read: if isAuthenticated();
-      allow create: if isAuthenticated() && hasPermission('canCreateJobs');
-      allow update: if isAuthenticated() && (
-        hasPermission('canEditJobs') || 
-        resource.data.driverId == request.auth.uid
-      );
-      allow delete: if isAdmin();
-    }
-    
-    // Customers collection rules
-    match /customers/{customerId} {
-      allow read: if isAuthenticated();
-      allow create, update: if isAuthenticated() && (
-        hasPermission('canManageCustomers') || isAdmin()
-      );
-      allow delete: if isAdmin();
-    }
-    
-    // Vehicles collection rules
+    // Vehicles collection
     match /vehicles/{vehicleId} {
-      allow read: if isAuthenticated();
-      allow create, update: if isAuthenticated() && (
-        hasPermission('canManageVehicles') || isAdmin()
-      );
-      allow delete: if isAdmin();
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && 
+        request.auth.token.permissions.canManageVehicles == true;
     }
     
-    // Vehicle Makes collection rules
-    match /vehicleMakes/{makeId} {
-      allow read: if isAuthenticated();
-      allow write: if isAuthenticated() && (
-        hasPermission('canManageVehicles') || isAdmin()
-      );
+    // Customers collection
+    match /customers/{customerId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && 
+        request.auth.token.permissions.canManageCustomers == true;
     }
     
-    // Vehicle Models collection rules
-    match /vehicleModels/{modelId} {
-      allow read: if isAuthenticated();
-      allow write: if isAuthenticated() && (
-        hasPermission('canManageVehicles') || isAdmin()
-      );
-    }
-    
-    // Documents collection rules (for user documents like licenses, certificates, etc.)
-    match /documents/{documentId} {
-      allow read: if isAuthenticated() && (
-        resource.data.userId == request.auth.uid || 
-        hasPermission('canManageDocuments') || 
-        isAdmin()
-      );
-      allow create: if isAuthenticated();
-      allow update: if isAuthenticated() && (
-        resource.data.userId == request.auth.uid || 
-        hasPermission('canManageDocuments') || 
-        isAdmin()
-      );
-      allow delete: if isAdmin() || hasPermission('canManageDocuments');
-    }
-    
-    // Notifications collection rules
-    match /notifications/{notificationId} {
-      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
-      allow create: if isAuthenticated() && (hasPermission('canSendNotifications') || isAdmin());
-      allow update: if isAuthenticated() && (
-        resource.data.userId == request.auth.uid || 
-        hasPermission('canSendNotifications') || 
-        isAdmin()
-      );
-      allow delete: if isAuthenticated() && (
-        resource.data.userId == request.auth.uid || 
-        isAdmin()
-      );
-    }
-    
-    // Driver Notes collection rules
-    match /driverNotes/{noteId} {
-      allow read: if isAuthenticated();
-      allow create: if isAuthenticated();
-      allow update, delete: if isAuthenticated() && (
-        resource.data.authorId == request.auth.uid || isAdmin()
-      );
-    }
-    
-    // Expenses collection rules
+    // Expenses collection
     match /expenses/{expenseId} {
-      allow read: if isAuthenticated() && (
-        resource.data.driverId == request.auth.uid || 
-        hasPermission('canApproveExpenses') || 
-        isAdmin()
-      );
-      allow create: if isAuthenticated();
-      allow update: if isAuthenticated() && (
-        resource.data.driverId == request.auth.uid || 
-        hasPermission('canApproveExpenses') || 
-        isAdmin()
-      );
-      allow delete: if isAdmin();
+      // Users can read/write their own expenses
+      allow read, write: if request.auth != null && 
+        resource.data.userId == request.auth.uid;
+      
+      // Admin and users with canApproveExpenses can read all
+      allow read: if request.auth != null && 
+        (request.auth.token.permissions.isAdmin == true ||
+         request.auth.token.permissions.canApproveExpenses == true);
+      
+      // Users with canApproveExpenses can approve/reject
+      allow update: if request.auth != null && 
+        request.auth.token.permissions.canApproveExpenses == true &&
+        request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['status', 'approvedBy', 'approvedAt', 'rejectionReason', 'updatedAt']);
     }
     
-    // Default deny
-    match /{document=**} {
-      allow read, write: if false;
+    // System collections (read-only for most users)
+    match /settings/{document} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && 
+        request.auth.token.permissions.isAdmin == true;
+    }
+    
+    match /userRoles/{roleId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && 
+        request.auth.token.permissions.isAdmin == true;
+    }
+    
+    // Notifications collection
+    match /notifications/{notificationId} {
+      allow read: if request.auth != null && 
+        resource.data.userId == request.auth.uid;
+      allow write: if request.auth != null && 
+        request.auth.token.permissions.isAdmin == true;
+      allow create: if request.auth != null;
     }
   }
 }

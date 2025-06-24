@@ -1,538 +1,806 @@
-/* Dashboard Styles */
+// Dashboard Component Complete Styles
 .dashboard-container {
   padding: 20px;
-  padding-top: 84px; /* Account for the fixed topbar (64px height + 20px padding) */
+  max-width: 1400px;
+  margin: 0 auto;
+
+  // Responsive padding
+  @media (max-width: 768px) {
+    padding: 16px;
+  }
+}
+
+// Header Section
+.dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+
+  .dashboard-title {
+    margin: 0;
+    font-size: 2rem;
+    font-weight: 500;
+    color: var(--primary-color, #3f51b5);
+  }
+
+  button {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    mat-icon {
+      font-size: 1.2rem;
+      width: 1.2rem;
+      height: 1.2rem;
+    }
+  }
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+
+    .dashboard-title {
+      font-size: 1.5rem;
+    }
+  }
+}
+
+// Loading State
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+  gap: 16px;
+
+  p {
+    margin: 0;
+    color: rgba(0, 0, 0, 0.6);
+    font-size: 1rem;
+  }
+}
+
+.dashboard-content {
   display: flex;
   flex-direction: column;
   gap: 24px;
-  height: 100vh;
-  overflow-y: auto;
-  box-sizing: border-box;
-  margin-left: 250px; /* Account for the sidebar width */
 }
 
-/* Metric Cards Row */
-.metric-cards {
+// Metrics Grid
+.metrics-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 20px;
-  margin-bottom: 20px;
-}
 
-/* Expanded Card for Deliveries */
-.expanded-card {
-  grid-column: span 1;
-  @media (min-width: 992px) {
-    grid-column: span 2;
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
   }
 }
 
-/* Base Metric Card */
 .metric-card {
-  padding: 20px;
-  background-color: var(--card-background);
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-  display: flex;
-  flex-direction: column;
   position: relative;
-  overflow: hidden;
-  min-height: 130px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 
-  .metric-title {
-    font-size: 1rem;
-    font-weight: 600;
-    color: var(--text-secondary);
-    margin: 0 0 16px;
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
   }
 
-  .metric-content {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    margin-top: auto;
+  mat-card-header {
+    padding-bottom: 8px;
+
+    mat-card-title {
+      font-size: 1.1rem;
+      font-weight: 500;
+      margin-bottom: 4px;
+    }
+
+    mat-card-subtitle {
+      font-size: 0.875rem;
+      opacity: 0.7;
+    }
+  }
+
+  mat-card-content {
+    padding-top: 8px;
   }
 
   .metric-value {
     font-size: 2.5rem;
-    font-weight: 700;
-    color: var(--text-primary);
+    font-weight: 600;
     line-height: 1;
+    margin-bottom: 8px;
   }
 
-  // Specific styling for different card types
-  &.metric-active {
-    border-left: 4px solid var(--primary-color);
-  }
-
-  &.metric-unallocated {
-    border-left: 4px solid var(--warning-color);
-
-    &.metric-red {
-      border-left: 4px solid var(--error-color);
-      .metric-value {
-        color: var(--error-color);
-      }
-    }
-  }
-
-  &.metric-deliveries {
-    border-left: 4px solid var(--success-color);
-  }
-}
-
-/* Trend Indicator Styling */
-.trend-indicator {
-  display: flex;
-  align-items: center;
-  padding: 6px 10px;
-  border-radius: 20px;
-  background-color: rgba(0, 0, 0, 0.05);
-  font-weight: 600;
-  font-size: 0.85rem;
-
-  .trend-arrow {
-    margin-right: 4px;
-    font-style: normal;
-  }
-
-  &.trend-positive {
-    color: var(--success-color);
-    background-color: rgba(76, 175, 80, 0.1);
-  }
-
-  &.trend-negative {
-    color: var(--error-color);
-    background-color: rgba(244, 67, 54, 0.1);
-  }
-}
-
-/* Trend Sections for Delivery Card */
-.trend-sections {
-  .trend-row {
+  .metric-trend {
     display: flex;
-    width: 100%;
-    height: 100%;
-  }
-
-  .trend-section {
-    flex: 1;
-    padding: 0 5px;
-
-    .period-label {
-      font-size: 0.75rem;
-      font-weight: 500;
-      color: var(--text-secondary);
-      margin-bottom: 8px;
-      display: block;
-    }
-
-    .trend-content {
-      display: flex;
-      flex-direction: column;
-      height: 100%;
-
-      .trend-metrics {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        margin-bottom: 8px;
-
-        .current-value {
-          font-size: 1.75rem;
-          font-weight: 600;
-          color: var(--text-primary);
-        }
-
-        .trend-indicator {
-          padding: 3px 8px;
-          font-size: 0.7rem;
-        }
-      }
-
-      .trend-graph {
-        height: 50px;
-        margin-top: auto;
-      }
-    }
-  }
-
-  .vertical-divider {
-    width: 1px;
-    background-color: var(--border-color);
-    margin: 0 10px;
-  }
-}
-
-/* Main Content Layout */
-.main-content {
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-  width: 100%;
-}
-
-/* Jobs Table Container */
-.jobs-table-container {
-  background: white;
-  border-radius: 8px;
-  overflow: hidden;
-  padding: 20px;
-
-  .header-wrapper {
-    display: flex;
-    justify-content: space-between;
     align-items: center;
-    margin-bottom: 20px;
-  }
-
-  .header-title {
-    h2 {
-      margin: 0;
-      font-size: 1.25rem;
-      color: var(--text-primary);
-    }
-
-    .subtitle {
-      margin: 5px 0 0;
-      color: var(--text-secondary);
-      font-size: 0.875rem;
-    }
-  }
-
-  .table-container {
-    position: relative;
-    overflow-x: auto;
-    min-height: 200px;
-    max-height: 600px;
-  }
-
-  table {
-    width: 100%;
-
-    &.loading {
-      opacity: 0.6;
-    }
-
-    .job-row {
-      cursor: pointer;
-      transition: background-color 0.2s;
-
-      &:hover {
-        background-color: rgba(0, 0, 0, 0.02);
-      }
-    }
-
-    .job-id {
-      font-weight: 500;
-      color: var(--primary-color);
-    }
-  }
-}
-
-/* Loading Overlay */
-.loading-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  background-color: rgba(255, 255, 255, 0.8);
-  z-index: 10;
-  backdrop-filter: blur(2px);
-
-  span {
-    margin-top: 16px;
-    color: var(--text-secondary);
-  }
-}
-
-/* Empty State */
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 40px 20px;
-  text-align: center;
-
-  .empty-icon {
-    font-size: 48px;
-    height: 48px;
-    width: 48px;
-    color: var(--text-secondary);
-    opacity: 0.5;
-    margin-bottom: 16px;
-  }
-
-  h3 {
-    margin: 0 0 8px;
-    color: var(--text-primary);
+    gap: 4px;
+    font-size: 0.875rem;
     font-weight: 500;
-  }
 
-  p {
-    color: var(--text-secondary);
-    margin: 0 0 20px;
-  }
-}
+    &.trend-up {
+      color: #4caf50;
+    }
 
-/* Status Chips */
-.status-chip {
-  padding: 6px 12px;
-  border-radius: 16px;
-  font-size: 0.75rem;
-  font-weight: 500;
-  display: inline-block;
-  text-align: center;
-  white-space: nowrap;
+    &.trend-down {
+      color: #f44336;
+    }
 
-  &.status-loaded {
-    background-color: rgba(255, 152, 0, 0.12);
-    color: #ff9800;
-  }
-
-  &.status-allocated {
-    background-color: rgba(33, 150, 243, 0.12);
-    color: #2196f3;
-  }
-
-  &.status-collected {
-    background-color: rgba(156, 39, 176, 0.12);
-    color: #9c27b0;
-  }
-
-  &.status-delivered {
-    background-color: rgba(76, 175, 80, 0.12);
-    color: #4caf50;
-  }
-
-  &.status-aborted,
-  &.status-cancelled {
-    background-color: rgba(244, 67, 54, 0.12);
-    color: #f44336;
-  }
-
-  &.status-default {
-    background-color: rgba(158, 158, 158, 0.12);
-    color: #9e9e9e;
-  }
-}
-
-/* Drivers List Section */
-.drivers-list-container {
-  background: white;
-  border-radius: 8px;
-  padding: 20px;
-  margin-bottom: 24px;
-
-  .header-wrapper {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 16px;
-  }
-
-  .header-title {
-    h2 {
-      margin: 0;
-      font-size: 1.25rem;
-      color: var(--text-primary);
+    mat-icon {
+      font-size: 1.2rem;
+      width: 1.2rem;
+      height: 1.2rem;
     }
   }
 
-  .driver-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 16px;
-    margin-top: 16px;
+  .metric-info {
+    font-size: 0.875rem;
+    color: rgba(0, 0, 0, 0.6);
+    margin-top: 8px;
+  }
 
-    .driver-card {
-      display: flex;
-      align-items: center;
-      padding: 16px;
-      background-color: #f9f9f9;
-      border-radius: 8px;
-      cursor: pointer;
-      transition: all 0.2s ease;
+  // Card-specific colors
+  &.active-jobs {
+    border-left: 4px solid #2196f3;
 
-      &:hover {
-        background-color: #f1f1f1;
-        transform: translateY(-2px);
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
-      }
+    .metric-value {
+      color: #2196f3;
     }
   }
 
-  .driver-avatar {
-    width: 50px;
-    height: 50px;
-    border-radius: 50%;
-    background-color: var(--primary-color);
-    color: white;
+  &.unallocated-jobs {
+    border-left: 4px solid #ff9800;
+
+    .metric-value {
+      color: #ff9800;
+    }
+  }
+
+  &.completed-jobs {
+    border-left: 4px solid #4caf50;
+
+    .metric-value {
+      color: #4caf50;
+    }
+  }
+
+  &.total-jobs {
+    border-left: 4px solid #9c27b0;
+
+    .metric-value {
+      color: #9c27b0;
+    }
+  }
+}
+
+// Charts Section
+.charts-section {
+  margin: 24px 0;
+}
+
+.charts-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+
+  @media (max-width: 1024px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.chart-card {
+  mat-card-content {
+    padding: 16px;
+  }
+
+  .chart-container {
+    height: 300px;
+    width: 100%;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-weight: 600;
-    position: relative;
-    margin-right: 16px;
-    font-size: 18px;
 
-    .availability-indicator {
-      position: absolute;
-      bottom: 0;
-      right: 0;
-      width: 14px;
-      height: 14px;
-      border-radius: 50%;
-      border: 2px solid white;
-
-      &.available {
-        background-color: #4caf50;
-      }
-
-      &.busy {
-        background-color: #ff9800;
-      }
-
-      &.on-leave {
-        background-color: #9e9e9e;
-      }
-
-      &.offline {
-        background-color: #f44336;
-      }
+    @media (max-width: 768px) {
+      height: 250px;
     }
   }
 
-  .driver-info {
-    flex: 1;
+  .no-chart-data {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: rgba(0, 0, 0, 0.5);
 
-    .driver-name {
+    mat-icon {
+      font-size: 3rem;
+      width: 3rem;
+      height: 3rem;
+      margin-bottom: 16px;
+      opacity: 0.3;
+    }
+
+    p {
+      margin: 0;
+      font-size: 1rem;
+    }
+  }
+}
+
+// Delivery Metrics Section
+.delivery-metrics-section {
+  margin: 24px 0;
+}
+
+.delivery-metrics-card {
+  .delivery-metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+
+    @media (max-width: 768px) {
+      grid-template-columns: 1fr;
+      gap: 16px;
+    }
+  }
+
+  .delivery-metric {
+    text-align: center;
+    padding: 16px;
+    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.02);
+
+    .metric-label {
+      font-size: 0.875rem;
+      color: rgba(0, 0, 0, 0.6);
+      margin-bottom: 8px;
       font-weight: 500;
-      margin-bottom: 4px;
-      font-size: 16px;
+    }
+
+    .metric-value {
+      font-size: 2rem;
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 8px;
+    }
+
+    .metric-change {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      font-size: 0.875rem;
+      font-weight: 500;
+
+      &.positive {
+        color: #4caf50;
+      }
+
+      &.negative {
+        color: #f44336;
+      }
+
+      mat-icon {
+        font-size: 1rem;
+        width: 1rem;
+        height: 1rem;
+      }
+    }
+  }
+}
+
+// Drivers Section
+.drivers-section {
+  margin: 24px 0;
+}
+
+.drivers-card {
+  .driver-filter {
+    margin-bottom: 16px;
+
+    mat-form-field {
+      width: 200px;
+    }
+  }
+
+  .drivers-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 40px 0;
+    color: rgba(0, 0, 0, 0.6);
+  }
+
+  .drivers-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .driver-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:hover {
+      background: rgba(0, 0, 0, 0.02);
+      border-color: rgba(63, 81, 181, 0.3);
+    }
+
+    .driver-info {
+      flex: 1;
+
+      .driver-name {
+        font-weight: 500;
+        margin-bottom: 4px;
+        font-size: 1rem;
+      }
+
+      .driver-email {
+        font-size: 0.875rem;
+        color: rgba(0, 0, 0, 0.6);
+      }
     }
 
     .driver-status {
-      font-size: 0.8125rem;
-      color: var(--text-secondary);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      margin: 0 16px;
 
-      .job-count {
-        font-weight: 600;
+      .status-badge {
+        padding: 4px 12px;
+        border-radius: 16px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
 
-        &.low {
-          color: #4caf50;
-        }
-
-        &.medium {
-          color: #ff9800;
-        }
-
-        &.high {
-          color: #f44336;
-        }
+      .driver-jobs {
+        font-size: 0.75rem;
+        color: rgba(0, 0, 0, 0.6);
       }
     }
-  }
 
-  .driver-actions {
-    opacity: 0.6;
-
-    &:hover {
-      opacity: 1;
+    .driver-actions {
+      display: flex;
+      gap: 8px;
     }
-  }
-
-  .loading-message {
-    text-align: center;
-    padding: 20px;
-    color: var(--text-secondary);
-    font-size: 0.875rem;
   }
 
   .no-drivers {
     text-align: center;
-    padding: 32px 16px;
-    color: var(--text-secondary);
+    padding: 40px 0;
+    color: rgba(0, 0, 0, 0.6);
 
     mat-icon {
-      font-size: 36px;
-      height: 36px;
-      width: 36px;
-      margin-bottom: 8px;
+      font-size: 3rem;
+      width: 3rem;
+      height: 3rem;
+      margin-bottom: 16px;
       opacity: 0.5;
     }
 
     p {
       margin: 0;
+      font-size: 1.1rem;
     }
   }
 }
 
-/* Status Filter */
-.status-filter {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 16px;
-
-  .status-chip {
-    cursor: pointer;
-    transition: all 0.2s;
-    background-color: rgba(0, 0, 0, 0.05);
-    color: var(--text-secondary);
-
-    &:hover {
-      background-color: rgba(0, 0, 0, 0.08);
-    }
-
-    &.active {
-      background-color: var(--primary-color);
-      color: white;
-    }
-  }
+// Driver Status Badge Colors
+.driver-available {
+  background: #e8f5e8;
+  color: #2e7d32;
 }
 
-/* Responsive fixes */
-@media (max-width: 768px) {
-  .dashboard-container {
-    margin-left: 60px; /* Account for the collapsed sidebar on mobile (60px width) */
-    padding: 15px;
-    padding-top: 74px; /* Slightly reduce top padding on mobile */
-  }
+.driver-busy {
+  background: #fff3e0;
+  color: #f57c00;
+}
 
-  .metric-cards {
-    grid-template-columns: 1fr;
-  }
+.driver-on-leave {
+  background: #e3f2fd;
+  color: #1976d2;
+}
 
-  .expanded-card {
-    grid-column: span 1;
-  }
+.driver-offline {
+  background: #fce4ec;
+  color: #c2185b;
+}
 
-  .trend-sections .trend-row {
-    flex-direction: column;
-    gap: 20px;
-  }
+.driver-default {
+  background: #f5f5f5;
+  color: #757575;
+}
 
-  .trend-sections .vertical-divider {
-    display: none;
+// Recent Jobs Section
+.recent-jobs-section {
+  margin: 24px 0;
+}
+
+.jobs-table-card {
+  .table-controls {
+    display: flex;
+    align-items: center;
+    margin-bottom: 16px;
+
+    .search-field {
+      width: 300px;
+
+      @media (max-width: 768px) {
+        width: 100%;
+      }
+    }
   }
 
   .table-container {
     overflow-x: auto;
-  }
 
-  .driver-grid {
-    grid-template-columns: 1fr !important;
+    .jobs-table {
+      width: 100%;
+      min-width: 800px;
+
+      th {
+        font-weight: 600;
+        color: rgba(0, 0, 0, 0.87);
+        background: rgba(0, 0, 0, 0.02);
+      }
+
+      .job-row {
+        cursor: pointer;
+        transition: background-color 0.2s ease;
+
+        &:hover {
+          background: rgba(0, 0, 0, 0.02);
+        }
+      }
+
+      .job-id {
+        font-family: 'Courier New', monospace;
+        font-weight: 500;
+        color: #3f51b5;
+        font-size: 0.875rem;
+      }
+
+      .registration {
+        font-weight: 500;
+        text-transform: uppercase;
+        font-size: 0.875rem;
+      }
+
+      .customer-name {
+        font-weight: 500;
+        font-size: 0.875rem;
+      }
+
+      .collection-date,
+      .location {
+        color: rgba(0, 0, 0, 0.7);
+        font-size: 0.875rem;
+      }
+
+      .status-badge {
+        padding: 4px 8px;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        text-transform: capitalize;
+
+        // Status-specific colors
+        &.status-unallocated {
+          background: #fff3e0;
+          color: #f57c00;
+        }
+
+        &.status-allocated {
+          background: #e3f2fd;
+          color: #1976d2;
+        }
+
+        &.status-collected {
+          background: #f3e5f5;
+          color: #7b1fa2;
+        }
+
+        &.status-in-transit {
+          background: #e8f5e8;
+          color: #388e3c;
+        }
+
+        &.status-delivered {
+          background: #e8f5e8;
+          color: #2e7d32;
+        }
+
+        &.status-completed {
+          background: #e8f5e8;
+          color: #1b5e20;
+        }
+
+        &.status-default {
+          background: #f5f5f5;
+          color: #757575;
+        }
+      }
+
+      .driver-name {
+        font-weight: 500;
+        color: rgba(0, 0, 0, 0.8);
+        font-size: 0.875rem;
+      }
+
+      .action-buttons {
+        display: flex;
+        gap: 4px;
+
+        button {
+          min-width: 36px;
+
+          mat-icon {
+            font-size: 1.2rem;
+            width: 1.2rem;
+            height: 1.2rem;
+          }
+        }
+      }
+    }
+
+    .no-data {
+      text-align: center;
+      padding: 60px 0;
+      color: rgba(0, 0, 0, 0.6);
+
+      mat-icon {
+        font-size: 4rem;
+        width: 4rem;
+        height: 4rem;
+        margin-bottom: 16px;
+        opacity: 0.3;
+      }
+
+      p {
+        margin: 0;
+        font-size: 1.2rem;
+      }
+    }
   }
 }
 
-/* Handle when sidebar is collapsed or in compact mode */
-:host-context(.sidebar-collapsed) .dashboard-container {
-  margin-left: 60px;
+// Responsive Design
+@media (max-width: 1200px) {
+  .dashboard-container {
+    padding: 16px;
+  }
+
+  .metrics-grid {
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  }
+
+  .charts-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .dashboard-header {
+    .dashboard-title {
+      font-size: 1.5rem;
+    }
+  }
+
+  .metric-card {
+    .metric-value {
+      font-size: 2rem;
+    }
+  }
+
+  .delivery-metrics-card {
+    .delivery-metrics-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .delivery-metric {
+      .metric-value {
+        font-size: 1.5rem;
+      }
+    }
+  }
+
+  .driver-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+
+    .driver-status {
+      align-self: flex-end;
+      margin: 0;
+    }
+
+    .driver-actions {
+      align-self: flex-end;
+    }
+  }
+
+  .jobs-table-card {
+    .table-controls {
+      .search-field {
+        width: 100%;
+      }
+    }
+
+    .table-container {
+      .jobs-table {
+        font-size: 0.875rem;
+
+        .action-buttons {
+          flex-direction: column;
+          gap: 2px;
+
+          button {
+            min-width: 32px;
+            width: 32px;
+            height: 32px;
+
+            mat-icon {
+              font-size: 1rem;
+              width: 1rem;
+              height: 1rem;
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+@media (max-width: 480px) {
+  .dashboard-container {
+    padding: 12px;
+  }
+
+  .metrics-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .metric-card {
+    .metric-value {
+      font-size: 1.8rem;
+    }
+
+    .metric-trend {
+      font-size: 0.8rem;
+    }
+  }
+
+  .chart-card {
+    .chart-container {
+      height: 200px;
+    }
+  }
+
+  .driver-item {
+    padding: 12px;
+  }
+}
+
+// Dark Theme Support
+@media (prefers-color-scheme: dark) {
+  .dashboard-container {
+    color: rgba(255, 255, 255, 0.87);
+  }
+
+  .loading-container p {
+    color: rgba(255, 255, 255, 0.6);
+  }
+
+  .metric-card {
+    background: #424242;
+    color: rgba(255, 255, 255, 0.87);
+
+    mat-card-subtitle {
+      color: rgba(255, 255, 255, 0.6);
+    }
+
+    .metric-info {
+      color: rgba(255, 255, 255, 0.6);
+    }
+  }
+
+  .delivery-metric {
+    background: rgba(255, 255, 255, 0.05);
+
+    .metric-label {
+      color: rgba(255, 255, 255, 0.6);
+    }
+
+    .metric-value {
+      color: rgba(255, 255, 255, 0.87);
+    }
+  }
+
+  .driver-item {
+    background: #424242;
+    border-color: rgba(255, 255, 255, 0.12);
+
+    &:hover {
+      background: #484848;
+      border-color: rgba(63, 81, 181, 0.5);
+    }
+
+    .driver-email {
+      color: rgba(255, 255, 255, 0.6);
+    }
+
+    .driver-jobs {
+      color: rgba(255, 255, 255, 0.6);
+    }
+  }
+
+  .jobs-table {
+    background: #424242;
+
+    th {
+      color: rgba(255, 255, 255, 0.87);
+    }
+
+    .job-row:hover {
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .collection-date,
+    .location {
+      color: rgba(255, 255, 255, 0.7);
+    }
+
+    .driver-name {
+      color: rgba(255, 255, 255, 0.8);
+    }
+  }
+
+  .no-drivers,
+  .no-data {
+    color: rgba(255, 255, 255, 0.6);
+  }
+}
+
+// Print Styles
+@media print {
+  .dashboard-container {
+    padding: 0;
+  }
+
+  .dashboard-header button,
+  .driver-actions,
+  .action-buttons {
+    display: none;
+  }
+
+  .metric-card,
+  .chart-card,
+  .delivery-metrics-card,
+  .drivers-card,
+  .jobs-table-card {
+    break-inside: avoid;
+    box-shadow: none;
+    border: 1px solid #ddd;
+  }
+
+  .chart-container {
+    height: 200px;
+  }
 }

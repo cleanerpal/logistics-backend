@@ -18,7 +18,7 @@ export class CustomerService extends BaseFirebaseService {
   public loading$ = this.loadingSubject.asObservable();
 
   constructor(protected override firestore: Firestore, protected override auth: Auth, private notificationService: NotificationService) {
-    super(firestore, auth);
+    super();
   }
 
   /**

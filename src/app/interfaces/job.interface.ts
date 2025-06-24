@@ -2,97 +2,63 @@ export interface Job {
   id: string;
   vehicleId: string;
   driverId: string | null;
-  status: 'unallocated' | 'allocated' | 'collected' | 'delivered' | 'completed' | 'loaded';
-  stage?: 'collection-complete' | 'in-transit' | 'ready-for-delivery' | 'awaiting-confirmation';
-  collectionStartTime?: Date;
-  collectionCompleteTime?: Date;
-  deliveryStartTime?: Date;
-  deliveryCompleteTime?: Date;
-  allocatedAt?: Date;
-  unallocatedAt?: Date;
-  createdAt: Date;
-  updatedAt: Date;
-  createdBy?: string;
-  updatedBy?: string | null;
+  status: JobStatus;
+  stage?: string;
+
+  // Customer Information
+  customerName?: string;
+  customerEmail?: string;
+  customerPhone?: string;
+
+  // Vehicle Information
+  regNumber?: string;
   make?: string;
   model?: string;
-  registration?: string;
-
-  // Notes can be either a string, array of note objects, or an object of note objects
-  notes?:
-    | string
-    | Array<{
-        author: string;
-        content: string;
-        date: Date | string;
-        id?: string;
-      }>
-    | Record<string, any>;
-
-  // Additional fields based on docs
-  customerId?: string;
-  customerName?: string;
-  customerContact?: string;
-  customerContactPhone?: string;
-
-  // Primary Collection details
-  collectionAddress?: string;
-  collectionCity?: string;
-  collectionPostcode?: string;
-  collectionContactName?: string;
-  collectionContactPhone?: string;
-  collectionNotes?: string;
-
-  // Final Delivery details
-  deliveryAddress?: string;
-  deliveryCity?: string;
-  deliveryPostcode?: string;
-  deliveryContactName?: string;
-  deliveryContactPhone?: string;
-  deliveryNotes?: string;
-
-  // Vehicle details
+  year?: number | null;
   color?: string;
-  year?: number;
-  fuelType?: string;
-  mileage?: number;
-  fuelLevel?: string;
-  chassisNumber?: string;
-  vehicleType?: string;
 
-  // Split journey
-  isSplitJourney?: boolean;
+  // Collection Information
+  collectionAddress?: string;
+  collectionTown?: string;
+  collectionPostcode?: string;
+  collectionDate?: Date;
+  collectionStartTime?: Date;
+  collectionCompleteTime?: Date;
 
-  // Secondary Collection details
-  secondaryCollectionAddress?: string;
-  secondaryCollectionCity?: string;
-  secondaryCollectionPostcode?: string;
-  secondaryCollectionContactName?: string;
-  secondaryCollectionContactPhone?: string;
-  secondaryCollectionNotes?: string;
+  // Delivery Information
+  deliveryAddress?: string;
+  deliveryTown?: string;
+  deliveryPostcode?: string;
+  deliveryDate?: Date;
+  deliveryStartTime?: Date;
+  deliveryCompleteTime?: Date;
 
-  // Secondary Delivery details
-  secondaryDeliveryAddress?: string;
-  secondaryDeliveryCity?: string;
-  secondaryDeliveryPostcode?: string;
-  secondaryDeliveryContactName?: string;
-  secondaryDeliveryContactPhone?: string;
-  secondaryDeliveryNotes?: string;
+  // Additional Information
+  notes?: string;
+  specialInstructions?: string;
+  priority?: JobPriority;
+  estimatedDuration?: number | null;
+  actualDuration?: number | null;
 
-  // Timestamps from job process
-  collectionActualDateTime?: Date;
-  deliveryActualDateTime?: Date;
+  // Timestamps
+  createdAt: Date;
+  updatedAt: Date;
+  allocatedAt?: Date;
+  statusUpdatedAt?: Date;
 
-  // Photos and documentation
-  collectionPhotos?: string[];
-  deliveryPhotos?: string[];
-  collectionSignature?: string;
-  deliverySignature?: string;
+  // Tracking
+  createdBy?: string;
+  updatedBy?: string;
 
-  // For supporting any additional fields
+  // Optional extended fields
   [key: string]: any;
 }
 
+export type JobStatus = 'unallocated' | 'allocated' | 'collected' | 'in-transit' | 'delivered' | 'completed' | 'cancelled';
+
+export type JobPriority = 'low' | 'normal' | 'high' | 'urgent';
+
+// src/app/interfaces/user-profile.interface.ts - User Profile Interface
 export interface UserProfile {
   id: string;
   email: string;
@@ -100,27 +66,53 @@ export interface UserProfile {
   firstName?: string;
   lastName?: string;
   phoneNumber?: string;
-  role?: string;
-  isActive?: boolean;
-  permissions?: {
-    canAllocateJobs?: boolean;
-    canApproveExpenses?: boolean;
-    canCreateJobs?: boolean;
-    canEditJobs?: boolean;
-    canManageUsers?: boolean;
-    canViewReports?: boolean;
-    canViewUnallocated?: boolean;
-    isAdmin?: boolean;
-    [key: string]: boolean | undefined;
-  };
+  role: string;
+  isActive: boolean; // Always boolean, never undefined
+  permissions?: UserPermissions;
+  createdAt?: Date;
+  updatedAt?: Date;
+
+  // Driver-specific fields
+  licenseNumber?: string;
+  licenseExpiryDate?: Date;
+  emergencyContact?: EmergencyContact;
+  address?: Address;
+
+  // Additional profile fields
+  profilePhotoUrl?: string;
+  dateOfBirth?: Date;
+  startDate?: Date;
+
+  [key: string]: any;
 }
 
-export type UserPermissionKey =
-  | 'canAllocateJobs'
-  | 'canApproveExpenses'
-  | 'canCreateJobs'
-  | 'canEditJobs'
-  | 'canManageUsers'
-  | 'canViewReports'
-  | 'canViewUnallocated'
-  | 'isAdmin';
+export interface UserPermissions {
+  isAdmin?: boolean;
+  canAllocateJobs?: boolean;
+  canApproveExpenses?: boolean;
+  canCreateJobs?: boolean;
+  canEditJobs?: boolean;
+  canDeleteJobs?: boolean;
+  canManageUsers?: boolean;
+  canManageVehicles?: boolean;
+  canManageCustomers?: boolean;
+  canViewReports?: boolean;
+  canViewUnallocated?: boolean;
+  canViewDrivers?: boolean;
+
+  [key: string]: boolean | undefined;
+}
+
+export interface EmergencyContact {
+  name: string;
+  relationship: string;
+  phoneNumber: string;
+  email?: string;
+}
+
+export interface Address {
+  street: string;
+  city: string;
+  postcode: string;
+  country?: string;
+}

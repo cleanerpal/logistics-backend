@@ -1,13 +1,13 @@
 export const environment = {
   production: true,
   firebase: {
-    apiKey: 'AIzaSyDy7sZ4TEFF8gvv2PhVFhUv1Ya69G9Q1Uk',
-    authDomain: 'ni-vehicle-logistics.firebaseapp.com',
-    projectId: 'ni-vehicle-logistics',
-    storageBucket: 'ni-vehicle-logistics.firebasestorage.app',
-    messagingSenderId: '113182129832',
-    appId: '1:113182129832:web:861a361a16f93a27c38c9d',
-    measurementId: 'G-FNCD0Q9F0F',
+    apiKey: 'AIzaSyBUqjn2Zuiv8mGSse4YAmSH1uZDXUzOzKA',
+    authDomain: 'ni-vehicle-logistics-ef2bf.firebaseapp.com',
+    projectId: 'ni-vehicle-logistics-ef2bf',
+    storageBucket: 'ni-vehicle-logistics-ef2bf.firebasestorage.app',
+    messagingSenderId: '1043357428512',
+    appId: '1:1043357428512:web:7c4659dc471ee20ba40545',
+    measurementId: 'G-M3SC9Z72FM',
   },
   appVersion: '1.0.0',
 };

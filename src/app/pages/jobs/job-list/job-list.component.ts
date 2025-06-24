@@ -152,7 +152,7 @@ export class JobListComponent implements OnInit, AfterViewInit, OnDestroy {
       // Apply text search
       return (
         data.id?.toLowerCase().includes(searchStr) ||
-        data.registration?.toLowerCase().includes(searchStr) ||
+        data['registration']?.toLowerCase().includes(searchStr) ||
         data.make?.toLowerCase().includes(searchStr) ||
         data.model?.toLowerCase().includes(searchStr) ||
         this.driverMap[data.driverId || '']?.toLowerCase().includes(searchStr)
@@ -264,7 +264,7 @@ export class JobListComponent implements OnInit, AfterViewInit, OnDestroy {
     const dialogRef = this.dialog.open(JobDuplicateDialogComponent, {
       data: {
         jobId: job.id,
-        registrationNumber: job.registration,
+        registrationNumber: job['registration'],
         makeModel: job.make && job.model ? `${job.make} ${job.model}` : undefined,
       },
       width: '400px',

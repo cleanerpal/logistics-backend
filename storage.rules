@@ -1,10 +1,57 @@
 rules_version = '2';
-
-// Craft rules based on data in your Firestore database
-// allow write: if firestore.get(
-//    /databases/(default)/documents/users/$(request.auth.uid)).data.isAdmin;
 service firebase.storage {
   match /b/{bucket}/o {
+    // Job-related files
+    match /job-documents/{jobId}/{allPaths=**} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && 
+        (request.auth.token.permissions.isAdmin == true ||
+         request.auth.token.permissions.canEditJobs == true);
+    }
+    
+    // Vehicle photos
+    match /vehicle-photos/{vehicleId}/{allPaths=**} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && 
+        (request.auth.token.permissions.isAdmin == true ||
+         request.auth.token.permissions.canManageVehicles == true);
+    }
+    
+    // Damage report photos
+    match /damage-reports/{jobId}/{allPaths=**} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && 
+        (request.auth.token.permissions.isAdmin == true ||
+         request.auth.token.permissions.canEditJobs == true);
+    }
+    
+    // Signatures
+    match /signatures/{jobId}/{allPaths=**} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null;
+    }
+    
+    // Multi-job signatures
+    match /multi-job-signatures/{batchId}/{allPaths=**} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null;
+    }
+    
+    // Expense receipts
+    match /expense-receipts/{expenseId}/{allPaths=**} {
+      allow read: if request.auth != null && 
+        (request.auth.token.permissions.isAdmin == true ||
+         request.auth.token.permissions.canApproveExpenses == true);
+      allow write: if request.auth != null;
+    }
+    
+    // Profile photos
+    match /profile-photos/{userId}/{allPaths=**} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Default deny all other paths
     match /{allPaths=**} {
       allow read, write: if false;
     }
