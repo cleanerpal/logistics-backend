@@ -133,30 +133,30 @@ import { TimeAgoPipe } from './shared/pipes/time-ago.pipe';
     provideFirebaseApp(() => initializeApp(environment.firebase)),
     provideFirestore(() => {
       const firestore = getFirestore();
-      if (!environment.production) {
-        connectFirestoreEmulator(firestore, 'localhost', 8080);
-      }
+      // if (!environment.production) {
+      //   connectFirestoreEmulator(firestore, 'localhost', 8080);
+      // }
       return firestore;
     }),
     provideAuth(() => {
       const auth = getAuth();
-      if (!environment.production) {
-        connectAuthEmulator(auth, 'http://localhost:9099');
-      }
+      // if (!environment.production) {
+      //   connectAuthEmulator(auth, 'http://localhost:9099');
+      // }
       return auth;
     }),
     provideStorage(() => {
       const storage = getStorage();
-      if (!environment.production) {
-        connectStorageEmulator(storage, 'localhost', 9199);
-      }
+      // if (!environment.production) {
+      //   connectStorageEmulator(storage, 'localhost', 9199);
+      // }
       return storage;
     }),
     provideFunctions(() => {
       const functions = getFunctions();
-      if (!environment.production) {
-        connectFunctionsEmulator(functions, 'localhost', 5001);
-      }
+      // if (!environment.production) {
+      //   connectFunctionsEmulator(functions, 'localhost', 5001);
+      // }
       return functions;
     }),
 

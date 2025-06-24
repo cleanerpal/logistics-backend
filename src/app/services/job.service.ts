@@ -210,6 +210,7 @@ export class JobService implements OnDestroy {
     return from(getDocs(q)).pipe(
       map((snapshot) => {
         this.lastVisibleDoc = snapshot.docs[snapshot.docs.length - 1] || null;
+        console.log(this.lastVisibleDoc);
         return snapshot.docs.map((doc) => this.convertFirebaseJobToModel(doc.id, doc.data()));
       }),
       tap(() => this.loadingSubject.next(false)),

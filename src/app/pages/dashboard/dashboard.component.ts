@@ -79,7 +79,7 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
   @ViewChild(MatSort) sort!: MatSort;
   @ViewChild(MatPaginator) paginator!: MatPaginator;
 
-  displayedColumns: string[] = ['id', 'regNumber', 'customerName', 'collectionDate', 'collectionTown', 'deliveryTown', 'status', 'driver', 'actions'];
+  displayedColumns: string[] = ['shippingReference', 'regNumber', 'customerName', 'collectionDate', 'collectionTown', 'deliveryTown', 'status', 'driver', 'actions'];
 
   jobsDataSource = new MatTableDataSource<Job>([]);
   isLoading = true;
@@ -277,13 +277,6 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
     // Monitor all loading states with detailed logging
     const dataLoadingSubscription = combineLatest([this.jobsLoaded$, this.driversLoaded$, this.metricsLoaded$, this.vehiclesLoaded$]).subscribe(
       ([jobsLoaded, driversLoaded, metricsLoaded, vehiclesLoaded]) => {
-        console.log('Loading states:', {
-          jobsLoaded,
-          driversLoaded,
-          metricsLoaded,
-          vehiclesLoaded,
-        });
-
         this.isLoading = !(jobsLoaded && metricsLoaded && vehiclesLoaded);
         this.isLoadingDrivers = !driversLoaded;
 
@@ -391,13 +384,12 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
         }),
         finalize(() => {
           this.jobsLoaded$.next(true);
-          console.log('Jobs loading completed');
         })
       )
       .subscribe({
         next: (jobs: Job[]) => {
-          console.log('Jobs loaded:', jobs.length);
           this.jobs = jobs;
+          console.log(this.jobs);
           this.jobsDataSource.data = jobs;
           this.calculateJobMetrics(jobs);
           this.updateJobStatusChart(jobs);
@@ -432,7 +424,6 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
       )
       .subscribe({
         next: (stats: any) => {
-          console.log('Dashboard stats loaded:', stats);
           this.updateMetricsFromStats(stats);
         },
         error: (error: any) => {
@@ -450,12 +441,10 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
         delay(100), // Small delay to prevent race conditions
         finalize(() => {
           this.vehiclesLoaded$.next(true);
-          console.log('Vehicles loading completed (simplified)');
         })
       )
       .subscribe({
         next: (vehicles) => {
-          console.log('Vehicles loaded (empty array):', vehicles.length);
           this.vehicles = vehicles;
         },
         error: (error: any) => {
@@ -485,7 +474,6 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
       .subscribe({
         next: (vehicles: any[]) => {
           if (vehicles && vehicles.length > 0) {
-            console.log('Background vehicles loaded:', vehicles.length);
             this.vehicles = vehicles;
           }
         },

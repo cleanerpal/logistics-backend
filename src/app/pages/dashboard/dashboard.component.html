@@ -99,15 +99,15 @@
           <!-- Table -->
           <table mat-table [dataSource]="jobsDataSource" matSort [class.loading]="isLoading">
             <!-- Job ID Column -->
-            <ng-container matColumnDef="id">
-              <th mat-header-cell *matHeaderCellDef mat-sort-header>Job ID</th>
-              <td mat-cell *matCellDef="let job" class="job-id">{{ job.id }}</td>
+            <ng-container matColumnDef="shippingReference">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>Shipping Reference</th>
+              <td mat-cell *matCellDef="let job" class="job-id">{{ job.shippingReference }}</td>
             </ng-container>
 
             <!-- Reg Column -->
             <ng-container matColumnDef="regNumber">
               <th mat-header-cell *matHeaderCellDef mat-sort-header>Reg</th>
-              <td mat-cell *matCellDef="let job">{{ job.registration || 'N/A' }}</td>
+              <td mat-cell *matCellDef="let job">{{ job.vehicleRegistration || 'N/A' }}</td>
             </ng-container>
 
             <!-- Customer Name Column -->
@@ -267,7 +267,7 @@
     <div class="recent-jobs-section">
       <mat-card class="jobs-table-card">
         <mat-card-header>
-          <mat-card-title>Recent Jobs</mat-card-title>
+          <mat-card-title>All Jobs</mat-card-title>
           <mat-card-subtitle>Latest job activities</mat-card-subtitle>
         </mat-card-header>
         <mat-card-content>
