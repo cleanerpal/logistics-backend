@@ -78,165 +78,189 @@
       </mat-card>
     </div>
 
-    <!-- Charts Section -->
-    <div class="charts-section">
-      <div class="charts-grid">
-        <!-- Job Status Distribution Chart -->
-        <mat-card class="chart-card">
-          <mat-card-header>
-            <mat-card-title>Job Status Distribution</mat-card-title>
-          </mat-card-header>
-          <mat-card-content>
-            <div class="chart-container">
-              <ngx-charts-pie-chart
-                *ngIf="jobStatusChartData.length > 0"
-                [results]="jobStatusChartData"
-                [legend]="true"
-                [labels]="true"
-                [doughnut]="false"
-                scheme="cool"
-                [animations]="true">
-              </ngx-charts-pie-chart>
-              <div *ngIf="jobStatusChartData.length === 0" class="no-chart-data">
-                <mat-icon>pie_chart</mat-icon>
-                <p>No job data available</p>
-              </div>
-            </div>
-          </mat-card-content>
-        </mat-card>
-
-        <!-- Delivery Trend Chart -->
-        <mat-card class="chart-card">
-          <mat-card-header>
-            <mat-card-title>Delivery Trends</mat-card-title>
-            <mat-card-subtitle>Last 12 weeks</mat-card-subtitle>
-          </mat-card-header>
-          <mat-card-content>
-            <div class="chart-container">
-              <ngx-charts-line-chart
-                *ngIf="deliveryTrendData.length > 0"
-                [results]="[{ name: 'Deliveries', series: deliveryTrendData }]"
-                [xAxis]="true"
-                [yAxis]="true"
-                [legend]="false"
-                [showXAxisLabel]="true"
-                [showYAxisLabel]="true"
-                [xAxisLabel]="'Week'"
-                [yAxisLabel]="'Deliveries'"
-                scheme="cool"
-                [curve]="curve"
-                [animations]="true">
-              </ngx-charts-line-chart>
-              <div *ngIf="deliveryTrendData.length === 0" class="no-chart-data">
-                <mat-icon>show_chart</mat-icon>
-                <p>No delivery trend data available</p>
-              </div>
-            </div>
-          </mat-card-content>
-        </mat-card>
-      </div>
-    </div>
-
-    <!-- Delivery Metrics Section -->
-    <div class="delivery-metrics-section">
-      <mat-card class="delivery-metrics-card">
-        <mat-card-header>
-          <mat-card-title>Delivery Performance</mat-card-title>
-          <mat-card-subtitle>Period-over-period comparison</mat-card-subtitle>
-        </mat-card-header>
-        <mat-card-content>
-          <div class="delivery-metrics-grid">
-            <!-- Week Metric -->
-            <div class="delivery-metric">
-              <div class="metric-label">This Week</div>
-              <div class="metric-value">{{ deliveryMetrics.week.current }}</div>
-              <div class="metric-change" [class.positive]="deliveryMetrics.week.increased" [class.negative]="!deliveryMetrics.week.increased">
-                <mat-icon>{{ deliveryMetrics.week.increased ? 'arrow_upward' : 'arrow_downward' }}</mat-icon>
-                <span>{{ deliveryMetrics.week.change | number : '1.1-1' }}%</span>
-              </div>
-            </div>
-
-            <!-- Month Metric -->
-            <div class="delivery-metric">
-              <div class="metric-label">This Month</div>
-              <div class="metric-value">{{ deliveryMetrics.month.current }}</div>
-              <div class="metric-change" [class.positive]="deliveryMetrics.month.increased" [class.negative]="!deliveryMetrics.month.increased">
-                <mat-icon>{{ deliveryMetrics.month.increased ? 'arrow_upward' : 'arrow_downward' }}</mat-icon>
-                <span>{{ deliveryMetrics.month.change | number : '1.1-1' }}%</span>
-              </div>
-            </div>
-
-            <!-- Year Metric -->
-            <div class="delivery-metric">
-              <div class="metric-label">This Year</div>
-              <div class="metric-value">{{ deliveryMetrics.year.current }}</div>
-              <div class="metric-change" [class.positive]="deliveryMetrics.year.increased" [class.negative]="!deliveryMetrics.year.increased">
-                <mat-icon>{{ deliveryMetrics.year.increased ? 'arrow_upward' : 'arrow_downward' }}</mat-icon>
-                <span>{{ deliveryMetrics.year.change | number : '1.1-1' }}%</span>
-              </div>
-            </div>
+    <!-- Main Content -->
+    <div class="main-content">
+      <!-- Today's Jobs Table -->
+      <div class="jobs-table-container mat-elevation-z3">
+        <div class="header-wrapper">
+          <div class="header-title">
+            <h2>Today's Jobs</h2>
+            <p class="subtitle">{{ jobs.length }} total jobs</p>
           </div>
-        </mat-card-content>
-      </mat-card>
-    </div>
+        </div>
 
-    <!-- Drivers Section -->
-    <div class="drivers-section">
-      <mat-card class="drivers-card">
-        <mat-card-header>
-          <mat-card-title>Driver Status</mat-card-title>
-          <mat-card-subtitle>Real-time driver availability</mat-card-subtitle>
-        </mat-card-header>
-        <mat-card-content>
-          <!-- Driver Filter -->
-          <div class="driver-filter">
-            <mat-form-field appearance="outline">
-              <mat-label>Filter by Status</mat-label>
-              <mat-select [(value)]="selectedDriverStatus" (selectionChange)="onDriverStatusChange()">
-                <mat-option *ngFor="let status of driverStatusOptions" [value]="status">
-                  {{ status }}
-                </mat-option>
-              </mat-select>
-            </mat-form-field>
+        <div class="table-container">
+          <!-- Loading Overlay -->
+          <div class="loading-overlay" *ngIf="isLoading">
+            <mat-spinner diameter="40"></mat-spinner>
+            <span>Loading jobs...</span>
           </div>
 
-          <!-- Drivers Loading -->
-          <div *ngIf="isLoadingDrivers" class="drivers-loading">
-            <mat-spinner diameter="30"></mat-spinner>
-            <span>Loading drivers...</span>
-          </div>
+          <!-- Table -->
+          <table mat-table [dataSource]="jobsDataSource" matSort [class.loading]="isLoading">
+            <!-- Job ID Column -->
+            <ng-container matColumnDef="id">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>Job ID</th>
+              <td mat-cell *matCellDef="let job" class="job-id">{{ job.id }}</td>
+            </ng-container>
 
-          <!-- Drivers List -->
-          <div *ngIf="!isLoadingDrivers" class="drivers-list">
-            <div *ngFor="let driver of filteredDrivers" class="driver-item" (click)="viewDriver(driver.profile)">
-              <div class="driver-info">
-                <div class="driver-name">{{ driver.profile.name }}</div>
-                <div class="driver-email">{{ driver.profile.email }}</div>
-              </div>
-              <div class="driver-status">
-                <span class="status-badge" [ngClass]="getDriverStatusClass(driver.status)">
-                  {{ driver.status }}
+            <!-- Reg Column -->
+            <ng-container matColumnDef="regNumber">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>Reg</th>
+              <td mat-cell *matCellDef="let job">{{ job.registration || 'N/A' }}</td>
+            </ng-container>
+
+            <!-- Customer Name Column -->
+            <ng-container matColumnDef="customerName">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>Customer</th>
+              <td mat-cell *matCellDef="let job">{{ job.customerName || 'N/A' }}</td>
+            </ng-container>
+
+            <!-- Collection Date Column -->
+            <ng-container matColumnDef="collectionDate">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>Collection Date</th>
+              <td mat-cell *matCellDef="let job">
+                {{ job.createdAt | date : 'short' }}
+              </td>
+            </ng-container>
+
+            <!-- Collection Town Column -->
+            <ng-container matColumnDef="collectionTown">
+              <th mat-header-cell *matHeaderCellDef>Collection Town</th>
+              <td mat-cell *matCellDef="let job">{{ job.collectionCity || 'N/A' }}</td>
+            </ng-container>
+
+            <!-- Delivery Town Column -->
+            <ng-container matColumnDef="deliveryTown">
+              <th mat-header-cell *matHeaderCellDef>Delivery Town</th>
+              <td mat-cell *matCellDef="let job">{{ job.deliveryCity || 'N/A' }}</td>
+            </ng-container>
+
+            <!-- Status Column -->
+            <ng-container matColumnDef="status">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>Status</th>
+              <td mat-cell *matCellDef="let job">
+                <span class="status-chip" [ngClass]="getStatusClass(job.status)">
+                  {{ job.status | titlecase }}
                 </span>
-                <div class="driver-jobs">
-                  <span *ngIf="driver.currentJobs > 0">{{ driver.currentJobs }} active jobs</span>
-                  <span *ngIf="driver.currentJobs === 0">No active jobs</span>
-                </div>
-              </div>
-              <div class="driver-actions">
-                <button mat-icon-button color="primary" (click)="$event.stopPropagation(); viewDriver(driver.profile)">
-                  <mat-icon>visibility</mat-icon>
+              </td>
+            </ng-container>
+
+            <!-- Driver Column -->
+            <ng-container matColumnDef="driver">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>Driver</th>
+              <td mat-cell *matCellDef="let job">
+                <span *ngIf="job.driverId">Assigned</span>
+                <span *ngIf="!job.driverId">Unassigned</span>
+              </td>
+            </ng-container>
+
+            <!-- Actions Column -->
+            <ng-container matColumnDef="actions">
+              <th mat-header-cell *matHeaderCellDef></th>
+              <td mat-cell *matCellDef="let job">
+                <button mat-icon-button [matMenuTriggerFor]="menu" (click)="$event.stopPropagation()">
+                  <mat-icon>more_vert</mat-icon>
                 </button>
+                <mat-menu #menu="matMenu" xPosition="before">
+                  <button mat-menu-item (click)="viewJobDetails(job)">
+                    <mat-icon>visibility</mat-icon>
+                    <span>View Details</span>
+                  </button>
+                  <button mat-menu-item (click)="editJob(job, $event)">
+                    <mat-icon>edit</mat-icon>
+                    <span>Edit</span>
+                  </button>
+                  <button mat-menu-item (click)="assignJob(job, $event)" *ngIf="!job.driverId">
+                    <mat-icon>assignment_ind</mat-icon>
+                    <span>Assign Driver</span>
+                  </button>
+                </mat-menu>
+              </td>
+            </ng-container>
+
+            <!-- Header and Data Rows -->
+            <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+            <tr mat-row *matRowDef="let row; columns: displayedColumns" (click)="viewJobDetails(row)" class="job-row"></tr>
+          </table>
+
+          <!-- Empty State -->
+          <div class="empty-state" *ngIf="!isLoading && jobs.length === 0">
+            <mat-icon class="empty-icon">work_outline</mat-icon>
+            <h3>No jobs for today</h3>
+            <p>There are no jobs scheduled for today</p>
+            <button mat-flat-button color="primary" (click)="createNewJob()">
+              <mat-icon>add</mat-icon>
+              New Job
+            </button>
+          </div>
+        </div>
+
+        <!-- Paginator -->
+        <mat-paginator [length]="jobs.length" [pageSize]="10" [pageSizeOptions]="[5, 10, 25]" showFirstLastButtons> </mat-paginator>
+      </div>
+
+      <!-- Drivers List -->
+      <div class="drivers-list-container mat-elevation-z3">
+        <div class="header-wrapper">
+          <div class="header-title">
+            <h2>Driver Status</h2>
+          </div>
+        </div>
+
+        <!-- Status Filter Chips -->
+        <div class="status-filter">
+          <span class="status-chip" [class.active]="selectedDriverStatus === status" *ngFor="let status of driverStatusOptions" (click)="setDriverStatusFilter(status)">
+            {{ status }}
+          </span>
+        </div>
+
+        <!-- Loading Message -->
+        <div class="loading-message" *ngIf="isLoadingDrivers">
+          <mat-spinner diameter="30" style="margin: 0 auto 10px"></mat-spinner>
+          Loading drivers...
+        </div>
+
+        <!-- No Drivers Message -->
+        <div class="no-drivers" *ngIf="!isLoadingDrivers && filteredDrivers.length === 0">
+          <mat-icon>person_off</mat-icon>
+          <p>No drivers found with the selected status</p>
+        </div>
+
+        <!-- Driver Grid -->
+        <div class="driver-grid" *ngIf="!isLoadingDrivers && filteredDrivers.length > 0">
+          <div class="driver-card" *ngFor="let driver of filteredDrivers" (click)="viewDriverDetails(driver)">
+            <div class="driver-avatar">
+              {{ getDriverInitials(driver) }}
+              <span
+                class="availability-indicator"
+                [ngClass]="{
+                  available: driver.status === 'Available',
+                  busy: driver.status === 'Busy',
+                  'on-leave': driver.status === 'On Leave',
+                  offline: driver.status === 'Offline'
+                }"></span>
+            </div>
+            <div class="driver-info">
+              <div class="driver-name">{{ driver.profile.name }}</div>
+              <div class="driver-status">
+                {{ driver.status }}
+                <span *ngIf="driver.status !== 'On Leave' && driver.status !== 'Offline'">
+                  • Jobs:
+                  <span class="job-count" [ngClass]="getJobCountClass(driver.currentJobs)">
+                    {{ driver.currentJobs }}
+                  </span>
+                </span>
               </div>
             </div>
-
-            <!-- No Drivers Message -->
-            <div *ngIf="filteredDrivers.length === 0" class="no-drivers">
-              <mat-icon>person_off</mat-icon>
-              <p>No drivers found with the selected status.</p>
+            <div class="driver-actions">
+              <button mat-icon-button matTooltip="View Details" (click)="$event.stopPropagation(); viewDriverDetails(driver)">
+                <mat-icon>visibility</mat-icon>
+              </button>
             </div>
           </div>
-        </mat-card-content>
-      </mat-card>
+        </div>
+      </div>
     </div>
 
     <!-- Recent Jobs Section -->
@@ -363,5 +387,108 @@
         </mat-card-content>
       </mat-card>
     </div>
+
+    <!-- Delivery Metrics Section -->
+    <div class="delivery-metrics-section">
+      <mat-card class="delivery-metrics-card">
+        <mat-card-header>
+          <mat-card-title>Delivery Performance</mat-card-title>
+          <mat-card-subtitle>Period-over-period comparison</mat-card-subtitle>
+        </mat-card-header>
+        <mat-card-content>
+          <div class="delivery-metrics-grid">
+            <!-- Week Metric -->
+            <div class="delivery-metric">
+              <div class="metric-label">This Week</div>
+              <div class="metric-value">{{ deliveryMetrics.week.current }}</div>
+              <div class="metric-change" [class.positive]="deliveryMetrics.week.increased" [class.negative]="!deliveryMetrics.week.increased">
+                <mat-icon>{{ deliveryMetrics.week.increased ? 'arrow_upward' : 'arrow_downward' }}</mat-icon>
+                <span>{{ deliveryMetrics.week.change | number : '1.1-1' }}%</span>
+              </div>
+            </div>
+
+            <!-- Month Metric -->
+            <div class="delivery-metric">
+              <div class="metric-label">This Month</div>
+              <div class="metric-value">{{ deliveryMetrics.month.current }}</div>
+              <div class="metric-change" [class.positive]="deliveryMetrics.month.increased" [class.negative]="!deliveryMetrics.month.increased">
+                <mat-icon>{{ deliveryMetrics.month.increased ? 'arrow_upward' : 'arrow_downward' }}</mat-icon>
+                <span>{{ deliveryMetrics.month.change | number : '1.1-1' }}%</span>
+              </div>
+            </div>
+
+            <!-- Year Metric -->
+            <div class="delivery-metric">
+              <div class="metric-label">This Year</div>
+              <div class="metric-value">{{ deliveryMetrics.year.current }}</div>
+              <div class="metric-change" [class.positive]="deliveryMetrics.year.increased" [class.negative]="!deliveryMetrics.year.increased">
+                <mat-icon>{{ deliveryMetrics.year.increased ? 'arrow_upward' : 'arrow_downward' }}</mat-icon>
+                <span>{{ deliveryMetrics.year.change | number : '1.1-1' }}%</span>
+              </div>
+            </div>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    </div>
+
+    <!-- Drivers Section -->
+    <div class="drivers-section">
+      <mat-card class="drivers-card">
+        <mat-card-header>
+          <mat-card-title>Driver Status</mat-card-title>
+          <mat-card-subtitle>Real-time driver availability</mat-card-subtitle>
+        </mat-card-header>
+        <mat-card-content>
+          <!-- Driver Filter -->
+          <div class="driver-filter">
+            <mat-form-field appearance="outline">
+              <mat-label>Filter by Status</mat-label>
+              <mat-select [(value)]="selectedDriverStatus" (selectionChange)="onDriverStatusChange()">
+                <mat-option *ngFor="let status of driverStatusOptions" [value]="status">
+                  {{ status }}
+                </mat-option>
+              </mat-select>
+            </mat-form-field>
+          </div>
+
+          <!-- Drivers Loading -->
+          <div *ngIf="isLoadingDrivers" class="drivers-loading">
+            <mat-spinner diameter="30"></mat-spinner>
+            <span>Loading drivers...</span>
+          </div>
+
+          <!-- Drivers List -->
+          <div *ngIf="!isLoadingDrivers" class="drivers-list">
+            <div *ngFor="let driver of filteredDrivers" class="driver-item" (click)="viewDriver(driver.profile)">
+              <div class="driver-info">
+                <div class="driver-name">{{ driver.profile.name }}</div>
+                <div class="driver-email">{{ driver.profile.email }}</div>
+              </div>
+              <div class="driver-status">
+                <span class="status-badge" [ngClass]="getDriverStatusClass(driver.status)">
+                  {{ driver.status }}
+                </span>
+                <div class="driver-jobs">
+                  <span *ngIf="driver.currentJobs > 0">{{ driver.currentJobs }} active jobs</span>
+                  <span *ngIf="driver.currentJobs === 0">No active jobs</span>
+                </div>
+              </div>
+              <div class="driver-actions">
+                <button mat-icon-button color="primary" (click)="$event.stopPropagation(); viewDriver(driver.profile)">
+                  <mat-icon>visibility</mat-icon>
+                </button>
+              </div>
+            </div>
+
+            <!-- No Drivers Message -->
+            <div *ngIf="filteredDrivers.length === 0" class="no-drivers">
+              <mat-icon>person_off</mat-icon>
+              <p>No drivers found with the selected status.</p>
+            </div>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    </div>
   </div>
 </div>
+<div class="dashboard-container"></div>

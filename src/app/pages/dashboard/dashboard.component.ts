@@ -716,7 +716,10 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
     this.router.navigate(['/jobs', job.id]);
   }
 
-  editJob(job: Job): void {
+  editJob(job: Job, event?: Event): void {
+    if (event) {
+      event.stopPropagation();
+    }
     this.router.navigate(['/jobs', job.id, 'edit']);
   }
 
@@ -838,5 +841,113 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
 
     const driver = this.allDrivers.find((d) => d.profile.id === driverId);
     return driver ? driver.profile.name : 'Unknown Driver';
+  }
+
+  createNewJob(): void {
+    this.router.navigate(['/jobs/new']);
+  }
+
+  // View driver details
+  viewDriverDetails(driver: EnhancedDriverInfo): void {
+    this.router.navigate(['/drivers', driver.profile.id]);
+  }
+
+  viewJobDetails(job: Job): void {
+    this.router.navigate(['/jobs', job.id]);
+  }
+
+  // Assign job to driver dialog
+  assignJob(job: Job, event?: Event): void {
+    if (event) {
+      event.stopPropagation();
+    }
+
+    // First open confirmation dialog
+    const confirmDialogRef = this.dialog.open(ConfirmationDialogComponent, {
+      width: '400px',
+      data: {
+        title: 'Assign Job',
+        message: `Do you want to assign job ${job.id}?`,
+        confirmText: 'Proceed',
+        cancelText: 'Cancel',
+        icon: 'assignment_ind',
+      },
+    });
+
+    confirmDialogRef.afterClosed().subscribe((result) => {
+      if (result) {
+        // Open driver selection dialog
+        this.openDriverSelectionDialog(job);
+      }
+    });
+  }
+
+  private openDriverSelectionDialog(job: Job): void {
+    const dialogRef = this.dialog.open(DriverSelectionDialogComponent, {
+      width: '500px',
+      data: {
+        jobId: job.id,
+        jobTitle: `${job.make || ''} ${job.model || ''} ${job.registration ? '(' + job.registration + ')' : ''}`,
+      },
+    });
+
+    dialogRef.afterClosed().subscribe((driver) => {
+      if (driver) {
+        this.isLoading = true;
+
+        // Assign driver to job
+        this.jobService
+          .updateJob(job.id, {
+            driverId: driver.id,
+            status: 'allocated',
+          })
+          .pipe(finalize(() => (this.isLoading = false)))
+          .subscribe({
+            next: () => {
+              this.notificationService.addNotification({
+                type: 'success',
+                title: 'Job Assigned',
+                message: `Job ${job.id} has been assigned to ${driver.name}`,
+              });
+
+              // Refresh job data
+              this.loadJobs();
+              this.loadDriversWithJobs();
+            },
+            error: (error) => {
+              console.error('Error assigning job:', error);
+              this.notificationService.addNotification({
+                type: 'error',
+                title: 'Assignment Failed',
+                message: 'Failed to assign job to driver.',
+              });
+            },
+          });
+      }
+    });
+  }
+
+  getJobCountClass(count: number): string {
+    if (count > 2) return 'high';
+    if (count > 0) return 'medium';
+    return 'low';
+  }
+
+  setDriverStatusFilter(status: string): void {
+    this.selectedDriverStatus = status;
+    this.filterDrivers();
+  }
+
+  // Get initials for driver avatar
+  getDriverInitials(driver: EnhancedDriverInfo): string {
+    const name = driver.profile.name || '';
+    if (!name) return '?';
+
+    const nameParts = name.split(' ');
+    if (nameParts.length === 1) {
+      return nameParts[0].charAt(0).toUpperCase();
+    }
+
+    return (nameParts[0].charAt(0) + nameParts[nameParts.length - 1].charAt(0)).toUpperCase();
   }
 }
