@@ -58,13 +58,10 @@ import { CustomerDetailsComponent } from './pages/customers/customer-details/cus
 import { ExpenseCreateComponent } from './pages/expenses/expense-create/expense-create.component';
 import { ExpenseListComponent } from './pages/expenses/expense-list/expense-list.component';
 
-// Settings Components
-import { UserRolesComponent } from './pages/settings/user-roles/user-roles.component';
-import { UserRoleDialogComponent } from './pages/settings/user-roles/user-role-dialog/user-role-dialog.component';
-
 // Dialog Components
 import { ConfirmationDialogComponent } from './dialogs/confirmation-dialog.component';
 import { DriverSelectionDialogComponent } from './dialogs/driver-selection-dialog.component';
+import { JobDuplicateDialogComponent } from './dialogs/job-duplicate-dialog.component';
 
 // Services
 import { JobService } from './services/job.service';
@@ -122,66 +119,43 @@ import { TimeAgoPipe } from './shared/pipes/time-ago.pipe';
     ExpenseCreateComponent,
     ExpenseListComponent,
 
-    // Settings Components
-    UserRolesComponent,
-    UserRoleDialogComponent,
-
-    // Dialog Components
+    // Dialog Components - Only declare dialogs that are not in feature modules
     ConfirmationDialogComponent,
     DriverSelectionDialogComponent,
+    JobDuplicateDialogComponent,
 
     // Pipes
     TimeAgoPipe,
   ],
-  imports: [
-    // Angular Core
-    BrowserModule,
-    BrowserAnimationsModule,
-    FormsModule,
-    ReactiveFormsModule,
-    HttpClientModule,
-
-    // Routing
-    AppRoutingModule,
-
-    // Material Design
-    MaterialModule,
-
-    // Charts
-    NgxChartsModule,
-  ],
+  imports: [BrowserModule, BrowserAnimationsModule, FormsModule, ReactiveFormsModule, HttpClientModule, MaterialModule, NgxChartsModule, AppRoutingModule],
   providers: [
-    // Firebase Configuration - Fixed for injection context
+    // Firebase providers
     provideFirebaseApp(() => initializeApp(environment.firebase)),
     provideFirestore(() => {
       const firestore = getFirestore();
       if (!environment.production) {
-        // Connect to emulators in development if needed
-        // connectFirestoreEmulator(firestore, 'localhost', 8080);
+        connectFirestoreEmulator(firestore, 'localhost', 8080);
       }
       return firestore;
     }),
     provideAuth(() => {
       const auth = getAuth();
       if (!environment.production) {
-        // Connect to auth emulator in development if needed
-        // connectAuthEmulator(auth, 'http://localhost:9099');
+        connectAuthEmulator(auth, 'http://localhost:9099');
       }
       return auth;
     }),
     provideStorage(() => {
       const storage = getStorage();
       if (!environment.production) {
-        // Connect to storage emulator in development if needed
-        // connectStorageEmulator(storage, 'localhost', 9199);
+        connectStorageEmulator(storage, 'localhost', 9199);
       }
       return storage;
     }),
     provideFunctions(() => {
       const functions = getFunctions();
       if (!environment.production) {
-        // Connect to functions emulator in development if needed
-        // connectFunctionsEmulator(functions, 'localhost', 5001);
+        connectFunctionsEmulator(functions, 'localhost', 5001);
       }
       return functions;
     }),

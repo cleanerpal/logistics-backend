@@ -7,7 +7,8 @@ import { catchError, switchMap, tap } from 'rxjs/operators';
 import { ConfirmationDialogComponent } from '../../../dialogs/confirmation-dialog.component';
 import { AuthService } from '../../../services/auth.service';
 import { JobService } from '../../../services/job.service';
-import { Job, UserProfile } from '../../../interfaces/job.interface';
+import { Job } from '../../../interfaces/job.interface';
+import { UserProfile } from '../../../interfaces/user-profile.interface';
 import { DriverSelectionDialogComponent } from '../../../dialogs/driver-selection-dialog.component';
 import { JobDuplicateDialogComponent } from '../../../dialogs/job-duplicate-dialog.component';
 

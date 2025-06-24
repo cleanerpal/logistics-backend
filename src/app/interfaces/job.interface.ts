@@ -1,64 +1,90 @@
+// src/app/interfaces/job.interface.ts
+// Updated interface to handle notes properly
+
+export interface NoteData {
+  author: string;
+  content: string;
+  date: Date | string;
+  id?: string;
+}
+
 export interface Job {
   id: string;
   vehicleId: string;
   driverId: string | null;
-  status: JobStatus;
-  stage?: string;
-
-  // Customer Information
-  customerName?: string;
-  customerEmail?: string;
-  customerPhone?: string;
-
-  // Vehicle Information
-  regNumber?: string;
-  make?: string;
-  model?: string;
-  year?: number | null;
-  color?: string;
-
-  // Collection Information
-  collectionAddress?: string;
-  collectionTown?: string;
-  collectionPostcode?: string;
-  collectionDate?: Date;
+  status: 'unallocated' | 'allocated' | 'collected' | 'delivered' | 'completed' | 'loaded';
+  stage?: 'collection-complete' | 'in-transit' | 'ready-for-delivery' | 'awaiting-confirmation';
   collectionStartTime?: Date;
   collectionCompleteTime?: Date;
-
-  // Delivery Information
-  deliveryAddress?: string;
-  deliveryTown?: string;
-  deliveryPostcode?: string;
-  deliveryDate?: Date;
   deliveryStartTime?: Date;
   deliveryCompleteTime?: Date;
-
-  // Additional Information
-  notes?: string;
-  specialInstructions?: string;
-  priority?: JobPriority;
-  estimatedDuration?: number | null;
-  actualDuration?: number | null;
-
-  // Timestamps
+  allocatedAt?: Date;
+  unallocatedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
-  allocatedAt?: Date;
-  statusUpdatedAt?: Date;
-
-  // Tracking
   createdBy?: string;
-  updatedBy?: string;
+  updatedBy?: string | null;
+  make?: string;
+  model?: string;
+  registration?: string;
 
-  // Optional extended fields
+  // Fixed notes type to handle both string and array formats
+  notes?: string | NoteData[] | Record<string, any>;
+
+  customerId?: string;
+  customerName?: string;
+  customerContact?: string;
+  customerContactPhone?: string;
+
+  collectionAddress?: string;
+  collectionCity?: string;
+  collectionPostcode?: string;
+  collectionContactName?: string;
+  collectionContactPhone?: string;
+  collectionNotes?: string;
+
+  deliveryAddress?: string;
+  deliveryCity?: string;
+  deliveryPostcode?: string;
+  deliveryContactName?: string;
+  deliveryContactPhone?: string;
+  deliveryNotes?: string;
+
+  color?: string;
+  year?: number;
+  fuelType?: string;
+  mileage?: number;
+  fuelLevel?: string;
+  chassisNumber?: string;
+  vehicleType?: string;
+
+  isSplitJourney?: boolean;
+
+  secondaryCollectionAddress?: string;
+  secondaryCollectionCity?: string;
+  secondaryCollectionPostcode?: string;
+  secondaryCollectionContactName?: string;
+  secondaryCollectionContactPhone?: string;
+  secondaryCollectionNotes?: string;
+
+  firstDeliveryAddress?: string;
+  firstDeliveryCity?: string;
+  firstDeliveryPostcode?: string;
+  firstDeliveryContactName?: string;
+  firstDeliveryContactPhone?: string;
+  firstDeliveryNotes?: string;
+
+  collectionActualDateTime?: Date;
+  deliveryActualDateTime?: Date;
+
+  collectionPhotos?: string[];
+  deliveryPhotos?: string[];
+  collectionSignature?: string;
+  deliverySignature?: string;
+
   [key: string]: any;
 }
 
-export type JobStatus = 'unallocated' | 'allocated' | 'collected' | 'in-transit' | 'delivered' | 'completed' | 'cancelled';
-
-export type JobPriority = 'low' | 'normal' | 'high' | 'urgent';
-
-// src/app/interfaces/user-profile.interface.ts - User Profile Interface
 export interface UserProfile {
   id: string;
   email: string;
@@ -66,53 +92,73 @@ export interface UserProfile {
   firstName?: string;
   lastName?: string;
   phoneNumber?: string;
-  role: string;
-  isActive: boolean; // Always boolean, never undefined
-  permissions?: UserPermissions;
-  createdAt?: Date;
-  updatedAt?: Date;
-
-  // Driver-specific fields
-  licenseNumber?: string;
-  licenseExpiryDate?: Date;
-  emergencyContact?: EmergencyContact;
-  address?: Address;
-
-  // Additional profile fields
-  profilePhotoUrl?: string;
-  dateOfBirth?: Date;
-  startDate?: Date;
-
-  [key: string]: any;
+  role: string; // Made required to fix type compatibility
+  isActive?: boolean;
+  permissions?: {
+    canAllocateJobs?: boolean;
+    canApproveExpenses?: boolean;
+    canCreateJobs?: boolean;
+    canEditJobs?: boolean;
+    canManageUsers?: boolean;
+    canViewReports?: boolean;
+    canViewUnallocated?: boolean;
+    isAdmin?: boolean;
+    [key: string]: boolean | undefined;
+  };
 }
 
-export interface UserPermissions {
-  isAdmin?: boolean;
-  canAllocateJobs?: boolean;
-  canApproveExpenses?: boolean;
-  canCreateJobs?: boolean;
-  canEditJobs?: boolean;
-  canDeleteJobs?: boolean;
-  canManageUsers?: boolean;
-  canManageVehicles?: boolean;
-  canManageCustomers?: boolean;
-  canViewReports?: boolean;
-  canViewUnallocated?: boolean;
-  canViewDrivers?: boolean;
+export interface JobEntry {
+  vehicleId: string;
+  status: string;
+  driverId: null | undefined;
 
-  [key: string]: boolean | undefined;
-}
+  make?: string | null;
+  model?: string | null;
+  registration?: string | null;
+  chassisNumber?: string | null;
+  type?: string | null;
+  color?: string | null;
+  year?: number | null;
 
-export interface EmergencyContact {
-  name: string;
-  relationship: string;
-  phoneNumber: string;
-  email?: string;
-}
+  collectionAddress?: string | null;
+  collectionCity?: string | null;
+  collectionContactName?: string | null;
+  collectionContactPhone?: string | null;
+  collectionEmail?: string | null;
+  collectionDate?: string | null;
+  collectionNotes?: string | null;
 
-export interface Address {
-  street: string;
-  city: string;
-  postcode: string;
-  country?: string;
+  deliveryAddress?: string | null;
+  deliveryCity?: string | null;
+  deliveryContactName?: string | null;
+  deliveryContactPhone?: string | null;
+  deliveryEmail?: string | null;
+  deliveryDate?: string | null;
+  deliveryNotes?: string | null;
+
+  isSplitJourney?: boolean;
+  secondaryCollectionAddress?: string | null;
+  secondaryCollectionCity?: string | null;
+  secondaryCollectionContactName?: string | null;
+  secondaryCollectionContactPhone?: string | null;
+  secondaryCollectionEmail?: string | null;
+  secondaryCollectionDate?: string | null;
+  secondaryCollectionNotes?: string | null;
+  firstDeliveryAddress?: string | null;
+  firstDeliveryCity?: string | null;
+  firstDeliveryContactName?: string | null;
+  firstDeliveryContactPhone?: string | null;
+  firstDeliveryEmail?: string | null;
+  firstDeliveryDate?: string | null;
+  firstDeliveryNotes?: string | null;
+
+  createdAt: Date;
+  updatedAt: Date;
+  createdBy: string | null;
+  updatedBy: string | null;
+
+  customerId?: string | null;
+  customerName?: string | null;
+  customerJobNumber?: string | null;
+  shippingReference?: string | null;
 }

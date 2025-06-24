@@ -381,12 +381,12 @@ export class JobService implements OnDestroy {
           .filter(
             (job) =>
               job.id.toLowerCase().includes(searchLower) ||
-              job.regNumber?.toLowerCase().includes(searchLower) ||
+              job['regNumber']?.toLowerCase().includes(searchLower) ||
               job.customerName?.toLowerCase().includes(searchLower) ||
               job.make?.toLowerCase().includes(searchLower) ||
               job.model?.toLowerCase().includes(searchLower) ||
-              job.collectionTown?.toLowerCase().includes(searchLower) ||
-              job.deliveryTown?.toLowerCase().includes(searchLower)
+              job['collectionTown']?.toLowerCase().includes(searchLower) ||
+              job['deliveryTown']?.toLowerCase().includes(searchLower)
           )
           .slice(0, limit);
       })
@@ -451,11 +451,11 @@ export class JobService implements OnDestroy {
 
         // Sort by priority and date
         return uniqueJobs.sort((a, b) => {
-          if (a.priority === 'urgent' && b.priority !== 'urgent') return -1;
-          if (b.priority === 'urgent' && a.priority !== 'urgent') return 1;
+          if (a['priority'] === 'urgent' && b['priority'] !== 'urgent') return -1;
+          if (b['priority'] === 'urgent' && a['priority'] !== 'urgent') return 1;
 
-          const dateA = new Date(a.collectionDate || a.createdAt).getTime();
-          const dateB = new Date(b.collectionDate || b.createdAt).getTime();
+          const dateA = new Date(a['collectionDate'] || a.createdAt).getTime();
+          const dateB = new Date(b['collectionDate'] || b.createdAt).getTime();
           return dateA - dateB;
         });
       })
@@ -488,7 +488,7 @@ export class JobService implements OnDestroy {
           stats.byStatus[job.status] = (stats.byStatus[job.status] || 0) + 1;
 
           // Count by priority
-          const priority = job.priority || 'normal';
+          const priority = job['priority'] || 'normal';
           stats.byPriority[priority] = (stats.byPriority[priority] || 0) + 1;
         });
 
@@ -498,9 +498,9 @@ export class JobService implements OnDestroy {
 
         // Calculate on-time deliveries
         const onTimeJobs = completedJobs.filter((job) => {
-          if (!job.deliveryDate || !job.deliveryCompleteTime) return false;
+          if (!job['deliveryDate'] || !job.deliveryCompleteTime) return false;
 
-          const scheduledDate = new Date(job.deliveryDate);
+          const scheduledDate = new Date(job['deliveryDate']);
           const actualDate = new Date(job.deliveryCompleteTime);
 
           // Consider on-time if delivered on or before scheduled date
@@ -509,7 +509,7 @@ export class JobService implements OnDestroy {
         stats.onTimeDeliveries = completedJobs.length > 0 ? (onTimeJobs.length / completedJobs.length) * 100 : 0;
 
         // Calculate average duration for completed jobs
-        const durationsInHours = completedJobs.filter((job) => job.actualDuration).map((job) => job.actualDuration!);
+        const durationsInHours = completedJobs.filter((job) => job['actualDuration']).map((job) => job['actualDuration']!);
 
         stats.averageDuration = durationsInHours.length > 0 ? durationsInHours.reduce((sum, duration) => sum + duration, 0) / durationsInHours.length : 0;
 

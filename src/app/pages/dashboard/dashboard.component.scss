@@ -1,4 +1,4 @@
-// Dashboard Component Complete Styles
+// Dashboard Component Styles
 .dashboard-container {
   padding: 20px;
   max-width: 1400px;
@@ -28,12 +28,6 @@
     display: flex;
     align-items: center;
     gap: 8px;
-
-    mat-icon {
-      font-size: 1.2rem;
-      width: 1.2rem;
-      height: 1.2rem;
-    }
   }
 
   @media (max-width: 768px) {
@@ -53,7 +47,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: 300px;
+  min-height: 200px;
   gap: 16px;
 
   p {
@@ -200,34 +194,9 @@
   .chart-container {
     height: 300px;
     width: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
 
     @media (max-width: 768px) {
       height: 250px;
-    }
-  }
-
-  .no-chart-data {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    height: 100%;
-    color: rgba(0, 0, 0, 0.5);
-
-    mat-icon {
-      font-size: 3rem;
-      width: 3rem;
-      height: 3rem;
-      margin-bottom: 16px;
-      opacity: 0.3;
-    }
-
-    p {
-      margin: 0;
-      font-size: 1rem;
     }
   }
 }
@@ -344,7 +313,6 @@
       .driver-name {
         font-weight: 500;
         margin-bottom: 4px;
-        font-size: 1rem;
       }
 
       .driver-email {
@@ -457,7 +425,6 @@
       th {
         font-weight: 600;
         color: rgba(0, 0, 0, 0.87);
-        background: rgba(0, 0, 0, 0.02);
       }
 
       .job-row {
@@ -473,24 +440,20 @@
         font-family: 'Courier New', monospace;
         font-weight: 500;
         color: #3f51b5;
-        font-size: 0.875rem;
       }
 
       .registration {
         font-weight: 500;
         text-transform: uppercase;
-        font-size: 0.875rem;
       }
 
       .customer-name {
         font-weight: 500;
-        font-size: 0.875rem;
       }
 
       .collection-date,
       .location {
         color: rgba(0, 0, 0, 0.7);
-        font-size: 0.875rem;
       }
 
       .status-badge {
@@ -540,7 +503,6 @@
       .driver-name {
         font-weight: 500;
         color: rgba(0, 0, 0, 0.8);
-        font-size: 0.875rem;
       }
 
       .action-buttons {

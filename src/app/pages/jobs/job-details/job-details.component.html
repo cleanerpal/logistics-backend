@@ -26,14 +26,14 @@
               <div class="job-id-wrapper">
                 <span class="job-id">{{ job.id }}</span>
                 <!-- Journey Type Badge -->
-                <span class="journey-type-badge" [ngClass]="job.isSplitJourney ? 'split' : 'normal'">
-                  <span class="material-icons">{{ job.isSplitJourney ? 'call_split' : 'arrow_forward' }}</span>
-                  {{ job.isSplitJourney ? 'Split Journey' : 'Direct Journey' }}
+                <span class="journey-type-badge" [ngClass]="job['isSplitJourney'] ? 'split' : 'normal'">
+                  <span class="material-icons">{{ job['isSplitJourney'] ? 'call_split' : 'arrow_forward' }}</span>
+                  {{ job['isSplitJourney'] ? 'Split Journey' : 'Direct Journey' }}
                 </span>
               </div>
               <div class="vehicle-summary" *ngIf="job.make && job.model">
                 {{ job.make }} {{ job.model }}
-                {{ job.registration ? '(' + job.registration + ')' : '' }}
+                {{ job['registration'] ? '(' + job['registration'] + ')' : '' }}
               </div>
             </div>
             <span class="status-badge" [ngClass]="job.status ? 'status-' + job.status.toLowerCase().replace(' ', '-') : ''">
@@ -83,11 +83,11 @@
                   </div>
                   <div class="info-row">
                     <span class="label">Contact Name</span>
-                    <span class="value">{{ job.customerContact || 'N/A' }}</span>
+                    <span class="value">{{ job['customerContact'] || 'N/A' }}</span>
                   </div>
                   <div class="info-row">
                     <span class="label">Phone</span>
-                    <span class="value">{{ job.customerContactPhone || 'N/A' }}</span>
+                    <span class="value">{{ job['customerContactPhone'] || 'N/A' }}</span>
                   </div>
                 </div>
               </div>
@@ -107,11 +107,11 @@
                     </div>
                     <div class="info-row">
                       <span class="label">Registration</span>
-                      <span class="value">{{ job.registration || 'N/A' }}</span>
+                      <span class="value">{{ job['registration'] || 'N/A' }}</span>
                     </div>
                     <div class="info-row">
                       <span class="label">Type</span>
-                      <span class="value">{{ job.vehicleType || 'N/A' }}</span>
+                      <span class="value">{{ job['vehicleType'] || 'N/A' }}</span>
                     </div>
                     <div class="info-row">
                       <span class="label">Color</span>
@@ -123,7 +123,7 @@
                     </div>
                     <div class="info-row">
                       <span class="label">Chassis Number</span>
-                      <span class="value">{{ job.chassisNumber || 'N/A' }}</span>
+                      <span class="value">{{ job['chassisNumber'] || 'N/A' }}</span>
                     </div>
                   </div>
                 </div>
@@ -134,7 +134,7 @@
                 <h2>Addresses</h2>
                 <div class="card-content">
                   <!-- Journey Visualization for Split Journeys -->
-                  <div class="journey-flow" *ngIf="job.isSplitJourney">
+                  <div class="journey-flow" *ngIf="job['isSplitJourney']">
                     <div class="journey-step">
                       <div class="step-icon">
                         <span class="material-icons">location_on</span>
@@ -174,56 +174,56 @@
                   <div class="address-section collection">
                     <h3>
                       <span class="material-icons">location_on</span>
-                      {{ job.isSplitJourney ? 'Primary Collection' : 'Collection' }}
+                      {{ job['isSplitJourney'] ? 'Primary Collection' : 'Collection' }}
                     </h3>
                     <p class="address-main">
                       {{ job.collectionAddress || 'Not specified' }}
                     </p>
-                    <p *ngIf="job.collectionCity"><strong>City:</strong> {{ job.collectionCity }}</p>
-                    <p *ngIf="job.collectionPostcode"><strong>Postcode:</strong> {{ job.collectionPostcode }}</p>
-                    <p *ngIf="job.collectionContactName"><strong>Contact:</strong> {{ job.collectionContactName }}</p>
-                    <p *ngIf="job.collectionContactPhone"><strong>Phone:</strong> {{ job.collectionContactPhone }}</p>
-                    <p *ngIf="job.collectionNotes" class="instructions">
+                    <p *ngIf="job['collectionCity']"><strong>City:</strong> {{ job['collectionCity'] }}</p>
+                    <p *ngIf="job['collectionPostcode']"><strong>Postcode:</strong> {{ job['collectionPostcode'] }}</p>
+                    <p *ngIf="job['collectionContactName']"><strong>Contact:</strong> {{ job['collectionContactName'] }}</p>
+                    <p *ngIf="job['collectionContactPhone']"><strong>Phone:</strong> {{ job['collectionContactPhone'] }}</p>
+                    <p *ngIf="job['collectionNotes']" class="instructions">
                       <span class="material-icons">info</span>
-                      {{ job.collectionNotes }}
+                      {{ job['collectionNotes'] }}
                     </p>
                   </div>
 
                   <!-- Secondary Collection - Only if Split Journey -->
-                  <div class="address-section collection secondary" *ngIf="job.isSplitJourney">
+                  <div class="address-section collection secondary" *ngIf="job['isSplitJourney']">
                     <h3>
                       <span class="material-icons">add_location</span>
                       Secondary Collection
                     </h3>
                     <p class="address-main">
-                      {{ job.secondaryCollectionAddress || 'Not specified' }}
+                      {{ job['secondaryCollectionAddress'] || 'Not specified' }}
                     </p>
-                    <p *ngIf="job.secondaryCollectionCity"><strong>City:</strong> {{ job.secondaryCollectionCity }}</p>
-                    <p *ngIf="job.secondaryCollectionPostcode"><strong>Postcode:</strong> {{ job.secondaryCollectionPostcode }}</p>
-                    <p *ngIf="job.secondaryCollectionContactName"><strong>Contact:</strong> {{ job.secondaryCollectionContactName }}</p>
-                    <p *ngIf="job.secondaryCollectionContactPhone"><strong>Phone:</strong> {{ job.secondaryCollectionContactPhone }}</p>
-                    <p *ngIf="job.secondaryCollectionNotes" class="instructions">
+                    <p *ngIf="job['secondaryCollectionCity']"><strong>City:</strong> {{ job['secondaryCollectionCity'] }}</p>
+                    <p *ngIf="job['secondaryCollectionPostcode']"><strong>Postcode:</strong> {{ job['secondaryCollectionPostcode'] }}</p>
+                    <p *ngIf="job['secondaryCollectionContactName']"><strong>Contact:</strong> {{ job['secondaryCollectionContactName'] }}</p>
+                    <p *ngIf="job['secondaryCollectionContactPhone']"><strong>Phone:</strong> {{ job['secondaryCollectionContactPhone'] }}</p>
+                    <p *ngIf="job['secondaryCollectionNotes']" class="instructions">
                       <span class="material-icons">info</span>
-                      {{ job.secondaryCollectionNotes }}
+                      {{ job['secondaryCollectionNotes'] }}
                     </p>
                   </div>
 
                   <!-- Secondary Delivery - Only if Split Journey -->
-                  <div class="address-section delivery secondary" *ngIf="job.isSplitJourney">
+                  <div class="address-section delivery secondary" *ngIf="job['isSplitJourney']">
                     <h3>
                       <span class="material-icons">add_location</span>
                       Secondary Delivery
                     </h3>
                     <p class="address-main">
-                      {{ job.secondaryDeliveryAddress || 'Not specified' }}
+                      {{ job['secondaryDeliveryAddress'] || 'Not specified' }}
                     </p>
-                    <p *ngIf="job.secondaryDeliveryCity"><strong>City:</strong> {{ job.secondaryDeliveryCity }}</p>
-                    <p *ngIf="job.secondaryDeliveryPostcode"><strong>Postcode:</strong> {{ job.secondaryDeliveryPostcode }}</p>
-                    <p *ngIf="job.secondaryDeliveryContactName"><strong>Contact:</strong> {{ job.secondaryDeliveryContactName }}</p>
-                    <p *ngIf="job.secondaryDeliveryContactPhone"><strong>Phone:</strong> {{ job.secondaryDeliveryContactPhone }}</p>
-                    <p *ngIf="job.secondaryDeliveryNotes" class="instructions">
+                    <p *ngIf="job['secondaryDeliveryCity']"><strong>City:</strong> {{ job['secondaryDeliveryCity'] }}</p>
+                    <p *ngIf="job['secondaryDeliveryPostcode']"><strong>Postcode:</strong> {{ job['secondaryDeliveryPostcode'] }}</p>
+                    <p *ngIf="job['secondaryDeliveryContactName']"><strong>Contact:</strong> {{ job['secondaryDeliveryContactName'] }}</p>
+                    <p *ngIf="job['secondaryDeliveryContactPhone']"><strong>Phone:</strong> {{ job['secondaryDeliveryContactPhone'] }}</p>
+                    <p *ngIf="job['secondaryDeliveryNotes']" class="instructions">
                       <span class="material-icons">info</span>
-                      {{ job.secondaryDeliveryNotes }}
+                      {{ job['secondaryDeliveryNotes'] }}
                     </p>
                   </div>
 
@@ -231,18 +231,18 @@
                   <div class="address-section delivery">
                     <h3>
                       <span class="material-icons">flag</span>
-                      {{ job.isSplitJourney ? 'Final Delivery' : 'Delivery' }}
+                      {{ job['isSplitJourney'] ? 'Final Delivery' : 'Delivery' }}
                     </h3>
                     <p class="address-main">
                       {{ job.deliveryAddress || 'Not specified' }}
                     </p>
-                    <p *ngIf="job.deliveryCity"><strong>City:</strong> {{ job.deliveryCity }}</p>
-                    <p *ngIf="job.deliveryPostcode"><strong>Postcode:</strong> {{ job.deliveryPostcode }}</p>
-                    <p *ngIf="job.deliveryContactName"><strong>Contact:</strong> {{ job.deliveryContactName }}</p>
-                    <p *ngIf="job.deliveryContactPhone"><strong>Phone:</strong> {{ job.deliveryContactPhone }}</p>
-                    <p *ngIf="job.deliveryNotes" class="instructions">
+                    <p *ngIf="job['deliveryCity']"><strong>City:</strong> {{ job['deliveryCity'] }}</p>
+                    <p *ngIf="job['deliveryPostcode']"><strong>Postcode:</strong> {{ job['deliveryPostcode'] }}</p>
+                    <p *ngIf="job['deliveryContactName']"><strong>Contact:</strong> {{ job['deliveryContactName'] }}</p>
+                    <p *ngIf="job['deliveryContactPhone']"><strong>Phone:</strong> {{ job['deliveryContactPhone'] }}</p>
+                    <p *ngIf="job['deliveryNotes']" class="instructions">
                       <span class="material-icons">info</span>
-                      {{ job.deliveryNotes }}
+                      {{ job['deliveryNotes'] }}
                     </p>
                   </div>
                 </div>
