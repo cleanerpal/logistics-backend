@@ -72,23 +72,23 @@
 
     <table mat-table [dataSource]="dataSource" matSort [class.loading]="isLoading">
       <ng-container matColumnDef="id">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header>Job ID</th>
-        <td mat-cell *matCellDef="let job" class="job-id">{{ job.id }}</td>
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>Shipping Reference</th>
+        <td mat-cell *matCellDef="let job" class="job-id">{{ job.shippingReference }}</td>
       </ng-container>
 
       <ng-container matColumnDef="regNumber">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header>Registration</th>
-        <td mat-cell *matCellDef="let job">{{ job.registration || 'N/A' }}</td>
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>Reg / Chassis</th>
+        <td mat-cell *matCellDef="let job">{{ job.vehicleRegistration || 'N/A' }}</td>
       </ng-container>
 
       <ng-container matColumnDef="make">
         <th mat-header-cell *matHeaderCellDef mat-sort-header>Make</th>
-        <td mat-cell *matCellDef="let job">{{ job.make || 'N/A' }}</td>
+        <td mat-cell *matCellDef="let job">{{ job.vehicleMake || 'N/A' | sentenceCase }}</td>
       </ng-container>
 
       <ng-container matColumnDef="model">
         <th mat-header-cell *matHeaderCellDef mat-sort-header>Model</th>
-        <td mat-cell *matCellDef="let job">{{ job.model || 'N/A' }}</td>
+        <td mat-cell *matCellDef="let job">{{ job.vehicleModel || 'N/A' | sentenceCase }}</td>
       </ng-container>
 
       <ng-container matColumnDef="collectionDate">

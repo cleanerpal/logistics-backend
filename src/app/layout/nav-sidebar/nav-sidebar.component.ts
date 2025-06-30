@@ -27,7 +27,7 @@ export class NavSidebarComponent implements OnInit {
       active: false,
     },
     {
-      label: 'Vehicles',
+      label: 'Company Vehicles',
       icon: 'directions_car',
       route: '/vehicles',
       active: false,

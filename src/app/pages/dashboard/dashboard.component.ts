@@ -85,22 +85,24 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
   displayedColumns: string[] = ['shippingReference', 'regNumber', 'customerName', 'collectionDate', 'collectionTown', 'deliveryTown', 'status', 'driver', 'actions'];
 
   jobsDataSource = new MatTableDataSource<Job>([]);
-  todaysJobsDataSource = new MatTableDataSource<Job>([]);
   isLoading = true;
   isLoadingDrivers = true;
   curve = shape.curveLinear;
   jobs: Job[] = [];
   vehicles: Vehicle[] = [];
 
+  // Dashboard refresh interval (5 minutes)
   private readonly REFRESH_INTERVAL = 5 * 60 * 1000;
   private readonly LOADING_TIMEOUT = 10000; // 10 seconds
 
+  // Previous metrics for trend calculation
   private previousJobCounts = {
     active: 0,
     unallocated: 0,
     total: 0,
   };
 
+  // Dashboard metrics
   metrics: DashboardMetrics = {
     activeJobs: 0,
     unallocatedJobs: 0,
@@ -118,12 +120,14 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
     },
   };
 
+  // Track metric changes over time for charts
   private metricHistory = {
     activeJobs: [] as number[],
     unallocatedJobs: [] as number[],
     totalJobs: [] as number[],
   };
 
+  // Delivery metrics
   deliveryMetrics: DeliveryMetrics = {
     week: {
       current: 0,
@@ -145,22 +149,27 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
     },
   };
 
+  // Chart data
   jobStatusChartData: any[] = [];
   deliveryTrendData: any[] = [];
 
+  // Using string-based color schemes (most reliable approach)
   pieChartColorScheme: string = 'cool';
   lineChartColorScheme: string = 'cool';
 
+  // Driver-related properties
   allDrivers: EnhancedDriverInfo[] = [];
   filteredDrivers: EnhancedDriverInfo[] = [];
   selectedDriverStatus: string = 'All';
   driverStatusOptions = ['All', 'Available', 'Busy', 'On Leave', 'Offline'];
 
+  // Data loading states
   private jobsLoaded$ = new BehaviorSubject<boolean>(false);
   private driversLoaded$ = new BehaviorSubject<boolean>(false);
   private metricsLoaded$ = new BehaviorSubject<boolean>(false);
   private vehiclesLoaded$ = new BehaviorSubject<boolean>(false);
 
+  // Cleanup
   private destroy$ = new Subject<void>();
   private subscriptions: Subscription[] = [];
 
@@ -176,12 +185,17 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   ngOnInit(): void {
+    console.log('Dashboard initializing...');
+
+    // Force loading to complete after timeout
     this.setupLoadingTimeout();
     this.setupDataSubscriptions();
     this.setupCustomSort();
 
+    // Initialize with default data first
     this.initializeDefaultData();
 
+    // Then try to load real data
     this.initDashboardData();
     this.setupRefreshInterval();
   }
@@ -226,6 +240,9 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private initializeDefaultData(): void {
+    console.log('Initializing default dashboard data');
+
+    // Set default metrics
     this.metrics = {
       activeJobs: 0,
       unallocatedJobs: 0,
@@ -237,31 +254,37 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
       unallocatedJobsTrend: { percentChange: 0, increased: false },
     };
 
+    // Set default delivery metrics
     this.deliveryMetrics = {
       week: { current: 0, change: 0, increased: false, data: [] },
       month: { current: 0, change: 0, increased: false, data: [] },
       year: { current: 0, change: 0, increased: false, data: [] },
     };
 
+    // Set default chart data
     this.jobStatusChartData = [{ name: 'No Data Available', value: 1 }];
 
     this.deliveryTrendData = [];
 
+    // Initialize empty arrays
     this.jobs = [];
     this.vehicles = [];
     this.allDrivers = [];
     this.filteredDrivers = [];
 
+    // Set data source
     this.jobsDataSource.data = [];
   }
 
   private setupDataSubscriptions(): void {
+    // Monitor all loading states with detailed logging
     const dataLoadingSubscription = combineLatest([this.jobsLoaded$, this.driversLoaded$, this.metricsLoaded$, this.vehiclesLoaded$]).subscribe(
       ([jobsLoaded, driversLoaded, metricsLoaded, vehiclesLoaded]) => {
         this.isLoading = !(jobsLoaded && metricsLoaded && vehiclesLoaded);
         this.isLoadingDrivers = !driversLoaded;
 
         if (!this.isLoading) {
+          console.log('Dashboard loading completed!');
         }
       }
     );
@@ -273,6 +296,7 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
     this.jobsDataSource.sortingDataAccessor = (item, property) => {
       switch (property) {
         case 'timestamp':
+          //
           if (item['timestamp'] instanceof Timestamp) {
             return item['timestamp'].toDate().getTime();
           }
@@ -312,7 +336,6 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
   private initDashboardData(): void {
     this.storePreviousMetrics();
     this.loadJobs();
-    this.loadTodaysJobs();
     this.loadDriversWithJobs();
     this.loadVehicles();
     this.loadDeliveryMetrics();
@@ -328,11 +351,13 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
       message: 'Dashboard data is being refreshed...',
     });
 
+    // Reset loading states
     this.jobsLoaded$.next(false);
     this.driversLoaded$.next(false);
     this.metricsLoaded$.next(false);
     this.vehiclesLoaded$.next(false);
 
+    // Reload all data
     this.initDashboardData();
   }
 
@@ -343,11 +368,13 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
       total: this.metrics.totalJobs,
     };
 
+    // Add current metrics to history for charts
     if (this.metrics.totalJobs > 0) {
       this.metricHistory.activeJobs.push(this.metrics.activeJobs);
       this.metricHistory.unallocatedJobs.push(this.metrics.unallocatedJobs);
       this.metricHistory.totalJobs.push(this.metrics.totalJobs);
 
+      // Keep only the last 14 data points for trends
       if (this.metricHistory.activeJobs.length > 14) {
         this.metricHistory.activeJobs.shift();
         this.metricHistory.unallocatedJobs.shift();
@@ -378,7 +405,7 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
       .subscribe({
         next: (jobs: Job[]) => {
           this.jobs = jobs;
-
+          console.log(this.jobs);
           this.jobsDataSource.data = jobs;
           this.calculateJobMetrics(jobs);
           this.updateJobStatusChart(jobs);
@@ -386,41 +413,6 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
         error: (error: any) => {
           console.error('Jobs subscription error:', error);
           this.jobsLoaded$.next(true);
-        },
-      });
-
-    this.subscriptions.push(jobsSub);
-  }
-
-  private loadTodaysJobs(): void {
-    const jobsSub = this.jobService
-      .getTodaysJobs()
-      .pipe(
-        timeout(8000),
-        takeUntil(this.destroy$),
-        catchError((error) => {
-          console.error("Error loading today's jobs:", error);
-          this.notificationService.addNotification({
-            type: 'error',
-            title: "Error Loading Today's Jobs",
-            message: "There was a problem loading today's job data from the database.",
-          });
-          return of([]);
-        }),
-        finalize(() => {
-          this.jobsLoaded$.next(true);
-        })
-      )
-      .subscribe({
-        next: (jobs) => {
-          this.jobs = jobs;
-          this.todaysJobsDataSource.data = jobs;
-          this.calculateJobMetrics(jobs);
-          this.updateJobStatusChart(jobs);
-        },
-        error: (error) => {
-          console.error("Subscription error loading today's jobs:", error);
-          this.initializeDefaultData();
         },
       });
 
@@ -459,6 +451,7 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private loadVehicles(): void {
+    // Simplified vehicle loading to avoid type conflicts
     const vehiclesSub = of([] as any[])
       .pipe(
         delay(100), // Small delay to prevent race conditions
@@ -479,10 +472,12 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
 
     this.subscriptions.push(vehiclesSub);
 
+    // Optionally try to load real vehicles in the background
     this.loadVehiclesBackground();
   }
 
   private loadVehiclesBackground(): void {
+    // Try to load vehicles without blocking the dashboard
     this.vehicleService.vehicles$
       .pipe(
         take(1),
@@ -515,6 +510,7 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
             return of([]);
           }
 
+          // Create enhanced driver info with empty jobs for now
           const enhancedDrivers = drivers.map((driver) => this.createEnhancedDriverInfo(driver, []));
 
           return of(enhancedDrivers);
@@ -525,10 +521,12 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
         }),
         finalize(() => {
           this.driversLoaded$.next(true);
+          console.log('Drivers loading completed');
         })
       )
       .subscribe({
         next: (enhancedDrivers: EnhancedDriverInfo[]) => {
+          console.log('Drivers loaded:', enhancedDrivers.length);
           this.allDrivers = enhancedDrivers;
           this.filterDrivers();
         },
@@ -542,15 +540,18 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private loadDeliveryMetrics(): void {
+    // Simplified delivery metrics loading
     const deliveriesSub = timer(200)
       .pipe(
         switchMap(() => of([])), // Return empty for now
         finalize(() => {
           this.metricsLoaded$.next(true);
+          console.log('Delivery metrics loading completed');
         })
       )
       .subscribe({
         next: (deliveryJobs) => {
+          console.log('Delivery metrics loaded');
           this.initializeEmptyDeliveryMetrics();
         },
         error: (error: any) => {
@@ -565,10 +566,12 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
   private createEnhancedDriverInfo(driver: UserProfile, jobs: Job[]): EnhancedDriverInfo {
     const activeJobs = jobs.filter((job) => ['allocated', 'collected', 'in-transit'].includes(job.status));
 
+    // Ensure we always get a proper boolean value
     const driverIsActive = Boolean(driver.isActive);
     const hasNoActiveJobs = activeJobs.length === 0;
     const isAvailable = hasNoActiveJobs && driverIsActive;
 
+    // Determine status based on job load and last activity
     let status: DriverStatus;
     if (!driverIsActive) {
       status = DriverStatus.OFFLINE;
@@ -592,9 +595,11 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
     if (jobs.length === 0) return undefined;
 
     return jobs.reduce((latest, job) => {
+      // Ensure job.updatedAt and job.createdAt are handled as Timestamp objects
       const jobUpdate = (job.updatedAt || job.createdAt) as Timestamp;
       if (!jobUpdate) return latest;
 
+      // Convert Timestamp to Date using .toDate()
       const jobDate = jobUpdate.toDate();
       return !latest || jobDate > latest ? jobDate : latest;
     }, undefined as Date | undefined);
@@ -610,6 +615,7 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
     const deliveredJobs = jobs.filter((job) => job.status === 'delivered');
     const completedJobs = jobs.filter((job) => completedStatuses.includes(job.status));
 
+    // Calculate trends
     const activeJobsTrend = this.calculateTrend(activeJobs.length, this.previousJobCounts.active);
     const unallocatedJobsTrend = this.calculateTrend(unallocatedJobs.length, this.previousJobCounts.unallocated);
 
@@ -689,6 +695,7 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
     };
   }
 
+  // Filter and search methods
   filterDrivers(): void {
     if (this.selectedDriverStatus === 'All') {
       this.filteredDrivers = this.allDrivers;
@@ -710,6 +717,7 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
     }
   }
 
+  // Navigation methods
   viewJob(job: Job): void {
     this.router.navigate(['/jobs', job.id]);
   }
@@ -725,6 +733,7 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
     this.router.navigate(['/drivers', driver.id]);
   }
 
+  // Action methods
   allocateJob(job: Job): void {
     const dialogRef = this.dialog.open(DriverSelectionDialogComponent, {
       width: '500px',
@@ -786,6 +795,7 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
     });
   }
 
+  // Utility methods
   getStatusClass(status: string): string {
     const statusMap: Record<string, string> = {
       unallocated: 'status-unallocated',
@@ -843,6 +853,7 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
     this.router.navigate(['/jobs/new']);
   }
 
+  // View driver details
   viewDriverDetails(driver: EnhancedDriverInfo): void {
     this.router.navigate(['/drivers', driver.profile.id]);
   }
@@ -851,11 +862,13 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
     this.router.navigate(['/jobs', job.id]);
   }
 
+  // Assign job to driver dialog
   assignJob(job: Job, event?: Event): void {
     if (event) {
       event.stopPropagation();
     }
 
+    // First open confirmation dialog
     const confirmDialogRef = this.dialog.open(ConfirmationDialogComponent, {
       width: '400px',
       data: {
@@ -869,6 +882,7 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
 
     confirmDialogRef.afterClosed().subscribe((result) => {
       if (result) {
+        // Open driver selection dialog
         this.openDriverSelectionDialog(job);
       }
     });
@@ -887,6 +901,7 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
       if (driver) {
         this.isLoading = true;
 
+        // Assign driver to job
         this.jobService
           .updateJob(job.id, {
             driverId: driver.id,
@@ -901,8 +916,8 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
                 message: `Job ${job.id} has been assigned to ${driver.name}`,
               });
 
+              // Refresh job data
               this.loadJobs();
-              this.loadTodaysJobs();
               this.loadDriversWithJobs();
             },
             error: (error) => {
@@ -929,6 +944,7 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
     this.filterDrivers();
   }
 
+  // Get initials for driver avatar
   getDriverInitials(driver: EnhancedDriverInfo): string {
     const name = driver.profile.name || '';
     if (!name) return '?';

@@ -61,6 +61,7 @@ import { AuthGuard } from './guards/auth.guard';
 import { RoleGuard } from './guards/role.guard';
 
 import { TimeAgoPipe } from './shared/pipes/time-ago.pipe';
+import { SentenceCasePipe } from './shared/pipes/sentence-case.pipe';
 
 @NgModule({
   declarations: [
@@ -98,6 +99,7 @@ import { TimeAgoPipe } from './shared/pipes/time-ago.pipe';
     JobDuplicateDialogComponent,
 
     TimeAgoPipe,
+    SentenceCasePipe,
   ],
   imports: [BrowserModule, BrowserAnimationsModule, FormsModule, ReactiveFormsModule, HttpClientModule, MaterialModule, NgxChartsModule, AppRoutingModule],
   providers: [
