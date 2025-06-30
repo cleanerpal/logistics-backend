@@ -12,7 +12,6 @@ import { DriverDetailsComponent } from './pages/drivers/driver-details/driver-de
 import { VehicleListComponent } from './pages/vehicles/vehicle-list/vehicle-list.component';
 import { VehicleDetailsComponent } from './pages/vehicles/vehicle-details/vehicle-details.component';
 import { VehicleCreateComponent } from './pages/vehicles/vehicle-create/vehicle-create.component';
-import { VehicleMovementComponent } from './pages/vehicles/vehicle-movement/vehicle-movement.component';
 
 // Guards
 import { AuthGuard } from './guards/auth.guard';
@@ -137,11 +136,7 @@ const routes: Routes = [
       },
     ],
   },
-  {
-    path: 'vehicle-movement',
-    component: VehicleMovementComponent,
-    canActivate: [AuthGuard],
-  },
+
   {
     path: 'settings',
     loadChildren: () => import('./pages/settings/settings.module').then((m) => m.SettingsModule),

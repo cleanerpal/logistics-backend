@@ -34,12 +34,6 @@ export class NavSidebarComponent implements OnInit {
       active: false,
     },
     {
-      label: 'Vehicle Movement',
-      icon: 'trending_up',
-      route: '/vehicle-movement',
-      active: false,
-    },
-    {
       label: 'Invoices',
       icon: 'receipt_long',
       route: '/expenses',

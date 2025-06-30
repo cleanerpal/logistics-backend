@@ -1,23 +1,26 @@
-import { Component, OnInit, ViewChild, AfterViewInit, OnDestroy, inject } from '@angular/core';
-import { Router } from '@angular/router';
-import { MatTableDataSource } from '@angular/material/table';
-import { MatSort } from '@angular/material/sort';
-import { MatPaginator } from '@angular/material/paginator';
+import { AfterViewInit, Component, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
+import { MatPaginator } from '@angular/material/paginator';
+import { MatSort } from '@angular/material/sort';
+import { MatTableDataSource } from '@angular/material/table';
+import { Router } from '@angular/router';
 import * as shape from 'd3-shape';
-import { Subject, Subscription, combineLatest, interval, of, BehaviorSubject, timer } from 'rxjs';
-import { catchError, map, switchMap, takeUntil, finalize, timeout, take, delay } from 'rxjs/operators';
+import { Timestamp } from '@angular/fire/firestore';
 
-import { JobService } from '../../services/job.service';
-import { AuthService } from '../../services/auth.service';
-import { VehicleService } from '../../services/vehicle.service';
-import { NotificationService } from '../../services/notification.service';
+import { BehaviorSubject, Subject, Subscription, combineLatest, interval, of, timer } from 'rxjs';
+import { catchError, delay, finalize, switchMap, take, takeUntil, timeout } from 'rxjs/operators';
+
 import { ConfirmationDialogComponent } from '../../dialogs/confirmation-dialog.component';
 import { DriverSelectionDialogComponent } from '../../dialogs/driver-selection-dialog.component';
+import { AuthService } from '../../services/auth.service';
 
-import { Job } from '../../interfaces/job.interface';
+import { NotificationService } from '../../services/notification.service';
+import { VehicleService } from '../../services/vehicle.service';
+
+import { Job } from '../../interfaces/job-new.interface';
 import { UserProfile } from '../../interfaces/user-profile.interface';
 import { Vehicle } from '../../interfaces/vehicle.interface';
+import { JobNewService } from '../../services/job-new.service';
 
 interface TrendData {
   name: string;
@@ -172,7 +175,7 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
 
   constructor(
     private router: Router,
-    private jobService: JobService,
+    private jobService: JobNewService,
     private authService: AuthService,
     private vehicleService: VehicleService,
     private notificationService: NotificationService,
@@ -293,12 +296,25 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
     this.jobsDataSource.sortingDataAccessor = (item, property) => {
       switch (property) {
         case 'timestamp':
+          //
+          if (item['timestamp'] instanceof Timestamp) {
+            return item['timestamp'].toDate().getTime();
+          }
           return item['timestamp'] ? new Date(item['timestamp']).getTime() : 0;
         case 'collectionDate':
+          if (item['collectionDate'] instanceof Timestamp) {
+            return item['collectionDate'].toDate().getTime();
+          }
           return item['collectionDate'] ? new Date(item['collectionDate']).getTime() : 0;
         case 'createdAt':
+          if (item.createdAt instanceof Timestamp) {
+            return item.createdAt.toDate().getTime();
+          }
           return item.createdAt ? new Date(item.createdAt).getTime() : 0;
         case 'updatedAt':
+          if (item.updatedAt instanceof Timestamp) {
+            return item.updatedAt.toDate().getTime();
+          }
           return item.updatedAt ? new Date(item.updatedAt).getTime() : 0;
         default:
           const value = item[property as keyof Job];
@@ -579,10 +595,12 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
     if (jobs.length === 0) return undefined;
 
     return jobs.reduce((latest, job) => {
-      const jobUpdate = job.updatedAt || job.createdAt;
+      // Ensure job.updatedAt and job.createdAt are handled as Timestamp objects
+      const jobUpdate = (job.updatedAt || job.createdAt) as Timestamp;
       if (!jobUpdate) return latest;
 
-      const jobDate = new Date(jobUpdate);
+      // Convert Timestamp to Date using .toDate()
+      const jobDate = jobUpdate.toDate();
       return !latest || jobDate > latest ? jobDate : latest;
     }, undefined as Date | undefined);
   }
@@ -875,7 +893,7 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
       width: '500px',
       data: {
         jobId: job.id,
-        jobTitle: `${job.make || ''} ${job.model || ''} ${job.registration ? '(' + job.registration + ')' : ''}`,
+        jobTitle: `${job['make'] || ''} ${job['model'] || ''} ${job['registration'] ? '(' + job['registration'] + ')' : ''}`,
       },
     });
 

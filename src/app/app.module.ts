@@ -47,7 +47,6 @@ import { VehicleListComponent } from './pages/vehicles/vehicle-list/vehicle-list
 import { VehicleDetailsComponent } from './pages/vehicles/vehicle-details/vehicle-details.component';
 import { VehicleCreateComponent } from './pages/vehicles/vehicle-create/vehicle-create.component';
 import { VehicleModelsComponent } from './pages/vehicles/vehicle-models/vehicle-models.component';
-import { VehicleMovementComponent } from './pages/vehicles/vehicle-movement/vehicle-movement.component';
 
 // Customer Components
 import { CustomerListComponent } from './pages/customers/customers-list/customer-list.component';
@@ -108,7 +107,6 @@ import { TimeAgoPipe } from './shared/pipes/time-ago.pipe';
     VehicleDetailsComponent,
     VehicleCreateComponent,
     VehicleModelsComponent,
-    VehicleMovementComponent,
 
     // Customer Components
     CustomerListComponent,
