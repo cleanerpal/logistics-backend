@@ -1,12 +1,9 @@
-<!-- App Layout -->
 <div class="app-container" [ngClass]="{ 'auth-layout': isAuthPage }">
-  <!-- Only show sidebar and topbar when authenticated and not on auth pages -->
   <ng-container *ngIf="hasSidebar">
     <app-nav-sidebar></app-nav-sidebar>
     <app-topbar></app-topbar>
   </ng-container>
 
-  <!-- Main content - always visible but with different styling -->
   <main class="main-content" [ngClass]="{ 'full-width': !hasSidebar }">
     <router-outlet></router-outlet>
   </main>

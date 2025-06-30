@@ -1,12 +1,9 @@
-<!-- driver-details.component.html -->
 <mat-card class="mat-elevation-z3">
-  <!-- Loading Spinner -->
   <div class="loading-overlay" *ngIf="isLoading">
     <mat-spinner diameter="40"></mat-spinner>
     <span>Loading driver details...</span>
   </div>
 
-  <!-- Header -->
   <div class="header-wrapper">
     <div class="header-title">
       <button mat-icon-button (click)="goBack()">
@@ -36,7 +33,6 @@
     </div>
   </div>
 
-  <!-- Tab Navigation -->
   <div class="tab-navigation">
     <button [class.active]="activeTab === 'details'" (click)="setActiveTab('details')">Details</button>
     <button [class.active]="activeTab === 'jobs'" (click)="setActiveTab('jobs')">Jobs</button>
@@ -44,13 +40,10 @@
     <button [class.active]="activeTab === 'notes'" (click)="setActiveTab('notes')">Notes</button>
   </div>
 
-  <!-- Driver Details -->
   <mat-card-content class="content-wrapper" *ngIf="driver">
     <div [ngSwitch]="activeTab">
-      <!-- Details Tab -->
       <div *ngSwitchCase="'details'" class="details-tab">
         <div class="details-grid">
-          <!-- Driver Information -->
           <mat-card class="details-section">
             <h2>Driver Information</h2>
             <div class="info-grid">
@@ -95,7 +88,6 @@
             </div>
           </mat-card>
 
-          <!-- Statistics Card -->
           <mat-card class="details-section stats-section">
             <h2>Activity Overview</h2>
             <div class="stats-grid">
@@ -139,7 +131,6 @@
           </mat-card>
         </div>
 
-        <!-- Additional Information -->
         <mat-card class="profile-section">
           <h2>Driver Profile</h2>
           <div class="profile-content">
@@ -193,7 +184,6 @@
         </mat-card>
       </div>
 
-      <!-- Jobs Tab -->
       <div *ngSwitchCase="'jobs'" class="jobs-tab">
         <mat-card class="jobs-section">
           <div class="section-header">
@@ -204,7 +194,6 @@
             </button>
           </div>
 
-          <!-- Loading Jobs Spinner -->
           <div class="loading-overlay" *ngIf="isJobsLoading">
             <mat-spinner diameter="30"></mat-spinner>
             <span>Loading jobs...</span>
@@ -212,13 +201,11 @@
 
           <div class="table-container">
             <table mat-table [dataSource]="jobsDataSource" class="jobs-table" matSort>
-              <!-- Job ID Column -->
               <ng-container matColumnDef="id">
                 <th mat-header-cell *matHeaderCellDef mat-sort-header>Job ID</th>
                 <td mat-cell *matCellDef="let job">{{ job.id }}</td>
               </ng-container>
 
-              <!-- Status Column -->
               <ng-container matColumnDef="status">
                 <th mat-header-cell *matHeaderCellDef mat-sort-header>Status</th>
                 <td mat-cell *matCellDef="let job">
@@ -228,7 +215,6 @@
                 </td>
               </ng-container>
 
-              <!-- Vehicle Column -->
               <ng-container matColumnDef="vehicle">
                 <th mat-header-cell *matHeaderCellDef mat-sort-header>Vehicle</th>
                 <td mat-cell *matCellDef="let job">
@@ -236,7 +222,6 @@
                 </td>
               </ng-container>
 
-              <!-- Collection Column -->
               <ng-container matColumnDef="collection">
                 <th mat-header-cell *matHeaderCellDef>Collection</th>
                 <td mat-cell *matCellDef="let job">
@@ -244,7 +229,6 @@
                 </td>
               </ng-container>
 
-              <!-- Delivery Column -->
               <ng-container matColumnDef="delivery">
                 <th mat-header-cell *matHeaderCellDef>Delivery</th>
                 <td mat-cell *matCellDef="let job">
@@ -252,13 +236,11 @@
                 </td>
               </ng-container>
 
-              <!-- Date Column -->
               <ng-container matColumnDef="date">
                 <th mat-header-cell *matHeaderCellDef mat-sort-header>Date</th>
                 <td mat-cell *matCellDef="let job">{{ job.createdAt | date }}</td>
               </ng-container>
 
-              <!-- Actions Column -->
               <ng-container matColumnDef="actions">
                 <th mat-header-cell *matHeaderCellDef></th>
                 <td mat-cell *matCellDef="let job">
@@ -286,7 +268,6 @@
               <tr mat-row *matRowDef="let row; columns: jobColumns" (click)="viewJobDetails(row.id)" class="job-row"></tr>
             </table>
 
-            <!-- Empty state for jobs -->
             <div class="empty-state" *ngIf="!isJobsLoading && jobsDataSource.data.length === 0">
               <mat-icon>work_off</mat-icon>
               <h3>No Jobs Found</h3>
@@ -298,12 +279,10 @@
             </div>
           </div>
 
-          <!-- Jobs Paginator -->
           <mat-paginator [pageSizeOptions]="[5, 10, 25]" [length]="jobsDataSource.data.length" showFirstLastButtons> </mat-paginator>
         </mat-card>
       </div>
 
-      <!-- Permissions Tab -->
       <div *ngSwitchCase="'permissions'" class="permissions-tab">
         <mat-card class="permissions-section">
           <div class="section-header">
@@ -323,7 +302,6 @@
             </div>
 
             <div class="permissions-grid">
-              <!-- General Permissions -->
               <div class="permissions-category">
                 <h3>General Permissions</h3>
                 <div class="permission-group">
@@ -341,7 +319,6 @@
                 </div>
               </div>
 
-              <!-- Job Management Permissions -->
               <div class="permissions-category">
                 <h3>Job Management</h3>
                 <div class="permission-group">
@@ -359,7 +336,6 @@
                 </div>
               </div>
 
-              <!-- Financial Permissions -->
               <div class="permissions-category">
                 <h3>Financial & Reports</h3>
                 <div class="permission-group">
@@ -381,7 +357,6 @@
         </mat-card>
       </div>
 
-      <!-- Notes Tab -->
       <div *ngSwitchCase="'notes'" class="notes-tab">
         <mat-card class="notes-section">
           <div class="section-header">
@@ -437,12 +412,10 @@
   </mat-card-content>
 </mat-card>
 
-<!-- Permissions Dialog Template -->
 <ng-template #permissionsDialog>
   <h2 mat-dialog-title>Edit Permissions for {{ driver?.firstName }} {{ driver?.lastName }}</h2>
   <mat-dialog-content>
     <form [formGroup]="permissionsForm">
-      <!-- Role Selection -->
       <mat-form-field appearance="outline" class="full-width">
         <mat-label>Role</mat-label>
         <mat-select formControlName="role">
@@ -493,7 +466,6 @@
   </mat-dialog-actions>
 </ng-template>
 
-<!-- Note Dialog Template -->
 <ng-template #noteDialog>
   <h2 mat-dialog-title>{{ editingNote ? 'Edit Note' : 'Add Note' }}</h2>
   <mat-dialog-content>

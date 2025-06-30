@@ -16,17 +16,10 @@ export class AppComponent implements OnInit, OnDestroy {
   hasSidebar = false;
   private stateSubscription: Subscription | null = null;
 
-  constructor(
-    private authService: AuthService,
-    private appStateService: AppStateService
-  ) {}
+  constructor(private authService: AuthService, private appStateService: AppStateService) {}
 
   ngOnInit(): void {
-    // Subscribe to combined state changes
-    this.stateSubscription = combineLatest([
-      this.authService.isAuthenticated(),
-      this.appStateService.isAuthPage(),
-    ]).subscribe(([isAuthenticated, isAuthPage]) => {
+    this.stateSubscription = combineLatest([this.authService.isAuthenticated(), this.appStateService.isAuthPage()]).subscribe(([isAuthenticated, isAuthPage]) => {
       this.isAuthenticated = isAuthenticated;
       this.isAuthPage = isAuthPage;
       this.hasSidebar = isAuthenticated && !isAuthPage;
@@ -34,7 +27,6 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
-    // Clean up subscriptions
     if (this.stateSubscription) {
       this.stateSubscription.unsubscribe();
     }

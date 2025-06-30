@@ -4,11 +4,10 @@
   overflow: hidden;
 }
 
-/* Account for sidebar and topbar */
 @media (min-width: 1200px) {
   .expenses-card {
-    margin-left: 274px; /* 250px sidebar + 24px margin */
-    margin-top: 88px; /* 64px topbar + 24px margin */
+    margin-left: 274px;
+    margin-top: 88px;
     margin-right: 24px;
     margin-bottom: 24px;
   }
@@ -16,8 +15,8 @@
 
 @media (min-width: 768px) and (max-width: 1199px) {
   .expenses-card {
-    margin-left: 84px; /* 60px collapsed sidebar + 24px margin */
-    margin-top: 88px; /* 64px topbar + 24px margin */
+    margin-left: 84px;
+    margin-top: 88px;
     margin-right: 24px;
     margin-bottom: 24px;
   }
@@ -27,7 +26,7 @@
   .expenses-card {
     margin-left: 16px;
     margin-right: 16px;
-    margin-top: 80px; /* topbar + smaller margin */
+    margin-top: 80px;
     margin-bottom: 16px;
   }
 }
@@ -193,7 +192,6 @@ mat-paginator {
   border-top: 1px solid rgba(0, 0, 0, 0.12);
 }
 
-/* Status chips */
 .status-pending {
   background-color: rgba(255, 152, 0, 0.12);
   color: #ff9800;
@@ -214,7 +212,6 @@ mat-paginator {
   color: rgba(0, 0, 0, 0.6);
 }
 
-/* Dialog Styles */
 .expense-detail-dialog {
   .expense-info-grid {
     display: grid;
@@ -265,14 +262,12 @@ mat-paginator {
   }
 }
 
-/* Rejection Dialog */
 .rejection-dialog {
   .full-width {
     width: 100%;
   }
 }
 
-/* Print Invoice Dialog */
 .print-invoice-dialog {
   h2 {
     margin-bottom: 24px;
@@ -457,7 +452,6 @@ mat-paginator {
   }
 }
 
-/* Payment Status */
 .payment-status-container {
   display: flex;
   align-items: center;
@@ -473,7 +467,6 @@ mat-paginator {
   }
 }
 
-/* Responsive styles */
 @media (max-width: 1200px) {
   .filters-actions-wrapper {
     flex-direction: column;
@@ -530,7 +523,6 @@ mat-paginator {
     }
   }
 
-  /* Hide some columns on mobile */
   .mat-column-jobId,
   .mat-column-driver {
     display: none;

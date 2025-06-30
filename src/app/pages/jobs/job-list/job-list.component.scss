@@ -1,22 +1,18 @@
-/* job-list.component.scss - with proper sidebar and topbar spacing */
-
 :host {
   display: block;
   padding: 24px;
   background-color: #f5f5f5;
   min-height: 100vh;
-  margin-left: 250px; /* Account for sidebar */
-  padding-top: 88px; /* Account for topbar height (64px) + some padding */
+  margin-left: 250px;
+  padding-top: 88px;
 }
 
-/* Card styles */
 .mat-mdc-card {
   margin-bottom: 24px;
   background-color: white;
   border-radius: 8px;
 }
 
-/* Header Section */
 .header-wrapper {
   padding: 24px 24px 0;
 }
@@ -34,7 +30,6 @@
   font-size: 14px;
 }
 
-/* Filters and Actions Section */
 .filters-actions-wrapper {
   padding: 24px;
   display: flex;
@@ -114,14 +109,12 @@
   margin-right: 8px;
 }
 
-/* Table Container */
 .table-container {
   position: relative;
   min-height: 400px;
   overflow: auto;
 }
 
-/* Scrollbar styling */
 .table-container::-webkit-scrollbar {
   width: 8px;
   height: 8px;
@@ -141,7 +134,6 @@
   background: #ccc;
 }
 
-/* Loading Overlay */
 .loading-overlay {
   position: absolute;
   top: 0;
@@ -162,7 +154,6 @@
   font-size: 14px;
 }
 
-/* Table Styles */
 table {
   width: 100%;
   border-collapse: separate;
@@ -173,7 +164,6 @@ table.loading {
   opacity: 0.6;
 }
 
-/* Header Styles */
 .mat-mdc-header-row {
   background-color: #f8f9fa;
   min-height: 48px;
@@ -199,7 +189,6 @@ table.loading {
   padding-right: 24px;
 }
 
-/* Sort header styling */
 .mat-sort-header-container {
   justify-content: flex-start;
 }
@@ -208,7 +197,6 @@ table.loading {
   color: rgba(0, 0, 0, 0.38);
 }
 
-/* Cell Styles */
 .mat-mdc-cell {
   font-size: 14px;
   color: rgba(0, 0, 0, 0.87);
@@ -225,7 +213,6 @@ table.loading {
   padding-right: 24px;
 }
 
-/* Row Styles */
 .job-row {
   min-height: 52px;
   cursor: pointer;
@@ -244,7 +231,6 @@ table.loading {
   background-color: #e3f2fd;
 }
 
-/* Column Styles */
 .job-id {
   font-weight: 600;
   color: #007bff;
@@ -269,7 +255,6 @@ table.loading {
   width: 140px;
 }
 
-/* Status Chips */
 .status-chip {
   display: inline-block;
   padding: 4px 12px;
@@ -301,7 +286,6 @@ table.loading {
   color: #616161;
 }
 
-/* Empty State */
 .empty-state {
   position: absolute;
   top: 50%;
@@ -341,12 +325,10 @@ table.loading {
   margin-right: 8px;
 }
 
-/* Duplicate button styling - match styles.scss */
 .mat-menu-item .mat-icon:contains('content_copy') {
   color: #3f51b5;
 }
 
-/* Responsive Design */
 @media screen and (max-width: 1200px) {
   .filters-section {
     flex-direction: column;
@@ -377,7 +359,7 @@ table.loading {
 @media screen and (max-width: 960px) {
   :host {
     padding: 16px;
-    padding-top: 80px; /* Adjusted for smaller screens */
+    padding-top: 80px;
   }
 
   .filters-actions-wrapper {
@@ -401,15 +383,15 @@ table.loading {
 
 @media screen and (max-width: 768px) {
   :host {
-    margin-left: 60px; /* Collapsed sidebar width */
-    padding-top: 72px; /* Account for smaller topbar on mobile */
+    margin-left: 60px;
+    padding-top: 72px;
   }
 }
 
 @media screen and (max-width: 600px) {
   :host {
     padding: 8px;
-    padding-top: 72px; /* Maintain topbar spacing */
+    padding-top: 72px;
   }
 
   .header-wrapper {
@@ -437,20 +419,18 @@ table.loading {
     gap: 8px;
   }
 
-  /* Hide less important columns on mobile */
   .mat-column-creationDate,
   .mat-column-customerName {
     display: none;
   }
 }
 
-/* Print Styles */
 @media print {
   :host {
     padding: 0;
     background: white;
-    margin-left: 0; /* No sidebar in print */
-    padding-top: 0; /* No topbar in print */
+    margin-left: 0;
+    padding-top: 0;
   }
 
   .mat-mdc-card {
@@ -471,7 +451,6 @@ table.loading {
     break-inside: avoid;
   }
 
-  /* Ensure good contrast for printing */
   .status-chip {
     border: 1px solid rgba(0, 0, 0, 0.2);
   }

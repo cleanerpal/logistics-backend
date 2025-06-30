@@ -53,7 +53,6 @@ export class SystemPreferencesComponent implements OnInit {
   loadPreferences(): void {
     this.isLoading = true;
 
-    // Get the system preferences document from Firestore
     const preferencesRef = doc(this.firestore, 'systemConfig/preferences');
 
     from(getDoc(preferencesRef))
@@ -65,12 +64,10 @@ export class SystemPreferencesComponent implements OnInit {
             this.organizePreferencesByGroup(preferences);
             this.createPreferenceForms();
 
-            // Set all panels to expanded by default
             this.preferenceGroups.forEach((group) => {
               this.expandedPanels[group.name] = true;
             });
           } else {
-            // If the preferences document doesn't exist, create it with defaults
             this.createDefaultPreferences();
           }
         },
@@ -88,7 +85,6 @@ export class SystemPreferencesComponent implements OnInit {
   private mapPreferencesFromFirestore(data: any): SystemPreference[] {
     const preferences: SystemPreference[] = [];
 
-    // Convert the data object to an array of SystemPreference objects
     Object.entries(data).forEach(([id, preferenceData]: [string, any]) => {
       preferences.push({
         id,
@@ -109,7 +105,6 @@ export class SystemPreferencesComponent implements OnInit {
   }
 
   private organizePreferencesByGroup(preferences: SystemPreference[]): void {
-    // Group the preferences by their group
     const groupMap: { [key: string]: SystemPreference[] } = {};
 
     preferences.forEach((pref) => {
@@ -119,7 +114,6 @@ export class SystemPreferencesComponent implements OnInit {
       groupMap[pref.group].push(pref);
     });
 
-    // Create the PreferenceGroup objects
     this.preferenceGroups = Object.entries(groupMap).map(([groupName, prefs]) => {
       return {
         name: groupName,
@@ -129,7 +123,6 @@ export class SystemPreferencesComponent implements OnInit {
       };
     });
 
-    // Sort the groups alphabetically, but put "General" first
     this.preferenceGroups.sort((a, b) => {
       if (a.name === 'General') return -1;
       if (b.name === 'General') return 1;
@@ -138,12 +131,10 @@ export class SystemPreferencesComponent implements OnInit {
   }
 
   private createPreferenceForms(): void {
-    // Create a form for each preference group
     this.preferenceGroups.forEach((group) => {
       const groupForm = this.fb.group({});
 
       group.preferences.forEach((pref) => {
-        // Add validators based on preference settings
         const validators = [];
 
         if (pref.required) {
@@ -187,11 +178,9 @@ export class SystemPreferencesComponent implements OnInit {
 
     this.isSaving = true;
 
-    // Get the preferences in this group
     const group = this.preferenceGroups.find((g) => g.name === groupName);
     if (!group) return;
 
-    // Create an object with all the preference values
     const preferencesRef = doc(this.firestore, 'systemConfig/preferences');
     const updateData: { [key: string]: any } = {};
 
@@ -212,7 +201,6 @@ export class SystemPreferencesComponent implements OnInit {
       };
     });
 
-    // Update the preferences in Firestore
     from(setDoc(preferencesRef, updateData, { merge: true }))
       .pipe(finalize(() => (this.isSaving = false)))
       .subscribe({
@@ -223,7 +211,6 @@ export class SystemPreferencesComponent implements OnInit {
             message: `${groupName} preferences saved successfully`,
           });
 
-          // Update the local data
           group.preferences.forEach((pref) => {
             pref.value = form.get(pref.id)?.value;
             pref.updatedAt = new Date();
@@ -241,7 +228,6 @@ export class SystemPreferencesComponent implements OnInit {
   }
 
   createDefaultPreferences(): void {
-    // Define default system preferences
     const defaultPreferences: { [key: string]: any } = {
       company_name: {
         name: 'Company Name',
@@ -352,7 +338,6 @@ export class SystemPreferencesComponent implements OnInit {
       },
     };
 
-    // Save the default preferences to Firestore
     const preferencesRef = doc(this.firestore, 'systemConfig/preferences');
 
     from(setDoc(preferencesRef, defaultPreferences)).subscribe({
@@ -379,7 +364,6 @@ export class SystemPreferencesComponent implements OnInit {
     }
   }
 
-  // Helper methods
   private getGroupIcon(groupName: string): string {
     const iconMap: { [key: string]: string } = {
       General: 'settings',

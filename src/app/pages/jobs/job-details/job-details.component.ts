@@ -12,7 +12,6 @@ import { UserProfile } from '../../../interfaces/user-profile.interface';
 import { DriverSelectionDialogComponent } from '../../../dialogs/driver-selection-dialog.component';
 import { JobDuplicateDialogComponent } from '../../../dialogs/job-duplicate-dialog.component';
 
-// Interface for notes
 interface Note {
   author: string;
   content: string;
@@ -20,7 +19,6 @@ interface Note {
   id?: string;
 }
 
-// Interface for note data to be saved in Firestore
 interface NoteData {
   author: string;
   content: string;
@@ -28,7 +26,6 @@ interface NoteData {
   id?: string;
 }
 
-// Interface for driver information
 interface DriverInfo {
   id: string;
   name: string;
@@ -71,9 +68,6 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
     private cdr: ChangeDetectorRef
   ) {}
 
-  /**
-   * Initialize the component by subscribing to route params and checking permissions
-   */
   ngOnInit() {
     const routeSub = this.route.params.subscribe((params) => {
       this.jobId = params['id'];
@@ -85,17 +79,11 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
     this.checkUserPermissions();
   }
 
-  /**
-   * Clean up subscriptions when the component is destroyed
-   */
   ngOnDestroy() {
     this.isDestroyed = true;
     this.subscriptions.forEach((sub) => sub.unsubscribe());
   }
 
-  /**
-   * Load job details and driver information
-   */
   private loadJobDetails() {
     this.isLoading = true;
 
@@ -149,9 +137,6 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
     this.subscriptions.push(jobSub);
   }
 
-  /**
-   * Process job notes from various possible formats
-   */
   private processJobNotes(job: Job) {
     const rawNotes: Note[] = [];
 
@@ -248,9 +233,6 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
     }
   }
 
-  /**
-   * Check user permissions and set flags
-   */
   private checkUserPermissions() {
     const permissionsSub = combineLatest([
       this.authService.getUserProfile(),
@@ -268,20 +250,11 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
     this.subscriptions.push(permissionsSub);
   }
 
-  /**
-   * Set the active tab for the job details view
-   * @param tab The tab to activate
-   */
   setActiveTab(tab: 'details' | 'timeline' | 'expenses') {
     this.activeTab = tab;
     this.cdr.detectChanges();
   }
 
-  /**
-   * Get CSS class for job status
-   * @param status The job status
-   * @returns CSS class name
-   */
   getStatusClass(status: string): string {
     const statusMap: Record<string, string> = {
       unallocated: 'status-unallocated',
@@ -293,11 +266,6 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
     return statusMap[status] || 'status-default';
   }
 
-  /**
-   * Get Material icon for timeline event
-   * @param status The job status
-   * @returns Icon name
-   */
   getTimelineIcon(status: string): string {
     const iconMap: Record<string, string> = {
       unallocated: 'assignment',
@@ -310,40 +278,23 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
     return iconMap[status] || 'radio_button_unchecked';
   }
 
-  /**
-   * Check if an event is the last in the timeline
-   * @param event The timeline event
-   * @returns True if it's the last event
-   */
   isLastEvent(event: any): boolean {
     return this.job?.['timeline']?.indexOf(event) === this.job?.['timeline']?.length - 1;
   }
 
-  /**
-   * Navigate back to the jobs list
-   */
   goBack() {
     this.router.navigate(['/jobs']);
   }
 
-  /**
-   * Navigate to the job edit page if the user has permission
-   */
   editJob(job: Job, event: Event): void {
     event.stopPropagation(); // Prevent row click event
     this.router.navigate(['/jobs', job.id, 'edit']);
   }
 
-  /**
-   * Trigger the browser's print function
-   */
   printJobDetails() {
     window.print();
   }
 
-  /**
-   * Add a new note to the job
-   */
   addNote() {
     if (!this.newNote.trim() || !this.job) return;
 
@@ -380,10 +331,6 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
     });
   }
 
-  /**
-   * Update the job status
-   * @param newStatus The new status to set
-   */
   updateJobStatus(newStatus: 'unallocated' | 'allocated' | 'collected' | 'delivered' | 'completed') {
     if (!this.job) return;
 
@@ -441,9 +388,6 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
     }
   }
 
-  /**
-   * Show driver selection dialog and allocate job to selected driver
-   */
   private showDriverSelectionDialog(): void {
     const dialogRef = this.dialog.open(DriverSelectionDialogComponent, {
       data: {
@@ -466,10 +410,6 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
     });
   }
 
-  /**
-   * Allocate job to a specific driver
-   * @param driverId The ID of the driver to allocate to
-   */
   private allocateJobToDriver(driverId: string): void {
     if (!this.job) {
       this.isLoading = false;
@@ -500,9 +440,6 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
     });
   }
 
-  /**
-   * Start the collection process for a job
-   */
   startCollection() {
     if (!this.job) return;
 
@@ -550,9 +487,6 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
     this.subscriptions.push(dialogSub);
   }
 
-  /**
-   * Start the delivery process for a job
-   */
   startDelivery() {
     if (!this.job) return;
 
@@ -597,9 +531,6 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
     });
   }
 
-  /**
-   * Mark the job as completed
-   */
   completeJob() {
     if (!this.job) return;
 
@@ -648,10 +579,6 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
     });
   }
 
-  /**
-   * Get the name of the assigned driver
-   * @returns Driver name or 'Unassigned'/'Unknown Driver'
-   */
   getDriverName(): string {
     if (this.driverInfo) {
       return this.driverInfo.name;
@@ -664,11 +591,6 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
     return 'Unknown Driver';
   }
 
-  /**
-   * Format a date for display
-   * @param date The date to format
-   * @returns Formatted date string
-   */
   formatDate(date: Date | undefined): string {
     if (!date) return 'N/A';
 
@@ -684,11 +606,6 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
     return date.toLocaleString();
   }
 
-  /**
-   * Format date to UK format (DD/MM/YYYY)
-   * @param date The date to format
-   * @returns Formatted date string
-   */
   formatUKDate(date: Date | undefined): string {
     if (!date) return 'N/A';
 
@@ -708,11 +625,6 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
     return `${day}/${month}/${year}`;
   }
 
-  /**
-   * Format date and time to UK format (DD/MM/YYYY HH:MM)
-   * @param date The date to format
-   * @returns Formatted date-time string
-   */
   formatUKDateTime(date: Date | undefined): string {
     if (!date) return 'N/A';
 
@@ -734,10 +646,6 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
     return `${day}/${month}/${year} ${hours}:${minutes}`;
   }
 
-  /**
-   * Get the progress percentage for the status flow display
-   * @returns Progress percentage
-   */
   getStatusFlowProgress(): number {
     if (!this.job) return 0;
 
@@ -749,10 +657,6 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
     return (currentStatusIndex / (statusOrder.length - 1)) * 100;
   }
 
-  /**
-   * Get status steps for the status flow visualization
-   * @returns Array of status steps
-   */
   getStatusFlow() {
     if (!this.job) return [];
 
@@ -775,11 +679,6 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
     });
   }
 
-  /**
-   * Get vehicle brand logo path with improved filename normalization
-   * @param make The vehicle manufacturer name
-   * @returns Path to the logo image
-   */
   getVehicleLogo(make: string): string {
     if (!make) return 'assets/images/car-logos/default.png';
 
@@ -828,19 +727,11 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
     return `assets/images/car-logos/${normalizedFilename}.png`;
   }
 
-  /**
-   * Handle image loading error by setting a default image
-   * @param event The error event
-   */
   handleImageError(event: Event): void {
     const imgElement = event.target as HTMLImageElement;
     imgElement.src = 'assets/images/car-logos/default.png';
   }
 
-  /**
-   * Show a snackbar notification
-   * @param message The message to display
-   */
   showSnackbar(message: string): void {
     this.snackBar.open(message, 'Close', {
       duration: 3000,
@@ -849,16 +740,6 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
     });
   }
 
-  /**
-   * Add this import to the top of your job-details.component.ts file:
-   * import { JobDuplicateDialogComponent } from '../../../dialogs/job-duplicate-dialog.component';
-   *
-   * Then add this method to your JobDetailsComponent class:
-   */
-
-  /**
-   * Duplicate the current job
-   */
   duplicateJob(): void {
     if (!this.job) return;
 

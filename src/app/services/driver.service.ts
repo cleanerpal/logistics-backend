@@ -46,9 +46,6 @@ export class DriverService extends BaseFirebaseService {
     super();
   }
 
-  /**
-   * Get all drivers
-   */
   getAllDrivers(): Observable<UserProfile[]> {
     this.loadingSubject.next(true);
 
@@ -72,9 +69,6 @@ export class DriverService extends BaseFirebaseService {
     );
   }
 
-  /**
-   * Get drivers by role
-   */
   getDriversByRole(role: UserRole): Observable<UserProfile[]> {
     this.loadingSubject.next(true);
 
@@ -97,9 +91,6 @@ export class DriverService extends BaseFirebaseService {
     );
   }
 
-  /**
-   * Get active drivers
-   */
   getActiveDrivers(): Observable<UserProfile[]> {
     this.loadingSubject.next(true);
 
@@ -122,9 +113,6 @@ export class DriverService extends BaseFirebaseService {
     );
   }
 
-  /**
-   * Get driver by ID
-   */
   getDriverById(driverId: string): Observable<UserProfile | null> {
     this.loadingSubject.next(true);
 
@@ -143,9 +131,6 @@ export class DriverService extends BaseFirebaseService {
     );
   }
 
-  /**
-   * Create a new driver
-   */
   createDriver(email: string, password: string, userData: Partial<UserProfile>, sendCredentials: boolean = true): Observable<string> {
     this.loadingSubject.next(true);
 
@@ -163,11 +148,9 @@ export class DriverService extends BaseFirebaseService {
             throw new Error('Failed to create user');
           }
 
-          // Apply role permissions
           const role = (userData.role as UserRole) || UserRole.DRIVER;
           const permissions = ROLE_PERMISSION_PRESETS[role];
 
-          // Update the user profile with additional information
           return this.authService
             .updateUserProfile(user.id, {
               ...userData,
@@ -180,11 +163,6 @@ export class DriverService extends BaseFirebaseService {
             })
             .pipe(
               map(() => {
-                // Handle sending credentials email if requested
-                if (sendCredentials) {
-                  console.log('Sending credentials email to:', email);
-                  // In a real app, implement email sending logic here
-                }
                 return user.id;
               })
             );
@@ -198,9 +176,6 @@ export class DriverService extends BaseFirebaseService {
       );
   }
 
-  /**
-   * Update an existing driver
-   */
   updateDriver(driverId: string, userData: Partial<UserProfile>): Observable<void> {
     this.loadingSubject.next(true);
 
@@ -209,19 +184,16 @@ export class DriverService extends BaseFirebaseService {
       return throwError(() => new Error('Driver ID is required'));
     }
 
-    // If role is changing, apply the new role's permissions
     let updatedData = { ...userData };
     if (userData.role) {
       const role = userData.role as UserRole;
       updatedData.permissions = ROLE_PERMISSION_PRESETS[role];
     }
 
-    // Update name if first or last name is provided
     if (userData.firstName || userData.lastName) {
       updatedData.name = `${userData.firstName || ''} ${userData.lastName || ''}`.trim();
     }
 
-    // Add updated timestamp
     updatedData.updatedAt = new Date();
 
     return this.authService.updateUserProfile(driverId, updatedData).pipe(
@@ -234,9 +206,6 @@ export class DriverService extends BaseFirebaseService {
     );
   }
 
-  /**
-   * Update driver permissions
-   */
   updateDriverPermissions(driverId: string, role: UserRole): Observable<void> {
     this.loadingSubject.next(true);
 
@@ -245,7 +214,6 @@ export class DriverService extends BaseFirebaseService {
       return throwError(() => new Error('Driver ID is required'));
     }
 
-    // Get permissions preset for the role
     const permissions = ROLE_PERMISSION_PRESETS[role];
     if (!permissions) {
       this.loadingSubject.next(false);
@@ -268,9 +236,6 @@ export class DriverService extends BaseFirebaseService {
       );
   }
 
-  /**
-   * Deactivate driver (soft delete)
-   */
   deactivateDriver(driverId: string): Observable<void> {
     this.loadingSubject.next(true);
 
@@ -294,9 +259,6 @@ export class DriverService extends BaseFirebaseService {
       );
   }
 
-  /**
-   * Get driver statistics
-   */
   getDriverStats(driverId: string): Observable<DriverStats> {
     this.loadingSubject.next(true);
 
@@ -310,24 +272,18 @@ export class DriverService extends BaseFirebaseService {
       });
     }
 
-    // Get jobs collection
     const jobsRef = collection(this.firestore, 'jobs');
     const jobsQuery = query(jobsRef, where('driverId', '==', driverId));
 
-    // Get expenses collection
     const expensesRef = collection(this.firestore, 'expenses');
     const expensesQuery = query(expensesRef, where('driverId', '==', driverId));
 
-    // Execute both queries
     return from(Promise.all([getDocs(jobsQuery), getDocs(expensesQuery)])).pipe(
       map(([jobsSnapshot, expensesSnapshot]) => {
-        // Extract jobs
         const jobs = jobsSnapshot.docs.map((doc) => doc.data() as Job);
 
-        // Extract expenses
         const expenses = expensesSnapshot.docs.map((doc) => doc.data() as Expense);
 
-        // Calculate statistics
         const totalJobs = jobs.length;
         const pendingJobs = jobs.filter((job) => job.status === 'allocated' || job.status === 'collected').length;
         const completedJobs = jobs.filter((job) => job.status === 'delivered' || job.status === 'completed').length;
@@ -354,9 +310,6 @@ export class DriverService extends BaseFirebaseService {
     );
   }
 
-  /**
-   * Get driver notes
-   */
   getDriverNotes(driverId: string): Observable<DriverNote[]> {
     this.loadingSubject.next(true);
 
@@ -392,9 +345,6 @@ export class DriverService extends BaseFirebaseService {
     );
   }
 
-  /**
-   * Add note to driver
-   */
   addDriverNote(driverId: string, content: string, authorId: string, authorName: string): Observable<string> {
     this.loadingSubject.next(true);
 
@@ -426,16 +376,12 @@ export class DriverService extends BaseFirebaseService {
       })
     );
 
-    // Helper function for adding a document (not available directly in Angular Fire)
     function addDoc(ref: any, data: any): Promise<any> {
       const newDocRef = doc(ref);
       return setDoc(newDocRef, data).then(() => newDocRef);
     }
   }
 
-  /**
-   * Update driver note
-   */
   updateDriverNote(noteId: string, content: string): Observable<void> {
     this.loadingSubject.next(true);
 
@@ -465,9 +411,6 @@ export class DriverService extends BaseFirebaseService {
     );
   }
 
-  /**
-   * Delete driver note
-   */
   deleteDriverNote(noteId: string): Observable<void> {
     this.loadingSubject.next(true);
 
@@ -488,9 +431,6 @@ export class DriverService extends BaseFirebaseService {
     );
   }
 
-  /**
-   * Search for drivers by name or email
-   */
   searchDrivers(searchTerm: string): Observable<UserProfile[]> {
     if (!searchTerm || searchTerm.trim().length < 2) {
       return of([]);
@@ -498,7 +438,6 @@ export class DriverService extends BaseFirebaseService {
 
     const searchTermLower = searchTerm.toLowerCase().trim();
 
-    // Firebase doesn't support text search, so we'll fetch all users and filter
     return this.getAllDrivers().pipe(
       map((drivers) => {
         return drivers.filter((driver) => {
@@ -514,9 +453,6 @@ export class DriverService extends BaseFirebaseService {
     );
   }
 
-  /**
-   * Convert Firebase user data to UserProfile interface
-   */
   private convertFirebaseUserToProfile(uid: string, data: any): UserProfile {
     return {
       id: uid,

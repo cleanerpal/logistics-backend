@@ -21,9 +21,6 @@ export class CustomerService extends BaseFirebaseService {
     super();
   }
 
-  /**
-   * Get all customers
-   */
   getCustomers(): Observable<Customer[]> {
     this.loadingSubject.next(true);
 
@@ -48,9 +45,6 @@ export class CustomerService extends BaseFirebaseService {
     );
   }
 
-  /**
-   * Get customers by status
-   */
   getCustomersByStatus(status: CustomerStatus): Observable<Customer[]> {
     this.loadingSubject.next(true);
 
@@ -73,9 +67,6 @@ export class CustomerService extends BaseFirebaseService {
     );
   }
 
-  /**
-   * Get customers by category
-   */
   getCustomersByCategory(category: string): Observable<Customer[]> {
     this.loadingSubject.next(true);
 
@@ -98,9 +89,6 @@ export class CustomerService extends BaseFirebaseService {
     );
   }
 
-  /**
-   * Get a customer by ID
-   */
   getCustomerById(id: string): Observable<Customer | null> {
     this.loadingSubject.next(true);
 
@@ -128,20 +116,15 @@ export class CustomerService extends BaseFirebaseService {
     );
   }
 
-  /**
-   * Create a new customer
-   */
   createCustomer(data: Partial<Customer>): Observable<string> {
     this.loadingSubject.next(true);
 
-    // Get the current user ID
     const userId = this.currentUserId;
     if (!userId) {
       this.loadingSubject.next(false);
       return throwError(() => new Error('User not authenticated'));
     }
 
-    // Ensure contacts have IDs
     const contacts =
       data.contacts?.map((contact) => {
         if (!contact.id) {
@@ -150,7 +133,6 @@ export class CustomerService extends BaseFirebaseService {
         return contact;
       }) || [];
 
-    // Prepare customer data
     const customerData = {
       ...data,
       contacts: contacts,
@@ -166,10 +148,8 @@ export class CustomerService extends BaseFirebaseService {
 
     return from(addDoc(customersRef, customerData)).pipe(
       map((docRef) => {
-        // Refresh the customers list
         this.refreshCustomersList();
 
-        // Add notification
         this.notificationService.addNotification({
           type: 'success',
           title: 'Customer Created',
@@ -188,13 +168,9 @@ export class CustomerService extends BaseFirebaseService {
     );
   }
 
-  /**
-   * Update an existing customer
-   */
   updateCustomer(id: string, data: Partial<Customer>): Observable<void> {
     this.loadingSubject.next(true);
 
-    // Get the current user ID
     const userId = this.currentUserId;
     if (!userId) {
       this.loadingSubject.next(false);
@@ -203,10 +179,8 @@ export class CustomerService extends BaseFirebaseService {
 
     const customerRef = doc(this.firestore, `customers/${id}`);
 
-    // Process contacts array
     let contacts = data.contacts || [];
 
-    // Make sure all contacts have IDs
     contacts = contacts.map((contact) => {
       if (!contact.id) {
         return { ...contact, id: this.generateId() };
@@ -214,10 +188,8 @@ export class CustomerService extends BaseFirebaseService {
       return contact;
     });
 
-    // Remove id from update data to avoid overwriting it
     const { id: _, ...updateData } = data;
 
-    // Add updater and timestamp
     const customerData = {
       ...updateData,
       contacts: contacts,
@@ -227,10 +199,8 @@ export class CustomerService extends BaseFirebaseService {
 
     return from(updateDoc(customerRef, customerData)).pipe(
       tap(() => {
-        // Refresh the customers list
         this.refreshCustomersList();
 
-        // Add notification about customer update
         this.notificationService.addNotification({
           type: 'info',
           title: 'Customer Updated',
@@ -248,15 +218,11 @@ export class CustomerService extends BaseFirebaseService {
     );
   }
 
-  /**
-   * Soft delete a customer (mark as inactive)
-   */
   deleteCustomer(id: string): Observable<void> {
     this.loadingSubject.next(true);
 
     const customerRef = doc(this.firestore, `customers/${id}`);
 
-    // We'll do a soft delete by setting isActive to false
     const updateData = {
       isActive: false,
       updatedAt: serverTimestamp(),
@@ -265,10 +231,8 @@ export class CustomerService extends BaseFirebaseService {
 
     return from(updateDoc(customerRef, updateData)).pipe(
       tap(() => {
-        // Refresh the customers list
         this.refreshCustomersList();
 
-        // Add notification
         this.notificationService.addNotification({
           type: 'warning',
           title: 'Customer Deleted',
@@ -286,9 +250,6 @@ export class CustomerService extends BaseFirebaseService {
     );
   }
 
-  /**
-   * Get unique list of categories from all customers
-   */
   getCategories(): Observable<string[]> {
     const customersRef = collection(this.firestore, 'customers');
     const q = query(customersRef, where('isActive', '==', true));
@@ -313,16 +274,11 @@ export class CustomerService extends BaseFirebaseService {
     );
   }
 
-  /**
-   * Search customers by name or contact name
-   */
   searchCustomers(searchTerm: string): Observable<Customer[]> {
     if (!searchTerm || searchTerm.trim().length < 2) {
       return of([]);
     }
 
-    // Firebase doesn't support native text search, so we'll fetch all customers
-    // and filter them client-side
     return this.getCustomers().pipe(
       map((customers) => {
         const normalizedSearchTerm = searchTerm.toLowerCase().trim();
@@ -334,9 +290,6 @@ export class CustomerService extends BaseFirebaseService {
     );
   }
 
-  /**
-   * Check if any contact information matches the search term
-   */
   private contactsIncludeSearchTerm(contacts: CustomerContact[], searchTerm: string): boolean {
     if (!contacts || contacts.length === 0) return false;
 
@@ -349,28 +302,17 @@ export class CustomerService extends BaseFirebaseService {
     );
   }
 
-  /**
-   * Refresh the customers list
-   */
   private refreshCustomersList(): void {
-    // Only refresh if we have customers loaded already
     if (this.customersSubject.getValue().length > 0) {
       this.getCustomers().subscribe();
     }
   }
 
-  /**
-   * Generate a random ID for customer contacts
-   */
   private generateId(): string {
     return Date.now().toString(36) + Math.random().toString(36).substr(2);
   }
 
-  /**
-   * Convert Firestore document to Customer model
-   */
   private convertFirebaseCustomerToModel(id: string, data: any): Customer {
-    // Process contacts array
     const contacts: CustomerContact[] = [];
 
     if (data.contacts && Array.isArray(data.contacts)) {
@@ -386,7 +328,6 @@ export class CustomerService extends BaseFirebaseService {
       });
     }
 
-    // Ensure at least one contact exists
     if (contacts.length === 0) {
       contacts.push({
         id: this.generateId(),

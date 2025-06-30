@@ -1,22 +1,18 @@
-/* customer-create.component.scss */
-
 :host {
   display: block;
   padding: 24px;
   background-color: var(--background-color);
   min-height: 100vh;
-  margin-left: 250px; /* Account for sidebar width */
-  padding-top: 88px; /* Account for topbar height (64px) + some padding */
+  margin-left: 250px;
+  padding-top: 88px;
 }
 
-/* Card styles */
 .mat-mdc-card {
   margin-bottom: 24px;
   background-color: white;
   border-radius: 8px;
 }
 
-/* Loading Overlay */
 .loading-overlay {
   position: absolute;
   top: 0;
@@ -37,7 +33,6 @@
   font-size: 14px;
 }
 
-/* Header */
 .header-wrapper {
   display: flex;
   justify-content: space-between;
@@ -59,12 +54,10 @@
   color: var(--primary-color);
 }
 
-/* Form Container */
 .form-container {
   padding: 24px;
 }
 
-/* Form Sections */
 .form-section {
   margin-bottom: 32px;
   padding-bottom: 16px;
@@ -99,7 +92,6 @@
   margin-right: 8px;
 }
 
-/* Form Fields */
 .form-row {
   display: flex;
   gap: 16px;
@@ -115,7 +107,6 @@
   width: 100%;
 }
 
-/* Contacts Container */
 .contacts-container {
   display: flex;
   flex-direction: column;
@@ -162,7 +153,6 @@
   color: var(--error-color);
 }
 
-/* Form Actions */
 .form-actions {
   display: flex;
   justify-content: flex-end;
@@ -174,7 +164,6 @@
   min-width: 120px;
 }
 
-/* Responsive Design */
 @media screen and (max-width: 1200px) {
   .form-row {
     gap: 12px;
@@ -197,8 +186,8 @@
 
 @media screen and (max-width: 768px) {
   :host {
-    margin-left: 60px; /* Collapsed sidebar width */
-    padding-top: 80px; /* Reduced topbar padding for smaller screens */
+    margin-left: 60px;
+    padding-top: 80px;
   }
 
   .header-title h1 {
@@ -246,13 +235,12 @@
   }
 }
 
-/* Print Styles */
 @media print {
   :host {
     padding: 0;
     background: white;
-    margin-left: 0; /* No sidebar in print */
-    padding-top: 0; /* No topbar in print */
+    margin-left: 0;
+    padding-top: 0;
   }
 
   .mat-mdc-card {

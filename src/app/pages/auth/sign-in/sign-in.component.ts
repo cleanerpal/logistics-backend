@@ -33,18 +33,14 @@ export class SignInComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    // Get return url from route parameters or default to '/dashboard'
-    this.returnUrl =
-      this.route.snapshot.queryParams['returnUrl'] || '/dashboard';
+    this.returnUrl = this.route.snapshot.queryParams['returnUrl'] || '/dashboard';
 
-    // Check if already logged in
     this.authService.isAuthenticated().subscribe((isAuth) => {
       if (isAuth) {
         this.router.navigate([this.returnUrl]);
       }
     });
 
-    // Check for stored email if remember me was previously checked
     const storedEmail = localStorage.getItem('rememberedEmail');
     if (storedEmail) {
       this.signInForm.patchValue({ email: storedEmail, rememberMe: true });
@@ -59,7 +55,6 @@ export class SignInComponent implements OnInit {
     this.loading = true;
     const { email, password, rememberMe } = this.signInForm.value;
 
-    // Handle remember me functionality
     if (rememberMe) {
       localStorage.setItem('rememberedEmail', email);
     } else {
@@ -80,11 +75,7 @@ export class SignInComponent implements OnInit {
         this.loading = false;
         let errorMessage = 'Sign in failed. Please check your credentials.';
 
-        // Map Firebase error codes to user-friendly messages
-        if (
-          error.code === 'auth/user-not-found' ||
-          error.code === 'auth/wrong-password'
-        ) {
+        if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
           errorMessage = 'Invalid email or password.';
         } else if (error.code === 'auth/user-disabled') {
           errorMessage = 'This account has been disabled.';

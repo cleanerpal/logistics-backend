@@ -12,7 +12,6 @@ export class AuthLayoutComponent implements OnInit {
   constructor() {}
 
   ngOnInit(): void {
-    // Check if dark theme is enabled
     const storedPreferences = localStorage.getItem('userPreferences');
     if (storedPreferences) {
       const { isDarkTheme } = JSON.parse(storedPreferences);

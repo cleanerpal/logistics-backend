@@ -24,7 +24,6 @@ export class CustomerCreateComponent implements OnInit, OnDestroy {
   isLoading = false;
   hasChanges = false;
 
-  // Reference data
   industries = [
     'Technology',
     'Manufacturing',
@@ -72,7 +71,6 @@ export class CustomerCreateComponent implements OnInit, OnDestroy {
       this.loadCustomerData(this.customerId);
     }
 
-    // Track form changes
     const formChangeSub = this.customerForm.valueChanges.subscribe(() => {
       this.hasChanges = true;
     });
@@ -83,9 +81,6 @@ export class CustomerCreateComponent implements OnInit, OnDestroy {
     this.subscriptions.forEach((sub) => sub.unsubscribe());
   }
 
-  /**
-   * Create reactive form
-   */
   private createForm(): void {
     this.customerForm = this.fb.group({
       name: ['', [Validators.required]],
@@ -103,9 +98,6 @@ export class CustomerCreateComponent implements OnInit, OnDestroy {
     });
   }
 
-  /**
-   * Create contact form group
-   */
   private createContactFormGroup(isPrimary: boolean = false): FormGroup {
     return this.fb.group({
       id: [''],
@@ -117,13 +109,9 @@ export class CustomerCreateComponent implements OnInit, OnDestroy {
     });
   }
 
-  /**
-   * Load customer data when in edit mode
-   */
   private loadCustomerData(customerId: string): void {
     this.isLoading = true;
 
-    // Retrieve customer from Firestore using the service
     const customerSub = this.customerService.getCustomerById(customerId).subscribe({
       next: (customer) => {
         if (customer) {
@@ -152,7 +140,6 @@ export class CustomerCreateComponent implements OnInit, OnDestroy {
 
     this.subscriptions.push(customerSub);
 
-    // Also subscribe to the loading state from the service
     const loadingSub = this.customerService.loading$.subscribe((isLoading) => {
       this.isLoading = isLoading;
     });
@@ -160,16 +147,11 @@ export class CustomerCreateComponent implements OnInit, OnDestroy {
     this.subscriptions.push(loadingSub);
   }
 
-  /**
-   * Populate form with customer data
-   */
   private populateForm(customer: Customer): void {
-    // Clear existing contacts form array
     while (this.contactsFormArray.length) {
       this.contactsFormArray.removeAt(0);
     }
 
-    // Add customer contacts
     if (customer.contacts && customer.contacts.length > 0) {
       customer.contacts.forEach((contact) => {
         this.contactsFormArray.push(
@@ -184,11 +166,9 @@ export class CustomerCreateComponent implements OnInit, OnDestroy {
         );
       });
     } else {
-      // Add at least one contact form
       this.contactsFormArray.push(this.createContactFormGroup(true));
     }
 
-    // Update form values
     this.customerForm.patchValue({
       name: customer.name,
       industry: customer.industry,
@@ -203,38 +183,24 @@ export class CustomerCreateComponent implements OnInit, OnDestroy {
       notes: customer.notes || '',
     });
 
-    // Reset changes tracking
     this.hasChanges = false;
   }
 
-  /**
-   * Get contacts form array
-   */
   get contactsFormArray(): FormArray {
     return this.customerForm.get('contacts') as FormArray;
   }
 
-  /**
-   * Add a new contact form group
-   */
   addContact(): void {
     this.contactsFormArray.push(this.createContactFormGroup());
   }
 
-  /**
-   * Remove a contact at specified index
-   */
   removeContact(index: number): void {
-    // Check if there's more than one contact
     if (this.contactsFormArray.length > 1) {
-      // Check if the contact to be removed is primary
       const removedContact = this.contactsFormArray.at(index);
       const wasPrimary = removedContact.get('isPrimary')?.value;
 
-      // Remove the contact
       this.contactsFormArray.removeAt(index);
 
-      // If the removed contact was primary, make the first contact primary
       if (wasPrimary && this.contactsFormArray.length > 0) {
         this.contactsFormArray.at(0).get('isPrimary')?.setValue(true);
       }
@@ -245,22 +211,14 @@ export class CustomerCreateComponent implements OnInit, OnDestroy {
     }
   }
 
-  /**
-   * Set a contact as primary and update others
-   */
   setPrimaryContact(index: number): void {
-    // Update all contacts to non-primary
     for (let i = 0; i < this.contactsFormArray.length; i++) {
       this.contactsFormArray.at(i).get('isPrimary')?.setValue(false);
     }
 
-    // Set selected contact as primary
     this.contactsFormArray.at(index).get('isPrimary')?.setValue(true);
   }
 
-  /**
-   * Get error message for form controls
-   */
   getErrorMessage(controlName: string, formGroup?: FormGroup): string {
     const form = formGroup || this.customerForm;
     const control = form.get(controlName);
@@ -280,9 +238,6 @@ export class CustomerCreateComponent implements OnInit, OnDestroy {
     return 'Invalid value';
   }
 
-  /**
-   * Submit form
-   */
   onSubmit(): void {
     if (this.customerForm.invalid) {
       this.markFormGroupTouched(this.customerForm);
@@ -293,11 +248,9 @@ export class CustomerCreateComponent implements OnInit, OnDestroy {
       return;
     }
 
-    // Check if at least one contact is marked as primary
     const hasPrimary = this.contactsFormArray.controls.some((contact) => contact.get('isPrimary')?.value);
 
     if (!hasPrimary && this.contactsFormArray.length > 0) {
-      // If no primary contact, set the first one as primary
       this.contactsFormArray.at(0).get('isPrimary')?.setValue(true);
     }
 
@@ -306,7 +259,6 @@ export class CustomerCreateComponent implements OnInit, OnDestroy {
     const formData = this.prepareFormData();
 
     if (this.isEditMode && this.customerId) {
-      // Update existing customer
       const updateSub = this.customerService.updateCustomer(this.customerId, formData).subscribe({
         next: () => {
           this.notificationService.addNotification({
@@ -332,7 +284,6 @@ export class CustomerCreateComponent implements OnInit, OnDestroy {
 
       this.subscriptions.push(updateSub);
     } else {
-      // Create new customer
       const createSub = this.customerService.createCustomer(formData).subscribe({
         next: (id) => {
           this.notificationService.addNotification({
@@ -360,13 +311,9 @@ export class CustomerCreateComponent implements OnInit, OnDestroy {
     }
   }
 
-  /**
-   * Prepare form data for submission
-   */
   private prepareFormData(): Partial<Customer> {
     const formValue = this.customerForm.getRawValue();
 
-    // Process contacts to ensure they're valid
     const contacts: CustomerContact[] = formValue.contacts.map((contact: any) => ({
       id: contact.id || Date.now().toString(36) + Math.random().toString(36).substr(2),
       name: contact.name,
@@ -392,9 +339,6 @@ export class CustomerCreateComponent implements OnInit, OnDestroy {
     };
   }
 
-  /**
-   * Navigate back
-   */
   goBack(): void {
     if (this.hasChanges) {
       this.showUnsavedChangesDialog();
@@ -403,9 +347,6 @@ export class CustomerCreateComponent implements OnInit, OnDestroy {
     }
   }
 
-  /**
-   * Show dialog for unsaved changes
-   */
   private showUnsavedChangesDialog(): void {
     const dialogRef = this.dialog.open(ConfirmationDialogComponent, {
       data: {
@@ -425,9 +366,6 @@ export class CustomerCreateComponent implements OnInit, OnDestroy {
     });
   }
 
-  /**
-   * Mark all form controls as touched to trigger validation
-   */
   private markFormGroupTouched(formGroup: FormGroup): void {
     Object.values(formGroup.controls).forEach((control) => {
       control.markAsTouched();

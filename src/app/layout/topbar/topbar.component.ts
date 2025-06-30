@@ -1,19 +1,8 @@
-import {
-  Component,
-  OnInit,
-  ViewChild,
-  ElementRef,
-  Output,
-  EventEmitter,
-  OnDestroy,
-} from '@angular/core';
+import { Component, OnInit, ViewChild, ElementRef, Output, EventEmitter, OnDestroy } from '@angular/core';
 import { Router, NavigationEnd } from '@angular/router';
 import { filter } from 'rxjs/operators';
 import { Subscription } from 'rxjs';
-import {
-  NotificationService,
-  Notification,
-} from '../../services/notification.service';
+import { NotificationService, Notification } from '../../services/notification.service';
 import { AuthService } from '../../services/auth.service';
 import { MatSnackBar } from '@angular/material/snack-bar';
 
@@ -35,64 +24,46 @@ export class TopbarComponent implements OnInit, OnDestroy {
   @Output() menuToggled = new EventEmitter<void>();
   @ViewChild('searchInput') searchInput!: ElementRef;
 
-  // User Information
   userName = 'John Doe';
   userEmail = 'john.doe@example.com';
   userRole = 'Administrator';
   userAvatar = 'assets/images/avatar-placeholder.png';
   isUserOnline = true;
 
-  // Search State
   isSearchOpen = false;
   searchQuery = '';
   searchResults: SearchResult[] = [];
 
-  // Theme State
   isDarkTheme = false;
 
-  // Navigation State
   currentSection = '';
   currentPage = '';
 
-  // Notifications
   notifications: Notification[] = [];
   unreadCount = 0;
   private notificationsSubscription: Subscription;
   private unreadCountSubscription: Subscription;
   private userProfileSubscription: Subscription;
 
-  constructor(
-    private router: Router,
-    private notificationService: NotificationService,
-    private authService: AuthService,
-    private snackBar: MatSnackBar
-  ) {
+  constructor(private router: Router, private notificationService: NotificationService, private authService: AuthService, private snackBar: MatSnackBar) {
     this.setupRouteListener();
 
-    // Subscribe to notifications
-    this.notificationsSubscription =
-      this.notificationService.notifications$.subscribe((notifications) => {
-        this.notifications = notifications;
-      });
+    this.notificationsSubscription = this.notificationService.notifications$.subscribe((notifications) => {
+      this.notifications = notifications;
+    });
 
-    // Subscribe to unread count
-    this.unreadCountSubscription =
-      this.notificationService.unreadCount$.subscribe((count) => {
-        this.unreadCount = count;
-      });
+    this.unreadCountSubscription = this.notificationService.unreadCount$.subscribe((count) => {
+      this.unreadCount = count;
+    });
 
-    // Subscribe to user profile
-    this.userProfileSubscription = this.authService
-      .getUserProfile()
-      .subscribe((profile) => {
-        if (profile) {
-          this.userName =
-            profile.name || `${profile.firstName} ${profile.lastName}`.trim();
-          this.userEmail = profile.email;
-          this.userRole = profile.role || 'User';
-          this.isUserOnline = true;
-        }
-      });
+    this.userProfileSubscription = this.authService.getUserProfile().subscribe((profile) => {
+      if (profile) {
+        this.userName = profile.name || `${profile.firstName} ${profile.lastName}`.trim();
+        this.userEmail = profile.email;
+        this.userRole = profile.role || 'User';
+        this.isUserOnline = true;
+      }
+    });
   }
 
   ngOnInit(): void {
@@ -101,7 +72,6 @@ export class TopbarComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
-    // Clean up subscriptions
     if (this.notificationsSubscription) {
       this.notificationsSubscription.unsubscribe();
     }
@@ -113,13 +83,10 @@ export class TopbarComponent implements OnInit, OnDestroy {
     }
   }
 
-  // Navigation Methods
   private setupRouteListener(): void {
-    this.router.events
-      .pipe(filter((event) => event instanceof NavigationEnd))
-      .subscribe(() => {
-        this.updateBreadcrumb();
-      });
+    this.router.events.pipe(filter((event) => event instanceof NavigationEnd)).subscribe(() => {
+      this.updateBreadcrumb();
+    });
   }
 
   private updateBreadcrumb(): void {
@@ -143,10 +110,9 @@ export class TopbarComponent implements OnInit, OnDestroy {
     return this.currentPage;
   }
 
-  // Search Methods
   openSearch(): void {
     this.isSearchOpen = true;
-    // Allow DOM to update before focusing
+
     setTimeout(() => {
       if (this.searchInput) {
         this.searchInput.nativeElement.focus();
@@ -155,7 +121,6 @@ export class TopbarComponent implements OnInit, OnDestroy {
   }
 
   closeSearch(event: MouseEvent): void {
-    // Prevent closing when clicking inside the search card
     if ((event.target as HTMLElement).closest('.search-card')) {
       return;
     }
@@ -165,15 +130,12 @@ export class TopbarComponent implements OnInit, OnDestroy {
   }
 
   onSearch(event: KeyboardEvent): void {
-    // Handle escape key
     if (event.key === 'Escape') {
       this.closeSearch(event as unknown as MouseEvent);
       return;
     }
 
-    // Perform search
     if (this.searchQuery.length >= 2) {
-      // Example search results - replace with actual search logic
       this.searchResults = [
         {
           id: '1',
@@ -210,17 +172,12 @@ export class TopbarComponent implements OnInit, OnDestroy {
           subtitle: 'Manage expenses',
           link: '/expenses',
         },
-      ].filter(
-        (result) =>
-          result.title.toLowerCase().includes(this.searchQuery.toLowerCase()) ||
-          result.subtitle.toLowerCase().includes(this.searchQuery.toLowerCase())
-      );
+      ].filter((result) => result.title.toLowerCase().includes(this.searchQuery.toLowerCase()) || result.subtitle.toLowerCase().includes(this.searchQuery.toLowerCase()));
     } else {
       this.searchResults = [];
     }
   }
 
-  // Notification Methods
   get hasUnreadNotifications(): boolean {
     return this.unreadCount > 0;
   }
@@ -236,7 +193,6 @@ export class TopbarComponent implements OnInit, OnDestroy {
   markAsRead(notification: Notification): void {
     this.notificationService.markAsRead(notification.id);
 
-    // Navigate to action URL if present
     if (notification.actionUrl) {
       this.router.navigateByUrl(notification.actionUrl);
     }
@@ -250,14 +206,12 @@ export class TopbarComponent implements OnInit, OnDestroy {
     this.router.navigate(['/notifications']);
   }
 
-  // Theme Methods
   toggleTheme(): void {
     this.isDarkTheme = !this.isDarkTheme;
     document.body.classList.toggle('dark-theme');
     this.saveUserPreferences();
   }
 
-  // User Preference Methods
   private loadUserPreferences(): void {
     const preferences = localStorage.getItem('userPreferences');
     if (preferences) {
@@ -278,7 +232,6 @@ export class TopbarComponent implements OnInit, OnDestroy {
     );
   }
 
-  // Navigation Methods
   viewProfile(): void {
     this.router.navigate(['/profile']);
   }
@@ -295,12 +248,10 @@ export class TopbarComponent implements OnInit, OnDestroy {
     window.open('/help', '_blank');
   }
 
-  // Sidebar Toggle
   toggleSidebar(): void {
     this.menuToggled.emit();
   }
 
-  // Logout Method
   logout(): void {
     this.authService.signOut().subscribe({
       next: () => {
@@ -321,7 +272,6 @@ export class TopbarComponent implements OnInit, OnDestroy {
     });
   }
 
-  // Get notification icon based on type
   getNotificationIcon(type: string): string {
     switch (type) {
       case 'info':
@@ -337,7 +287,6 @@ export class TopbarComponent implements OnInit, OnDestroy {
     }
   }
 
-  // Format time for notifications
   getTimeAgo(date: Date): string {
     const now = new Date();
     const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);

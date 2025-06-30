@@ -55,7 +55,6 @@ export class ExpenseCreateComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    // Get current user info
     this.authService.getUserProfile().subscribe((profile) => {
       if (profile) {
         this.currentUserId = profile.id;
@@ -63,7 +62,6 @@ export class ExpenseCreateComponent implements OnInit {
       }
     });
 
-    // Check if jobId was passed via route parameter
     this.route.paramMap.subscribe((params) => {
       this.jobId = params.get('jobId');
 
@@ -76,7 +74,6 @@ export class ExpenseCreateComponent implements OnInit {
       }
     });
 
-    // Watch for jobId changes in the form
     this.expenseForm.get('jobId')?.valueChanges.subscribe((jobId) => {
       if (jobId && jobId !== this.jobId) {
         this.loadJobDetails(jobId);
@@ -94,7 +91,6 @@ export class ExpenseCreateComponent implements OnInit {
         tap((job) => {
           this.job = job;
           if (job && job.customerId) {
-            // If job has a customer ID, load the customer details
             return this.customerService.getCustomerById(job.customerId);
           }
           return of(null);
@@ -114,7 +110,6 @@ export class ExpenseCreateComponent implements OnInit {
         next: (customer: Customer | null) => {
           this.customer = customer;
 
-          // Pre-populate form with job details
           if (this.job) {
             const description = `Invoice for ${this.job.make || ''} ${this.job.model || ''} ${this.job.registration ? '(' + this.job.registration + ')' : ''}`;
             this.expenseForm.patchValue({
@@ -134,7 +129,6 @@ export class ExpenseCreateComponent implements OnInit {
     this.jobService
       .getDriverJobs()
       .pipe(
-        // Filter to only include completed and delivered jobs
         map((jobs) => jobs.filter((job) => job.status === 'completed' || job.status === 'delivered')),
         finalize(() => {
           this.isLoading = false;
@@ -159,7 +153,6 @@ export class ExpenseCreateComponent implements OnInit {
     this.isSubmitting = true;
     const formValue = this.expenseForm.value;
 
-    // Create expense object
     const expense: Omit<Expense, 'id' | 'status'> = {
       jobId: formValue.jobId || undefined,
       driverId: this.currentUserId || '',
@@ -195,8 +188,7 @@ export class ExpenseCreateComponent implements OnInit {
     const input = event.target as HTMLInputElement;
     if (input.files && input.files.length) {
       const file = input.files[0];
-      // Here you would typically upload the file to storage
-      // For demo purposes, we'll just store a placeholder URL
+
       this.expenseForm.patchValue({
         receiptUrl: 'assets/images/receipt-placeholder.jpg',
       });

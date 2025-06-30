@@ -33,12 +33,10 @@
   margin-top: 8px;
 }
 
-/* Make the mat-form-field for chips take the full width */
 .vehicle-types-section .mat-form-field {
   width: 100%;
 }
 
-/* Responsive styles */
 @media screen and (max-width: 599px) {
   .form-fields-grid {
     grid-template-columns: 1fr;

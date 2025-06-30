@@ -24,10 +24,8 @@ export class DriverCreateComponent implements OnInit, OnDestroy {
   driverId: string = '';
   hidePassword = true;
 
-  // Current user permissions
   isCurrentUserAdmin = false;
 
-  // Available options for dropdowns
   availableRoles = Object.values(UserRole);
 
   private subscriptions: Subscription[] = [];
@@ -45,14 +43,11 @@ export class DriverCreateComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
-    // Check if the current user is an admin
     const adminSub = this.authService.getUserProfile().subscribe((userProfile) => {
       this.isCurrentUserAdmin = !!userProfile?.permissions?.isAdmin;
 
-      // Make permissions form controls readonly if not admin
       this.setPermissionsReadonly(!this.isCurrentUserAdmin);
 
-      // If not admin, remove Admin from available roles
       if (!this.isCurrentUserAdmin) {
         this.availableRoles = this.availableRoles.filter((role) => role !== UserRole.ADMIN);
       }
@@ -60,7 +55,6 @@ export class DriverCreateComponent implements OnInit, OnDestroy {
 
     this.subscriptions.push(adminSub);
 
-    // Check if we're in edit mode by looking for an ID in the route
     const routeSub = this.route.paramMap.subscribe((params) => {
       const id = params.get('id');
       if (id) {
@@ -76,9 +70,6 @@ export class DriverCreateComponent implements OnInit, OnDestroy {
     this.subscriptions.forEach((sub) => sub.unsubscribe());
   }
 
-  /**
-   * Create the driver form with validation
-   */
   private createForm(): void {
     this.driverForm = this.fb.group(
       {
@@ -96,7 +87,6 @@ export class DriverCreateComponent implements OnInit, OnDestroy {
         areaCoverage: [''],
         availability: ['Full-time'],
 
-        // Permissions
         permissions: this.fb.group({
           canAllocateJobs: [{ value: false, disabled: true }],
           canApproveExpenses: [{ value: false, disabled: true }],
@@ -113,7 +103,6 @@ export class DriverCreateComponent implements OnInit, OnDestroy {
           canCreateExpenses: [{ value: false, disabled: true }],
         }),
 
-        // Account setup (only for new drivers)
         password: ['', [Validators.required, Validators.minLength(8)]],
         confirmPassword: ['', Validators.required],
         sendCredentials: [true],
@@ -124,13 +113,9 @@ export class DriverCreateComponent implements OnInit, OnDestroy {
       }
     );
 
-    // Apply initial role permissions
     this.applyRolePermissions(UserRole.DRIVER);
   }
 
-  /**
-   * Set permissions form controls to readonly or editable
-   */
   private setPermissionsReadonly(readonly: boolean): void {
     const permissionsGroup = this.driverForm.get('permissions') as FormGroup;
     if (!permissionsGroup) return;
@@ -141,7 +126,6 @@ export class DriverCreateComponent implements OnInit, OnDestroy {
         if (readonly) {
           control.disable();
         } else {
-          // Only enable non-admin controls or if the current user is admin
           if (controlName !== 'isAdmin' || this.isCurrentUserAdmin) {
             control.enable();
           }
@@ -150,9 +134,6 @@ export class DriverCreateComponent implements OnInit, OnDestroy {
     });
   }
 
-  /**
-   * Custom validator to check if passwords match
-   */
   private passwordMatchValidator(control: AbstractControl): ValidationErrors | null {
     const password = control.get('password');
     const confirmPassword = control.get('confirmPassword');
@@ -169,9 +150,6 @@ export class DriverCreateComponent implements OnInit, OnDestroy {
     return null;
   }
 
-  /**
-   * Load driver data when in edit mode
-   */
   private loadDriverData(): void {
     this.isLoading = true;
 
@@ -205,17 +183,12 @@ export class DriverCreateComponent implements OnInit, OnDestroy {
     this.subscriptions.push(userSub);
   }
 
-  /**
-   * Update form with driver data in edit mode
-   */
   private updateFormWithDriverData(driver: UserProfile): void {
-    // Remove password fields validation in edit mode
     this.driverForm.get('password')?.clearValidators();
     this.driverForm.get('confirmPassword')?.clearValidators();
     this.driverForm.get('password')?.updateValueAndValidity();
     this.driverForm.get('confirmPassword')?.updateValueAndValidity();
 
-    // Check if editing an admin and current user is not admin
     const driverRole = driver.role || '';
     if (driverRole === UserRole.ADMIN && !this.isCurrentUserAdmin) {
       this.notificationService.addNotification({
@@ -227,7 +200,6 @@ export class DriverCreateComponent implements OnInit, OnDestroy {
       return;
     }
 
-    // Update form with driver data
     this.driverForm.patchValue({
       firstName: driver.firstName || '',
       lastName: driver.lastName || '',
@@ -245,7 +217,6 @@ export class DriverCreateComponent implements OnInit, OnDestroy {
       notes: driver.notes || '',
     });
 
-    // Update permissions values with null safety checks
     const permissionsGroup = this.driverForm.get('permissions') as FormGroup;
     if (permissionsGroup && driver.permissions) {
       Object.keys(driver.permissions).forEach((key) => {
@@ -257,32 +228,22 @@ export class DriverCreateComponent implements OnInit, OnDestroy {
     }
   }
 
-  /**
-   * Handle role change - set default permissions based on role
-   */
   onRoleChange(event: any): void {
     const selectedRole = event.value as UserRole;
     this.applyRolePermissions(selectedRole);
   }
 
-  /**
-   * Apply preset permissions based on selected role
-   */
   private applyRolePermissions(role: UserRole): void {
     const permissionsGroup = this.driverForm.get('permissions') as FormGroup;
     if (!permissionsGroup) return;
 
-    // Get the preset permissions for the selected role
     const presetPermissions = ROLE_PERMISSION_PRESETS[role];
     if (!presetPermissions) return;
 
-    // Apply each permission to the form
     Object.entries(presetPermissions).forEach(([key, value]) => {
       const control = permissionsGroup.get(key);
       if (control) {
-        // Check if setting admin status and current user is not admin
         if (key === 'isAdmin' && value === true && !this.isCurrentUserAdmin) {
-          // Skip setting admin status
           return;
         }
 
@@ -291,9 +252,6 @@ export class DriverCreateComponent implements OnInit, OnDestroy {
     });
   }
 
-  /**
-   * Submit the form to create or update a driver
-   */
   onSubmit(): void {
     if (this.driverForm.invalid) {
       this.markFormGroupTouched(this.driverForm);
@@ -305,29 +263,22 @@ export class DriverCreateComponent implements OnInit, OnDestroy {
     const formValues = this.driverForm.value;
     const permissionsGroup = this.driverForm.get('permissions') as FormGroup;
 
-    // Set permissions from the role if controls are disabled (non-admin user)
     if (permissionsGroup && permissionsGroup.disabled) {
       const role = (formValues.role as UserRole) || UserRole.DRIVER;
       formValues.permissions = ROLE_PERMISSION_PRESETS[role];
 
-      // Ensure non-admins can't set admin status
       if (!this.isCurrentUserAdmin && formValues.permissions) {
         formValues.permissions.isAdmin = false;
       }
     }
 
     if (this.isEditMode) {
-      // Update existing driver
       this.updateDriver(formValues);
     } else {
-      // Create new driver
       this.createDriver(formValues);
     }
   }
 
-  /**
-   * Create a new driver
-   */
   private createDriver(formValues: any): void {
     const { password, confirmPassword, sendCredentials, ...userData } = formValues;
 
@@ -351,9 +302,6 @@ export class DriverCreateComponent implements OnInit, OnDestroy {
     this.subscriptions.push(createSub);
   }
 
-  /**
-   * Update an existing driver
-   */
   private updateDriver(formValues: any): void {
     const { password, confirmPassword, sendCredentials, ...userData } = formValues;
 
@@ -377,9 +325,6 @@ export class DriverCreateComponent implements OnInit, OnDestroy {
     this.subscriptions.push(updateSub);
   }
 
-  /**
-   * Handle form submission errors
-   */
   private handleError(error: any, context: string): void {
     console.error(`Error ${context}:`, error);
 
@@ -392,9 +337,6 @@ export class DriverCreateComponent implements OnInit, OnDestroy {
     });
   }
 
-  /**
-   * Mark all form controls as touched to show validation errors
-   */
   private markFormGroupTouched(formGroup: FormGroup): void {
     Object.values(formGroup.controls).forEach((control) => {
       control.markAsTouched();
@@ -405,9 +347,6 @@ export class DriverCreateComponent implements OnInit, OnDestroy {
     });
   }
 
-  /**
-   * Cancel form and return to drivers list
-   */
   cancel(): void {
     if (this.isEditMode) {
       this.router.navigate(['/drivers', this.driverId]);
@@ -416,9 +355,6 @@ export class DriverCreateComponent implements OnInit, OnDestroy {
     }
   }
 
-  /**
-   * Check if current user can edit admin permissions
-   */
   canManageAdminPermissions(): boolean {
     return this.isCurrentUserAdmin;
   }

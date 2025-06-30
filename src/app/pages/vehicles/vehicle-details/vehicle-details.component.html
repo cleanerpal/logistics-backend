@@ -1,20 +1,16 @@
 <div class="vehicle-details-container">
-  <!-- Loading State -->
   <div class="loading-state" *ngIf="loading">
     <mat-spinner diameter="40"></mat-spinner>
     <span>Loading vehicle details...</span>
   </div>
 
-  <!-- Error State -->
   <div class="error-state" *ngIf="error">
     <span class="material-icons">error</span>
     {{ error }}
     <button class="retry-button" (click)="loadVehicleDetails(vehicleId)">Retry</button>
   </div>
 
-  <!-- Content -->
   <ng-container *ngIf="!loading && !error && vehicle">
-    <!-- Header -->
     <header class="details-header">
       <div class="breadcrumb">
         <a routerLink="/vehicles">Vehicles</a>
@@ -43,20 +39,16 @@
       </div>
     </header>
 
-    <!-- Navigation Tabs -->
     <nav class="tabs">
       <button *ngFor="let tab of ['overview', 'photos', 'history', 'reports']" [class.active]="activeTab === tab" class="tab-button" (click)="setActiveTab(tab)">
         {{ tab | titlecase }}
       </button>
     </nav>
 
-    <!-- Tab Content -->
     <div class="tab-content" [ngSwitch]="activeTab">
-      <!-- Overview Tab -->
       <div *ngSwitchCase="'overview'" class="overview-tab">
         <div class="two-column-layout">
           <div class="left-column">
-            <!-- Vehicle Details Card -->
             <div class="info-card">
               <h2>Vehicle Details</h2>
               <div class="card-content">
@@ -90,7 +82,6 @@
               </div>
             </div>
 
-            <!-- Technical Details Card -->
             <div class="info-card">
               <h2>Technical Details</h2>
               <div class="card-content">
@@ -123,7 +114,6 @@
           </div>
 
           <div class="right-column">
-            <!-- Quick Stats Card -->
             <div class="info-card stats-card">
               <h2>Activity Summary</h2>
               <div class="card-content">
@@ -144,7 +134,6 @@
               </div>
             </div>
 
-            <!-- Primary Photo Card -->
             <div class="info-card photo-card" *ngIf="latestPhoto">
               <h2>Primary Photo</h2>
               <div class="card-content">
@@ -161,7 +150,6 @@
               </div>
             </div>
 
-            <!-- Recent Job Card -->
             <div class="info-card" *ngIf="latestJob">
               <h2>Latest Job</h2>
               <div class="card-content">
@@ -194,7 +182,6 @@
         </div>
       </div>
 
-      <!-- Photos Tab -->
       <div *ngSwitchCase="'photos'" class="photos-tab">
         <div class="photos-wrapper">
           <div class="photos-header">
@@ -237,7 +224,6 @@
         </div>
       </div>
 
-      <!-- History Tab -->
       <div *ngSwitchCase="'history'" class="history-tab">
         <div class="history-wrapper">
           <div class="history-header">
@@ -293,7 +279,6 @@
         </div>
       </div>
 
-      <!-- Reports Tab -->
       <div *ngSwitchCase="'reports'" class="reports-tab">
         <div class="reports-wrapper">
           <div class="reports-header">
@@ -364,7 +349,6 @@
   </ng-container>
 </div>
 
-<!-- Photo Viewer Dialog -->
 <ng-template #photoViewerDialog>
   <div class="photo-viewer">
     <div class="photo-viewer-header">

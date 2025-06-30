@@ -1,5 +1,4 @@
 <div class="edit-job-container">
-  <!-- Loading Spinner -->
   <div class="loading-overlay" *ngIf="isLoading">
     <mat-spinner diameter="40"></mat-spinner>
     <span>Loading...</span>
@@ -21,7 +20,6 @@
     </div>
 
     <form [formGroup]="jobForm" class="job-form">
-      <!-- Customer Information Section -->
       <div class="form-section">
         <h2>Customer Information</h2>
         <div class="form-grid">
@@ -39,7 +37,6 @@
         </div>
       </div>
 
-      <!-- Vehicle Information Section -->
       <div class="form-section">
         <h2>Vehicle Information</h2>
         <div class="form-grid">
@@ -109,7 +106,6 @@
         </div>
       </div>
 
-      <!-- Journey Type Selection -->
       <div class="form-section">
         <div class="journey-type-header">
           <h2>Journey Type</h2>
@@ -125,7 +121,6 @@
           </div>
         </div>
 
-        <!-- Journey Visualization -->
         <div class="journey-visualization">
           <div class="journey-step primary">
             <div class="step-icon">
@@ -163,7 +158,6 @@
         </div>
       </div>
 
-      <!-- Primary Collection Details Section -->
       <div class="form-section">
         <h2>Primary Collection Details</h2>
         <div class="form-grid">
@@ -200,7 +194,6 @@
         </div>
       </div>
 
-      <!-- Secondary Collection Details Section - Only shown for split journeys -->
       <div class="form-section" *ngIf="jobForm.get('isSplitJourney')?.value">
         <h2>Secondary Collection Details</h2>
         <div class="form-grid">
@@ -237,7 +230,6 @@
         </div>
       </div>
 
-      <!-- Secondary Delivery Details Section - Only shown for split journeys -->
       <div class="form-section" *ngIf="jobForm.get('isSplitJourney')?.value">
         <h2>Secondary Delivery Details</h2>
         <div class="form-grid">
@@ -274,7 +266,6 @@
         </div>
       </div>
 
-      <!-- Final Delivery Details Section -->
       <div class="form-section">
         <h2>Final Delivery Details</h2>
         <div class="form-grid">
@@ -311,7 +302,6 @@
         </div>
       </div>
 
-      <!-- Additional Details Section -->
       <div class="form-section">
         <h2>Additional Information</h2>
         <div class="form-grid">
@@ -322,7 +312,6 @@
         </div>
       </div>
 
-      <!-- Form Actions Bottom -->
       <div class="form-actions">
         <button type="button" class="cancel-btn" (click)="onCancel()">Cancel</button>
         <button type="submit" class="submit-btn" [disabled]="!jobForm.valid || isSubmitting || jobForm.pristine" (click)="onSubmit()">

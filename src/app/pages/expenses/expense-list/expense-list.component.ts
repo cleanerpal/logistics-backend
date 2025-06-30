@@ -29,7 +29,6 @@ interface Driver {
   name: string;
 }
 
-// Extended expense type that includes payment properties
 interface ExtendedExpense extends Expense {
   isPaid?: boolean;
   paidDate?: Date;
@@ -62,11 +61,9 @@ export class ExpenseListComponent implements OnInit, AfterViewInit {
   statusOptions = Object.values(ExpenseStatus);
   selectedExpense: ExtendedExpense | null = null;
 
-  // For rejection comment
   rejectionForm: FormGroup;
   expenseToReject: ExtendedExpense | null = null;
 
-  // For print invoice
   companyDetails = {
     name: 'NI VEHICLE LOGISTICS LTD',
     address: '55-59 Adelaide Street',
@@ -138,7 +135,6 @@ export class ExpenseListComponent implements OnInit, AfterViewInit {
     this.dataSource.filterPredicate = (data: ExtendedExpense, filter: string) => {
       const searchStr = filter.toLowerCase();
 
-      // Check if the expense matches the search text
       const matchesSearch =
         data.description.toLowerCase().includes(searchStr) ||
         data.driverName.toLowerCase().includes(searchStr) ||
@@ -154,7 +150,6 @@ export class ExpenseListComponent implements OnInit, AfterViewInit {
 
     this.expenseService.getExpenses().subscribe({
       next: (expenses: Expense[]) => {
-        // Extend expenses with paid status if not present
         this.allExpenses = expenses.map((expense) => ({
           ...expense,
           isPaid: (expense as ExtendedExpense).isPaid !== undefined ? (expense as ExtendedExpense).isPaid : false,
@@ -183,31 +178,25 @@ export class ExpenseListComponent implements OnInit, AfterViewInit {
   }
 
   applyFilters(): void {
-    // Get all expenses
     let filtered = [...this.allExpenses];
 
-    // Apply status filter
     if (this.filters.status !== 'All') {
       filtered = filtered.filter((expense) => expense.status === this.filters.status);
     }
 
-    // Apply driver filter
     if (this.filters.driver !== 'All') {
       filtered = filtered.filter((expense) => expense.driverId === this.filters.driver);
     }
 
-    // Apply chargeable filter
     if (this.filters.chargeable !== 'All') {
       filtered = filtered.filter((expense) => expense.isChargeable === this.filters.chargeable);
     }
 
-    // Apply paid status filter
     if (this.filters.paidStatus !== 'All') {
       const isPaid = this.filters.paidStatus === 'Paid';
       filtered = filtered.filter((expense) => expense.isPaid === isPaid);
     }
 
-    // Apply date range filter
     if (this.filters.dateRange.start && this.filters.dateRange.end) {
       const startDate = new Date(this.filters.dateRange.start);
       const endDate = new Date(this.filters.dateRange.end);
@@ -219,7 +208,6 @@ export class ExpenseListComponent implements OnInit, AfterViewInit {
       });
     }
 
-    // Update the data source
     this.dataSource.data = filtered;
     this.updateFilteredExpenses();
   }
@@ -261,7 +249,6 @@ export class ExpenseListComponent implements OnInit, AfterViewInit {
   }
 
   approveExpense(expense: ExtendedExpense): void {
-    // Confirm with the manager
     const dialogRef = this.dialog.open(ConfirmationDialogComponent, {
       width: '400px',
       data: {
@@ -282,10 +269,8 @@ export class ExpenseListComponent implements OnInit, AfterViewInit {
           )
           .subscribe({
             next: (updatedExpense: Expense) => {
-              // Update the expense in the list
               const index = this.allExpenses.findIndex((e) => e.id === updatedExpense.id);
               if (index !== -1) {
-                // Preserve the isPaid status when updating
                 this.allExpenses[index] = {
                   ...updatedExpense,
                   isPaid: this.allExpenses[index].isPaid,
@@ -332,10 +317,8 @@ export class ExpenseListComponent implements OnInit, AfterViewInit {
       )
       .subscribe({
         next: (updatedExpense: Expense) => {
-          // Update the expense in the list
           const index = this.allExpenses.findIndex((e) => e.id === updatedExpense.id);
           if (index !== -1) {
-            // Update with rejection reason and preserve payment info
             const updatedWithNotes = {
               ...updatedExpense,
               notes: (updatedExpense.notes || '') + `\nRejection reason: ${reason}`,
@@ -370,10 +353,8 @@ export class ExpenseListComponent implements OnInit, AfterViewInit {
 
     this.expenseService.updateExpenseChargeableStatus(expense.id, event.checked).subscribe({
       next: (updatedExpense: Expense) => {
-        // Update the expense in the list
         const index = this.allExpenses.findIndex((e) => e.id === updatedExpense.id);
         if (index !== -1) {
-          // Preserve payment info when updating
           this.allExpenses[index] = {
             ...updatedExpense,
             isPaid: this.allExpenses[index].isPaid,
@@ -393,7 +374,6 @@ export class ExpenseListComponent implements OnInit, AfterViewInit {
   }
 
   updatePaidStatus(expense: ExtendedExpense, isPaid: boolean): void {
-    // Only allow updating paid status for approved invoices
     if (expense.status !== ExpenseStatus.APPROVED) {
       this.showErrorMessage('Only approved invoices can be marked as paid');
       return;
@@ -401,10 +381,8 @@ export class ExpenseListComponent implements OnInit, AfterViewInit {
 
     this.expenseService.updateExpensePaidStatus(expense.id, isPaid).subscribe({
       next: (updatedExpense: Expense) => {
-        // Update the expense in the list
         const index = this.allExpenses.findIndex((e) => e.id === updatedExpense.id);
         if (index !== -1) {
-          // Update with payment info
           this.allExpenses[index] = {
             ...this.allExpenses[index],
             isPaid: isPaid,
@@ -431,7 +409,6 @@ export class ExpenseListComponent implements OnInit, AfterViewInit {
     });
 
     dialogRef.afterOpened().subscribe(() => {
-      // Give time for the dialog content to render
       setTimeout(() => {
         this.performPrint();
       }, 500);
@@ -477,7 +454,6 @@ export class ExpenseListComponent implements OnInit, AfterViewInit {
           printWindow.document.close();
           printWindow.focus();
 
-          // Print after a small delay to ensure content is fully loaded
           setTimeout(() => {
             printWindow.print();
             printWindow.close();
@@ -510,7 +486,6 @@ export class ExpenseListComponent implements OnInit, AfterViewInit {
       return;
     }
 
-    // Confirm with the manager
     const dialogRef = this.dialog.open(ConfirmationDialogComponent, {
       width: '400px',
       data: {
@@ -526,7 +501,6 @@ export class ExpenseListComponent implements OnInit, AfterViewInit {
         let approvedCount = 0;
         let errorCount = 0;
 
-        // Process each expense one by one
         pendingExpenses.forEach((expense) => {
           this.expenseService
             .updateExpenseStatus(expense.id, ExpenseStatus.APPROVED, {
@@ -534,10 +508,8 @@ export class ExpenseListComponent implements OnInit, AfterViewInit {
             })
             .subscribe({
               next: (updatedExpense: Expense) => {
-                // Update the expense in the list
                 const index = this.allExpenses.findIndex((e) => e.id === updatedExpense.id);
                 if (index !== -1) {
-                  // Preserve payment info when updating
                   this.allExpenses[index] = {
                     ...updatedExpense,
                     isPaid: this.allExpenses[index].isPaid,
@@ -547,7 +519,6 @@ export class ExpenseListComponent implements OnInit, AfterViewInit {
 
                 approvedCount++;
 
-                // When all done, refresh the view
                 if (approvedCount + errorCount === pendingExpenses.length) {
                   this.applyFilters();
                   if (errorCount === 0) {
@@ -560,7 +531,6 @@ export class ExpenseListComponent implements OnInit, AfterViewInit {
               error: () => {
                 errorCount++;
 
-                // When all done, refresh the view
                 if (approvedCount + errorCount === pendingExpenses.length) {
                   this.applyFilters();
                   if (errorCount === 0) {

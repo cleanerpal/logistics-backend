@@ -1,10 +1,4 @@
-import {
-  Component,
-  OnInit,
-  ViewChild,
-  AfterViewInit,
-  TemplateRef,
-} from '@angular/core';
+import { Component, OnInit, ViewChild, AfterViewInit, TemplateRef } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { MatTableDataSource } from '@angular/material/table';
 import { MatSort } from '@angular/material/sort';
@@ -61,17 +55,7 @@ interface Manufacturer {
   standalone: false,
 })
 export class VehicleModelsComponent implements OnInit, AfterViewInit {
-  // Table configuration
-  readonly displayedColumns: string[] = [
-    'select',
-    'model',
-    'yearRange',
-    'type',
-    'dimensions',
-    'specialRequirements',
-    'activeJobs',
-    'actions',
-  ];
+  readonly displayedColumns: string[] = ['select', 'model', 'yearRange', 'type', 'dimensions', 'specialRequirements', 'activeJobs', 'actions'];
 
   dataSource = new MatTableDataSource<VehicleModel>([]);
   selection = new SelectionModel<VehicleModel>(true, []);
@@ -79,38 +63,26 @@ export class VehicleModelsComponent implements OnInit, AfterViewInit {
   @ViewChild(MatSort) sort!: MatSort;
   @ViewChild(MatPaginator) paginator!: MatPaginator;
 
-  // Data
   manufacturer: Manufacturer | null = null;
   modelToDelete: VehicleModel | null = null;
   currentYear = new Date().getFullYear();
 
-  // Dialog state
   dialogData: VehicleModel | null = null;
   isEditMode = false;
 
-  // State
   isLoading = false;
   isAdmin = false; // Should be controlled by auth service
 
-  // Forms
   filterForm!: FormGroup;
   modelForm!: FormGroup;
 
-  // Options for dropdowns
   readonly vehicleTypes = Object.values(VehicleType);
   readonly specialRequirements = Object.values(SpecialRequirement);
 
-  // Template refs
   @ViewChild('modelDialog') modelDialog!: TemplateRef<any>;
   @ViewChild('archiveDialog') archiveDialog!: TemplateRef<any>;
 
-  constructor(
-    private route: ActivatedRoute,
-    private router: Router,
-    private dialog: MatDialog,
-    private formBuilder: FormBuilder,
-    private snackBar: MatSnackBar
-  ) {
+  constructor(private route: ActivatedRoute, private router: Router, private dialog: MatDialog, private formBuilder: FormBuilder, private snackBar: MatSnackBar) {
     this.initializeForms();
   }
 
@@ -126,14 +98,7 @@ export class VehicleModelsComponent implements OnInit, AfterViewInit {
     this.modelForm = this.formBuilder.group({
       name: ['', Validators.required],
       type: [VehicleType.SEDAN, Validators.required],
-      yearStart: [
-        this.currentYear,
-        [
-          Validators.required,
-          Validators.min(1990),
-          Validators.max(this.currentYear),
-        ],
-      ],
+      yearStart: [this.currentYear, [Validators.required, Validators.min(1990), Validators.max(this.currentYear)]],
       yearEnd: [null],
       length: ['', [Validators.required, Validators.min(0)]],
       width: ['', [Validators.required, Validators.min(0)]],
@@ -162,10 +127,7 @@ export class VehicleModelsComponent implements OnInit, AfterViewInit {
   }
 
   private setupCustomSort() {
-    this.dataSource.sortingDataAccessor = (
-      item: VehicleModel,
-      property: string
-    ) => {
+    this.dataSource.sortingDataAccessor = (item: VehicleModel, property: string) => {
       switch (property) {
         case 'model':
           return item.name;
@@ -179,7 +141,6 @@ export class VehicleModelsComponent implements OnInit, AfterViewInit {
     };
   }
 
-  // CRUD Operations
   addModel() {
     this.isEditMode = false;
     this.dialogData = null;
@@ -258,9 +219,6 @@ export class VehicleModelsComponent implements OnInit, AfterViewInit {
         },
       };
 
-      // TODO: Implement save logic
-      console.log('Saving model:', modelData);
-
       this.dialog.closeAll();
       this.showSuccessMessage('Model added successfully');
       this.loadModels(this.manufacturer?.id || '');
@@ -280,9 +238,6 @@ export class VehicleModelsComponent implements OnInit, AfterViewInit {
         },
       };
 
-      // TODO: Implement update logic
-      console.log('Updating model:', modelData);
-
       this.dialog.closeAll();
       this.showSuccessMessage('Model updated successfully');
       this.loadModels(this.manufacturer?.id || '');
@@ -291,36 +246,23 @@ export class VehicleModelsComponent implements OnInit, AfterViewInit {
 
   confirmArchive() {
     if (this.modelToDelete) {
-      // TODO: Implement archive logic
-      console.log('Archiving model:', this.modelToDelete.id);
-
       this.dialog.closeAll();
       this.showSuccessMessage('Model archived successfully');
       this.loadModels(this.manufacturer?.id || '');
     }
   }
 
-  // Filter handling
   applyFilters() {
     const filterValue = this.filterForm.value;
 
     this.dataSource.filterPredicate = (data: VehicleModel) => {
-      const matchesSearch =
-        !filterValue.search ||
-        data.name.toLowerCase().includes(filterValue.search.toLowerCase());
+      const matchesSearch = !filterValue.search || data.name.toLowerCase().includes(filterValue.search.toLowerCase());
 
-      const matchesType =
-        !filterValue.types.length || filterValue.types.includes(data.type);
+      const matchesType = !filterValue.types.length || filterValue.types.includes(data.type);
 
-      const matchesRequirements =
-        !filterValue.requirements.length ||
-        filterValue.requirements.every((req: SpecialRequirement) =>
-          data.specialRequirements.includes(req)
-        );
+      const matchesRequirements = !filterValue.requirements.length || filterValue.requirements.every((req: SpecialRequirement) => data.specialRequirements.includes(req));
 
-      const matchesYear =
-        data.yearStart >= filterValue.yearStart &&
-        (!data.yearEnd || data.yearEnd <= filterValue.yearEnd);
+      const matchesYear = data.yearStart >= filterValue.yearStart && (!data.yearEnd || data.yearEnd <= filterValue.yearEnd);
 
       return matchesSearch && matchesType && matchesRequirements && matchesYear;
     };
@@ -328,7 +270,6 @@ export class VehicleModelsComponent implements OnInit, AfterViewInit {
     this.dataSource.filter = filterValue.search;
   }
 
-  // Selection handling
   isAllSelected() {
     const numSelected = this.selection.selected.length;
     const numRows = this.dataSource.data.length;
@@ -347,12 +288,9 @@ export class VehicleModelsComponent implements OnInit, AfterViewInit {
     if (!row) {
       return `${this.isAllSelected() ? 'deselect' : 'select'} all`;
     }
-    return `${this.selection.isSelected(row) ? 'deselect' : 'select'} row ${
-      row.id
-    }`;
+    return `${this.selection.isSelected(row) ? 'deselect' : 'select'} row ${row.id}`;
   }
 
-  // Navigation
   navigateBack() {
     this.router.navigate(['/vehicles']);
   }
@@ -361,7 +299,6 @@ export class VehicleModelsComponent implements OnInit, AfterViewInit {
     this.router.navigate(['/vehicles', model.id]);
   }
 
-  // Utility Methods
   getRequirementClass(requirement: SpecialRequirement): string {
     const classMap: Record<SpecialRequirement, string> = {
       [SpecialRequirement.ENCLOSED_TRANSPORT]: 'requirement-enclosed',
@@ -373,7 +310,6 @@ export class VehicleModelsComponent implements OnInit, AfterViewInit {
   }
 
   loadManufacturerDetails(manufacturerId: string) {
-    // TODO: Replace with actual API call
     this.manufacturer = {
       id: manufacturerId,
       name: 'Toyota',
@@ -387,7 +323,6 @@ export class VehicleModelsComponent implements OnInit, AfterViewInit {
   loadModels(manufacturerId: string) {
     this.isLoading = true;
 
-    // Simulate API call
     setTimeout(() => {
       const mockData: VehicleModel[] = [
         {

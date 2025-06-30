@@ -1,6 +1,4 @@
-<!-- driver-list.component.html -->
 <mat-card class="mat-elevation-z3">
-  <!-- Header -->
   <div class="header-wrapper">
     <div class="header-title">
       <h1>Drivers</h1>
@@ -11,7 +9,6 @@
     </div>
   </div>
 
-  <!-- Filters and Actions Bar -->
   <div class="filters-actions-wrapper">
     <div class="filters-section">
       <mat-form-field appearance="outline" class="search-field">
@@ -62,17 +59,13 @@
     </div>
   </div>
 
-  <!-- Table Container -->
   <div class="table-container">
-    <!-- Loading Overlay -->
     <div class="loading-overlay" *ngIf="isLoading">
       <mat-spinner diameter="40"></mat-spinner>
       <span>Loading drivers...</span>
     </div>
 
-    <!-- Table -->
     <table mat-table [dataSource]="dataSource" matSort [class.loading]="isLoading">
-      <!-- Checkbox Column -->
       <ng-container matColumnDef="select">
         <th mat-header-cell *matHeaderCellDef>
           <mat-checkbox
@@ -92,13 +85,11 @@
         </td>
       </ng-container>
 
-      <!-- ID Column -->
       <ng-container matColumnDef="id">
         <th mat-header-cell *matHeaderCellDef mat-sort-header>ID</th>
         <td mat-cell *matCellDef="let driver">{{ driver.id }}</td>
       </ng-container>
 
-      <!-- Name Column -->
       <ng-container matColumnDef="name">
         <th mat-header-cell *matHeaderCellDef mat-sort-header>Name</th>
         <td mat-cell *matCellDef="let driver">
@@ -112,7 +103,6 @@
         </td>
       </ng-container>
 
-      <!-- Email Column -->
       <ng-container matColumnDef="email">
         <th mat-header-cell *matHeaderCellDef mat-sort-header>Email</th>
         <td mat-cell *matCellDef="let driver">
@@ -122,19 +112,16 @@
         </td>
       </ng-container>
 
-      <!-- Phone Column -->
       <ng-container matColumnDef="phone">
         <th mat-header-cell *matHeaderCellDef>Phone</th>
         <td mat-cell *matCellDef="let driver">{{ driver.phone }}</td>
       </ng-container>
 
-      <!-- Company Column -->
       <ng-container matColumnDef="company">
         <th mat-header-cell *matHeaderCellDef mat-sort-header>Company</th>
         <td mat-cell *matCellDef="let driver">{{ driver.company }}</td>
       </ng-container>
 
-      <!-- Role Column -->
       <ng-container matColumnDef="role">
         <th mat-header-cell *matHeaderCellDef mat-sort-header>Role</th>
         <td mat-cell *matCellDef="let driver">
@@ -144,7 +131,6 @@
         </td>
       </ng-container>
 
-      <!-- Type Column -->
       <ng-container matColumnDef="type">
         <th mat-header-cell *matHeaderCellDef mat-sort-header>Type</th>
         <td mat-cell *matCellDef="let driver">
@@ -154,7 +140,6 @@
         </td>
       </ng-container>
 
-      <!-- Status Column -->
       <ng-container matColumnDef="status">
         <th mat-header-cell *matHeaderCellDef mat-sort-header>Status</th>
         <td mat-cell *matCellDef="let driver">
@@ -164,7 +149,6 @@
         </td>
       </ng-container>
 
-      <!-- Last Activity Column -->
       <ng-container matColumnDef="lastActivity">
         <th mat-header-cell *matHeaderCellDef mat-sort-header>Last Activity</th>
         <td mat-cell *matCellDef="let driver">
@@ -172,7 +156,6 @@
         </td>
       </ng-container>
 
-      <!-- Actions Column -->
       <ng-container matColumnDef="actions">
         <th mat-header-cell *matHeaderCellDef></th>
         <td mat-cell *matCellDef="let driver">
@@ -196,12 +179,10 @@
         </td>
       </ng-container>
 
-      <!-- Header and Data Rows -->
       <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
       <tr mat-row *matRowDef="let row; columns: displayedColumns" (click)="editDriver(row)" [class.selected]="selection.isSelected(row)" class="driver-row"></tr>
     </table>
 
-    <!-- Empty State -->
     <div class="empty-state" *ngIf="!isLoading && dataSource.filteredData.length === 0">
       <mat-icon class="empty-icon">people_outline</mat-icon>
       <h3>No drivers found</h3>
@@ -213,11 +194,9 @@
     </div>
   </div>
 
-  <!-- Paginator -->
   <mat-paginator [length]="dataSource.filteredData.length" [pageSize]="25" [pageSizeOptions]="[10, 25, 50, 100]" showFirstLastButtons> </mat-paginator>
 </mat-card>
 
-<!-- Export Menu -->
 <mat-menu #exportMenu="matMenu">
   <button mat-menu-item (click)="exportAllDrivers()">
     <mat-icon>file_download</mat-icon>

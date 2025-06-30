@@ -13,7 +13,6 @@ import { VehicleListComponent } from './pages/vehicles/vehicle-list/vehicle-list
 import { VehicleDetailsComponent } from './pages/vehicles/vehicle-details/vehicle-details.component';
 import { VehicleCreateComponent } from './pages/vehicles/vehicle-create/vehicle-create.component';
 
-// Guards
 import { AuthGuard } from './guards/auth.guard';
 import { RoleGuard } from './guards/role.guard';
 import { CustomerListComponent } from './pages/customers/customers-list/customer-list.component';
@@ -24,13 +23,11 @@ import { ExpenseListComponent } from './pages/expenses/expense-list/expense-list
 import { ExpenseCreateComponent } from './pages/expenses/expense-create/expense-create.component';
 
 const routes: Routes = [
-  // Auth routes (lazy loaded)
   {
     path: 'auth',
     loadChildren: () => import('./pages/auth/auth.module').then((m) => m.AuthModule),
   },
 
-  // Protected routes
   {
     path: '',
     redirectTo: '/dashboard',
@@ -144,7 +141,6 @@ const routes: Routes = [
     data: { permissions: ['isAdmin'] },
   },
 
-  // Fallback route
   { path: '**', redirectTo: '/dashboard' },
 ];
 

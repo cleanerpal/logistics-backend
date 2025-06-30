@@ -1,11 +1,5 @@
 import { Injectable } from '@angular/core';
-import {
-  CanActivate,
-  ActivatedRouteSnapshot,
-  RouterStateSnapshot,
-  Router,
-  UrlTree,
-} from '@angular/router';
+import { CanActivate, ActivatedRouteSnapshot, RouterStateSnapshot, Router, UrlTree } from '@angular/router';
 import { Observable, of, switchMap, take, map, catchError } from 'rxjs';
 import { AuthService } from '../services/auth.service';
 import { MatSnackBar } from '@angular/material/snack-bar';
@@ -15,20 +9,9 @@ import { UserPermissionKey } from '../interfaces/user-profile.interface';
   providedIn: 'root',
 })
 export class RoleGuard implements CanActivate {
-  constructor(
-    private authService: AuthService,
-    private router: Router,
-    private snackBar: MatSnackBar
-  ) {}
+  constructor(private authService: AuthService, private router: Router, private snackBar: MatSnackBar) {}
 
-  canActivate(
-    route: ActivatedRouteSnapshot,
-    state: RouterStateSnapshot
-  ):
-    | Observable<boolean | UrlTree>
-    | Promise<boolean | UrlTree>
-    | boolean
-    | UrlTree {
+  canActivate(route: ActivatedRouteSnapshot, state: RouterStateSnapshot): Observable<boolean | UrlTree> | Promise<boolean | UrlTree> | boolean | UrlTree {
     const requiredPermissions = route.data['permissions'] as string[];
 
     if (!requiredPermissions || requiredPermissions.length === 0) {
@@ -47,7 +30,6 @@ export class RoleGuard implements CanActivate {
           );
         }
 
-        // Check if admin (admins have all permissions)
         if (requiredPermissions.includes('isAdmin')) {
           return this.authService.isAdmin().pipe(
             map((isAdmin) => {
@@ -61,7 +43,6 @@ export class RoleGuard implements CanActivate {
           );
         }
 
-        // Check for any required permission
         return this.authService.hasAnyPermission(requiredPermissions).pipe(
           map((hasPermission) => {
             if (hasPermission) {
@@ -81,13 +62,9 @@ export class RoleGuard implements CanActivate {
   }
 
   private showAccessDenied(): void {
-    this.snackBar.open(
-      'You do not have permission to access this resource',
-      'Dismiss',
-      {
-        duration: 5000,
-        panelClass: ['error-snackbar'],
-      }
-    );
+    this.snackBar.open('You do not have permission to access this resource', 'Dismiss', {
+      duration: 5000,
+      panelClass: ['error-snackbar'],
+    });
   }
 }

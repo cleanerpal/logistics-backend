@@ -4,7 +4,6 @@
   <mat-dialog-content>
     <div class="dialog-content">
       <div class="form-fields-grid">
-        <!-- Name (ID) Field -->
         <mat-form-field appearance="outline">
           <mat-label>Make ID</mat-label>
           <input matInput formControlName="name" placeholder="e.g. toyota" [readonly]="isEdit" />
@@ -13,7 +12,6 @@
           <mat-error *ngIf="vehicleMakeForm.get('name')?.hasError('pattern')"> Use only letters, numbers, hyphens and underscores </mat-error>
         </mat-form-field>
 
-        <!-- Display Name Field -->
         <mat-form-field appearance="outline">
           <mat-label>Display Name</mat-label>
           <input matInput formControlName="displayName" placeholder="e.g. Toyota" />
@@ -21,7 +19,6 @@
           <mat-error *ngIf="vehicleMakeForm.get('displayName')?.hasError('required')"> Display name is required </mat-error>
         </mat-form-field>
 
-        <!-- Icon Field -->
         <mat-form-field appearance="outline">
           <mat-label>Icon</mat-label>
           <mat-select formControlName="icon">
@@ -41,7 +38,6 @@
           <mat-hint>Icon to represent this make</mat-hint>
         </mat-form-field>
 
-        <!-- Status Field -->
         <mat-form-field appearance="outline">
           <mat-label>Status</mat-label>
           <mat-select formControlName="isActive">
@@ -52,7 +48,6 @@
         </mat-form-field>
       </div>
 
-      <!-- Vehicle Types Field -->
       <div class="vehicle-types-section">
         <mat-form-field appearance="outline" class="full-width">
           <mat-label>Vehicle Types</mat-label>

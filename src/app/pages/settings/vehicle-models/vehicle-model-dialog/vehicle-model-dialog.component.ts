@@ -47,14 +47,11 @@ export class VehicleModelDialogComponent implements OnInit {
         isActive: this.data.model.isActive,
       });
 
-      // If editing, disable the make field if the make is inactive
       const makeStillActive = this.availableMakes.some((make) => make.id === this.data.model?.makeId);
 
       if (!makeStillActive && this.data.model?.makeId) {
-        // Make isn't in the active list, but we need to show it anyway
         const makeId = this.data.model.makeId;
 
-        // Display a disabled option for the inactive make
         this.modelForm.get('makeId')?.disable();
       }
     }
@@ -67,7 +64,6 @@ export class VehicleModelDialogComponent implements OnInit {
 
     const formValue = this.modelForm.value;
 
-    // If the makeId control is disabled, we need to get its value manually
     const makeId = this.modelForm.get('makeId')?.disabled ? this.data.model?.makeId : formValue.makeId;
 
     const modelData: Partial<VehicleModel> = {
@@ -84,7 +80,6 @@ export class VehicleModelDialogComponent implements OnInit {
     this.dialogRef.close();
   }
 
-  // Get display name for a make by ID
   getMakeName(makeId: string): string {
     const make = this.availableMakes.find((m) => m.id === makeId);
     return make ? make.displayName : 'Unknown';

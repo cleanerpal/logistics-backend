@@ -26,7 +26,6 @@ export class CustomerDetailsComponent implements OnInit, OnDestroy {
   hasEditPermission = false;
   activeTab: 'details' | 'jobs' | 'notes' = 'details';
 
-  // Jobs table
   jobsDataSource = new MatTableDataSource<Job>([]);
   displayedColumns: string[] = ['id', 'status', 'vehicleType', 'registration', 'collection', 'delivery', 'actions'];
   isJobsLoading = false;
@@ -46,7 +45,6 @@ export class CustomerDetailsComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
-    // Get customer ID from route
     const routeSub = this.route.paramMap.subscribe((params) => {
       const id = params.get('id');
       if (id) {
@@ -58,7 +56,6 @@ export class CustomerDetailsComponent implements OnInit, OnDestroy {
     });
     this.subscriptions.push(routeSub);
 
-    // Check permissions
     const permissionSub = this.authService.hasPermission('canManageUsers').subscribe((hasPermission) => {
       this.hasEditPermission = hasPermission;
     });
@@ -69,9 +66,6 @@ export class CustomerDetailsComponent implements OnInit, OnDestroy {
     this.subscriptions.forEach((sub) => sub.unsubscribe());
   }
 
-  /**
-   * Load customer details
-   */
   loadCustomerDetails(): void {
     this.isLoading = true;
 
@@ -80,7 +74,6 @@ export class CustomerDetailsComponent implements OnInit, OnDestroy {
         this.customer = customer;
         this.isLoading = false;
 
-        // Load customer jobs
         if (customer) {
           this.loadCustomerJobs();
         }
@@ -100,9 +93,6 @@ export class CustomerDetailsComponent implements OnInit, OnDestroy {
     this.subscriptions.push(customerSub);
   }
 
-  /**
-   * Load jobs associated with this customer
-   */
   loadCustomerJobs(): void {
     this.isJobsLoading = true;
 
@@ -121,10 +111,6 @@ export class CustomerDetailsComponent implements OnInit, OnDestroy {
     this.subscriptions.push(jobsSub);
   }
 
-  /**
-   * Get status class for CSS styling
-   * This accepts a string status value and returns the appropriate CSS class name
-   */
   getStatusClass(status: string | undefined): string {
     if (!status) return 'status-gray';
 
@@ -139,9 +125,6 @@ export class CustomerDetailsComponent implements OnInit, OnDestroy {
     }
   }
 
-  /**
-   * Format currency for display
-   */
   formatCurrency(value: number): string {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -149,9 +132,6 @@ export class CustomerDetailsComponent implements OnInit, OnDestroy {
     }).format(value);
   }
 
-  /**
-   * Get primary contact from contacts array
-   */
   getPrimaryContact(): CustomerContact | null {
     if (!this.customer?.contacts || this.customer.contacts.length === 0) {
       return null;
@@ -161,30 +141,18 @@ export class CustomerDetailsComponent implements OnInit, OnDestroy {
     return primaryContact || this.customer.contacts[0];
   }
 
-  /**
-   * Set active tab
-   */
   setActiveTab(tab: 'details' | 'jobs' | 'notes'): void {
     this.activeTab = tab;
   }
 
-  /**
-   * Navigate to job details
-   */
   viewJobDetails(jobId: string): void {
     this.router.navigate(['/jobs', jobId]);
   }
 
-  /**
-   * Navigate to edit customer page
-   */
   editCustomer(): void {
     this.router.navigate(['/customers', this.customerId, 'edit']);
   }
 
-  /**
-   * Delete customer with confirmation
-   */
   deleteCustomer(): void {
     if (!this.customer) return;
 
@@ -228,16 +196,10 @@ export class CustomerDetailsComponent implements OnInit, OnDestroy {
     });
   }
 
-  /**
-   * Navigate back
-   */
   goBack(): void {
     this.location.back();
   }
 
-  /**
-   * Get industry icon
-   */
   getIndustryIcon(industry: string): string {
     const iconMap: Record<string, string> = {
       Technology: 'computer',

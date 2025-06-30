@@ -104,9 +104,6 @@ export class VehicleService extends BaseFirebaseService {
     super();
   }
 
-  /**
-   * Get all vehicles
-   */
   getVehicles(): Observable<Vehicle[]> {
     this.loadingSubject.next(true);
 
@@ -131,9 +128,6 @@ export class VehicleService extends BaseFirebaseService {
     );
   }
 
-  /**
-   * Get vehicle by ID
-   */
   getVehicleById(vehicleId: string): Observable<Vehicle | null> {
     this.loadingSubject.next(true);
 
@@ -161,35 +155,26 @@ export class VehicleService extends BaseFirebaseService {
     );
   }
 
-  /**
-   * Create a new vehicle
-   */
   createVehicle(vehicleData: Omit<Vehicle, 'id'>): Observable<string> {
     this.loadingSubject.next(true);
 
-    // Get the current user ID
     const userId = this.currentUserId;
     if (!userId) {
       this.loadingSubject.next(false);
       return throwError(() => new Error('User not authenticated'));
     }
 
-    // Prepare vehicle data
     const newVehicleData = {
       ...vehicleData,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
       createdBy: userId,
       updatedBy: userId,
-      // Keep the existing dates from vehicleData but convert to server timestamp
-      // if firstProcessedDate is already provided in vehicleData, use it instead of creating a new one
+
       firstProcessedDate: serverTimestamp(),
       lastProcessedDate: serverTimestamp(),
-      // Note: jobCount, jobHistory, photos, and conditionReports are expected to be
-      // provided by the caller now
     };
 
-    // Use registration number as document ID
     const docId = vehicleData.registration?.toUpperCase();
     if (!docId) {
       this.loadingSubject.next(false);
@@ -200,10 +185,8 @@ export class VehicleService extends BaseFirebaseService {
 
     return from(setDoc(vehicleRef, newVehicleData)).pipe(
       map(() => {
-        // Refresh the vehicles list
         this.refreshVehiclesList();
 
-        // Add notification
         this.notificationService.addNotification({
           type: 'success',
           title: 'Vehicle Created',
@@ -222,13 +205,9 @@ export class VehicleService extends BaseFirebaseService {
     );
   }
 
-  /**
-   * Update an existing vehicle
-   */
   updateVehicle(vehicleId: string, data: Partial<Omit<Vehicle, 'id'>>): Observable<void> {
     this.loadingSubject.next(true);
 
-    // Get the current user ID
     const userId = this.currentUserId;
     if (!userId) {
       this.loadingSubject.next(false);
@@ -237,7 +216,6 @@ export class VehicleService extends BaseFirebaseService {
 
     const vehicleRef = doc(this.firestore, `vehicles/${vehicleId}`);
 
-    // Add updater and timestamp
     const vehicleUpdateData = {
       ...data,
       updatedAt: serverTimestamp(),
@@ -247,10 +225,8 @@ export class VehicleService extends BaseFirebaseService {
 
     return from(updateDoc(vehicleRef, vehicleUpdateData)).pipe(
       tap(() => {
-        // Refresh the vehicles list
         this.refreshVehiclesList();
 
-        // Add notification
         this.notificationService.addNotification({
           type: 'info',
           title: 'Vehicle Updated',
@@ -268,20 +244,15 @@ export class VehicleService extends BaseFirebaseService {
     );
   }
 
-  /**
-   * Add a photo to a vehicle
-   */
   addVehiclePhoto(vehicleId: string, photoData: Partial<VehiclePhoto>): Observable<string> {
     this.loadingSubject.next(true);
 
-    // Get the current user ID
     const userId = this.currentUserId;
     if (!userId) {
       this.loadingSubject.next(false);
       return throwError(() => new Error('User not authenticated'));
     }
 
-    // First get the vehicle document
     const vehicleRef = doc(this.firestore, `vehicles/${vehicleId}`);
 
     return from(getDoc(vehicleRef)).pipe(
@@ -293,7 +264,6 @@ export class VehicleService extends BaseFirebaseService {
         const vehicle = docSnap.data() as Vehicle;
         const photos = vehicle.photos || [];
 
-        // Create a new photo object
         const photoId = this.generateId();
         const newPhoto: VehiclePhoto = {
           id: photoId,
@@ -305,10 +275,8 @@ export class VehicleService extends BaseFirebaseService {
           notes: photoData.notes || '',
         };
 
-        // Add the new photo to the photos array
         photos.push(newPhoto);
 
-        // Update the vehicle document
         return updateDoc(vehicleRef, {
           photos: photos,
           updatedAt: serverTimestamp(),
@@ -325,20 +293,15 @@ export class VehicleService extends BaseFirebaseService {
     );
   }
 
-  /**
-   * Add a condition report to a vehicle
-   */
   addConditionReport(vehicleId: string, reportData: Partial<ConditionReport>): Observable<string> {
     this.loadingSubject.next(true);
 
-    // Get the current user ID
     const userId = this.currentUserId;
     if (!userId) {
       this.loadingSubject.next(false);
       return throwError(() => new Error('User not authenticated'));
     }
 
-    // First get the vehicle document
     const vehicleRef = doc(this.firestore, `vehicles/${vehicleId}`);
 
     return from(getDoc(vehicleRef)).pipe(
@@ -350,7 +313,6 @@ export class VehicleService extends BaseFirebaseService {
         const vehicle = docSnap.data() as Vehicle;
         const reports = vehicle.conditionReports || [];
 
-        // Create a new report object
         const reportId = this.generateId();
         const newReport: ConditionReport = {
           id: reportId,
@@ -366,10 +328,8 @@ export class VehicleService extends BaseFirebaseService {
           additionalNotes: reportData.additionalNotes || '',
         };
 
-        // Add the new report to the reports array
         reports.push(newReport);
 
-        // Update the vehicle document with the new report and mileage
         return updateDoc(vehicleRef, {
           conditionReports: reports,
           mileage: reportData.mileage || vehicle.mileage,
@@ -387,20 +347,15 @@ export class VehicleService extends BaseFirebaseService {
     );
   }
 
-  /**
-   * Add a job to vehicle history
-   */
   addJobToVehicle(vehicleId: string, jobId: string): Observable<void> {
     this.loadingSubject.next(true);
 
-    // Get the current user ID
     const userId = this.currentUserId;
     if (!userId) {
       this.loadingSubject.next(false);
       return throwError(() => new Error('User not authenticated'));
     }
 
-    // First get the vehicle document
     const vehicleRef = doc(this.firestore, `vehicles/${vehicleId}`);
 
     return from(getDoc(vehicleRef)).pipe(
@@ -412,9 +367,7 @@ export class VehicleService extends BaseFirebaseService {
         const vehicle = docSnap.data() as Vehicle;
         const jobHistory = vehicle.jobHistory || [];
 
-        // Check if job already exists in history
         if (!jobHistory.includes(jobId)) {
-          // Add job to history and increment job count
           jobHistory.push(jobId);
 
           return updateDoc(vehicleRef, {
@@ -426,7 +379,6 @@ export class VehicleService extends BaseFirebaseService {
           });
         }
 
-        // Job already in history, no need to update
         return Promise.resolve();
       }),
       map(() => void 0),
@@ -439,9 +391,6 @@ export class VehicleService extends BaseFirebaseService {
     );
   }
 
-  /**
-   * Get vehicle makes
-   */
   getVehicleMakes(): Observable<VehicleMake[]> {
     const makesRef = collection(this.firestore, 'vehicleMakes');
     const q = query(makesRef, orderBy('displayName'));
@@ -462,11 +411,7 @@ export class VehicleService extends BaseFirebaseService {
     );
   }
 
-  /**
-   * Create a new vehicle make
-   */
   createVehicleMake(makeData: Partial<VehicleMake>): Observable<string> {
-    // Get the current user ID
     const userId = this.currentUserId;
     if (!userId) {
       return throwError(() => new Error('User not authenticated'));
@@ -474,7 +419,6 @@ export class VehicleService extends BaseFirebaseService {
 
     const makesRef = collection(this.firestore, 'vehicleMakes');
 
-    // Use name as document ID (make it lowercase)
     const docId = makeData.name?.toLowerCase();
     if (!docId) {
       return throwError(() => new Error('Make name is required'));
@@ -482,7 +426,6 @@ export class VehicleService extends BaseFirebaseService {
 
     const makeRef = doc(this.firestore, `vehicleMakes/${docId}`);
 
-    // Prepare make data
     const newMakeData = {
       ...makeData,
       id: docId,
@@ -502,11 +445,7 @@ export class VehicleService extends BaseFirebaseService {
     );
   }
 
-  /**
-   * Update a vehicle make
-   */
   updateVehicleMake(makeId: string, data: Partial<VehicleMake>): Observable<void> {
-    // Get the current user ID
     const userId = this.currentUserId;
     if (!userId) {
       return throwError(() => new Error('User not authenticated'));
@@ -514,10 +453,8 @@ export class VehicleService extends BaseFirebaseService {
 
     const makeRef = doc(this.firestore, `vehicleMakes/${makeId}`);
 
-    // Remove id from update data to avoid overwriting it
     const { id, ...updateData } = data;
 
-    // Add updater and timestamp
     const makeUpdateData = {
       ...updateData,
       updatedAt: serverTimestamp(),
@@ -533,9 +470,6 @@ export class VehicleService extends BaseFirebaseService {
     );
   }
 
-  /**
-   * Get vehicle models
-   */
   getVehicleModels(): Observable<VehicleModel[]> {
     const modelsRef = collection(this.firestore, 'vehicleModels');
     const q = query(modelsRef, orderBy('name'));
@@ -556,11 +490,7 @@ export class VehicleService extends BaseFirebaseService {
     );
   }
 
-  /**
-   * Create a new vehicle model
-   */
   createVehicleModel(modelData: Partial<VehicleModel>): Observable<string> {
-    // Get the current user ID
     const userId = this.currentUserId;
     if (!userId) {
       return throwError(() => new Error('User not authenticated'));
@@ -568,7 +498,6 @@ export class VehicleService extends BaseFirebaseService {
 
     const modelsRef = collection(this.firestore, 'vehicleModels');
 
-    // Generate a unique model ID based on make and model
     const makeId = modelData.makeId;
     const modelName = modelData.name;
 
@@ -576,11 +505,9 @@ export class VehicleService extends BaseFirebaseService {
       return throwError(() => new Error('Make ID and model name are required'));
     }
 
-    // Create a document ID by combining make ID and model name
     const docId = `${makeId}_${modelName.toLowerCase().replace(/\s+/g, '_')}`;
     const modelRef = doc(this.firestore, `vehicleModels/${docId}`);
 
-    // Prepare model data
     const newModelData = {
       ...modelData,
       id: docId,
@@ -599,11 +526,7 @@ export class VehicleService extends BaseFirebaseService {
     );
   }
 
-  /**
-   * Update a vehicle model
-   */
   updateVehicleModel(modelId: string, data: Partial<VehicleModel>): Observable<void> {
-    // Get the current user ID
     const userId = this.currentUserId;
     if (!userId) {
       return throwError(() => new Error('User not authenticated'));
@@ -611,10 +534,8 @@ export class VehicleService extends BaseFirebaseService {
 
     const modelRef = doc(this.firestore, `vehicleModels/${modelId}`);
 
-    // Remove id from update data to avoid overwriting it
     const { id, ...updateData } = data;
 
-    // Add updater and timestamp
     const modelUpdateData = {
       ...updateData,
       updatedAt: serverTimestamp(),
@@ -630,9 +551,6 @@ export class VehicleService extends BaseFirebaseService {
     );
   }
 
-  /**
-   * Get vehicle models by make
-   */
   getVehicleModelsByMake(makeId: string): Observable<VehicleModel[]> {
     if (!makeId) {
       return of([]);
@@ -657,16 +575,13 @@ export class VehicleService extends BaseFirebaseService {
     );
   }
 
-  /**
-   * Search vehicles by registration or chassis number
-   */
   searchVehicles(searchTerm: string): Observable<Vehicle[]> {
     if (!searchTerm || searchTerm.length < 2) {
       return of([]);
     }
 
     const vehiclesRef = collection(this.firestore, 'vehicles');
-    // Since Firebase doesn't support regex search, we'll do a client-side filter
+
     const q = query(vehiclesRef, limit(100)); // Limit to avoid large result sets
 
     return from(getDocs(q)).pipe(
@@ -690,26 +605,16 @@ export class VehicleService extends BaseFirebaseService {
     );
   }
 
-  /**
-   * Refresh the vehicles list
-   */
   private refreshVehiclesList(): void {
-    // Only refresh if we have vehicles loaded already
     if (this.vehiclesSubject.getValue().length > 0) {
       this.getVehicles().subscribe();
     }
   }
 
-  /**
-   * Generate a unique ID
-   */
   private generateId(): string {
     return Date.now().toString(36) + Math.random().toString(36).substring(2);
   }
 
-  /**
-   * Convert Firestore data to Vehicle model
-   */
   private convertFirebaseVehicleToModel(id: string, data: any): Vehicle {
     const vehicle: Vehicle = {
       id, // Now always required
@@ -729,14 +634,12 @@ export class VehicleService extends BaseFirebaseService {
       jobHistory: data.jobHistory || [],
     };
 
-    // Add optional fields if present
     if (data.fuelType) vehicle.fuelType = data.fuelType;
     if (data.transmission) vehicle.transmission = data.transmission;
     if (data.engineSize) vehicle.engineSize = data.engineSize;
     if (data.vin) vehicle.vin = data.vin;
     if (data.notes) vehicle.notes = data.notes;
 
-    // Convert photos array
     if (data.photos && Array.isArray(data.photos)) {
       vehicle.photos = data.photos.map((photo: any) => ({
         ...photo,
@@ -744,7 +647,6 @@ export class VehicleService extends BaseFirebaseService {
       }));
     }
 
-    // Convert condition reports array
     if (data.conditionReports && Array.isArray(data.conditionReports)) {
       vehicle.conditionReports = data.conditionReports.map((report: any) => ({
         ...report,
@@ -755,11 +657,7 @@ export class VehicleService extends BaseFirebaseService {
     return vehicle;
   }
 
-  /**
-   * Get unique vehicle types
-   */
   getVehicleTypes(): Observable<string[]> {
-    // First try to get types from the vehicle models
     return this.getVehicleModels().pipe(
       map((models) => {
         const typesSet = new Set<string>();
@@ -771,7 +669,6 @@ export class VehicleService extends BaseFirebaseService {
         return Array.from(typesSet).sort();
       }),
       catchError(() => {
-        // If that fails, return default types
         return of(['Car', 'Van', 'Motorbike', 'Truck', 'Bus', 'Trailer']);
       })
     );

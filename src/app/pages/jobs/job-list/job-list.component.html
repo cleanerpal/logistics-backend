@@ -1,5 +1,4 @@
 <mat-card class="mat-elevation-z3">
-  <!-- Header -->
   <div class="header-wrapper">
     <div class="header-title">
       <h1>Jobs</h1>
@@ -7,7 +6,6 @@
     </div>
   </div>
 
-  <!-- Filters and Actions Bar -->
   <div class="filters-actions-wrapper">
     <div class="filters-section">
       <mat-form-field appearance="outline" class="search-field">
@@ -66,41 +64,33 @@
     </div>
   </div>
 
-  <!-- Table Container -->
   <div class="table-container">
-    <!-- Loading Overlay -->
     <div class="loading-overlay" *ngIf="isLoading">
       <mat-spinner diameter="40"></mat-spinner>
       <span>Loading jobs...</span>
     </div>
 
-    <!-- Table -->
     <table mat-table [dataSource]="dataSource" matSort [class.loading]="isLoading">
-      <!-- Job ID Column -->
       <ng-container matColumnDef="id">
         <th mat-header-cell *matHeaderCellDef mat-sort-header>Job ID</th>
         <td mat-cell *matCellDef="let job" class="job-id">{{ job.id }}</td>
       </ng-container>
 
-      <!-- Reg Column -->
       <ng-container matColumnDef="regNumber">
         <th mat-header-cell *matHeaderCellDef mat-sort-header>Registration</th>
         <td mat-cell *matCellDef="let job">{{ job.registration || 'N/A' }}</td>
       </ng-container>
 
-      <!-- Make Column -->
       <ng-container matColumnDef="make">
         <th mat-header-cell *matHeaderCellDef mat-sort-header>Make</th>
         <td mat-cell *matCellDef="let job">{{ job.make || 'N/A' }}</td>
       </ng-container>
 
-      <!-- Model Column -->
       <ng-container matColumnDef="model">
         <th mat-header-cell *matHeaderCellDef mat-sort-header>Model</th>
         <td mat-cell *matCellDef="let job">{{ job.model || 'N/A' }}</td>
       </ng-container>
 
-      <!-- Collection Date Column -->
       <ng-container matColumnDef="collectionDate">
         <th mat-header-cell *matHeaderCellDef mat-sort-header>Created Date</th>
         <td mat-cell *matCellDef="let job">
@@ -108,7 +98,6 @@
         </td>
       </ng-container>
 
-      <!-- Status Column -->
       <ng-container matColumnDef="status">
         <th mat-header-cell *matHeaderCellDef mat-sort-header>Status</th>
         <td mat-cell *matCellDef="let job">
@@ -118,7 +107,6 @@
         </td>
       </ng-container>
 
-      <!-- Driver Column -->
       <ng-container matColumnDef="driver">
         <th mat-header-cell *matHeaderCellDef mat-sort-header>Driver</th>
         <td mat-cell *matCellDef="let job">
@@ -126,7 +114,6 @@
         </td>
       </ng-container>
 
-      <!-- Actions Column -->
       <ng-container matColumnDef="actions">
         <th mat-header-cell *matHeaderCellDef></th>
         <td mat-cell *matCellDef="let job">
@@ -154,12 +141,10 @@
         </td>
       </ng-container>
 
-      <!-- Header and Data Rows -->
       <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
       <tr mat-row *matRowDef="let row; columns: displayedColumns" (click)="viewJobDetails(row)" class="job-row"></tr>
     </table>
 
-    <!-- Empty State -->
     <div class="empty-state" *ngIf="!isLoading && dataSource.filteredData.length === 0">
       <mat-icon class="empty-icon">work_outline</mat-icon>
       <h3>No jobs found</h3>
@@ -171,6 +156,5 @@
     </div>
   </div>
 
-  <!-- Paginator -->
   <mat-paginator [pageSize]="25" [pageSizeOptions]="[10, 25, 50, 100]" showFirstLastButtons> </mat-paginator>
 </mat-card>

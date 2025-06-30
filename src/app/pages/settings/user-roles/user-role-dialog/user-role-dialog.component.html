@@ -3,7 +3,6 @@
 <form [formGroup]="roleForm" (ngSubmit)="onSubmit()">
   <mat-dialog-content>
     <div class="dialog-content">
-      <!-- Basic Information Section -->
       <div class="form-section">
         <h3 class="section-title">Role Information</h3>
 
@@ -25,13 +24,11 @@
         </mat-form-field>
       </div>
 
-      <!-- Permissions Section -->
       <div class="form-section">
         <h3 class="section-title">Permissions</h3>
         <p class="section-description">Configure what users with this role can do in the system</p>
 
         <div formGroupName="permissions" class="permissions-container">
-          <!-- Admin Permission (Special) -->
           <div class="special-permission" *ngFor="let permission of getGroupPermissions('General Permissions')">
             <mat-checkbox [formControlName]="permission.key" color="primary" (change)="onAdminChange($event)">
               <span class="permission-name">{{ permission.name }}</span>
@@ -39,9 +36,7 @@
             <span class="permission-description">{{ permission.description }} <strong>(Grants all permissions)</strong></span>
           </div>
 
-          <!-- Grouped Permissions -->
           <mat-accordion class="permissions-accordion">
-            <!-- Job Management Permissions -->
             <mat-expansion-panel expanded>
               <mat-expansion-panel-header>
                 <mat-panel-title>
@@ -58,7 +53,6 @@
               </div>
             </mat-expansion-panel>
 
-            <!-- Administrative Permissions -->
             <mat-expansion-panel expanded>
               <mat-expansion-panel-header>
                 <mat-panel-title>

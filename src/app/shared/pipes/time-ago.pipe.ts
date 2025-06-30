@@ -1,4 +1,3 @@
-// time-ago.pipe.ts
 import { Pipe, PipeTransform } from '@angular/core';
 
 @Pipe({
@@ -14,7 +13,6 @@ export class TimeAgoPipe implements PipeTransform {
     const now = new Date();
     const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
 
-    // Time intervals in seconds
     const intervals = {
       year: 31536000,
       month: 2592000,

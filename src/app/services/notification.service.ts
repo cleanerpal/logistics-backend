@@ -20,7 +20,6 @@ export class NotificationService {
   private unreadCount = new BehaviorSubject<number>(0);
 
   constructor(private snackBar: MatSnackBar) {
-    // Load saved notifications from localStorage on init
     this.loadNotifications();
   }
 
@@ -32,9 +31,7 @@ export class NotificationService {
     return this.unreadCount.asObservable();
   }
 
-  addNotification(
-    notification: Omit<Notification, 'id' | 'timestamp' | 'read'>
-  ): void {
+  addNotification(notification: Omit<Notification, 'id' | 'timestamp' | 'read'>): void {
     const newNotification: Notification = {
       ...notification,
       id: this.generateId(),
@@ -48,10 +45,8 @@ export class NotificationService {
     this.notifications.next(updatedNotifications);
     this.unreadCount.next(this.unreadCount.getValue() + 1);
 
-    // Save to localStorage
     this.saveNotifications(updatedNotifications);
 
-    // Show snackbar for real-time notification
     this.showSnackbar(notification);
   }
 
@@ -66,11 +61,9 @@ export class NotificationService {
 
     this.notifications.next(updatedNotifications);
 
-    // Update unread count
     const unreadCount = updatedNotifications.filter((n) => !n.read).length;
     this.unreadCount.next(unreadCount);
 
-    // Save to localStorage
     this.saveNotifications(updatedNotifications);
   }
 
@@ -84,23 +77,18 @@ export class NotificationService {
     this.notifications.next(updatedNotifications);
     this.unreadCount.next(0);
 
-    // Save to localStorage
     this.saveNotifications(updatedNotifications);
   }
 
   removeNotification(notificationId: string): void {
     const currentNotifications = this.notifications.getValue();
-    const updatedNotifications = currentNotifications.filter(
-      (notification) => notification.id !== notificationId
-    );
+    const updatedNotifications = currentNotifications.filter((notification) => notification.id !== notificationId);
 
     this.notifications.next(updatedNotifications);
 
-    // Update unread count
     const unreadCount = updatedNotifications.filter((n) => !n.read).length;
     this.unreadCount.next(unreadCount);
 
-    // Save to localStorage
     this.saveNotifications(updatedNotifications);
   }
 
@@ -112,10 +100,8 @@ export class NotificationService {
     try {
       const savedNotifications = localStorage.getItem('notifications');
       if (savedNotifications) {
-        const parsedNotifications: Notification[] =
-          JSON.parse(savedNotifications);
+        const parsedNotifications: Notification[] = JSON.parse(savedNotifications);
 
-        // Convert stored date strings back to Date objects
         const processedNotifications = parsedNotifications.map((n) => ({
           ...n,
           timestamp: new Date(n.timestamp),
@@ -123,15 +109,12 @@ export class NotificationService {
 
         this.notifications.next(processedNotifications);
 
-        // Calculate unread count
-        const unreadCount = processedNotifications.filter(
-          (n) => !n.read
-        ).length;
+        const unreadCount = processedNotifications.filter((n) => !n.read).length;
         this.unreadCount.next(unreadCount);
       }
     } catch (error) {
       console.error('Error loading notifications:', error);
-      // If there's an error, initialize with empty notifications
+
       this.notifications.next([]);
       this.unreadCount.next(0);
     }
@@ -145,9 +128,7 @@ export class NotificationService {
     }
   }
 
-  private showSnackbar(
-    notification: Omit<Notification, 'id' | 'timestamp' | 'read'>
-  ): void {
+  private showSnackbar(notification: Omit<Notification, 'id' | 'timestamp' | 'read'>): void {
     const config = {
       duration: 5000,
       horizontalPosition: 'end' as const,
@@ -157,11 +138,7 @@ export class NotificationService {
 
     const actionText = notification.actionUrl ? 'View' : 'Dismiss';
 
-    const snackBarRef = this.snackBar.open(
-      notification.title,
-      actionText,
-      config
-    );
+    const snackBarRef = this.snackBar.open(notification.title, actionText, config);
 
     if (notification.actionUrl) {
       snackBarRef.onAction().subscribe(() => {

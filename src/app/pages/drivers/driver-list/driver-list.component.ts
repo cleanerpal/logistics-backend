@@ -78,22 +78,18 @@ export class DriverListComponent implements OnInit, AfterViewInit, OnDestroy {
       const searchText = filter.toLowerCase();
       const shouldInclude = (value: string | undefined) => value?.toLowerCase().includes(searchText) || false;
 
-      // Apply type filter
       if (this.typeFilter !== 'All' && data.type?.toLowerCase() !== this.typeFilter.toLowerCase()) {
         return false;
       }
 
-      // Apply role filter
       if (this.roleFilter !== 'All' && data.role !== this.roleFilter) {
         return false;
       }
 
-      // Apply status filter
       if (this.statusFilter !== 'All' && data.status?.toLowerCase() !== this.statusFilter.toLowerCase()) {
         return false;
       }
 
-      // Apply text search
       return (
         shouldInclude(data.firstName) ||
         shouldInclude(data.lastName) ||
@@ -116,7 +112,6 @@ export class DriverListComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   onFilterChange(): void {
-    // Force the filter to re-evaluate
     this.dataSource.filter = this.dataSource.filter || ' ';
   }
 
@@ -262,7 +257,6 @@ export class DriverListComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private downloadDriversCsv(drivers: UserProfile[]): void {
-    // Convert drivers to CSV format
     const headers = ['ID', 'First Name', 'Last Name', 'Email', 'Phone', 'Company', 'Role', 'Type', 'Status', 'Last Activity'];
     const rows = drivers.map((driver) => [
       driver.id,
@@ -277,10 +271,8 @@ export class DriverListComponent implements OnInit, AfterViewInit, OnDestroy {
       driver.lastActivity ? new Date(driver.lastActivity).toLocaleDateString() : '',
     ]);
 
-    // Combine headers and rows
     const csvContent = [headers.join(','), ...rows.map((row) => row.join(','))].join('\n');
 
-    // Create and trigger download
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
@@ -291,7 +283,6 @@ export class DriverListComponent implements OnInit, AfterViewInit, OnDestroy {
     link.click();
     document.body.removeChild(link);
 
-    // Show success notification
     this.notificationService.addNotification({
       type: 'success',
       title: 'Export Complete',
@@ -318,10 +309,8 @@ export class DriverListComponent implements OnInit, AfterViewInit, OnDestroy {
       if (result) {
         this.driverService.deactivateDriver(driver.id).subscribe({
           next: () => {
-            // Remove from the data source
             this.dataSource.data = this.dataSource.data.filter((d) => d.id !== driver.id);
 
-            // Show success notification
             this.notificationService.addNotification({
               type: 'success',
               title: 'Driver Deleted',

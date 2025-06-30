@@ -2,11 +2,10 @@
   padding: 24px;
   max-width: 1600px;
   margin: 0 auto;
-  margin-left: 250px; /* Account for sidebar */
-  padding-top: 88px; /* Account for topbar height (64px) + padding */
+  margin-left: 250px;
+  padding-top: 88px;
 }
 
-// Loading & Error States
 .loading-state,
 .error-state {
   min-height: 400px;
@@ -40,7 +39,6 @@
   }
 }
 
-// Header Styles
 .details-header {
   margin-bottom: 32px;
   background: white;
@@ -116,7 +114,6 @@
           white-space: nowrap;
           border: 1px solid rgba(0, 0, 0, 0.1);
 
-          // Dynamic contrast for text color
           &[style*='background:#FFFFFF'],
           &[style*='background:#F5F5DC'],
           &[style*='background:#FFFF00'],
@@ -157,7 +154,6 @@
   }
 }
 
-// Navigation Tabs
 .tabs {
   display: flex;
   gap: 2px;
@@ -208,12 +204,10 @@
   }
 }
 
-// Tab Content
 .tab-content {
   min-height: 500px;
 }
 
-// Two Column Layout
 .two-column-layout {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -274,7 +268,6 @@
   }
 }
 
-// Stats Card
 .stats-card {
   .stats-grid {
     display: grid;
@@ -301,7 +294,6 @@
   }
 }
 
-// Photo Card
 .photo-card {
   .primary-photo {
     position: relative;
@@ -349,7 +341,6 @@
   }
 }
 
-// Job Preview
 .job-preview {
   .job-preview-header {
     display: flex;
@@ -395,7 +386,6 @@
   }
 }
 
-// Status badges
 .status-badge {
   display: inline-block;
   padding: 4px 12px;
@@ -437,7 +427,6 @@
   }
 }
 
-// Photos Tab
 .photos-tab {
   .photos-wrapper {
     background: white;
@@ -553,7 +542,6 @@
   }
 }
 
-// History Tab
 .history-tab {
   .history-wrapper {
     background: white;
@@ -742,7 +730,6 @@
   }
 }
 
-// Reports Tab
 .reports-tab {
   .reports-wrapper {
     background: white;
@@ -929,7 +916,6 @@
   }
 }
 
-// Photo Viewer Dialog
 ::ng-deep .photo-viewer-dialog {
   .mat-mdc-dialog-container {
     padding: 0 !important;
@@ -1008,7 +994,6 @@
   }
 }
 
-// Responsive Design
 @media screen and (max-width: 1024px) {
   .two-column-layout {
     grid-template-columns: 1fr;
@@ -1018,8 +1003,8 @@
 @media screen and (max-width: 768px) {
   .vehicle-details-container {
     padding: 16px;
-    margin-left: 60px; /* Collapsed sidebar width */
-    padding-top: 80px; /* Adjust for smaller topbar */
+    margin-left: 60px;
+    padding-top: 80px;
   }
 
   .details-header {
@@ -1055,7 +1040,7 @@
 @media screen and (max-width: 576px) {
   .vehicle-details-container {
     padding: 8px;
-    padding-top: 72px; /* Further adjust for topbar on small screens */
+    padding-top: 72px;
   }
 
   .details-header {
@@ -1077,7 +1062,6 @@
   }
 }
 
-// Animation
 @keyframes spin {
   from {
     transform: rotate(0deg);

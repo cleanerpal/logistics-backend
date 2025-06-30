@@ -37,12 +37,10 @@ export class DriverDetailsComponent implements OnInit, OnDestroy {
   hasEditPermission = false;
   activeTab: 'details' | 'jobs' | 'permissions' | 'notes' = 'details';
 
-  // Jobs table
   jobsDataSource = new MatTableDataSource<Job>([]);
   jobColumns: string[] = ['id', 'status', 'vehicle', 'collection', 'delivery', 'date', 'actions'];
   isJobsLoading = false;
 
-  // Driver stats
   driverStats: DriverStats = {
     totalJobs: 0,
     pendingJobs: 0,
@@ -50,19 +48,15 @@ export class DriverDetailsComponent implements OnInit, OnDestroy {
     pendingExpenses: 0,
   };
 
-  // Driver notes
   driverNotes: DriverNote[] = [];
   isNotesLoading = false;
 
-  // Permissions
   permissionsForm!: FormGroup;
   availableRoles = Object.values(UserRole);
 
-  // Notes
   noteForm!: FormGroup;
   editingNote: DriverNote | null = null;
 
-  // Permission list
   permissionList: PermissionInfo[] = [
     {
       key: 'canAllocateJobs',
@@ -154,7 +148,6 @@ export class DriverDetailsComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
-    // Get driver ID from route
     const routeSub = this.route.paramMap.subscribe((params) => {
       const id = params.get('id');
       if (id) {
@@ -166,7 +159,6 @@ export class DriverDetailsComponent implements OnInit, OnDestroy {
     });
     this.subscriptions.push(routeSub);
 
-    // Check permissions
     const permissionSub = this.authService.hasPermission('canManageUsers').subscribe((hasPermission) => {
       this.hasEditPermission = hasPermission;
     });
@@ -178,20 +170,15 @@ export class DriverDetailsComponent implements OnInit, OnDestroy {
   }
 
   private createForms(): void {
-    // Permissions form
     this.permissionsForm = this.fb.group({
       role: ['', Validators.required],
     });
 
-    // Note form
     this.noteForm = this.fb.group({
       content: ['', Validators.required],
     });
   }
 
-  /**
-   * Load driver details and related data
-   */
   loadDriverDetails(): void {
     this.isLoading = true;
 
@@ -203,7 +190,6 @@ export class DriverDetailsComponent implements OnInit, OnDestroy {
         }),
         switchMap((driver) => {
           if (driver) {
-            // Load related data in parallel
             return forkJoin({
               jobs: this.loadDriverJobs(),
               notes: this.loadDriverNotes(),
@@ -235,9 +221,6 @@ export class DriverDetailsComponent implements OnInit, OnDestroy {
     this.subscriptions.push(detailsSub);
   }
 
-  /**
-   * Load driver jobs
-   */
   loadDriverJobs(): Observable<Job[]> {
     this.isJobsLoading = true;
 
@@ -260,9 +243,6 @@ export class DriverDetailsComponent implements OnInit, OnDestroy {
     );
   }
 
-  /**
-   * Load driver notes
-   */
   loadDriverNotes(): Observable<DriverNote[]> {
     this.isNotesLoading = true;
 
@@ -279,13 +259,9 @@ export class DriverDetailsComponent implements OnInit, OnDestroy {
     );
   }
 
-  /**
-   * Open permissions dialog
-   */
   editPermissions(): void {
     if (!this.driver) return;
 
-    // Initialize form with current role
     this.permissionsForm.patchValue({
       role: this.driver.role || UserRole.DRIVER,
     });
@@ -296,9 +272,6 @@ export class DriverDetailsComponent implements OnInit, OnDestroy {
     });
   }
 
-  /**
-   * Save updated permissions based on role
-   */
   savePermissions(): void {
     if (!this.driver) return;
 
@@ -325,9 +298,6 @@ export class DriverDetailsComponent implements OnInit, OnDestroy {
     });
   }
 
-  /**
-   * Open note dialog for adding
-   */
   addNote(): void {
     this.editingNote = null;
     this.noteForm.reset();
@@ -336,9 +306,6 @@ export class DriverDetailsComponent implements OnInit, OnDestroy {
     });
   }
 
-  /**
-   * Open note dialog for editing
-   */
   editNote(note: DriverNote): void {
     this.editingNote = note;
     this.noteForm.patchValue({
@@ -349,15 +316,11 @@ export class DriverDetailsComponent implements OnInit, OnDestroy {
     });
   }
 
-  /**
-   * Save new or updated note
-   */
   saveNote(): void {
     if (this.noteForm.invalid || !this.driver) return;
 
     const content = this.noteForm.get('content')?.value;
 
-    // Get current user for author info
     this.authService.getUserProfile().subscribe((userProfile) => {
       if (!userProfile) {
         this.snackBar.open('You must be logged in to add notes', 'Close', { duration: 3000 });
@@ -365,7 +328,6 @@ export class DriverDetailsComponent implements OnInit, OnDestroy {
       }
 
       if (this.editingNote) {
-        // Update existing note
         this.driverService.updateDriverNote(this.editingNote.id, content).subscribe({
           next: () => {
             this.dialog.closeAll();
@@ -378,7 +340,6 @@ export class DriverDetailsComponent implements OnInit, OnDestroy {
           },
         });
       } else {
-        // Add new note
         this.driverService.addDriverNote(this.driverId, content, userProfile.id, userProfile.name).subscribe({
           next: () => {
             this.dialog.closeAll();
@@ -394,9 +355,6 @@ export class DriverDetailsComponent implements OnInit, OnDestroy {
     });
   }
 
-  /**
-   * Delete note
-   */
   deleteNote(note: DriverNote): void {
     const dialogRef = this.dialog.open(ConfirmationDialogComponent, {
       data: {
@@ -425,9 +383,6 @@ export class DriverDetailsComponent implements OnInit, OnDestroy {
     });
   }
 
-  /**
-   * Delete driver
-   */
   deleteDriver(): void {
     if (!this.driver) return;
 
@@ -445,7 +400,6 @@ export class DriverDetailsComponent implements OnInit, OnDestroy {
 
     dialogRef.afterClosed().subscribe((result) => {
       if (result) {
-        // Deactivate the driver (soft delete)
         this.driverService.deactivateDriver(this.driverId).subscribe({
           next: () => {
             this.notificationService.addNotification({
@@ -468,26 +422,16 @@ export class DriverDetailsComponent implements OnInit, OnDestroy {
     });
   }
 
-  /**
-   * Navigate to edit driver page
-   */
   editDriver(): void {
     this.router.navigate(['/drivers', this.driverId, 'edit']);
   }
 
-  /**
-   * Send message to driver
-   */
   sendMessage(): void {
-    // This would integrate with a messaging system in a real app
     this.snackBar.open('Messaging functionality will be implemented in a future release', 'Close', {
       duration: 3000,
     });
   }
 
-  /**
-   * Handle unassign job
-   */
   unassignJob(job: Job): void {
     const dialogRef = this.dialog.open(ConfirmationDialogComponent, {
       data: {
@@ -505,7 +449,7 @@ export class DriverDetailsComponent implements OnInit, OnDestroy {
         this.jobService.unallocateJob(job.id).subscribe({
           next: () => {
             this.loadDriverJobs(); // Refresh jobs list
-            // Refresh driver stats
+
             this.driverService.getDriverStats(this.driverId).subscribe((stats) => {
               this.driverStats = stats;
             });
@@ -529,38 +473,22 @@ export class DriverDetailsComponent implements OnInit, OnDestroy {
     });
   }
 
-  /**
-   * Check if a job can be unassigned (based on status)
-   */
   canUnassignJob(job: Job): boolean {
-    // Only allow unassigning if the job is allocated (not yet started)
     return job.status === 'allocated' || job.status === 'unallocated';
   }
 
-  /**
-   * Navigate to view job details
-   */
   viewJobDetails(jobId: string): void {
     this.router.navigate(['/jobs', jobId]);
   }
 
-  /**
-   * Navigate to edit job
-   */
   editJob(jobId: string): void {
     this.router.navigate(['/jobs', jobId, 'edit']);
   }
 
-  /**
-   * Set active tab
-   */
   setActiveTab(tab: 'details' | 'jobs' | 'permissions' | 'notes'): void {
     this.activeTab = tab;
   }
 
-  /**
-   * Get initials for driver avatar
-   */
   getDriverInitials(driver: UserProfile | null): string {
     if (!driver) return '??';
 
@@ -582,9 +510,6 @@ export class DriverDetailsComponent implements OnInit, OnDestroy {
     return ((firstName[0] || '') + (lastName[0] || '')).toUpperCase();
   }
 
-  /**
-   * Get initials from name for notes
-   */
   getInitials(name: string): string {
     if (!name) return '??';
 
@@ -595,9 +520,6 @@ export class DriverDetailsComponent implements OnInit, OnDestroy {
     return (nameParts[0][0] + nameParts[nameParts.length - 1][0]).toUpperCase();
   }
 
-  /**
-   * Get status class for CSS styling
-   */
   getStatusClass(status: string | undefined): string {
     if (!status) return 'status-gray';
 
@@ -612,9 +534,6 @@ export class DriverDetailsComponent implements OnInit, OnDestroy {
     }
   }
 
-  /**
-   * Get type class for CSS styling
-   */
   getTypeClass(type: string | undefined): string {
     if (!type) return 'type-blue';
 
@@ -630,9 +549,6 @@ export class DriverDetailsComponent implements OnInit, OnDestroy {
     }
   }
 
-  /**
-   * Get role class for CSS styling
-   */
   getRoleClass(role: string | undefined): string {
     if (!role) return 'role-driver';
 
@@ -650,9 +566,6 @@ export class DriverDetailsComponent implements OnInit, OnDestroy {
     }
   }
 
-  /**
-   * Get job status class for CSS styling
-   */
   getJobStatusClass(status: string | undefined): string {
     if (!status) return 'status-gray';
 
@@ -672,9 +585,6 @@ export class DriverDetailsComponent implements OnInit, OnDestroy {
     }
   }
 
-  /**
-   * Get permission icon for CSS styling
-   */
   getPermissionIcon(key: string): string {
     const icons: { [key: string]: string } = {
       canAllocateJobs: 'assignment_ind',
@@ -695,26 +605,18 @@ export class DriverDetailsComponent implements OnInit, OnDestroy {
     return icons[key] || 'check_circle';
   }
 
-  /**
-   * Check if driver has a specific permission
-   */
   hasPermission(key: string): boolean {
     if (!this.driver || !this.driver.permissions) {
       return false;
     }
 
-    // Check for admin first (admins have all permissions)
     if (this.driver.permissions.isAdmin) {
       return true;
     }
 
-    // Check specific permission
     return !!this.driver.permissions[key as keyof typeof this.driver.permissions];
   }
 
-  /**
-   * Get role description
-   */
   getRoleDescription(role: string | undefined): string {
     if (!role) return 'Standard user with limited access';
 
@@ -732,9 +634,6 @@ export class DriverDetailsComponent implements OnInit, OnDestroy {
     }
   }
 
-  /**
-   * Navigate back
-   */
   goBack(): void {
     this.location.back();
   }

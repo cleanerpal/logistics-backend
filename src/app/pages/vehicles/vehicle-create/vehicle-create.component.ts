@@ -23,19 +23,16 @@ export class VehicleCreateComponent implements OnInit, OnDestroy {
   vehicleId: string = '';
   currentYear = new Date().getFullYear();
 
-  // Reference data
   vehicleMakes: VehicleMake[] = [];
   availableModels: VehicleModel[] = [];
   allModels: VehicleModel[] = [];
 
-  // Dropdown options
   colors: string[] = ['Black', 'White', 'Silver', 'Grey', 'Blue', 'Red', 'Green', 'Yellow', 'Brown', 'Orange', 'Purple', 'Gold', 'Beige'];
 
   fuelTypes: string[] = ['Petrol', 'Diesel', 'Hybrid', 'Electric', 'LPG', 'Hydrogen', 'Other'];
 
   transmissionTypes: string[] = ['Manual', 'Automatic', 'Semi-Automatic', 'CVT'];
 
-  // Color mapping for visualization
   colorMap: { [key: string]: string } = {
     Black: '#333333',
     White: '#FFFFFF',
@@ -69,7 +66,6 @@ export class VehicleCreateComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.loadReferenceData();
 
-    // Check if we're in edit mode (URL contains an ID)
     const routeSub = this.route.params.subscribe((params) => {
       if (params['id']) {
         this.isEditMode = true;
@@ -155,12 +151,10 @@ export class VehicleCreateComponent implements OnInit, OnDestroy {
       )
       .subscribe((vehicle) => {
         if (vehicle) {
-          // Update available models based on the make
           if (vehicle.makeId) {
             this.updateAvailableModels(vehicle.makeId);
           }
 
-          // Populate form with vehicle data
           this.vehicleForm.patchValue({
             registration: vehicle.registration,
             chassisNumber: vehicle.chassisNumber || '',
@@ -187,7 +181,6 @@ export class VehicleCreateComponent implements OnInit, OnDestroy {
     if (makeId) {
       this.updateAvailableModels(makeId);
 
-      // Reset model selection and type
       this.vehicleForm.get('modelId')?.setValue('');
       this.vehicleForm.get('type')?.setValue('');
     }
@@ -209,7 +202,6 @@ export class VehicleCreateComponent implements OnInit, OnDestroy {
       return;
     }
 
-    // Filter models by the selected make
     this.availableModels = this.allModels.filter((model) => model.makeId === makeId && model.isActive);
   }
 
@@ -220,15 +212,12 @@ export class VehicleCreateComponent implements OnInit, OnDestroy {
 
     this.isSubmitting = true;
 
-    // Get form values
     const formValues = this.vehicleForm.getRawValue();
 
-    // Get make and model names for storing in denormalized fields
     const selectedMake = this.vehicleMakes.find((make) => make.id === formValues.makeId);
     const selectedModel = this.availableModels.find((model) => model.id === formValues.modelId);
 
     if (this.isEditMode) {
-      // For updates, we only send the fields we want to update
       const updateData = {
         registration: formValues.registration.toUpperCase(),
         chassisNumber: formValues.chassisNumber ? formValues.chassisNumber.toUpperCase() : '',
@@ -247,7 +236,6 @@ export class VehicleCreateComponent implements OnInit, OnDestroy {
         notes: formValues.notes,
       };
 
-      // Update existing vehicle
       this.vehicleService
         .updateVehicle(this.vehicleId, updateData)
         .pipe(finalize(() => (this.isSubmitting = false)))
@@ -262,7 +250,6 @@ export class VehicleCreateComponent implements OnInit, OnDestroy {
           },
         });
     } else {
-      // For new vehicles, we need to provide all required fields
       const newVehicleData = {
         registration: formValues.registration.toUpperCase(),
         chassisNumber: formValues.chassisNumber ? formValues.chassisNumber.toUpperCase() : '',
@@ -280,14 +267,12 @@ export class VehicleCreateComponent implements OnInit, OnDestroy {
         mileage: formValues.mileage || 0,
         notes: formValues.notes,
 
-        // These required fields will be initialized by the service
         firstProcessedDate: new Date(),
         lastProcessedDate: new Date(),
         jobCount: 0,
         jobHistory: [],
       };
 
-      // Create new vehicle
       this.vehicleService
         .createVehicle(newVehicleData)
         .pipe(finalize(() => (this.isSubmitting = false)))
@@ -305,7 +290,6 @@ export class VehicleCreateComponent implements OnInit, OnDestroy {
   }
 
   cancel(): void {
-    // Show confirmation dialog if there are unsaved changes
     if (this.vehicleForm.dirty) {
       const dialogRef = this.dialog.open(ConfirmationDialogComponent, {
         data: {

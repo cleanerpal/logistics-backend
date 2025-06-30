@@ -12,13 +12,11 @@
     </div>
   </div>
 
-  <!-- Loading Overlay -->
   <div class="loading-overlay" *ngIf="isLoading">
     <mat-spinner diameter="40"></mat-spinner>
     <span>Loading preferences...</span>
   </div>
 
-  <!-- Preferences Content -->
   <div class="preferences-content" *ngIf="!isLoading">
     <mat-accordion class="preferences-accordion" multi>
       <mat-expansion-panel
@@ -38,18 +36,15 @@
           </mat-panel-description>
         </mat-expansion-panel-header>
 
-        <!-- Group Form -->
         <form [formGroup]="preferenceForms[group.name]" class="preferences-form">
           <div class="preferences-grid">
             <div class="preference-item" *ngFor="let pref of group.preferences">
-              <!-- String Input -->
               <mat-form-field appearance="outline" *ngIf="pref.type === 'string'">
                 <mat-label>{{ pref.name }}</mat-label>
                 <input matInput [formControlName]="pref.id" [placeholder]="pref.placeholder || ''" [required]="pref.required || false" />
                 <mat-hint>{{ pref.description }}</mat-hint>
               </mat-form-field>
 
-              <!-- Email Input -->
               <mat-form-field appearance="outline" *ngIf="pref.type === 'email'">
                 <mat-label>{{ pref.name }}</mat-label>
                 <input matInput type="email" [formControlName]="pref.id" [placeholder]="pref.placeholder || ''" [required]="pref.required || false" />
@@ -57,7 +52,6 @@
                 <mat-error *ngIf="preferenceForms[group.name].get(pref.id)?.hasError('email')"> Please enter a valid email address </mat-error>
               </mat-form-field>
 
-              <!-- Number Input -->
               <mat-form-field appearance="outline" *ngIf="pref.type === 'number'">
                 <mat-label>{{ pref.name }}</mat-label>
                 <input matInput type="number" [formControlName]="pref.id" [placeholder]="pref.placeholder || ''" [required]="pref.required || false" />
@@ -66,7 +60,6 @@
                 <mat-error *ngIf="preferenceForms[group.name].get(pref.id)?.hasError('max')"> Value cannot exceed {{ pref.validation?.max }} </mat-error>
               </mat-form-field>
 
-              <!-- Date Input -->
               <mat-form-field appearance="outline" *ngIf="pref.type === 'date'">
                 <mat-label>{{ pref.name }}</mat-label>
                 <input matInput [matDatepicker]="picker" [formControlName]="pref.id" [required]="pref.required || false" />
@@ -75,7 +68,6 @@
                 <mat-hint>{{ pref.description }}</mat-hint>
               </mat-form-field>
 
-              <!-- Select Input -->
               <mat-form-field appearance="outline" *ngIf="pref.type === 'select'">
                 <mat-label>{{ pref.name }}</mat-label>
                 <mat-select [formControlName]="pref.id" [required]="pref.required || false">
@@ -86,7 +78,6 @@
                 <mat-hint>{{ pref.description }}</mat-hint>
               </mat-form-field>
 
-              <!-- Boolean Toggle -->
               <div class="toggle-control" *ngIf="pref.type === 'boolean'">
                 <div class="toggle-label">
                   <span class="toggle-name">{{ pref.name }}</span>
@@ -99,7 +90,6 @@
             </div>
           </div>
 
-          <!-- Save Button -->
           <div class="form-actions">
             <button mat-flat-button color="primary" (click)="savePreferenceGroup(group.name)" [disabled]="preferenceForms[group.name].invalid || isSaving">
               <mat-icon>save</mat-icon>

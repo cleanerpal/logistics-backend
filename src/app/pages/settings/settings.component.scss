@@ -3,15 +3,15 @@
   padding: 24px;
   background-color: #f5f5f5;
   min-height: 100vh;
-  margin-left: 250px; /* Account for sidebar width */
-  padding-top: 88px; /* Account for topbar height (64px) + some padding */
+  margin-left: 250px;
+  padding-top: 88px;
 }
 
 .settings-container {
   display: flex;
   max-width: 1400px;
   margin: 0 auto;
-  height: calc(100vh - 112px); /* Full height minus padding and topbar */
+  height: calc(100vh - 112px);
   gap: 24px;
 }
 
@@ -133,7 +133,6 @@
   overflow: hidden;
 }
 
-/* Responsive styles */
 @media screen and (max-width: 1024px) {
   .settings-container {
     flex-direction: column;
@@ -166,7 +165,7 @@
 
 @media screen and (max-width: 768px) {
   :host {
-    margin-left: 60px; /* Account for collapsed sidebar */
+    margin-left: 60px;
     padding: 16px;
     padding-top: 80px;
   }

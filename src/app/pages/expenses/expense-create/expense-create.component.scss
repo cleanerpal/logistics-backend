@@ -4,34 +4,33 @@
   padding: 24px;
 }
 
-/* Account for sidebar and topbar */
 @media (min-width: 1200px) {
   .expense-create-card {
-    margin-top: 88px; /* 64px topbar + 24px margin */
+    margin-top: 88px;
     margin-bottom: 24px;
     margin-left: auto;
     margin-right: auto;
-    /* Account for the sidebar by setting the card with the right offset */
+
     position: relative;
-    left: 125px; /* Half the sidebar width to keep it centered in the remaining space */
+    left: 125px;
   }
 }
 
 @media (min-width: 768px) and (max-width: 1199px) {
   .expense-create-card {
-    margin-top: 88px; /* 64px topbar + 24px margin */
+    margin-top: 88px;
     margin-bottom: 24px;
     margin-left: auto;
     margin-right: auto;
-    /* Account for collapsed sidebar */
+
     position: relative;
-    left: 30px; /* Half the collapsed sidebar width */
+    left: 30px;
   }
 }
 
 @media (max-width: 767px) {
   .expense-create-card {
-    margin: 80px 16px 16px; /* Top includes topbar height */
+    margin: 80px 16px 16px;
     padding: 16px;
     max-width: unset;
   }
@@ -203,7 +202,6 @@
   }
 }
 
-// Status colors
 .status-collected {
   background-color: rgba(33, 150, 243, 0.12);
   color: #2196f3;
@@ -215,7 +213,6 @@
   color: #4caf50;
 }
 
-/* Responsive styles */
 @media (max-width: 768px) {
   .form-row {
     flex-direction: column;

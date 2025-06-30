@@ -3,16 +3,13 @@ import { CommonModule } from '@angular/common';
 import { RouterModule, Routes } from '@angular/router';
 import { ReactiveFormsModule, FormsModule } from '@angular/forms';
 
-// Material Modules
 import { MaterialModule } from '../../material.module';
 
-// Components
 import { AuthLayoutComponent } from './auth-layout/auth-layout.component';
 import { SignInComponent } from './sign-in/sign-in.component';
 import { SignUpComponent } from './sign-up/sign-up.component';
 import { ForgotPasswordComponent } from './forgot-password/forgot-password.component';
 
-// Guards
 import { GuestGuard } from '../../guards/guest.guard';
 
 const routes: Routes = [
@@ -45,19 +42,8 @@ const routes: Routes = [
 ];
 
 @NgModule({
-  declarations: [
-    AuthLayoutComponent,
-    SignInComponent,
-    SignUpComponent,
-    ForgotPasswordComponent,
-  ],
-  imports: [
-    CommonModule,
-    ReactiveFormsModule,
-    FormsModule,
-    MaterialModule,
-    RouterModule.forChild(routes),
-  ],
+  declarations: [AuthLayoutComponent, SignInComponent, SignUpComponent, ForgotPasswordComponent],
+  imports: [CommonModule, ReactiveFormsModule, FormsModule, MaterialModule, RouterModule.forChild(routes)],
   exports: [RouterModule],
 })
 export class AuthModule {}

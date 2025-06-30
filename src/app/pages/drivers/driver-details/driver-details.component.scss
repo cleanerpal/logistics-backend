@@ -3,18 +3,16 @@
   padding: 24px;
   background-color: #f5f5f5;
   min-height: 100vh;
-  margin-left: 250px; /* Account for sidebar width */
-  padding-top: 88px; /* Account for topbar height (64px) + some padding */
+  margin-left: 250px;
+  padding-top: 88px;
 }
 
-/* Card styles */
 .mat-mdc-card {
   margin-bottom: 24px;
   background-color: white;
   border-radius: 8px;
 }
 
-/* Loading Overlay */
 .loading-overlay {
   position: absolute;
   top: 0;
@@ -35,7 +33,6 @@
   }
 }
 
-/* Header Section */
 .header-wrapper {
   display: flex;
   justify-content: space-between;
@@ -80,7 +77,6 @@
   }
 }
 
-/* Tab Navigation */
 .tab-navigation {
   padding: 0 24px;
   display: flex;
@@ -117,12 +113,10 @@
   }
 }
 
-/* Content Wrapper */
 .content-wrapper {
   padding: 24px;
 }
 
-/* Details Tab */
 .details-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -149,7 +143,6 @@
   }
 }
 
-/* Information Grid */
 .info-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -181,7 +174,6 @@
   }
 }
 
-/* Status Chips */
 .status-chip,
 .role-chip {
   display: inline-flex;
@@ -251,7 +243,6 @@
   }
 }
 
-/* Type classes */
 .type-blue {
   background-color: rgba(25, 118, 210, 0.12);
   color: #1976d2;
@@ -267,7 +258,6 @@
   color: #f57c00;
 }
 
-/* Stats Section */
 .stats-section {
   .stats-grid {
     display: grid;
@@ -318,7 +308,6 @@
   }
 }
 
-/* Profile Section */
 .profile-section {
   .profile-content {
     .profile-header {
@@ -399,7 +388,6 @@
   }
 }
 
-/* Jobs Section */
 .jobs-section {
   .section-header {
     display: flex;
@@ -478,7 +466,6 @@
   }
 }
 
-/* Permissions Section */
 .permissions-section {
   .section-header {
     display: flex;
@@ -593,7 +580,6 @@
   }
 }
 
-/* Notes Section */
 .notes-section {
   .section-header {
     display: flex;
@@ -697,7 +683,6 @@
   }
 }
 
-/* Dialog Styling */
 ::ng-deep {
   .permissions-info {
     margin-top: 24px;
@@ -768,7 +753,6 @@
   }
 }
 
-/* Responsive Design */
 @media screen and (max-width: 1200px) {
   .details-grid {
     grid-template-columns: 1fr;
@@ -809,8 +793,8 @@
 
 @media screen and (max-width: 768px) {
   :host {
-    margin-left: 60px; /* Collapsed sidebar width */
-    padding-top: 80px; /* Reduced topbar padding for smaller screens */
+    margin-left: 60px;
+    padding-top: 80px;
     padding: 16px;
   }
 
@@ -854,7 +838,7 @@
 @media screen and (max-width: 576px) {
   :host {
     padding: 8px;
-    padding-top: 72px; /* Further reduced for mobile */
+    padding-top: 72px;
   }
 
   .header-wrapper {
@@ -889,13 +873,12 @@
   }
 }
 
-/* Print Styles */
 @media print {
   :host {
     padding: 0;
     background: white;
-    margin-left: 0; /* No sidebar in print */
-    padding-top: 0; /* No topbar in print */
+    margin-left: 0;
+    padding-top: 0;
   }
 
   .mat-mdc-card {

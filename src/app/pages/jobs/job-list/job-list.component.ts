@@ -66,35 +66,28 @@ export class JobListComponent implements OnInit, AfterViewInit, OnDestroy {
   ngOnInit(): void {
     this.isLoading = true;
 
-    // Initialize driver information
     this.loadDrivers();
 
-    // Subscribe to jobs observable
     const jobsSub = this.jobService.jobs$.subscribe((jobs) => {
       this.dataSource.data = jobs;
       this.isLoading = false;
     });
     this.subscriptions.push(jobsSub);
 
-    // Subscribe to loading state
     const loadingSub = this.jobService.loading$.subscribe((loading) => (this.isLoading = loading));
     this.subscriptions.push(loadingSub);
 
-    // Load initial jobs data
     this.jobService.getDriverJobs().subscribe();
 
-    // Setup filter form listeners
     this.setupFilterListeners();
   }
 
   private setupFilterListeners(): void {
-    // Subscribe to search input changes
     const searchSub = this.searchControl.valueChanges.pipe(debounceTime(300), distinctUntilChanged()).subscribe((value) => {
       this.applyFilter(value || '');
     });
     this.subscriptions.push(searchSub);
 
-    // Subscribe to filter form changes
     const filterSub = this.filterForm.valueChanges.subscribe(() => {
       this.applyFilters();
     });
@@ -102,11 +95,9 @@ export class JobListComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private loadDrivers(): void {
-    // Get all drivers from the users collection
     this.authService.getDrivers().subscribe((drivers) => {
       this.drivers = drivers.map((driver) => driver.name);
 
-      // Create a map of driver IDs to names for display
       drivers.forEach((driver) => {
         this.driverMap[driver.id] = driver.name;
       });
@@ -120,7 +111,6 @@ export class JobListComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
-    // Unsubscribe from all subscriptions
     this.subscriptions.forEach((sub) => sub.unsubscribe());
   }
 
@@ -128,17 +118,14 @@ export class JobListComponent implements OnInit, AfterViewInit, OnDestroy {
     this.dataSource.filterPredicate = (data: Job, filter: string) => {
       const searchStr = filter.toLowerCase();
 
-      // Apply status filter
       if (this.filters.status !== 'All' && data.status !== this.filters.status) {
         return false;
       }
 
-      // Apply driver filter
       if (this.filters.driver !== 'All' && this.driverMap[data.driverId || ''] !== this.filters.driver) {
         return false;
       }
 
-      // Apply date range filter
       if (this.filters.dateRange.start && this.filters.dateRange.end) {
         const jobDate = new Date(data.createdAt);
         const startDate = new Date(this.filters.dateRange.start);
@@ -149,7 +136,6 @@ export class JobListComponent implements OnInit, AfterViewInit, OnDestroy {
         }
       }
 
-      // Apply text search
       return (
         data.id?.toLowerCase().includes(searchStr) ||
         data['registration']?.toLowerCase().includes(searchStr) ||
@@ -176,7 +162,6 @@ export class JobListComponent implements OnInit, AfterViewInit, OnDestroy {
     this.filters.dateRange.start = formValues.startDate;
     this.filters.dateRange.end = formValues.endDate;
 
-    // This will trigger the filterPredicate function
     this.dataSource.filter = this.dataSource.filter || ' ';
   }
 
@@ -192,7 +177,6 @@ export class JobListComponent implements OnInit, AfterViewInit, OnDestroy {
       return new Date(date).toLocaleDateString();
     }
 
-    // Handle Firebase Timestamp
     if (date && typeof date === 'object' && 'toDate' in date) {
       const timestamp = date as unknown as { toDate: () => Date };
       return timestamp.toDate().toLocaleDateString();
@@ -236,7 +220,6 @@ export class JobListComponent implements OnInit, AfterViewInit, OnDestroy {
       error: (error) => {
         console.error('Error allocating job:', error);
         this.isLoading = false;
-        // Handle error (show notification)
       },
     });
   }
@@ -253,11 +236,6 @@ export class JobListComponent implements OnInit, AfterViewInit, OnDestroy {
     });
   }
 
-  /**
-   * Duplicate a job
-   * @param job The job to duplicate
-   * @param event The click event
-   */
   duplicateJob(job: Job, event: Event): void {
     event.stopPropagation(); // Prevent row click event
 
@@ -291,10 +269,6 @@ export class JobListComponent implements OnInit, AfterViewInit, OnDestroy {
     });
   }
 
-  /**
-   * Show a snackbar message
-   * @param message The message to display
-   */
   private showSnackbar(message: string): void {
     this.snackBar.open(message, 'Close', {
       duration: 5000,

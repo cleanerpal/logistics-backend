@@ -2,8 +2,8 @@
   min-height: 100vh;
   background-color: #f8f9fa;
   padding: 24px;
-  margin-left: 250px; /* Account for sidebar */
-  padding-top: 88px; /* Account for topbar height (64px) + some padding */
+  margin-left: 250px;
+  padding-top: 88px;
 }
 
 .edit-job-content {
@@ -14,7 +14,6 @@
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-/* Loading Overlay */
 .loading-overlay {
   position: fixed;
   top: 0;
@@ -36,7 +35,6 @@
   margin-top: 8px;
 }
 
-/* Header */
 .form-header {
   display: flex;
   justify-content: space-between;
@@ -97,7 +95,6 @@
   font-size: 18px;
 }
 
-/* Form */
 .job-form {
   padding: 24px;
 }
@@ -204,7 +201,6 @@
   min-height: 20px;
 }
 
-/* Previous Selections */
 .previous-selections {
   margin-top: 20px;
 }
@@ -235,7 +231,6 @@
   background-color: #e0e0e0;
 }
 
-/* Journey Type Section */
 .journey-type-header {
   display: flex;
   justify-content: space-between;
@@ -286,7 +281,6 @@
   font-size: 16px;
 }
 
-/* Journey Visualization */
 .journey-visualization {
   display: flex;
   align-items: center;
@@ -356,7 +350,6 @@
   font-size: 20px;
 }
 
-/* Checkbox Group */
 .checkbox-group {
   display: flex;
   align-items: center;
@@ -368,7 +361,6 @@
   width: auto;
 }
 
-/* Form Actions */
 .form-actions {
   display: flex;
   justify-content: flex-end;
@@ -416,7 +408,6 @@
   cursor: not-allowed;
 }
 
-/* Responsive Design */
 @media (max-width: 1200px) {
   .form-grid {
     gap: 12px;
@@ -434,9 +425,9 @@
 
 @media (max-width: 768px) {
   .edit-job-container {
-    margin-left: 60px; /* Collapsed sidebar width */
+    margin-left: 60px;
     padding: 16px;
-    padding-top: 80px; /* Adjusted top padding for collapsed topbar */
+    padding-top: 80px;
   }
 
   .form-grid {
@@ -476,7 +467,7 @@
   .form-group input,
   .form-group select,
   .form-group textarea {
-    font-size: 16px; /* Prevent zoom on iOS */
+    font-size: 16px;
     padding: 12px;
   }
 
@@ -521,7 +512,7 @@
 @media (max-width: 600px) {
   .edit-job-container {
     padding: 8px;
-    padding-top: 72px; /* Further adjusted for smaller screens */
+    padding-top: 72px;
   }
 
   .form-header {
@@ -533,12 +524,11 @@
   }
 }
 
-/* Print Styles */
 @media print {
   .edit-job-container {
-    margin-left: 0; /* No sidebar in print */
+    margin-left: 0;
     padding: 0;
-    padding-top: 0; /* No topbar in print */
+    padding-top: 0;
     background: white;
   }
 
@@ -571,7 +561,6 @@
     margin-bottom: 10px;
   }
 
-  /* Enhance print readability */
   .form-group label {
     font-weight: bold;
     margin-bottom: 4px;

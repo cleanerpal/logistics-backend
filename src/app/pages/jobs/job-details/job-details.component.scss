@@ -1,13 +1,10 @@
-/* Enhanced job-details.component.scss with better address styling, status flow, and topbar spacing */
-
 .job-details-page {
   min-height: 100vh;
   background-color: var(--background-color);
-  margin-left: 250px; /* Account for sidebar */
-  padding-top: 64px; /* Account for topbar height */
+  margin-left: 250px;
+  padding-top: 64px;
 }
 
-/* Loading Overlay */
 .loading-overlay {
   position: fixed;
   top: 0;
@@ -31,13 +28,12 @@
   font-size: 14px;
 }
 
-/* Sticky Header */
 .sticky-header {
   position: sticky;
-  top: 64px; /* Start right below the topbar */
+  top: 64px;
   background-color: white;
   border-bottom: 1px solid #eee;
-  z-index: 99; /* Less than topbar z-index (100) */
+  z-index: 99;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
@@ -125,11 +121,10 @@
   object-fit: contain;
   display: block;
   margin: 0 auto;
-  /* Add a slight fade-in effect when image loads */
+
   transition: opacity 0.2s ease-in-out;
 }
 
-/* Journey Type Badge */
 .journey-type-badge {
   display: inline-flex;
   align-items: center;
@@ -185,7 +180,6 @@
   font-size: 18px;
 }
 
-/* Tab Navigation */
 .tab-navigation {
   padding: 0 24px;
   display: flex;
@@ -222,7 +216,6 @@
   background-color: #007bff;
 }
 
-/* Main Content Area */
 .main-content {
   padding: 24px;
 }
@@ -232,7 +225,6 @@
   margin: 0 auto;
 }
 
-/* Two Column Layout */
 .two-column-layout {
   display: grid;
   grid-template-columns: 1.5fr 1fr;
@@ -245,7 +237,6 @@
   }
 }
 
-/* Info Cards */
 .info-card {
   background-color: white;
   border-radius: 8px;
@@ -290,7 +281,6 @@
   font-weight: 400;
 }
 
-/* Vehicle information card with logo */
 .vehicle-card-content {
   display: flex;
   gap: 20px;
@@ -322,7 +312,6 @@
   flex: 1;
 }
 
-/* Enhanced Address Section */
 .info-card.addresses-card h2 {
   background-color: #e3f2fd;
   color: #0d47a1;
@@ -399,7 +388,6 @@
   color: #555;
 }
 
-/* Status Badge with enhanced styling */
 .status-badge {
   display: inline-flex;
   align-items: center;
@@ -454,7 +442,6 @@
   color: #c62828;
 }
 
-/* Status Flow Visualization */
 .status-flow {
   padding: 16px;
   margin-top: 8px;
@@ -555,7 +542,6 @@
   transition: width 0.3s ease;
 }
 
-/* Enhanced Status Card */
 .status-card {
   overflow: hidden;
 }
@@ -645,7 +631,6 @@
   font-style: italic;
 }
 
-/* Status Change */
 .status-change {
   padding: 0 20px 20px;
 }
@@ -685,7 +670,6 @@
   color: white;
 }
 
-/* Enhanced Timeline Tab */
 .timeline-view {
   max-width: 800px;
   margin: 0 auto;
@@ -725,7 +709,6 @@
   font-size: 16px;
 }
 
-/* Timeline Container */
 .timeline-container {
   position: relative;
   padding-left: 20px;
@@ -838,7 +821,6 @@
   font-size: 16px;
 }
 
-/* Custom timeline colors by status */
 .timeline-event.status-created .timeline-icon {
   background-color: #e8eaf6;
 }
@@ -887,7 +869,6 @@
   color: #2e7d32;
 }
 
-/* Notes Section */
 .notes-container {
   border-top: 1px solid #eee;
   padding-top: 20px;
@@ -994,7 +975,6 @@
   cursor: not-allowed;
 }
 
-/* Expenses Tab */
 .expenses-view {
   background-color: white;
   border-radius: 8px;
@@ -1049,7 +1029,6 @@
   font-size: 16px;
 }
 
-/* Not Found Message */
 .not-found {
   display: flex;
   flex-direction: column;
@@ -1090,7 +1069,6 @@
   background-color: #0056b3;
 }
 
-/* Journey Flow Visualization */
 .journey-flow {
   display: flex;
   align-items: center;
@@ -1165,7 +1143,6 @@
   font-size: 20px;
 }
 
-/* Secondary address styling */
 .address-section.secondary {
   background-color: #fffde7;
   border-left-color: #fbc02d;
@@ -1179,7 +1156,6 @@
   color: #ff6f00;
 }
 
-/* Responsive Adjustments */
 @media (max-width: 1024px) {
   .header-content {
     flex-direction: column;
@@ -1235,7 +1211,6 @@
     margin-bottom: 16px;
   }
 
-  /* Split journey responsive adjustments */
   .journey-flow {
     flex-direction: column;
     align-items: stretch;
@@ -1261,11 +1236,11 @@
 
 @media (max-width: 768px) {
   .job-details-page {
-    margin-left: 60px; /* Collapsed sidebar width */
+    margin-left: 60px;
   }
 
   .sticky-header {
-    top: 60px; /* Adjust for smaller topbar on mobile */
+    top: 60px;
   }
 
   .header-content {
@@ -1318,11 +1293,10 @@
   }
 }
 
-/* Print Styles */
 @media print {
   .job-details-page {
-    margin-left: 0; /* No sidebar in print */
-    padding-top: 0; /* No topbar in print */
+    margin-left: 0;
+    padding-top: 0;
   }
 
   .sticky-header {

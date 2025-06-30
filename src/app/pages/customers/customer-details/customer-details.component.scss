@@ -1,22 +1,18 @@
-/* customer-details.component.scss */
-
 :host {
   display: block;
   padding: 24px;
   background-color: var(--background-color);
   min-height: 100vh;
-  margin-left: 250px; /* Account for sidebar width */
-  padding-top: 88px; /* Account for topbar height (64px) + some padding */
+  margin-left: 250px;
+  padding-top: 88px;
 }
 
-/* Card styles */
 .mat-mdc-card {
   margin-bottom: 24px;
   background-color: white;
   border-radius: 8px;
 }
 
-/* Loading Overlay */
 .loading-overlay {
   position: absolute;
   top: 0;
@@ -37,7 +33,6 @@
   font-size: 14px;
 }
 
-/* Header Section */
 .header-wrapper {
   display: flex;
   justify-content: space-between;
@@ -82,7 +77,6 @@
   gap: 8px;
 }
 
-/* Tab Navigation */
 .tab-navigation {
   padding: 0 24px;
   display: flex;
@@ -119,12 +113,10 @@
   background-color: var(--primary-color);
 }
 
-/* Content Wrapper */
 .content-wrapper {
   padding: 24px;
 }
 
-/* Details Tab */
 .details-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -153,7 +145,6 @@
   font-weight: 600;
 }
 
-/* Information Grid */
 .info-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -205,7 +196,6 @@
   white-space: pre-line;
 }
 
-/* Status Chips */
 .status-chip {
   display: inline-flex;
   padding: 6px 12px;
@@ -254,7 +244,6 @@
   color: #c62828;
 }
 
-/* Contacts Grid */
 .contacts-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
@@ -325,7 +314,6 @@
   text-decoration: underline;
 }
 
-/* Jobs Section */
 .section-header {
   display: flex;
   justify-content: space-between;
@@ -368,7 +356,6 @@
   background-color: #f5f5f5;
 }
 
-/* Notes Section */
 .notes-content {
   background-color: #f8f9fa;
   border-radius: 8px;
@@ -380,7 +367,6 @@
   line-height: 1.6;
 }
 
-/* Empty States */
 .empty-state,
 .empty-notes {
   display: flex;
@@ -413,7 +399,6 @@
   color: var(--text-secondary);
 }
 
-/* Responsive Design */
 @media screen and (max-width: 1200px) {
   .details-grid {
     gap: 16px;
@@ -440,9 +425,9 @@
 
 @media screen and (max-width: 768px) {
   :host {
-    margin-left: 60px; /* Collapsed sidebar width */
+    margin-left: 60px;
     padding: 16px;
-    padding-top: 80px; /* Reduced topbar padding for smaller screens */
+    padding-top: 80px;
   }
 
   .header-wrapper {
@@ -526,13 +511,12 @@
   }
 }
 
-/* Print Styles */
 @media print {
   :host {
     padding: 0;
     background: white;
-    margin-left: 0; /* No sidebar in print */
-    padding-top: 0; /* No topbar in print */
+    margin-left: 0;
+    padding-top: 0;
   }
 
   .mat-mdc-card {

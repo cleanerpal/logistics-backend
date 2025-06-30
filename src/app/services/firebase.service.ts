@@ -9,9 +9,6 @@ import { map, catchError } from 'rxjs/operators';
 export class FirebaseService {
   constructor(private firestore: Firestore) {}
 
-  /**
-   * Get all documents from a collection
-   */
   getCollection<T>(collectionName: string): Observable<T[]> {
     const collectionRef = collection(this.firestore, collectionName);
     return from(getDocs(collectionRef)).pipe(
@@ -27,9 +24,6 @@ export class FirebaseService {
     );
   }
 
-  /**
-   * Get a specific document by ID
-   */
   getDocument<T>(collectionName: string, documentId: string): Observable<T | null> {
     const docRef = doc(this.firestore, `${collectionName}/${documentId}`);
     return from(getDoc(docRef)).pipe(
@@ -47,9 +41,6 @@ export class FirebaseService {
     );
   }
 
-  /**
-   * Add a new document to a collection
-   */
   addDocument<T>(collectionName: string, data: any): Observable<string> {
     const collectionRef = collection(this.firestore, collectionName);
     return from(addDoc(collectionRef, data)).pipe(
@@ -61,9 +52,6 @@ export class FirebaseService {
     );
   }
 
-  /**
-   * Update an existing document
-   */
   updateDocument(collectionName: string, documentId: string, data: any): Observable<void> {
     const docRef = doc(this.firestore, `${collectionName}/${documentId}`);
     return from(updateDoc(docRef, data)).pipe(
@@ -74,9 +62,6 @@ export class FirebaseService {
     );
   }
 
-  /**
-   * Query a collection with filtering
-   */
   queryCollection<T>(
     collectionName: string,
     fieldPath: string,
@@ -106,9 +91,6 @@ export class FirebaseService {
     );
   }
 
-  /**
-   * Delete a document from a collection
-   */
   deleteDocument(collectionName: string, documentId: string): Observable<void> {
     const docRef = doc(this.firestore, `${collectionName}/${documentId}`);
 

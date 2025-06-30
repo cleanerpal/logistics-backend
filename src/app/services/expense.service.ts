@@ -11,12 +11,10 @@ export class ExpenseService {
   private expenses: Expense[] = [];
 
   constructor(private notificationService: NotificationService) {
-    // Initialize with some mock data
     this.generateMockExpenses();
   }
 
   getExpenses(): Observable<Expense[]> {
-    // Simulate API delay
     return of([...this.expenses]).pipe(delay(500));
   }
 
@@ -35,16 +33,13 @@ export class ExpenseService {
     return of(jobExpenses).pipe(delay(500));
   }
 
-  // Fixed using type assertion to avoid TypeScript error
   createExpense(expense: Omit<Expense, 'id' | 'status'>): Observable<Expense> {
-    // Create a base expense without the payment properties first
     const baseExpense = {
       ...expense,
       id: `EXP${String(this.expenses.length + 1).padStart(4, '0')}`,
       status: ExpenseStatus.PENDING,
     };
 
-    // Then add the payment properties using type assertion
     const newExpense = {
       ...baseExpense,
       isPaid: false,
@@ -52,7 +47,6 @@ export class ExpenseService {
 
     this.expenses.push(newExpense);
 
-    // Create notification for managers about new expense
     this.notificationService.addNotification({
       type: 'info',
       title: 'New Invoice Submitted',
@@ -76,7 +70,6 @@ export class ExpenseService {
 
       this.expenses[index] = updatedExpense;
 
-      // Send notification to the driver
       let notificationType: 'success' | 'warning';
       let notificationTitle: string;
       let notificationMessage: string;
@@ -115,21 +108,17 @@ export class ExpenseService {
 
       this.expenses[index] = updatedExpense;
 
-      // No notification for chargeable status updates as this is an internal management function
-
       return of(updatedExpense).pipe(delay(500));
     }
 
     throw new Error(`Expense with id ${id} not found`);
   }
 
-  // Method to update paid status using type assertion
   updateExpensePaidStatus(id: string, isPaid: boolean): Observable<Expense> {
     const index = this.expenses.findIndex((expense) => expense.id === id);
     if (index !== -1) {
       const originalExpense = this.expenses[index];
 
-      // Use type assertion to add payment properties
       const updatedExpense = {
         ...originalExpense,
         isPaid,
@@ -138,7 +127,6 @@ export class ExpenseService {
 
       this.expenses[index] = updatedExpense;
 
-      // Add notification about payment status update
       const notificationType = isPaid ? 'success' : 'info';
       const notificationTitle = isPaid ? 'Invoice Paid' : 'Invoice Marked as Unpaid';
       const notificationMessage = isPaid ? `Invoice ${updatedExpense.id} has been marked as paid` : `Invoice ${updatedExpense.id} has been marked as unpaid`;
@@ -160,7 +148,6 @@ export class ExpenseService {
     this.expenses = Array(15)
       .fill(null)
       .map((_, index) => {
-        // Create base expense
         const baseExpense = {
           id: `EXP${String(index + 1).padStart(4, '0')}`,
           driverId: `DRV${String(Math.floor(Math.random() * 5) + 1).padStart(2, '0')}`,
@@ -174,7 +161,6 @@ export class ExpenseService {
           notes: Math.random() > 0.7 ? 'Additional notes about this invoice' : undefined,
         };
 
-        // Add payment properties with type assertion
         return {
           ...baseExpense,
           isPaid: Math.random() > 0.7,

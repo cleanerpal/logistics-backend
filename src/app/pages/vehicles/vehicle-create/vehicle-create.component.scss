@@ -2,8 +2,8 @@
   padding: 24px;
   background-color: #f5f5f5;
   min-height: 100vh;
-  margin-left: 250px; /* Account for sidebar */
-  padding-top: 88px; /* Account for topbar height (64px) + padding */
+  margin-left: 250px;
+  padding-top: 88px;
 }
 
 .form-card {
@@ -13,7 +13,6 @@
   border-radius: 8px;
 }
 
-// Loading Overlay
 .loading-overlay {
   position: fixed;
   top: 0;
@@ -35,7 +34,6 @@
   margin-top: 8px;
 }
 
-// Header
 .header-wrapper {
   padding: 24px 24px 16px;
   display: flex;
@@ -72,7 +70,6 @@
   }
 }
 
-// Form Content
 .form-content {
   padding: 24px;
 
@@ -98,7 +95,6 @@
   }
 }
 
-// Form field customizations
 .color-option {
   display: flex;
   align-items: center;
@@ -113,7 +109,6 @@
   }
 }
 
-// Footer Actions
 .footer-actions {
   padding: 16px 24px;
   display: flex;
@@ -122,7 +117,6 @@
   border-top: 1px solid rgba(0, 0, 0, 0.12);
 }
 
-// Responsive Design
 @media screen and (max-width: 992px) {
   .form-content {
     .form-section {
@@ -136,8 +130,8 @@
 @media screen and (max-width: 768px) {
   .vehicle-form-container {
     padding: 16px;
-    margin-left: 60px; /* Collapsed sidebar width */
-    padding-top: 80px; /* Adjust for smaller topbar */
+    margin-left: 60px;
+    padding-top: 80px;
   }
 
   .header-wrapper {

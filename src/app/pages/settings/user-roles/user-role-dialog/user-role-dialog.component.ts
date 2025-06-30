@@ -36,10 +36,8 @@ export class UserRoleDialogComponent implements OnInit {
   isEdit: boolean;
   allPermissions: PermissionInfo[] = [];
 
-  // Special permission keys that have precedence
   specialPermissions = ['isAdmin'];
 
-  // Group permissions by functionality
   permissionGroups = [
     {
       title: 'General Permissions',
@@ -65,13 +63,11 @@ export class UserRoleDialogComponent implements OnInit {
   }
 
   createForm(): void {
-    // Create base form
     this.roleForm = this.fb.group({
       name: ['', [Validators.required, Validators.minLength(3), Validators.maxLength(50)]],
       description: ['', [Validators.required, Validators.maxLength(200)]],
     });
 
-    // Add permission controls
     const permissionsGroup = this.fb.group({});
 
     this.allPermissions.forEach((permission) => {
@@ -86,7 +82,6 @@ export class UserRoleDialogComponent implements OnInit {
         description: this.data.role.description,
       });
 
-      // Patch permissions
       const permissionsValue: Record<string, boolean> = {};
       this.allPermissions.forEach((permission) => {
         permissionsValue[permission.key] = this.data.role?.permissions?.[permission.key] || false;
@@ -116,13 +111,11 @@ export class UserRoleDialogComponent implements OnInit {
     this.dialogRef.close();
   }
 
-  // When admin permission is selected, manage other permissions
   onAdminChange(event: any): void {
     const isAdmin = event.checked;
     const permissionsGroup = this.roleForm.get('permissions') as FormGroup;
 
     if (isAdmin) {
-      // If admin is enabled, enable all other permissions
       this.allPermissions.forEach((permission) => {
         if (permission.key !== 'isAdmin') {
           permissionsGroup.get(permission.key)?.setValue(true);
@@ -130,7 +123,6 @@ export class UserRoleDialogComponent implements OnInit {
         }
       });
     } else {
-      // If admin is disabled, enable editing other permissions but keep values
       this.allPermissions.forEach((permission) => {
         if (permission.key !== 'isAdmin') {
           permissionsGroup.get(permission.key)?.enable();
@@ -139,7 +131,6 @@ export class UserRoleDialogComponent implements OnInit {
     }
   }
 
-  // Get permissions for a specific group
   getGroupPermissions(groupKey: string): PermissionInfo[] {
     const group = this.permissionGroups.find((g) => g.title === groupKey);
     if (!group) return [];
@@ -147,7 +138,6 @@ export class UserRoleDialogComponent implements OnInit {
     return this.allPermissions.filter((p) => group.permissions.includes(p.key));
   }
 
-  // Check if permission should be treated as special (e.g., Admin)
   isSpecialPermission(key: string): boolean {
     return this.specialPermissions.includes(key);
   }

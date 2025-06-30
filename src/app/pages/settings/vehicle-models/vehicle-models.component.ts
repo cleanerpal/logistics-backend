@@ -45,7 +45,6 @@ export class VehicleModelsComponent implements OnInit {
   loadData(): void {
     this.isLoading = true;
 
-    // Load makes and models in parallel
     forkJoin({
       makes: this.vehicleService.getVehicleMakes(),
       models: this.vehicleService.getVehicleModels(),
@@ -55,7 +54,6 @@ export class VehicleModelsComponent implements OnInit {
         next: ({ makes, models }) => {
           this.makes = makes;
 
-          // Enrich models with make name for display
           const modelsWithMakes = models.map((model) => {
             const make = makes.find((m) => m.id === model.makeId);
             return {
@@ -94,7 +92,6 @@ export class VehicleModelsComponent implements OnInit {
   }
 
   addVehicleModel(): void {
-    // Don't allow adding models if no makes exist
     if (this.makes.length === 0) {
       this.notificationService.addNotification({
         type: 'warning',

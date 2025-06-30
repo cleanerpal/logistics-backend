@@ -12,7 +12,6 @@
   </div>
 
   <form [formGroup]="expenseForm" (ngSubmit)="onSubmit()" *ngIf="!isLoading">
-    <!-- Job Selection -->
     <div class="form-section">
       <h2>Job Details</h2>
 
@@ -24,7 +23,6 @@
         <mat-error *ngIf="expenseForm.get('jobId')?.hasError('required')"> Please select a job </mat-error>
       </mat-form-field>
 
-      <!-- Job Details Card -->
       <div class="job-details-card" *ngIf="job && !jobLoading">
         <div class="job-header">
           <h3>Selected Job Information</h3>
@@ -63,7 +61,6 @@
       </div>
     </div>
 
-    <!-- Invoice Details -->
     <div class="form-section">
       <h2>Invoice Details</h2>
 
@@ -101,7 +98,6 @@
       </mat-form-field>
     </div>
 
-    <!-- Receipt Upload -->
     <div class="form-section">
       <h2>Attach Receipt (Optional)</h2>
 
@@ -123,7 +119,6 @@
       </div>
     </div>
 
-    <!-- Form Actions -->
     <div class="form-actions">
       <button type="button" mat-stroked-button (click)="cancelCreate()">Cancel</button>
       <button type="submit" mat-flat-button color="primary" [disabled]="expenseForm.invalid || isSubmitting">

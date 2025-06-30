@@ -1,4 +1,3 @@
-/* sign-up.component.scss */
 .sign-up-container {
   width: 100%;
   display: flex;
@@ -18,7 +17,6 @@
   flex-direction: column;
   align-items: center;
 
-  /* Animation */
   animation: fadeInUp 0.4s ease-out;
 }
 
@@ -115,7 +113,6 @@
   text-decoration: underline;
 }
 
-/* Dark theme support */
 :host-context(.dark-theme) {
   .sign-up-card {
     background-color: #333;
@@ -159,7 +156,6 @@
   }
 }
 
-/* Material form field customizations */
 :host ::ng-deep {
   .mat-mdc-form-field-subscript-wrapper {
     height: 20px !important;
@@ -191,7 +187,6 @@
     background-color: var(--primary-color);
   }
 
-  /* Dark theme adjustments */
   :host-context(.dark-theme) & {
     .mat-mdc-text-field-wrapper {
       background-color: #444;

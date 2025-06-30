@@ -3,7 +3,6 @@
 <form [formGroup]="modelForm" (ngSubmit)="onSubmit()">
   <mat-dialog-content>
     <div class="dialog-content">
-      <!-- Name Field -->
       <mat-form-field appearance="outline" class="full-width">
         <mat-label>Model Name</mat-label>
         <input matInput formControlName="name" placeholder="e.g. Corolla" />
@@ -13,7 +12,6 @@
         <mat-error *ngIf="modelForm.get('name')?.hasError('maxlength')"> Model name cannot exceed 50 characters </mat-error>
       </mat-form-field>
 
-      <!-- Vehicle Make Field -->
       <mat-form-field appearance="outline" class="full-width">
         <mat-label>Vehicle Make</mat-label>
         <mat-select formControlName="makeId">
@@ -25,7 +23,6 @@
         <mat-error *ngIf="modelForm.get('makeId')?.hasError('required')"> Vehicle make is required </mat-error>
       </mat-form-field>
 
-      <!-- Type Field -->
       <mat-form-field appearance="outline" class="full-width">
         <mat-label>Vehicle Type</mat-label>
         <mat-select formControlName="type">
@@ -37,7 +34,6 @@
         <mat-error *ngIf="modelForm.get('type')?.hasError('required')"> Vehicle type is required </mat-error>
       </mat-form-field>
 
-      <!-- Status Field -->
       <mat-form-field appearance="outline" class="full-width">
         <mat-label>Status</mat-label>
         <mat-select formControlName="isActive">

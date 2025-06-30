@@ -77,22 +77,18 @@ export class CustomerListComponent implements OnInit, AfterViewInit, OnDestroy {
       const searchText = filter.toLowerCase();
       const shouldInclude = (value: string | undefined) => (value ? value.toLowerCase().includes(searchText) : false);
 
-      // Apply category filter
       if (this.categoryFilter !== 'All' && data.category !== this.categoryFilter) {
         return false;
       }
 
-      // Apply size filter
       if (this.sizeFilter !== 'All' && data.size !== this.sizeFilter) {
         return false;
       }
 
-      // Apply status filter
       if (this.statusFilter !== 'All' && data.status !== this.statusFilter) {
         return false;
       }
 
-      // Apply text search
       return shouldInclude(data.name) || shouldInclude(data.category) || shouldInclude(data.city) || this.searchInContacts(data, searchText);
     };
   }
@@ -122,7 +118,6 @@ export class CustomerListComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   loadCustomers(): void {
-    // Reset loading state
     this.isLoading = true;
 
     const customersSub = this.customerService.getCustomers().subscribe({
@@ -163,7 +158,6 @@ export class CustomerListComponent implements OnInit, AfterViewInit, OnDestroy {
       return primaryContact.email;
     }
 
-    // Return first contact email if no primary
     return customer.contacts?.length > 0 ? customer.contacts[0].email : 'N/A';
   }
 
@@ -293,7 +287,6 @@ export class CustomerListComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private downloadCustomersCsv(customers: Customer[]): void {
-    // Define headers
     const headers = [
       'ID',
       'Name',
@@ -312,7 +305,6 @@ export class CustomerListComponent implements OnInit, AfterViewInit, OnDestroy {
       'Last Contact',
     ];
 
-    // Create rows
     const rows = customers.map((customer) => {
       const primaryContact = customer.contacts?.find((contact) => contact.isPrimary) || customer.contacts?.[0] || {};
 
@@ -335,20 +327,13 @@ export class CustomerListComponent implements OnInit, AfterViewInit, OnDestroy {
       ];
     });
 
-    // Create CSV content
     const csvContent = [
       headers.join(','),
       ...rows.map((row) =>
-        row
-          .map((cell) =>
-            // Handle cells that might contain commas by wrapping in quotes
-            typeof cell === 'string' && (cell.includes(',') || cell.includes('"')) ? `"${cell.replace(/"/g, '""')}"` : cell
-          )
-          .join(',')
+        row.map((cell) => (typeof cell === 'string' && (cell.includes(',') || cell.includes('"')) ? `"${cell.replace(/"/g, '""')}"` : cell)).join(',')
       ),
     ].join('\n');
 
-    // Create and download blob
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const filename = `customers_export_${new Date().toISOString().slice(0, 10)}.csv`;
     saveAs(blob, filename);

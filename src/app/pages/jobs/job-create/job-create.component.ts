@@ -23,14 +23,12 @@ export class JobCreateComponent implements OnInit, OnDestroy {
   isSubmitting = false;
   isLoading = true;
 
-  // Reference data
   customers: Customer[] = [];
   vehicleMakes: VehicleMake[] = [];
   availableModels: VehicleModel[] = [];
   allModels: VehicleModel[] = [];
   vehicleTypes: string[] = [];
 
-  // Previous selections for easy re-use
   previousSelections: any[] = [];
 
   private subscriptions: Subscription[] = [];
@@ -49,13 +47,10 @@ export class JobCreateComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit() {
-    // Load reference data
     this.loadReferenceData();
 
-    // Set up form listeners
     this.setupFormListeners();
 
-    // Check for access permissions
     this.checkPermissions();
   }
 
@@ -65,10 +60,8 @@ export class JobCreateComponent implements OnInit, OnDestroy {
 
   createForm() {
     this.jobForm = this.fb.group({
-      // Customer Information
       customerId: ['', Validators.required],
 
-      // Vehicle Information
       vehicleMake: ['', Validators.required],
       vehicleModel: ['', Validators.required],
       vehicleType: ['', Validators.required],
@@ -77,7 +70,6 @@ export class JobCreateComponent implements OnInit, OnDestroy {
       color: [''],
       year: [''],
 
-      // Primary Collection Details
       collectionAddress: ['', Validators.required],
       collectionCity: [''],
       collectionPostcode: [''],
@@ -85,7 +77,6 @@ export class JobCreateComponent implements OnInit, OnDestroy {
       collectionContactPhone: [''],
       collectionNotes: [''],
 
-      // Final Delivery Details
       deliveryAddress: ['', Validators.required],
       deliveryCity: [''],
       deliveryPostcode: [''],
@@ -93,10 +84,8 @@ export class JobCreateComponent implements OnInit, OnDestroy {
       deliveryContactPhone: [''],
       deliveryNotes: [''],
 
-      // Job Settings
       isSplitJourney: [false],
 
-      // Secondary Collection Details
       secondaryCollectionAddress: [''],
       secondaryCollectionCity: [''],
       secondaryCollectionPostcode: [''],
@@ -104,7 +93,6 @@ export class JobCreateComponent implements OnInit, OnDestroy {
       secondaryCollectionContactPhone: [''],
       secondaryCollectionNotes: [''],
 
-      // Secondary Delivery Details
       secondaryDeliveryAddress: [''],
       secondaryDeliveryCity: [''],
       secondaryDeliveryPostcode: [''],
@@ -112,7 +100,6 @@ export class JobCreateComponent implements OnInit, OnDestroy {
       secondaryDeliveryContactPhone: [''],
       secondaryDeliveryNotes: [''],
 
-      // General notes
       notes: [''],
     });
   }
@@ -120,7 +107,6 @@ export class JobCreateComponent implements OnInit, OnDestroy {
   private loadReferenceData() {
     this.isLoading = true;
 
-    // Load all reference data in parallel
     const referenceDataSub = forkJoin({
       customers: this.customerService.getCustomers(),
       makes: this.vehicleService.getVehicleMakes(),
@@ -143,7 +129,6 @@ export class JobCreateComponent implements OnInit, OnDestroy {
 
     this.subscriptions.push(referenceDataSub);
 
-    // Load previous vehicle selections
     this.loadPreviousVehicleSelections();
   }
 
@@ -159,21 +144,18 @@ export class JobCreateComponent implements OnInit, OnDestroy {
   }
 
   private setupFormListeners() {
-    // Listen to make changes to update models
     const makeSub = this.jobForm.get('vehicleMake')?.valueChanges.subscribe((makeId) => {
       this.updateAvailableModels(makeId);
     });
 
     if (makeSub) this.subscriptions.push(makeSub);
 
-    // Listen to model changes to update vehicle type
     const modelSub = this.jobForm.get('vehicleModel')?.valueChanges.subscribe((modelId) => {
       this.updateVehicleType(modelId);
     });
 
     if (modelSub) this.subscriptions.push(modelSub);
 
-    // Listen to split journey toggle to update validation
     const splitJourneySub = this.jobForm.get('isSplitJourney')?.valueChanges.subscribe((isSplit) => {
       this.updateSplitJourneyValidation(isSplit);
     });
@@ -182,20 +164,16 @@ export class JobCreateComponent implements OnInit, OnDestroy {
   }
 
   private updateSplitJourneyValidation(isSplit: boolean) {
-    // Get the form controls for secondary addresses
     const secondaryCollectionAddress = this.jobForm.get('secondaryCollectionAddress');
     const secondaryDeliveryAddress = this.jobForm.get('secondaryDeliveryAddress');
 
     if (isSplit) {
-      // If it's a split journey, make secondary addresses required
       secondaryCollectionAddress?.setValidators([Validators.required]);
       secondaryDeliveryAddress?.setValidators([Validators.required]);
     } else {
-      // Otherwise, remove validators
       secondaryCollectionAddress?.clearValidators();
       secondaryDeliveryAddress?.clearValidators();
 
-      // Reset secondary address values
       secondaryCollectionAddress?.setValue('');
       secondaryDeliveryAddress?.setValue('');
       this.jobForm.get('secondaryCollectionCity')?.setValue('');
@@ -210,7 +188,6 @@ export class JobCreateComponent implements OnInit, OnDestroy {
       this.jobForm.get('secondaryDeliveryNotes')?.setValue('');
     }
 
-    // Update validation status
     secondaryCollectionAddress?.updateValueAndValidity();
     secondaryDeliveryAddress?.updateValueAndValidity();
   }
@@ -221,10 +198,8 @@ export class JobCreateComponent implements OnInit, OnDestroy {
       return;
     }
 
-    // If we already loaded all models, filter them locally for faster performance
     this.availableModels = this.allModels.filter((model) => model.makeId === makeId && model.isActive);
 
-    // Reset model selection
     this.jobForm.get('vehicleModel')?.setValue('');
     this.jobForm.get('vehicleType')?.setValue('');
   }
@@ -242,7 +217,6 @@ export class JobCreateComponent implements OnInit, OnDestroy {
   }
 
   private loadPreviousVehicleSelections() {
-    // Retrieve previous selections from localStorage
     const savedSelections = localStorage.getItem('previousVehicleSelections');
 
     if (savedSelections) {
@@ -260,9 +234,6 @@ export class JobCreateComponent implements OnInit, OnDestroy {
     return make ? make.displayName : '';
   }
 
-  /**
-   * Auto-populate customer address information when a customer is selected
-   */
   onCustomerSelected(event: Event) {
     const select = event.target as HTMLSelectElement;
     const customerId = select?.value;
@@ -272,7 +243,6 @@ export class JobCreateComponent implements OnInit, OnDestroy {
     const selectedCustomer = this.customers.find((c) => c.id === customerId);
 
     if (selectedCustomer && selectedCustomer.address) {
-      // Auto-populate the collection address with customer info
       this.jobForm.patchValue({
         collectionAddress: selectedCustomer.address || '',
         collectionCity: selectedCustomer.city || '',
@@ -283,9 +253,6 @@ export class JobCreateComponent implements OnInit, OnDestroy {
     }
   }
 
-  /**
-   * Apply previously used vehicle details
-   */
   applyPreviousSelection(selection: any) {
     this.jobForm.patchValue({
       vehicleMake: selection.makeId,
@@ -296,10 +263,8 @@ export class JobCreateComponent implements OnInit, OnDestroy {
       year: selection.year || '',
     });
 
-    // Make sure models list is updated
     this.updateAvailableModels(selection.makeId);
 
-    // Delay setting the model to ensure the models list is populated
     setTimeout(() => {
       this.jobForm.patchValue({
         vehicleModel: selection.modelId,
@@ -307,22 +272,15 @@ export class JobCreateComponent implements OnInit, OnDestroy {
     }, 100);
   }
 
-  /**
-   * Toggle split journey mode
-   */
   toggleSplitJourney() {
     const currentValue = this.jobForm.get('isSplitJourney')?.value;
     this.jobForm.get('isSplitJourney')?.setValue(!currentValue);
 
-    // If turning on split journey, show a dialog with information
     if (!currentValue) {
       this.showSplitJourneyInfo();
     }
   }
 
-  /**
-   * Show information dialog about split journey
-   */
   showSplitJourneyInfo() {
     const dialogRef = this.dialog.open(ConfirmationDialogComponent, {
       data: {
@@ -357,14 +315,11 @@ export class JobCreateComponent implements OnInit, OnDestroy {
 
     const formValue = this.jobForm.value;
 
-    // Get make and model display names
     const selectedMake = this.vehicleMakes.find((m) => m.id === formValue.vehicleMake);
     const selectedModel = this.availableModels.find((m) => m.id === formValue.vehicleModel);
 
-    // Customer info
     const selectedCustomer = this.customers.find((c) => c.id === formValue.customerId);
 
-    // Prepare job data matching the Job interface
     const jobData = {
       vehicleId: formValue.chassisNumber || formValue.registration, // Using reg/chassis as vehicle ID
       status: 'unallocated' as 'unallocated',
@@ -372,13 +327,11 @@ export class JobCreateComponent implements OnInit, OnDestroy {
       model: selectedModel?.name || '',
       registration: formValue.registration.toUpperCase(),
 
-      // Customer info
       customerId: formValue.customerId,
       customerName: selectedCustomer?.name || '',
       customerContact: selectedCustomer?.name || '',
       customerContactPhone: selectedCustomer?.phone || '',
 
-      // Primary Collection
       collectionAddress: formValue.collectionAddress,
       collectionCity: formValue.collectionCity,
       collectionPostcode: formValue.collectionPostcode,
@@ -386,7 +339,6 @@ export class JobCreateComponent implements OnInit, OnDestroy {
       collectionContactPhone: formValue.collectionContactPhone,
       collectionNotes: formValue.collectionNotes,
 
-      // Final Delivery
       deliveryAddress: formValue.deliveryAddress,
       deliveryCity: formValue.deliveryCity,
       deliveryPostcode: formValue.deliveryPostcode,
@@ -394,18 +346,14 @@ export class JobCreateComponent implements OnInit, OnDestroy {
       deliveryContactPhone: formValue.deliveryContactPhone,
       deliveryNotes: formValue.deliveryNotes,
 
-      // Vehicle details
       color: formValue.color,
       year: formValue.year,
       chassisNumber: formValue.chassisNumber ? formValue.chassisNumber.toUpperCase() : '',
       vehicleType: formValue.vehicleType,
 
-      // Split journey flag
       isSplitJourney: formValue.isSplitJourney,
 
-      // Only include secondary addresses if this is a split journey
       ...(formValue.isSplitJourney && {
-        // Secondary Collection
         secondaryCollectionAddress: formValue.secondaryCollectionAddress,
         secondaryCollectionCity: formValue.secondaryCollectionCity,
         secondaryCollectionPostcode: formValue.secondaryCollectionPostcode,
@@ -413,7 +361,6 @@ export class JobCreateComponent implements OnInit, OnDestroy {
         secondaryCollectionContactPhone: formValue.secondaryCollectionContactPhone,
         secondaryCollectionNotes: formValue.secondaryCollectionNotes,
 
-        // Secondary Delivery
         secondaryDeliveryAddress: formValue.secondaryDeliveryAddress,
         secondaryDeliveryCity: formValue.secondaryDeliveryCity,
         secondaryDeliveryPostcode: formValue.secondaryDeliveryPostcode,
@@ -422,14 +369,11 @@ export class JobCreateComponent implements OnInit, OnDestroy {
         secondaryDeliveryNotes: formValue.secondaryDeliveryNotes,
       }),
 
-      // Notes
       notes: formValue.notes,
     };
 
-    // Save the vehicle selection for future use
     this.saveToRecentSelections();
 
-    // Create the job
     this.jobService
       .createJob(jobData)
       .pipe(finalize(() => (this.isSubmitting = false)))
@@ -445,13 +389,9 @@ export class JobCreateComponent implements OnInit, OnDestroy {
       });
   }
 
-  /**
-   * Save current vehicle information to previous selections
-   */
   saveToRecentSelections() {
     const formValue = this.jobForm.value;
 
-    // Only save if we have the minimum required information
     if (!formValue.vehicleMake || !formValue.vehicleModel || !formValue.registration) {
       return;
     }
@@ -475,7 +415,6 @@ export class JobCreateComponent implements OnInit, OnDestroy {
       timestamp: new Date().toISOString(),
     };
 
-    // Get existing selections
     let selections = [];
     try {
       const savedData = localStorage.getItem('previousVehicleSelections');
@@ -485,26 +424,20 @@ export class JobCreateComponent implements OnInit, OnDestroy {
       selections = [];
     }
 
-    // Check if this registration already exists
     const existingIndex = selections.findIndex((s: { registration: string }) => s.registration.toLowerCase() === vehicleSelection.registration.toLowerCase());
 
     if (existingIndex >= 0) {
-      // Update existing entry
       selections[existingIndex] = vehicleSelection;
     } else {
-      // Add new entry
       selections.unshift(vehicleSelection);
 
-      // Keep max 10 entries
       if (selections.length > 10) {
         selections = selections.slice(0, 10);
       }
     }
 
-    // Save back to localStorage
     localStorage.setItem('previousVehicleSelections', JSON.stringify(selections));
 
-    // Update the component state
     this.previousSelections = selections;
   }
 

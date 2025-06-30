@@ -15,19 +15,13 @@ export class ForgotPasswordComponent implements OnInit {
   loading = false;
   emailSent = false;
 
-  constructor(
-    private fb: FormBuilder,
-    private authService: AuthService,
-    private router: Router,
-    private snackBar: MatSnackBar
-  ) {
+  constructor(private fb: FormBuilder, private authService: AuthService, private router: Router, private snackBar: MatSnackBar) {
     this.forgotPasswordForm = this.fb.group({
       email: ['', [Validators.required, Validators.email]],
     });
   }
 
   ngOnInit(): void {
-    // Check if already logged in
     this.authService.user$.subscribe((user) => {
       if (user) {
         this.router.navigate(['/dashboard']);
@@ -50,10 +44,8 @@ export class ForgotPasswordComponent implements OnInit {
       },
       error: (error) => {
         this.loading = false;
-        let errorMessage =
-          'Failed to send password reset email. Please try again.';
+        let errorMessage = 'Failed to send password reset email. Please try again.';
 
-        // Map Firebase error codes to user-friendly messages
         if (error.code === 'auth/user-not-found') {
           errorMessage = 'No account found with this email address.';
         } else if (error.code === 'auth/invalid-email') {

@@ -12,7 +12,6 @@
     </div>
   </div>
 
-  <!-- Stats Cards -->
   <div class="stats-cards">
     <mat-card class="stat-card">
       <mat-icon>badge</mat-icon>
@@ -39,7 +38,6 @@
     </mat-card>
   </div>
 
-  <!-- Table Section -->
   <mat-card class="table-card">
     <div class="filters-row">
       <mat-form-field appearance="outline">
@@ -49,7 +47,6 @@
       </mat-form-field>
     </div>
 
-    <!-- Loading Overlay -->
     <div class="loading-overlay" *ngIf="isLoading">
       <mat-spinner diameter="40"></mat-spinner>
       <span>Loading user roles...</span>
@@ -57,7 +54,6 @@
 
     <div class="table-container">
       <table mat-table [dataSource]="dataSource" matSort>
-        <!-- Name Column -->
         <ng-container matColumnDef="name">
           <th mat-header-cell *matHeaderCellDef mat-sort-header>Role</th>
           <td mat-cell *matCellDef="let role">
@@ -68,13 +64,11 @@
           </td>
         </ng-container>
 
-        <!-- Description Column -->
         <ng-container matColumnDef="description">
           <th mat-header-cell *matHeaderCellDef mat-sort-header>Description</th>
           <td mat-cell *matCellDef="let role">{{ role.description }}</td>
         </ng-container>
 
-        <!-- Permissions Column -->
         <ng-container matColumnDef="permissions">
           <th mat-header-cell *matHeaderCellDef>Permissions</th>
           <td mat-cell *matCellDef="let role">
@@ -84,7 +78,6 @@
           </td>
         </ng-container>
 
-        <!-- User Count Column -->
         <ng-container matColumnDef="userCount">
           <th mat-header-cell *matHeaderCellDef mat-sort-header>Users</th>
           <td mat-cell *matCellDef="let role">
@@ -92,7 +85,6 @@
           </td>
         </ng-container>
 
-        <!-- Actions Column -->
         <ng-container matColumnDef="actions">
           <th mat-header-cell *matHeaderCellDef>Actions</th>
           <td mat-cell *matCellDef="let role">
@@ -112,11 +104,9 @@
           </td>
         </ng-container>
 
-        <!-- Table Setup -->
         <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
         <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
 
-        <!-- When no data matches the filter -->
         <tr class="mat-row" *matNoDataRow>
           <td class="mat-cell no-data-cell" [attr.colspan]="displayedColumns.length">
             <div class="no-data-message">
@@ -128,7 +118,6 @@
       </table>
     </div>
 
-    <!-- Paginator -->
     <mat-paginator [pageSizeOptions]="[5, 10, 25]" showFirstLastButtons></mat-paginator>
   </mat-card>
 </div>

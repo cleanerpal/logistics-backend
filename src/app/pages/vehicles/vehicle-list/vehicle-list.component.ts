@@ -24,16 +24,13 @@ export class VehicleListComponent implements OnInit, AfterViewInit, OnDestroy {
   hasCreatePermission = false;
   hasEditPermission = false;
 
-  // Form controls
   searchControl = new FormControl('');
   filterForm: FormGroup;
 
-  // Dropdown options
   makes: string[] = [];
   vehicleTypes: string[] = [];
   colors: string[] = [];
 
-  // Color mapping for visualization
   colorMap: { [key: string]: string } = {
     Black: '#333333',
     White: '#FFFFFF',
@@ -88,13 +85,11 @@ export class VehicleListComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private setupFilterListeners(): void {
-    // Subscribe to search input changes
     const searchSub = this.searchControl.valueChanges.pipe(debounceTime(300), distinctUntilChanged()).subscribe((value) => {
       this.applyFilter(value || '');
     });
     this.subscriptions.push(searchSub);
 
-    // Subscribe to filter form changes
     const filterSub = this.filterForm.valueChanges.subscribe(() => {
       this.applyFilters();
     });
@@ -105,7 +100,6 @@ export class VehicleListComponent implements OnInit, AfterViewInit, OnDestroy {
     this.dataSource.filterPredicate = (data: Vehicle, filter: string) => {
       const searchStr = filter.toLowerCase();
 
-      // Apply dropdown filters first
       const makeFilter = this.filterForm.get('make')?.value;
       if (makeFilter !== 'All' && data.makeName !== makeFilter) {
         return false;
@@ -121,7 +115,6 @@ export class VehicleListComponent implements OnInit, AfterViewInit, OnDestroy {
         return false;
       }
 
-      // Then apply search text filter
       return (
         data.registration?.toLowerCase().includes(searchStr) ||
         data.chassisNumber?.toLowerCase().includes(searchStr) ||
@@ -143,7 +136,6 @@ export class VehicleListComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   applyFilters(): void {
-    // This will trigger the filterPredicate function with the current search value
     const currentFilter = this.dataSource.filter || ' ';
     this.dataSource.filter = '';
     this.dataSource.filter = currentFilter;
@@ -169,7 +161,6 @@ export class VehicleListComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private extractFilterOptions(vehicles: Vehicle[]): void {
-    // Extract unique makes, types, and colors for filters
     const makesSet = new Set<string>();
     const typesSet = new Set<string>();
     const colorsSet = new Set<string>();
@@ -218,7 +209,6 @@ export class VehicleListComponent implements OnInit, AfterViewInit, OnDestroy {
       date = new Date(date);
     }
 
-    // Handle Firebase Timestamp
     if (date && typeof date === 'object' && 'toDate' in date) {
       const timestamp = date as unknown as { toDate: () => Date };
       date = timestamp.toDate();

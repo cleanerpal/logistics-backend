@@ -1,5 +1,3 @@
-// src/app/shared/models/customer.model.ts
-
 export enum CustomerSize {
   SMALL = 'Small (1-50)',
   MEDIUM = 'Medium (51-250)',

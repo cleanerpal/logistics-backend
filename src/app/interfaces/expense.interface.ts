@@ -19,7 +19,6 @@ export interface Expense {
   isChargeable: boolean;
   notes?: string;
 
-  // Payment tracking fields
   isPaid?: boolean;
   paidDate?: Date;
   paidBy?: string;

@@ -12,38 +12,26 @@ export class AppStateService {
   public isAuthPage$ = this.isAuthPageSubject.asObservable();
 
   constructor(private router: Router, private authService: AuthService) {
-    // Monitor route changes to detect auth pages
-    this.router.events
-      .pipe(filter((event) => event instanceof NavigationEnd))
-      .subscribe((event: any) => {
-        const isAuthPage = event.url.includes('/auth');
-        this.isAuthPageSubject.next(isAuthPage);
-      });
+    this.router.events.pipe(filter((event) => event instanceof NavigationEnd)).subscribe((event: any) => {
+      const isAuthPage = event.url.includes('/auth');
+      this.isAuthPageSubject.next(isAuthPage);
+    });
   }
 
-  /**
-   * Check if current page is an auth page
-   */
   public isAuthPage(): Observable<boolean> {
     return this.isAuthPage$;
   }
 
-  /**
-   * Returns true if the app has a sidebar (logged in + not auth page)
-   */
   public hasSidebar(): Observable<boolean> {
     return new Observable<boolean>((observer) => {
-      // We need to combine auth state and page state
       const authSub = this.authService.isAuthenticated().subscribe((isAuth) => {
         const pageSub = this.isAuthPage$.subscribe((isAuthPage) => {
           observer.next(isAuth && !isAuthPage);
 
-          // Clean up inner subscription
           return () => pageSub.unsubscribe();
         });
       });
 
-      // Clean up outer subscription
       return () => authSub.unsubscribe();
     });
   }

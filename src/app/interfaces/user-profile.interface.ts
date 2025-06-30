@@ -1,4 +1,3 @@
-// src/app/interfaces/user-profile.interface.ts
 export interface UserProfile {
   id: string;
   email: string;
@@ -34,7 +33,6 @@ export interface UserProfile {
   notes?: string;
 }
 
-// src/app/interfaces/user-profile.interface.ts
 export enum UserRole {
   ADMIN = 'Admin',
   DRIVER = 'Driver',
@@ -57,7 +55,6 @@ export type UserPermissionKey =
   | 'canViewAssignedJobs'
   | 'canCreateExpenses';
 
-// Define preset permissions for each role
 export const ROLE_PERMISSION_PRESETS: Record<UserRole, Record<UserPermissionKey, boolean>> = {
   [UserRole.ADMIN]: {
     canAllocateJobs: true,

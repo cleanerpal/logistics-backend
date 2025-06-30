@@ -1,13 +1,10 @@
-<!-- driver-create.component.html -->
 <div class="driver-form-container">
-  <!-- Loading Overlay -->
   <div class="loading-overlay" *ngIf="isLoading">
     <mat-spinner diameter="40"></mat-spinner>
     <span>{{ isEditMode ? 'Loading driver data...' : 'Preparing form...' }}</span>
   </div>
 
   <mat-card class="form-card">
-    <!-- Header -->
     <div class="header-wrapper">
       <div class="header-title">
         <button mat-icon-button (click)="cancel()" class="back-button">
@@ -32,12 +29,9 @@
       </div>
     </div>
 
-    <!-- Form Content -->
     <div class="form-content">
       <form [formGroup]="driverForm">
-        <!-- Form Tabs -->
         <mat-tab-group animationDuration="0ms" backgroundColor="primary">
-          <!-- Basic Information Tab -->
           <mat-tab label="Basic Information">
             <div class="tab-content">
               <section class="form-section">
@@ -153,7 +147,6 @@
                 </div>
               </section>
 
-              <!-- Account Setup Information (only for new driver) -->
               <section class="form-section" *ngIf="!isEditMode">
                 <div class="section-title">
                   <mat-icon>key</mat-icon>
@@ -201,7 +194,6 @@
             </div>
           </mat-tab>
 
-          <!-- Permissions Tab -->
           <mat-tab label="Permissions">
             <div class="tab-content">
               <section class="form-section permissions-section">
@@ -210,7 +202,6 @@
                   <h2>Permissions & Access</h2>
                 </div>
 
-                <!-- Admin notice -->
                 <div class="admin-notice" *ngIf="!isCurrentUserAdmin">
                   <mat-icon>info</mat-icon>
                   <p>
@@ -221,14 +212,12 @@
                   </p>
                 </div>
 
-                <!-- Admin permissions editor notice -->
                 <div class="admin-notice admin-editor-notice" *ngIf="isCurrentUserAdmin">
                   <mat-icon>admin_panel_settings</mat-icon>
                   <p>As an administrator, you can override the default permissions for this role by checking or unchecking boxes below.</p>
                 </div>
 
                 <div formGroupName="permissions" class="permissions-grid">
-                  <!-- General Permissions -->
                   <div class="permissions-category">
                     <h3>General Permissions</h3>
                     <div class="permission-group">
@@ -242,7 +231,6 @@
                     </div>
                   </div>
 
-                  <!-- Job Management -->
                   <div class="permissions-category">
                     <h3>Job Management</h3>
                     <div class="permission-group">
@@ -255,7 +243,6 @@
                     </div>
                   </div>
 
-                  <!-- Financial Permissions -->
                   <div class="permissions-category">
                     <h3>Financial Permissions</h3>
                     <div class="permission-group">
@@ -266,7 +253,6 @@
                   </div>
                 </div>
 
-                <!-- Role permissions summary -->
                 <div class="role-permissions-summary">
                   <p>
                     <strong>{{ driverForm.get('role')?.value }}</strong
@@ -284,7 +270,6 @@
       </form>
     </div>
 
-    <!-- Form Actions -->
     <div class="form-actions">
       <button mat-stroked-button (click)="cancel()">Cancel</button>
       <button mat-flat-button color="primary" (click)="onSubmit()" [disabled]="driverForm.invalid || isSubmitting">

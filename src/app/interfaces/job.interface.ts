@@ -1,6 +1,3 @@
-// src/app/interfaces/job.interface.ts
-// Updated interface to handle notes properly
-
 export interface NoteData {
   author: string;
   content: string;
@@ -28,7 +25,6 @@ export interface Job {
   model?: string;
   registration?: string;
 
-  // Fixed notes type to handle both string and array formats
   notes?: string | NoteData[] | Record<string, any>;
 
   customerId?: string;

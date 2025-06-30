@@ -1,4 +1,3 @@
-/* auth-layout.component.scss */
 .auth-layout {
   min-height: 100vh;
   width: 100%;
@@ -50,7 +49,6 @@
   z-index: 1;
 }
 
-/* Dark theme support */
 :host-context(.dark-theme) {
   .auth-background {
     filter: brightness(0.6) blur(2px);

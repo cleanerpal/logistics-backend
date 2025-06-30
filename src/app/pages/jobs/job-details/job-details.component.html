@@ -1,11 +1,9 @@
 <div class="job-details-page">
-  <!-- Loading Overlay -->
   <div class="loading-overlay" *ngIf="isLoading">
     <mat-spinner diameter="40"></mat-spinner>
     <span>Loading job details...</span>
   </div>
 
-  <!-- Not Found Message -->
   <div class="not-found" *ngIf="!isLoading && !job">
     <mat-icon>error_outline</mat-icon>
     <h2>Job Not Found</h2>
@@ -14,7 +12,6 @@
   </div>
 
   <div *ngIf="job">
-    <!-- Sticky Header -->
     <div class="sticky-header">
       <div class="header-content">
         <div class="header-left">
@@ -25,7 +22,7 @@
             <div class="job-details-header">
               <div class="job-id-wrapper">
                 <span class="job-id">{{ job.id }}</span>
-                <!-- Journey Type Badge -->
+
                 <span class="journey-type-badge" [ngClass]="job['isSplitJourney'] ? 'split' : 'normal'">
                   <span class="material-icons">{{ job['isSplitJourney'] ? 'call_split' : 'arrow_forward' }}</span>
                   {{ job['isSplitJourney'] ? 'Split Journey' : 'Direct Journey' }}
@@ -58,7 +55,6 @@
         </div>
       </div>
 
-      <!-- Tab Navigation -->
       <div class="tab-navigation">
         <button [class.active]="activeTab === 'details'" (click)="setActiveTab('details')">Details</button>
         <button [class.active]="activeTab === 'timeline'" (click)="setActiveTab('timeline')">Timeline</button>
@@ -66,14 +62,11 @@
       </div>
     </div>
 
-    <!-- Main Content Area -->
     <div class="main-content">
       <div class="tab-content" [ngSwitch]="activeTab">
-        <!-- Details Tab -->
         <div *ngSwitchCase="'details'" class="details-tab">
           <div class="two-column-layout">
             <div class="left-column">
-              <!-- Customer Card -->
               <div class="info-card">
                 <h2>Customer Information</h2>
                 <div class="card-content">
@@ -92,7 +85,6 @@
                 </div>
               </div>
 
-              <!-- Vehicle Card -->
               <div class="info-card">
                 <h2>Vehicle Information</h2>
                 <div class="card-content vehicle-card-content">
@@ -129,11 +121,9 @@
                 </div>
               </div>
 
-              <!-- Addresses Card -->
               <div class="info-card addresses-card">
                 <h2>Addresses</h2>
                 <div class="card-content">
-                  <!-- Journey Visualization for Split Journeys -->
                   <div class="journey-flow" *ngIf="job['isSplitJourney']">
                     <div class="journey-step">
                       <div class="step-icon">
@@ -170,7 +160,6 @@
                     </div>
                   </div>
 
-                  <!-- Primary Collection -->
                   <div class="address-section collection">
                     <h3>
                       <span class="material-icons">location_on</span>
@@ -189,7 +178,6 @@
                     </p>
                   </div>
 
-                  <!-- Secondary Collection - Only if Split Journey -->
                   <div class="address-section collection secondary" *ngIf="job['isSplitJourney']">
                     <h3>
                       <span class="material-icons">add_location</span>
@@ -208,7 +196,6 @@
                     </p>
                   </div>
 
-                  <!-- Secondary Delivery - Only if Split Journey -->
                   <div class="address-section delivery secondary" *ngIf="job['isSplitJourney']">
                     <h3>
                       <span class="material-icons">add_location</span>
@@ -227,7 +214,6 @@
                     </p>
                   </div>
 
-                  <!-- Final Delivery -->
                   <div class="address-section delivery">
                     <h3>
                       <span class="material-icons">flag</span>
@@ -250,7 +236,6 @@
             </div>
 
             <div class="right-column">
-              <!-- Status Card - Moved to top -->
               <div class="info-card status-card" [ngClass]="job.status ? 'status-' + job.status.toLowerCase().replace(' ', '-') : ''">
                 <h2>Current Status</h2>
                 <div class="current-status">
@@ -262,7 +247,6 @@
                   </div>
                 </div>
 
-                <!-- Status flow visualization -->
                 <div class="status-flow">
                   <div class="status-flow-line"></div>
                   <div class="status-flow-progress" [style.width.%]="getStatusFlowProgress()"></div>
@@ -279,7 +263,6 @@
                   </div>
                 </div>
 
-                <!-- Status Change section -->
                 <div class="status-change" *ngIf="hasEditPermission || isAdmin || job.driverId === currentUser?.id">
                   <h3>Change Status</h3>
                   <div class="status-buttons">
@@ -289,7 +272,7 @@
                   </div>
                 </div>
               </div>
-              <!-- Notes Section -->
+
               <div class="info-card">
                 <h2>Notes</h2>
                 <div class="card-content">
@@ -307,7 +290,6 @@
                       </div>
                     </div>
 
-                    <!-- Add Note Form -->
                     <div class="add-note-form" *ngIf="hasEditPermission || isAdmin || job.driverId === currentUser?.id">
                       <textarea [(ngModel)]="newNote" placeholder="Add a note..." rows="2"></textarea>
                       <button class="add-note-button" [disabled]="!newNote.trim()" (click)="addNote()">
@@ -322,7 +304,6 @@
           </div>
         </div>
 
-        <!-- Timeline Tab -->
         <div *ngSwitchCase="'timeline'" class="timeline-tab">
           <div class="timeline-view">
             <div class="timeline-header">
@@ -339,9 +320,7 @@
               </div>
             </div>
 
-            <!-- Timeline container -->
             <div class="timeline-container">
-              <!-- Created event -->
               <div class="timeline-event status-created">
                 <div class="timeline-marker">
                   <div class="timeline-icon">
@@ -369,7 +348,6 @@
                 </div>
               </div>
 
-              <!-- Allocated event -->
               <div class="timeline-event status-assigned" *ngIf="job.allocatedAt">
                 <div class="timeline-marker">
                   <div class="timeline-icon">
@@ -390,7 +368,6 @@
                 </div>
               </div>
 
-              <!-- Collection start event -->
               <div class="timeline-event status-collection-started" *ngIf="job.collectionStartTime">
                 <div class="timeline-marker">
                   <div class="timeline-icon">
@@ -415,7 +392,6 @@
                 </div>
               </div>
 
-              <!-- Collection complete event -->
               <div class="timeline-event status-collection-completed" *ngIf="job.collectionCompleteTime">
                 <div class="timeline-marker">
                   <div class="timeline-icon">
@@ -436,7 +412,6 @@
                 </div>
               </div>
 
-              <!-- Delivery start event -->
               <div class="timeline-event status-delivery-started" *ngIf="job.deliveryStartTime">
                 <div class="timeline-marker">
                   <div class="timeline-icon">
@@ -461,7 +436,6 @@
                 </div>
               </div>
 
-              <!-- Delivery complete event -->
               <div class="timeline-event status-delivery-completed" *ngIf="job.deliveryCompleteTime">
                 <div class="timeline-marker">
                   <div class="timeline-icon">
@@ -485,7 +459,6 @@
           </div>
         </div>
 
-        <!-- Expenses Tab -->
         <div *ngSwitchCase="'expenses'" class="expenses-tab">
           <div class="expenses-view">
             <div class="expenses-header">
@@ -496,7 +469,6 @@
               </button>
             </div>
 
-            <!-- Expenses List -->
             <div class="empty-expenses" *ngIf="!isLoading">
               <span class="material-icons">currency_pound</span>
               <p>No expenses found for this job</p>

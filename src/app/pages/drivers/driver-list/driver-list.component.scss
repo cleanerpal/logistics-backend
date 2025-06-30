@@ -1,21 +1,18 @@
-// Main container styles
 :host {
   display: block;
   padding: 24px;
   background-color: #f5f5f5;
   min-height: 100vh;
-  margin-left: 250px; /* Account for sidebar width */
-  padding-top: 88px; /* Account for topbar height (64px) + some padding */
+  margin-left: 250px;
+  padding-top: 88px;
 }
 
-// Card styles
 .mat-mdc-card {
   margin-bottom: 24px;
   background-color: white;
   border-radius: 8px;
 }
 
-// Header Section
 .header-wrapper {
   padding: 24px 24px 0;
 
@@ -35,7 +32,6 @@
   }
 }
 
-// Filters and Actions Section
 .filters-actions-wrapper {
   padding: 24px;
   display: flex;
@@ -103,13 +99,11 @@
   }
 }
 
-// Table Container
 .table-container {
   position: relative;
   min-height: 400px;
   overflow: auto;
 
-  // Loading Overlay
   .loading-overlay {
     position: absolute;
     top: 0;
@@ -131,7 +125,6 @@
     }
   }
 
-  // Table Styles
   table {
     width: 100%;
 
@@ -139,7 +132,6 @@
       opacity: 0.6;
     }
 
-    // Header Styles
     .mat-mdc-header-row {
       background-color: #f8f9fa;
       min-height: 48px;
@@ -163,7 +155,6 @@
       }
     }
 
-    // Cell Styles
     .mat-mdc-cell {
       font-size: 14px;
       color: rgba(0, 0, 0, 0.87);
@@ -177,7 +168,6 @@
         padding-right: 24px;
       }
 
-      // Email links
       a {
         color: #1976d2;
         text-decoration: none;
@@ -188,7 +178,6 @@
       }
     }
 
-    // Name cell with avatar
     .name-cell {
       display: flex;
       align-items: center;
@@ -223,7 +212,6 @@
       }
     }
 
-    // Row Styles
     .driver-row {
       min-height: 52px;
       cursor: pointer;
@@ -242,7 +230,6 @@
       }
     }
 
-    // Column Widths
     .mat-column-select {
       width: 48px;
       padding-right: 0;
@@ -277,7 +264,6 @@
   }
 }
 
-// Role Chips
 .role-chip {
   padding: 4px 12px;
   border-radius: 16px;
@@ -313,7 +299,6 @@
   }
 }
 
-// Status Chips
 .status-chip {
   padding: 4px 12px;
   border-radius: 16px;
@@ -323,7 +308,6 @@
   align-items: center;
   text-transform: capitalize;
 
-  // Type colors
   &.type-blue {
     background-color: rgba(25, 118, 210, 0.12);
     color: #1976d2;
@@ -339,7 +323,6 @@
     color: #f57c00;
   }
 
-  // Status colors
   &.status-green {
     background-color: rgba(76, 175, 80, 0.12);
     color: #4caf50;
@@ -356,7 +339,6 @@
   }
 }
 
-// Empty State
 .empty-state {
   position: absolute;
   top: 50%;
@@ -392,12 +374,10 @@
   }
 }
 
-// Delete Action
 .delete-action {
   color: #f44336;
 }
 
-// Responsive Design
 @media screen and (max-width: 1200px) {
   .filters-section {
     flex-direction: column;
@@ -415,7 +395,7 @@
 @media screen and (max-width: 960px) {
   :host {
     padding: 16px;
-    padding-top: 80px; /* Slightly reduced top padding */
+    padding-top: 80px;
   }
 
   .filters-actions-wrapper {
@@ -435,8 +415,8 @@
 
 @media screen and (max-width: 768px) {
   :host {
-    margin-left: 60px; /* Collapsed sidebar width */
-    padding-top: 80px; /* Adjust for smaller topbar */
+    margin-left: 60px;
+    padding-top: 80px;
   }
 
   .mat-column-phone {
@@ -447,7 +427,7 @@
 @media screen and (max-width: 600px) {
   :host {
     padding: 8px;
-    padding-top: 72px; /* Further reduced for mobile */
+    padding-top: 72px;
   }
 
   .header-wrapper {
@@ -476,13 +456,12 @@
   }
 }
 
-// Print Styles
 @media print {
   :host {
     padding: 0;
     background: white;
-    margin-left: 0; /* No sidebar in print */
-    padding-top: 0; /* No topbar in print */
+    margin-left: 0;
+    padding-top: 0;
   }
 
   .mat-mdc-card {

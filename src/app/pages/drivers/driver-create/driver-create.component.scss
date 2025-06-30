@@ -3,8 +3,8 @@
   padding: 24px;
   background-color: #f5f5f5;
   min-height: 100vh;
-  margin-left: 250px; /* Account for sidebar width */
-  padding-top: 88px; /* Account for topbar height (64px) + some padding */
+  margin-left: 250px;
+  padding-top: 88px;
 }
 
 .driver-form-container {
@@ -13,7 +13,6 @@
   position: relative;
 }
 
-/* Loading Overlay */
 .loading-overlay {
   position: absolute;
   top: 0;
@@ -35,7 +34,6 @@
   }
 }
 
-/* Form Card */
 .form-card {
   margin-bottom: 24px;
   background-color: white;
@@ -44,7 +42,6 @@
   overflow: hidden;
 }
 
-/* Header Section */
 .header-wrapper {
   display: flex;
   justify-content: space-between;
@@ -117,7 +114,6 @@
   }
 }
 
-/* Tab styles */
 :host ::ng-deep {
   .mat-mdc-tab-header {
     margin-bottom: 20px;
@@ -142,11 +138,9 @@
   padding: 0 24px 24px;
 }
 
-/* Form Content */
 .form-content {
   padding: 24px 0 0;
 
-  /* Section Styles */
   .form-section {
     margin-bottom: 32px;
     background-color: #fff;
@@ -191,7 +185,6 @@
     }
   }
 
-  /* Admin Notice Banner */
   .admin-notice {
     display: flex;
     align-items: flex-start;
@@ -231,7 +224,6 @@
     }
   }
 
-  /* Grid Layout for Form Fields */
   .form-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
@@ -242,7 +234,6 @@
     }
   }
 
-  /* Permissions Grid */
   .permissions-grid {
     display: grid;
     grid-template-columns: repeat(1, 1fr);
@@ -271,7 +262,6 @@
     }
   }
 
-  /* Admin-only checkbox styling */
   .admin-only {
     position: relative;
 
@@ -290,7 +280,6 @@
     }
   }
 
-  /* Disabled checkboxes styling */
   ::ng-deep {
     .mat-mdc-checkbox.mdc-checkbox--disabled {
       .mdc-checkbox__background {
@@ -307,7 +296,6 @@
     }
   }
 
-  /* Role permissions summary */
   .role-permissions-summary {
     margin-top: 24px;
     padding: 16px;
@@ -327,7 +315,6 @@
     }
   }
 
-  /* Send Credentials Option */
   .send-credentials-option {
     grid-column: span 2;
     margin-top: 8px;
@@ -338,17 +325,15 @@
       font-size: 12px;
       color: rgba(0, 0, 0, 0.6);
       margin-top: 4px;
-      margin-left: 24px; /* Align with checkbox text */
+      margin-left: 24px;
     }
   }
 
-  /* Permissions section */
   .permissions-section {
     margin-top: 24px;
   }
 }
 
-/* Form Actions */
 .form-actions {
   display: flex;
   justify-content: flex-end;
@@ -362,7 +347,6 @@
   }
 }
 
-/* Form Field Customization */
 ::ng-deep {
   .mat-mdc-form-field-appearance-outline {
     .mat-mdc-form-field-wrapper {
@@ -389,7 +373,6 @@
   }
 }
 
-/* Responsive Design */
 @media screen and (min-width: 992px) {
   .permissions-grid {
     grid-template-columns: repeat(2, 1fr) !important;
@@ -425,8 +408,8 @@
 
 @media screen and (max-width: 768px) {
   :host {
-    margin-left: 60px; /* Collapsed sidebar width */
-    padding-top: 80px; /* Reduced topbar padding for smaller screens */
+    margin-left: 60px;
+    padding-top: 80px;
     padding: 16px;
   }
 
@@ -453,7 +436,7 @@
 @media screen and (max-width: 576px) {
   :host {
     padding: 8px;
-    padding-top: 72px; /* Further reduced for mobile */
+    padding-top: 72px;
   }
 
   .header-wrapper,
@@ -491,13 +474,12 @@
   }
 }
 
-/* Print Styles */
 @media print {
   :host {
     padding: 0;
     background: white;
-    margin-left: 0; /* No sidebar in print */
-    padding-top: 0; /* No topbar in print */
+    margin-left: 0;
+    padding-top: 0;
   }
 
   .form-card {

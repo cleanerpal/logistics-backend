@@ -35,7 +35,6 @@ export class UserRolesComponent implements OnInit {
   systemRoles = 0;
   customRoles = 0;
 
-  // Reference list of all possible permissions
   allPermissions: { key: string; name: string; description: string }[] = [
     { key: 'canAllocateJobs', name: 'Allocate Jobs', description: 'Assign jobs to drivers' },
     { key: 'canApproveExpenses', name: 'Approve Expenses', description: 'Review and approve expense claims' },
@@ -64,7 +63,6 @@ export class UserRolesComponent implements OnInit {
   loadUserRoles(): void {
     this.isLoading = true;
 
-    // Get roles from Firestore
     const rolesRef = collection(this.firestore, 'userRoles');
     const q = query(rolesRef, orderBy('name'));
 
@@ -189,7 +187,6 @@ export class UserRolesComponent implements OnInit {
   }
 
   deleteUserRole(role: UserRole): void {
-    // Don't allow deletion of system roles
     if (role.isSystem) {
       this.notificationService.addNotification({
         type: 'warning',
@@ -199,7 +196,6 @@ export class UserRolesComponent implements OnInit {
       return;
     }
 
-    // Also check if there are users assigned to this role
     if (role.userCount > 0) {
       this.notificationService.addNotification({
         type: 'warning',
@@ -247,7 +243,6 @@ export class UserRolesComponent implements OnInit {
     });
   }
 
-  // Get list of active permission names for a role
   getPermissionsList(permissions: Record<string, boolean>): string {
     if (!permissions) return 'None';
 
@@ -261,7 +256,6 @@ export class UserRolesComponent implements OnInit {
     return activePermissions.length > 0 ? activePermissions.join(', ') : 'None';
   }
 
-  // Firestore Operations
   private createUserRole(roleData: any): Observable<DocumentReference> {
     const rolesRef = collection(this.firestore, 'userRoles');
     const now = new Date();
@@ -293,7 +287,6 @@ export class UserRolesComponent implements OnInit {
     return from(deleteDoc(roleRef));
   }
 
-  // Helper function to convert Firestore timestamp to Date
   private convertTimestamp(timestamp: any): Date {
     if (!timestamp) return new Date();
 

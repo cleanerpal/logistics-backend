@@ -53,7 +53,6 @@ export class SettingsComponent implements OnInit {
     this.authService.isAdmin().subscribe((isAdmin) => {
       this.isAdmin = isAdmin;
 
-      // If not admin, redirect to home
       if (!isAdmin) {
         this.router.navigate(['/']);
       }

@@ -33,7 +33,6 @@ import { NotificationService } from './notification.service';
   providedIn: 'root',
 })
 export class JobNewService implements OnDestroy {
-  // Use inject() for proper injection context
   private firestore = inject(Firestore);
   private auth = inject(Auth);
   private authService = inject(AuthService);
@@ -48,12 +47,10 @@ export class JobNewService implements OnDestroy {
   private activeListeners: Unsubscribe[] = [];
   private lastVisibleDoc: QueryDocumentSnapshot<DocumentData> | null = null;
 
-  // Current user observable
   private currentUserSubject = new BehaviorSubject<any>(null);
   public currentUser$ = this.currentUserSubject.asObservable();
 
   constructor() {
-    // Listen to auth state changes
     this.auth.onAuthStateChanged((user) => {
       this.currentUserSubject.next(user);
     });
@@ -61,9 +58,6 @@ export class JobNewService implements OnDestroy {
     this.initJobListener();
   }
 
-  /**
-   * Get current user ID
-   */
   get currentUserId(): string | null {
     return this.auth.currentUser?.uid || null;
   }
@@ -159,10 +153,8 @@ export class JobNewService implements OnDestroy {
   private listenToDriverAndUnallocatedJobs(driverId: string): void {
     const jobsRef = collection(this.firestore, 'jobs');
 
-    // Query for driver's jobs
     const driverJobsQuery = query(jobsRef, where('driverId', '==', driverId), orderBy('updatedAt', 'desc'), limit(25));
 
-    // Query for unallocated jobs
     const unallocatedJobsQuery = query(jobsRef, where('status', '==', 'unallocated'), orderBy('updatedAt', 'desc'), limit(25));
 
     const driverJobsUnsubscribe = onSnapshot(driverJobsQuery, (snapshot) => {
@@ -183,11 +175,9 @@ export class JobNewService implements OnDestroy {
   private updateCombinedJobs(jobs: Job[], type: 'driver' | 'unallocated'): void {
     this.combinedJobs[type] = jobs;
 
-    // Combine and deduplicate jobs
     const allJobs = [...this.combinedJobs.driver, ...this.combinedJobs.unallocated];
     const uniqueJobs = allJobs.filter((job, index, self) => index === self.findIndex((j) => j.id === job.id));
 
-    // Sort by updated date
     const convertTimestamp = (timestamp: any): Date | undefined => {
       if (!timestamp) return undefined;
       if (timestamp && typeof timestamp === 'object' && 'toDate' in timestamp) {
@@ -208,9 +198,6 @@ export class JobNewService implements OnDestroy {
     this.loadingSubject.next(false);
   }
 
-  /**
-   * Get recent jobs with pagination
-   */
   getRecentJobs(limitCount: number = 25): Observable<Job[]> {
     this.loadingSubject.next(true);
 
@@ -220,7 +207,6 @@ export class JobNewService implements OnDestroy {
     return from(getDocs(q)).pipe(
       map((snapshot) => {
         this.lastVisibleDoc = snapshot.docs[snapshot.docs.length - 1] || null;
-        console.log(this.lastVisibleDoc);
         return snapshot.docs.map((doc) => this.convertFirebaseJobToModel(doc.id, doc.data()));
       }),
       tap(() => this.loadingSubject.next(false)),
@@ -232,9 +218,6 @@ export class JobNewService implements OnDestroy {
     );
   }
 
-  /**
-   * Get jobs by status
-   */
   getJobsByStatus(status: string): Observable<Job[]> {
     const jobsRef = collection(this.firestore, 'jobs');
     const q = query(jobsRef, where('status', '==', status), orderBy('updatedAt', 'desc'), limit(100));
@@ -248,9 +231,6 @@ export class JobNewService implements OnDestroy {
     );
   }
 
-  /**
-   * Get jobs by driver ID
-   */
   getJobsByDriver(driverId: string): Observable<Job[]> {
     const jobsRef = collection(this.firestore, 'jobs');
     const q = query(jobsRef, where('driverId', '==', driverId), orderBy('updatedAt', 'desc'), limit(50));
@@ -264,9 +244,6 @@ export class JobNewService implements OnDestroy {
     );
   }
 
-  /**
-   * Get jobs by vehicle ID
-   */
   getJobsByVehicle(vehicleId: string): Observable<Job[]> {
     const jobsRef = collection(this.firestore, 'jobs');
     const q = query(jobsRef, where('vehicleId', '==', vehicleId), orderBy('updatedAt', 'desc'), limit(50));
@@ -280,9 +257,6 @@ export class JobNewService implements OnDestroy {
     );
   }
 
-  /**
-   * Get jobs by customer ID or customer name
-   */
   getJobsByCustomer(customerId?: string, customerName?: string): Observable<Job[]> {
     const jobsRef = collection(this.firestore, 'jobs');
 
@@ -304,16 +278,10 @@ export class JobNewService implements OnDestroy {
     );
   }
 
-  /**
-   * Get customer jobs (alias for getJobsByCustomer)
-   */
   getCustomerJobs(customerId: string): Observable<Job[]> {
     return this.getJobsByCustomer(customerId);
   }
 
-  /**
-   * Get driver jobs (current user's jobs or all driver jobs for admin)
-   */
   getDriverJobs(driverId?: string): Observable<Job[]> {
     const targetDriverId = driverId || this.currentUserId;
 
@@ -324,9 +292,6 @@ export class JobNewService implements OnDestroy {
     return this.getJobsByDriver(targetDriverId);
   }
 
-  /**
-   * Get jobs by date range
-   */
   getJobsByDateRange(startDate: Date, endDate: Date, status?: string): Observable<Job[]> {
     const jobsRef = collection(this.firestore, 'jobs');
 
@@ -353,9 +318,6 @@ export class JobNewService implements OnDestroy {
     );
   }
 
-  /**
-   * Get jobs by multiple statuses
-   */
   getJobsByStatuses(statuses: string[]): Observable<Job[]> {
     if (statuses.length === 0) {
       return of([]);
@@ -373,9 +335,6 @@ export class JobNewService implements OnDestroy {
     );
   }
 
-  /**
-   * Search jobs by text (registration, customer name, etc.)
-   */
   searchJobs(searchTerm: string, limit: number = 25): Observable<Job[]> {
     if (!searchTerm.trim()) {
       return this.getRecentJobs(limit);
@@ -383,8 +342,6 @@ export class JobNewService implements OnDestroy {
 
     const jobsRef = collection(this.firestore, 'jobs');
 
-    // Since Firestore doesn't support full-text search, we'll get recent jobs
-    // and filter them client-side. For production, consider using Algolia or similar.
     return this.getRecentJobs(100).pipe(
       map((jobs) => {
         const searchLower = searchTerm.toLowerCase();
@@ -404,31 +361,21 @@ export class JobNewService implements OnDestroy {
     );
   }
 
-  /**
-   * Get active jobs (non-completed statuses)
-   */
   getActiveJobs(): Observable<Job[]> {
     const activeStatuses = ['unallocated', 'allocated', 'collected', 'in-transit'];
     return this.getJobsByStatuses(activeStatuses);
   }
 
-  /**
-   * Get completed jobs
-   */
   getCompletedJobs(): Observable<Job[]> {
     const completedStatuses = ['delivered', 'completed'];
     return this.getJobsByStatuses(completedStatuses);
   }
 
-  /**
-   * Get jobs requiring attention (overdue, high priority, etc.)
-   */
   getJobsRequiringAttention(): Observable<Job[]> {
     const jobsRef = collection(this.firestore, 'jobs');
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    // Get jobs that are overdue or high priority
     const overdueQuery = query(
       jobsRef,
       where('collectionDate', '<', today),
@@ -456,11 +403,9 @@ export class JobNewService implements OnDestroy {
       ),
     ]).pipe(
       map(([overdueJobs, highPriorityJobs]) => {
-        // Combine and deduplicate
         const allJobs = [...overdueJobs, ...highPriorityJobs];
         const uniqueJobs = allJobs.filter((job, index, self) => index === self.findIndex((j) => j.id === job.id));
 
-        // Sort by priority and date
         return uniqueJobs.sort((a, b) => {
           if (a['priority'] === 'urgent' && b['priority'] !== 'urgent') return -1;
           if (b['priority'] === 'urgent' && a['priority'] !== 'urgent') return 1;
@@ -473,9 +418,6 @@ export class JobNewService implements OnDestroy {
     );
   }
 
-  /**
-   * Get job statistics for a specific period
-   */
   getJobStatisticsForPeriod(startDate: Date, endDate: Date): Observable<any> {
     const jobsRef = collection(this.firestore, 'jobs');
     const q = query(jobsRef, where('createdAt', '>=', startDate), where('createdAt', '<=', endDate), orderBy('createdAt', 'desc'));
@@ -484,7 +426,6 @@ export class JobNewService implements OnDestroy {
       map((snapshot) => {
         const jobs = snapshot.docs.map((doc) => this.convertFirebaseJobToModel(doc.id, doc.data()));
 
-        // Calculate statistics
         const stats = {
           total: jobs.length,
           byStatus: {} as Record<string, number>,
@@ -495,31 +436,25 @@ export class JobNewService implements OnDestroy {
         };
 
         jobs.forEach((job) => {
-          // Count by status
           stats.byStatus[job.status] = (stats.byStatus[job.status] || 0) + 1;
 
-          // Count by priority
           const priority = job['priority'] || 'normal';
           stats.byPriority[priority] = (stats.byPriority[priority] || 0) + 1;
         });
 
-        // Calculate completion rate
         const completedJobs = jobs.filter((job) => ['delivered', 'completed'].includes(job.status));
         stats.completionRate = jobs.length > 0 ? (completedJobs.length / jobs.length) * 100 : 0;
 
-        // Calculate on-time deliveries
         const onTimeJobs = completedJobs.filter((job) => {
           if (!job['deliveryDate'] || !job['deliveryCompleteTime']) return false;
 
           const scheduledDate = new Date(job['deliveryDate']);
           const actualDate = new Date(job['deliveryCompleteTime']);
 
-          // Consider on-time if delivered on or before scheduled date
           return actualDate <= scheduledDate;
         });
         stats.onTimeDeliveries = completedJobs.length > 0 ? (onTimeJobs.length / completedJobs.length) * 100 : 0;
 
-        // Calculate average duration for completed jobs
         const durationsInHours = completedJobs.filter((job) => job['actualDuration']).map((job) => job['actualDuration']!);
 
         stats.averageDuration = durationsInHours.length > 0 ? durationsInHours.reduce((sum, duration) => sum + duration, 0) / durationsInHours.length : 0;
@@ -544,7 +479,6 @@ export class JobNewService implements OnDestroy {
 
     const jobsRef = collection(this.firestore, 'jobs');
 
-    // Create queries for each status
     const unallocatedQuery = query(jobsRef, where('status', '==', 'unallocated'));
     const allocatedQuery = query(jobsRef, where('status', '==', 'allocated'));
     const collectedQuery = query(jobsRef, where('status', '==', 'collected'));
@@ -589,9 +523,6 @@ export class JobNewService implements OnDestroy {
     );
   }
 
-  /**
-   * Get job by ID
-   */
   getJobById(jobId: string): Observable<Job | null> {
     const jobRef = doc(this.firestore, `jobs/${jobId}`);
 
@@ -609,9 +540,6 @@ export class JobNewService implements OnDestroy {
     );
   }
 
-  /**
-   * Create a new job
-   */
   createJob(jobData: Partial<Job>): Observable<string> {
     if (!this.currentUserId) {
       return throwError(() => new Error('User not authenticated'));
@@ -645,9 +573,6 @@ export class JobNewService implements OnDestroy {
     );
   }
 
-  /**
-   * Update job
-   */
   updateJob(jobId: string, updateData: Partial<Job>): Observable<void> {
     if (!this.currentUserId) {
       return throwError(() => new Error('User not authenticated'));
@@ -676,9 +601,6 @@ export class JobNewService implements OnDestroy {
     );
   }
 
-  /**
-   * Delete job
-   */
   deleteJob(jobId: string): Observable<void> {
     if (!this.currentUserId) {
       return throwError(() => new Error('User not authenticated'));
@@ -707,9 +629,6 @@ export class JobNewService implements OnDestroy {
     );
   }
 
-  /**
-   * Allocate job to driver
-   */
   allocateJobToDriver(jobId: string, driverId: string): Observable<void> {
     if (!this.currentUserId) {
       return throwError(() => new Error('User not authenticated'));
@@ -747,15 +666,11 @@ export class JobNewService implements OnDestroy {
     );
   }
 
-  /**
-   * Allocate job (simplified version - auto-detects driver or uses dialog)
-   */
   allocateJob(jobId: string, driverId?: string): Observable<void> {
     if (driverId) {
       return this.allocateJobToDriver(jobId, driverId);
     }
 
-    // If no driverId provided, allocate to current user (if they're a driver)
     if (this.currentUserId) {
       return this.authService.getUserProfile().pipe(
         switchMap((profile) => {
@@ -771,9 +686,6 @@ export class JobNewService implements OnDestroy {
     return throwError(() => new Error('User not authenticated'));
   }
 
-  /**
-   * Unallocate job (remove driver assignment)
-   */
   unallocateJob(jobId: string): Observable<void> {
     if (!this.currentUserId) {
       return throwError(() => new Error('User not authenticated'));
@@ -811,9 +723,6 @@ export class JobNewService implements OnDestroy {
     );
   }
 
-  /**
-   * Start collection for job
-   */
   startCollection(jobId: string, collectionData: any = {}): Observable<void> {
     if (!this.currentUserId) {
       return throwError(() => new Error('User not authenticated'));
@@ -860,9 +769,6 @@ export class JobNewService implements OnDestroy {
     );
   }
 
-  /**
-   * Start delivery for job
-   */
   startDelivery(jobId: string, deliveryData: any = {}): Observable<void> {
     if (!this.currentUserId) {
       return throwError(() => new Error('User not authenticated'));
@@ -909,9 +815,6 @@ export class JobNewService implements OnDestroy {
     );
   }
 
-  /**
-   * Complete delivery for job
-   */
   completeDelivery(jobId: string, deliveryData: any): Observable<void> {
     if (!this.currentUserId) {
       return throwError(() => new Error('User not authenticated'));
@@ -958,9 +861,6 @@ export class JobNewService implements OnDestroy {
     );
   }
 
-  /**
-   * Bulk update jobs
-   */
   bulkUpdateJobs(jobIds: string[], updateData: Partial<Job>): Observable<void> {
     if (!this.currentUserId) {
       return throwError(() => new Error('User not authenticated'));
@@ -1004,9 +904,6 @@ export class JobNewService implements OnDestroy {
     );
   }
 
-  /**
-   * Duplicate job
-   */
   duplicateJob(jobId: string): Observable<string> {
     if (!this.currentUserId) {
       return throwError(() => new Error('User not authenticated'));
@@ -1025,22 +922,19 @@ export class JobNewService implements OnDestroy {
           return throwError(() => new Error('Original job not found'));
         }
 
-        // Create new job data based on original, but reset certain fields
         const newJobData = {
           ...originalJob,
-          // Remove fields that shouldn't be duplicated
+
           id: undefined,
           driverId: null,
           status: 'unallocated',
           stage: '',
 
-          // Reset timestamps
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
           createdBy: this.currentUserId,
           updatedBy: this.currentUserId,
 
-          // Clear progress-related fields
           allocatedAt: undefined,
           collectionStartTime: undefined,
           collectionCompleteTime: undefined,
@@ -1048,11 +942,9 @@ export class JobNewService implements OnDestroy {
           deliveryCompleteTime: undefined,
           statusUpdatedAt: serverTimestamp(),
 
-          // Reset optional process fields
           actualDuration: undefined,
         };
 
-        // Remove undefined values to avoid Firestore issues
         Object.keys(newJobData).forEach((key) => {
           if (newJobData[key as keyof typeof newJobData] === undefined) {
             delete newJobData[key as keyof typeof newJobData];
@@ -1077,9 +969,6 @@ export class JobNewService implements OnDestroy {
     );
   }
 
-  /**
-   * Get jobs with pagination
-   */
   getJobsWithPagination(
     limitCount: number = 25,
     startAfterDoc?: QueryDocumentSnapshot<DocumentData>
@@ -1106,9 +995,6 @@ export class JobNewService implements OnDestroy {
     );
   }
 
-  /**
-   * Convert Firebase document to Job model
-   */
   private convertFirebaseJobToModel(id: string, data: any): Job {
     const convertTimestamp = (timestamp: any): Date | undefined => {
       if (!timestamp) return undefined;
@@ -1131,7 +1017,6 @@ export class JobNewService implements OnDestroy {
       status: data.status || 'unallocated',
       stage: data.stage || '',
 
-      // Customer and vehicle information
       customerName: data.customerName || '',
       customerEmail: data.customerEmail || '',
       customerPhone: data.customerPhone || '',
@@ -1141,7 +1026,6 @@ export class JobNewService implements OnDestroy {
       year: data.year || null,
       color: data.color || '',
 
-      // Location information
       collectionAddress: data.collectionAddress || '',
       collectionTown: data.collectionTown || '',
       collectionPostcode: data.collectionPostcode || '',
@@ -1149,13 +1033,11 @@ export class JobNewService implements OnDestroy {
       deliveryTown: data.deliveryTown || '',
       deliveryPostcode: data.deliveryPostcode || '',
 
-      // Dates
       collectionDate: convertTimestamp(data.collectionDate),
       deliveryDate: convertTimestamp(data.deliveryDate),
       createdAt: convertTimestamp(data.createdAt) || new Date(),
       updatedAt: convertTimestamp(data.updatedAt) || new Date(),
 
-      // Timestamps for various stages
       allocatedAt: convertTimestamp(data.allocatedAt),
       collectionStartTime: convertTimestamp(data.collectionStartTime),
       collectionCompleteTime: convertTimestamp(data.collectionCompleteTime),
@@ -1163,18 +1045,15 @@ export class JobNewService implements OnDestroy {
       deliveryCompleteTime: convertTimestamp(data.deliveryCompleteTime),
       statusUpdatedAt: convertTimestamp(data.statusUpdatedAt),
 
-      // Additional fields
       notes: data.notes || '',
       specialInstructions: data.specialInstructions || '',
       priority: data.priority || 'normal',
       estimatedDuration: data.estimatedDuration || null,
       actualDuration: data.actualDuration || null,
 
-      // Tracking fields
       createdBy: data.createdBy || '',
       updatedBy: data.updatedBy || '',
 
-      // Optional fields that might be present
       ...Object.keys(data).reduce((acc: any, key) => {
         if (
           ![
@@ -1221,5 +1100,42 @@ export class JobNewService implements OnDestroy {
         return acc;
       }, {}),
     };
+  }
+
+  getTodaysJobs(): Observable<Job[]> {
+    const jobsRef = collection(this.firestore, 'jobs');
+
+    const today = new Date();
+    const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999);
+
+    const q = query(jobsRef, where('collectionDate', '>=', startOfDay), where('collectionDate', '<=', endOfDay), orderBy('collectionDate', 'asc'), limit(100));
+
+    return from(getDocs(q)).pipe(
+      map((snapshot) => snapshot.docs.map((doc) => this.convertFirebaseJobToModel(doc.id, doc.data()))),
+      tap(() => this.loadingSubject.next(false)),
+      catchError((error) => {
+        console.error("Error fetching today's jobs:", error);
+        this.loadingSubject.next(false);
+        return of([]);
+      })
+    );
+  }
+
+  getJobsForDate(date: Date): Observable<Job[]> {
+    const jobsRef = collection(this.firestore, 'jobs');
+
+    const startOfDay = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    const endOfDay = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 23, 59, 59, 999);
+
+    const q = query(jobsRef, where('collectionDate', '>=', startOfDay), where('collectionDate', '<=', endOfDay), orderBy('collectionDate', 'asc'), limit(100));
+
+    return from(getDocs(q)).pipe(
+      map((snapshot) => snapshot.docs.map((doc) => this.convertFirebaseJobToModel(doc.id, doc.data()))),
+      catchError((error) => {
+        console.error(`Error fetching jobs for date ${date.toDateString()}:`, error);
+        return of([]);
+      })
+    );
   }
 }
