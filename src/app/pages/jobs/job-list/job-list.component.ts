@@ -9,9 +9,9 @@ import { Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { JobDuplicateDialogComponent } from '../../../dialogs/job-duplicate-dialog.component';
-import { Job } from '../../../interfaces/job.interface';
+import { Job } from '../../../interfaces/job-new.interface';
 import { AuthService } from '../../../services/auth.service';
-import { JobService } from '../../../services/job.service';
+import { JobNewService } from '../../../services/job-new.service';
 
 interface JobFilters {
   status: string;
@@ -29,7 +29,7 @@ interface JobFilters {
   standalone: false,
 })
 export class JobListComponent implements OnInit, AfterViewInit, OnDestroy {
-  displayedColumns: string[] = ['id', 'regNumber', 'make', 'model', 'collectionDate', 'status', 'driver', 'actions'];
+  displayedColumns: string[] = ['shippingReference', 'regNumber', 'make', 'model', 'collectionDate', 'status', 'driver', 'actions'];
 
   isLoading = false;
   dataSource = new MatTableDataSource<Job>([]);
@@ -54,7 +54,7 @@ export class JobListComponent implements OnInit, AfterViewInit, OnDestroy {
     },
   };
 
-  constructor(private router: Router, private jobService: JobService, private authService: AuthService, private snackBar: MatSnackBar, private dialog: MatDialog) {
+  constructor(private router: Router, private jobService: JobNewService, private authService: AuthService, private snackBar: MatSnackBar, private dialog: MatDialog) {
     this.filterForm = new FormGroup({
       status: new FormControl('All'),
       driver: new FormControl('All'),
@@ -127,7 +127,7 @@ export class JobListComponent implements OnInit, AfterViewInit, OnDestroy {
       }
 
       if (this.filters.dateRange.start && this.filters.dateRange.end) {
-        const jobDate = new Date(data.createdAt);
+        const jobDate = data.createdAt.toDate();
         const startDate = new Date(this.filters.dateRange.start);
         const endDate = new Date(this.filters.dateRange.end);
 
@@ -139,8 +139,8 @@ export class JobListComponent implements OnInit, AfterViewInit, OnDestroy {
       return (
         data.id?.toLowerCase().includes(searchStr) ||
         data['registration']?.toLowerCase().includes(searchStr) ||
-        data.make?.toLowerCase().includes(searchStr) ||
-        data.model?.toLowerCase().includes(searchStr) ||
+        data.vehicleMake?.toLowerCase().includes(searchStr) ||
+        data.vehicleModel?.toLowerCase().includes(searchStr) ||
         this.driverMap[data.driverId || '']?.toLowerCase().includes(searchStr)
       );
     };
@@ -243,7 +243,7 @@ export class JobListComponent implements OnInit, AfterViewInit, OnDestroy {
       data: {
         jobId: job.id,
         registrationNumber: job['registration'],
-        makeModel: job.make && job.model ? `${job.make} ${job.model}` : undefined,
+        makeModel: job.vehicleMake && job.vehicleModel ? `${job.vehicleMake} ${job.vehicleModel}` : undefined,
       },
       width: '400px',
       panelClass: ['custom-dialog-container', 'duplication-dialog'],

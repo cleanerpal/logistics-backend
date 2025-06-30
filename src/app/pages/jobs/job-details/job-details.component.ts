@@ -6,11 +6,12 @@ import { Observable, Subscription, combineLatest, forkJoin, of } from 'rxjs';
 import { catchError, switchMap, tap } from 'rxjs/operators';
 import { ConfirmationDialogComponent } from '../../../dialogs/confirmation-dialog.component';
 import { AuthService } from '../../../services/auth.service';
-import { JobService } from '../../../services/job.service';
-import { Job } from '../../../interfaces/job.interface';
+import { JobNewService } from '../../../services/job-new.service';
+import { Job } from '../../../interfaces/job-new.interface';
 import { UserProfile } from '../../../interfaces/user-profile.interface';
 import { DriverSelectionDialogComponent } from '../../../dialogs/driver-selection-dialog.component';
 import { JobDuplicateDialogComponent } from '../../../dialogs/job-duplicate-dialog.component';
+import { Timestamp } from 'firebase/firestore';
 
 interface Note {
   author: string;
@@ -61,7 +62,7 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
   constructor(
     private route: ActivatedRoute,
     private router: Router,
-    private jobService: JobService,
+    private jobService: JobNewService,
     private authService: AuthService,
     private dialog: MatDialog,
     private snackBar: MatSnackBar,
@@ -122,7 +123,7 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
           this.isLoading = false;
           this.cdr.detectChanges();
 
-          if (this.job && this.job.notes) {
+          if (this.job && this.job['notes']) {
             this.processJobNotes(this.job);
           }
         },
@@ -140,17 +141,17 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
   private processJobNotes(job: Job) {
     const rawNotes: Note[] = [];
 
-    if (Array.isArray(job.notes)) {
-      rawNotes.push(...(job.notes as Note[]));
-    } else if (typeof job.notes === 'string') {
+    if (Array.isArray(job['notes'])) {
+      rawNotes.push(...(job['notes'] as Note[]));
+    } else if (typeof job['notes'] === 'string') {
       rawNotes.push({
         author: job.createdBy || 'System',
-        content: job.notes,
-        date: job.createdAt,
+        content: job['notes'],
+        date: job.createdAt.toDate(),
       });
-    } else if (typeof job.notes === 'object' && job.notes !== null) {
+    } else if (typeof job['notes'] === 'object' && job['notes'] !== null) {
       try {
-        const notesObject = job.notes as Record<string, any>;
+        const notesObject = job['notes'] as Record<string, any>;
         const noteEntries = Object.entries(notesObject).map(([id, noteData]) => {
           const note: Note = {
             author: (noteData as any).author || 'Unknown',
@@ -392,7 +393,7 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
     const dialogRef = this.dialog.open(DriverSelectionDialogComponent, {
       data: {
         jobId: this.job!.id,
-        jobTitle: `${this.job!.make} ${this.job!.model} (${this.job!['registration'] || 'No Reg'})`,
+        jobTitle: `${this.job!['make']} ${this.job!['model']} (${this.job!['registration'] || 'No Reg'})`,
       },
       width: '450px',
       panelClass: ['custom-dialog-container', 'allocation-dialog'],
@@ -420,8 +421,8 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
     const jobData: Partial<Job> = {
       status: 'allocated',
       driverId: driverId,
-      allocatedAt: new Date(),
-      updatedAt: new Date(),
+      allocatedAt: Timestamp.now(),
+      updatedAt: Timestamp.now(),
       updatedBy: this.currentUser?.id,
     };
 
@@ -557,7 +558,7 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
         this.jobService
           .updateJob(this.job!.id, {
             status: 'completed',
-            updatedAt: new Date(),
+            updatedAt: Timestamp.now(),
           })
           .subscribe({
             next: () => {
@@ -606,43 +607,45 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
     return date.toLocaleString();
   }
 
-  formatUKDate(date: Date | undefined): string {
+  formatUKDate(date: Date | Timestamp | undefined): string {
     if (!date) return 'N/A';
-
+    let d: Date;
     if (typeof date === 'string') {
-      date = new Date(date);
+      d = new Date(date);
+    } else if (date instanceof Date) {
+      d = date;
+    } else if (date instanceof Timestamp || this.hasToDate(date)) {
+      d = (date as { toDate: () => Date }).toDate();
+    } else {
+      return 'N/A';
     }
-
-    if (date && typeof date === 'object' && 'toDate' in date) {
-      const timestamp = date as unknown as { toDate: () => Date };
-      date = timestamp.toDate();
-    }
-
-    const day = date.getDate().toString().padStart(2, '0');
-    const month = (date.getMonth() + 1).toString().padStart(2, '0');
-    const year = date.getFullYear();
-
+    const day = d.getDate().toString().padStart(2, '0');
+    const month = (d.getMonth() + 1).toString().padStart(2, '0');
+    const year = d.getFullYear();
     return `${day}/${month}/${year}`;
   }
 
-  formatUKDateTime(date: Date | undefined): string {
+  private hasToDate(val: any): val is { toDate: () => Date } {
+    return val && typeof val.toDate === 'function';
+  }
+
+  formatUKDateTime(date: Date | Timestamp | undefined): string {
     if (!date) return 'N/A';
-
+    let d: Date;
     if (typeof date === 'string') {
-      date = new Date(date);
+      d = new Date(date);
+    } else if (date instanceof Date) {
+      d = date;
+    } else if (date instanceof Timestamp || this.hasToDate(date)) {
+      d = (date as { toDate: () => Date }).toDate();
+    } else {
+      return 'N/A';
     }
-
-    if (date && typeof date === 'object' && 'toDate' in date) {
-      const timestamp = date as unknown as { toDate: () => Date };
-      date = timestamp.toDate();
-    }
-
-    const day = date.getDate().toString().padStart(2, '0');
-    const month = (date.getMonth() + 1).toString().padStart(2, '0');
-    const year = date.getFullYear();
-    const hours = date.getHours().toString().padStart(2, '0');
-    const minutes = date.getMinutes().toString().padStart(2, '0');
-
+    const day = d.getDate().toString().padStart(2, '0');
+    const month = (d.getMonth() + 1).toString().padStart(2, '0');
+    const year = d.getFullYear();
+    const hours = d.getHours().toString().padStart(2, '0');
+    const minutes = d.getMinutes().toString().padStart(2, '0');
     return `${day}/${month}/${year} ${hours}:${minutes}`;
   }
 
@@ -747,7 +750,7 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
       data: {
         jobId: this.job.id,
         registrationNumber: this.job['registration'],
-        makeModel: this.job.make && this.job.model ? `${this.job.make} ${this.job.model}` : undefined,
+        makeModel: this.job['make'] && this.job['model'] ? `${this.job['make']} ${this.job['model']}` : undefined,
       },
       width: '400px',
       panelClass: ['custom-dialog-container', 'duplication-dialog'],
@@ -775,5 +778,12 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
         });
       }
     });
+  }
+
+  toDateSafe(val: any): Date | undefined {
+    if (!val) return undefined;
+    if (typeof val === 'object' && typeof val.toDate === 'function') return val.toDate();
+    if (val instanceof Date) return val;
+    return undefined;
   }
 }

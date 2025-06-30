@@ -1,16 +1,16 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { Router } from '@angular/router';
-import { Observable, Subscription, forkJoin } from 'rxjs';
-import { finalize } from 'rxjs/operators';
-import { JobService } from '../../../services/job.service';
-import { AuthService } from '../../../services/auth.service';
-import { VehicleService, VehicleMake, VehicleModel } from '../../../services/vehicle.service';
-import { CustomerService } from '../../../services/customer.service';
-import { Customer } from '../../../interfaces/customer.interface';
-import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatDialog } from '@angular/material/dialog';
+import { MatSnackBar } from '@angular/material/snack-bar';
+import { Router } from '@angular/router';
+import { Subscription, forkJoin } from 'rxjs';
+import { finalize } from 'rxjs/operators';
 import { ConfirmationDialogComponent } from '../../../dialogs/confirmation-dialog.component';
+import { Customer } from '../../../interfaces/customer.interface';
+import { AuthService } from '../../../services/auth.service';
+import { CustomerService } from '../../../services/customer.service';
+import { JobNewService } from '../../../services/job-new.service';
+import { VehicleMake, VehicleModel, VehicleService } from '../../../services/vehicle.service';
 
 @Component({
   selector: 'app-job-create',
@@ -36,7 +36,7 @@ export class JobCreateComponent implements OnInit, OnDestroy {
   constructor(
     private fb: FormBuilder,
     private router: Router,
-    private jobService: JobService,
+    private jobService: JobNewService,
     private authService: AuthService,
     private vehicleService: VehicleService,
     private customerService: CustomerService,

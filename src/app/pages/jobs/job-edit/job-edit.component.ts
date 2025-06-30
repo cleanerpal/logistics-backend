@@ -1,17 +1,17 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
-import { FormBuilder, FormGroup, Validators, FormArray } from '@angular/forms';
-import { ActivatedRoute, Router } from '@angular/router';
-import { Observable, Subscription, forkJoin, of } from 'rxjs';
-import { finalize, switchMap, catchError, tap, map } from 'rxjs/operators';
-import { JobService } from '../../../services/job.service';
-import { AuthService } from '../../../services/auth.service';
-import { VehicleService, VehicleMake, VehicleModel } from '../../../services/vehicle.service';
-import { CustomerService } from '../../../services/customer.service';
-import { Customer } from '../../../interfaces/customer.interface';
-import { MatSnackBar } from '@angular/material/snack-bar';
+import { Component, OnDestroy, OnInit } from '@angular/core';
+import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
+import { MatSnackBar } from '@angular/material/snack-bar';
+import { ActivatedRoute, Router } from '@angular/router';
+import { Subscription, forkJoin, of } from 'rxjs';
+import { finalize, map, switchMap } from 'rxjs/operators';
 import { ConfirmationDialogComponent } from '../../../dialogs/confirmation-dialog.component';
-import { Job } from '../../../interfaces/job.interface';
+import { Customer } from '../../../interfaces/customer.interface';
+import { Job } from '../../../interfaces/job-new.interface';
+import { AuthService } from '../../../services/auth.service';
+import { CustomerService } from '../../../services/customer.service';
+import { JobNewService } from '../../../services/job-new.service';
+import { VehicleMake, VehicleModel, VehicleService } from '../../../services/vehicle.service';
 
 @Component({
   selector: 'app-job-edit',
@@ -40,7 +40,7 @@ export class JobEditComponent implements OnInit, OnDestroy {
     private fb: FormBuilder,
     private router: Router,
     private route: ActivatedRoute,
-    private jobService: JobService,
+    private jobService: JobNewService,
     private authService: AuthService,
     private vehicleService: VehicleService,
     private customerService: CustomerService,
@@ -242,8 +242,8 @@ export class JobEditComponent implements OnInit, OnDestroy {
     if (!job) return;
 
     let makeId = '';
-    if (job.make) {
-      const make = this.vehicleMakes.find((m) => m.displayName === job.make);
+    if (job.vehicleMake) {
+      const make = this.vehicleMakes.find((m) => m.displayName === job.vehicleMake);
       if (make) {
         makeId = make.id;
       }
@@ -254,9 +254,9 @@ export class JobEditComponent implements OnInit, OnDestroy {
     }
 
     let modelId = '';
-    if (job.model && makeId) {
+    if (job.vehicleModel && makeId) {
       setTimeout(() => {
-        const model = this.availableModels.find((m) => m.name === job.model);
+        const model = this.availableModels.find((m) => m.name === job.vehicleModel);
         if (model) {
           modelId = model.id;
         }
@@ -270,8 +270,8 @@ export class JobEditComponent implements OnInit, OnDestroy {
           vehicleType: job['vehicleType'] || '',
           registration: job['registration'] || '',
           chassisNumber: job['chassisNumber'] || '',
-          color: job.color || '',
-          year: job.year || '',
+          color: job.vehicleColor || '',
+          year: job.vehicleYear || '',
           collectionAddress: job.collectionAddress || '',
           collectionCity: job['collectionCity'] || '',
           collectionPostcode: job.collectionPostcode || '',
@@ -297,7 +297,7 @@ export class JobEditComponent implements OnInit, OnDestroy {
           secondaryDeliveryContactName: job['secondaryDeliveryContactName'] || '',
           secondaryDeliveryContactPhone: job['secondaryDeliveryContactPhone'] || '',
           secondaryDeliveryNotes: job['secondaryDeliveryNotes'] || '',
-          notes: typeof job.notes === 'string' ? job.notes : '',
+          notes: typeof job['notes'] === 'string' ? job['notes'] : '',
         });
 
         this.updateSplitJourneyValidation(isSplitJourney);
@@ -311,8 +311,8 @@ export class JobEditComponent implements OnInit, OnDestroy {
         vehicleType: job['vehicleType'] || '',
         registration: job['registration'] || '',
         chassisNumber: job['chassisNumber'] || '',
-        color: job.color || '',
-        year: job.year || '',
+        color: job['color'] || '',
+        year: job['year'] || '',
         collectionAddress: job.collectionAddress || '',
         collectionCity: job['collectionCity'] || '',
         collectionPostcode: job.collectionPostcode || '',
@@ -338,7 +338,7 @@ export class JobEditComponent implements OnInit, OnDestroy {
         secondaryDeliveryContactName: job['secondaryDeliveryContactName'] || '',
         secondaryDeliveryContactPhone: job['secondaryDeliveryContactPhone'] || '',
         secondaryDeliveryNotes: job['secondaryDeliveryNotes'] || '',
-        notes: typeof job.notes === 'string' ? job.notes : '',
+        notes: typeof job['notes'] === 'string' ? job['notes'] : '',
       });
 
       this.updateSplitJourneyValidation(isSplitJourney);

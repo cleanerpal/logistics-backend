@@ -16,20 +16,20 @@
       <div class="header-content">
         <div class="header-left">
           <div class="job-identifier">
-            <div class="vehicle-badge" *ngIf="job.make">
-              <img [src]="getVehicleLogo(job.make)" [alt]="job.make + ' logo'" (error)="handleImageError($event)" />
+            <div class="vehicle-badge" *ngIf="job['make']">
+              <img [src]="getVehicleLogo(job['make'])" [alt]="job['make'] + ' logo'" (error)="handleImageError($event)" />
             </div>
             <div class="job-details-header">
               <div class="job-id-wrapper">
-                <span class="job-id">{{ job.id }}</span>
+                <span class="job-id">{{ job.shippingReference }}</span>
 
                 <span class="journey-type-badge" [ngClass]="job['isSplitJourney'] ? 'split' : 'normal'">
                   <span class="material-icons">{{ job['isSplitJourney'] ? 'call_split' : 'arrow_forward' }}</span>
                   {{ job['isSplitJourney'] ? 'Split Journey' : 'Direct Journey' }}
                 </span>
               </div>
-              <div class="vehicle-summary" *ngIf="job.make && job.model">
-                {{ job.make }} {{ job.model }}
+              <div class="vehicle-summary" *ngIf="job['make'] && job['model']">
+                {{ job['make'] }} {{ job['model'] }}
                 {{ job['registration'] ? '(' + job['registration'] + ')' : '' }}
               </div>
             </div>
@@ -91,11 +91,11 @@
                   <div class="vehicle-details">
                     <div class="info-row">
                       <span class="label">Make</span>
-                      <span class="value">{{ job.make || 'N/A' }}</span>
+                      <span class="value">{{ job['make'] || 'N/A' }}</span>
                     </div>
                     <div class="info-row">
                       <span class="label">Model</span>
-                      <span class="value">{{ job.model || 'N/A' }}</span>
+                      <span class="value">{{ job['model'] || 'N/A' }}</span>
                     </div>
                     <div class="info-row">
                       <span class="label">Registration</span>
@@ -107,11 +107,11 @@
                     </div>
                     <div class="info-row">
                       <span class="label">Color</span>
-                      <span class="value">{{ job.color || 'N/A' }}</span>
+                      <span class="value">{{ job['color'] || 'N/A' }}</span>
                     </div>
                     <div class="info-row">
                       <span class="label">Year</span>
-                      <span class="value">{{ job.year || 'N/A' }}</span>
+                      <span class="value">{{ job['year'] || 'N/A' }}</span>
                     </div>
                     <div class="info-row">
                       <span class="label">Chassis Number</span>
@@ -243,7 +243,7 @@
                   <div class="status-details">
                     <span class="status-text">{{ job.status | titlecase }}</span>
                     <span class="current-driver" *ngIf="job.driverId"> Driver: {{ getDriverName() }} </span>
-                    <span class="status-date" *ngIf="job['statusUpdatedAt']"> Updated: {{ formatUKDateTime(job['statusUpdatedAt']) }} </span>
+                    <span class="status-date" *ngIf="job['statusUpdatedAt']"> Updated: {{ formatUKDateTime(job.statusUpdatedAt) }} </span>
                   </div>
                 </div>
 
@@ -368,7 +368,7 @@
                 </div>
               </div>
 
-              <div class="timeline-event status-collection-started" *ngIf="job.collectionStartTime">
+              <div class="timeline-event status-collection-started" *ngIf="job['collectionStartTime']">
                 <div class="timeline-marker">
                   <div class="timeline-icon">
                     <span class="material-icons">departure_board</span>
@@ -377,7 +377,9 @@
                 <div class="timeline-content">
                   <div class="event-header">
                     <h3 class="event-status">Collection Started</h3>
-                    <time class="event-time">{{ formatUKDateTime(job.collectionStartTime) }}</time>
+                    <time class="event-time">{{
+                      formatUKDateTime(job['collectionStartTime']?.toDate ? job['collectionStartTime'].toDate() : job['collectionStartTime'])
+                    }}</time>
                   </div>
                   <div class="event-metadata">
                     <span class="metadata-item">
@@ -392,7 +394,7 @@
                 </div>
               </div>
 
-              <div class="timeline-event status-collection-completed" *ngIf="job.collectionCompleteTime">
+              <div class="timeline-event status-collection-completed" *ngIf="job['collectionCompleteTime']">
                 <div class="timeline-marker">
                   <div class="timeline-icon">
                     <span class="material-icons">check_circle</span>
@@ -401,7 +403,9 @@
                 <div class="timeline-content">
                   <div class="event-header">
                     <h3 class="event-status">Collection Completed</h3>
-                    <time class="event-time">{{ formatUKDateTime(job.collectionCompleteTime) }}</time>
+                    <time class="event-time">{{
+                      formatUKDateTime(job['collectionCompleteTime']?.toDate ? job['collectionCompleteTime'].toDate() : job['collectionCompleteTime'])
+                    }}</time>
                   </div>
                   <div class="event-metadata">
                     <span class="metadata-item">
@@ -412,7 +416,7 @@
                 </div>
               </div>
 
-              <div class="timeline-event status-delivery-started" *ngIf="job.deliveryStartTime">
+              <div class="timeline-event status-delivery-started" *ngIf="job['deliveryStartTime']">
                 <div class="timeline-marker">
                   <div class="timeline-icon">
                     <span class="material-icons">local_shipping</span>
@@ -421,7 +425,9 @@
                 <div class="timeline-content">
                   <div class="event-header">
                     <h3 class="event-status">Delivery Started</h3>
-                    <time class="event-time">{{ formatUKDateTime(job.deliveryStartTime) }}</time>
+                    <time class="event-time">{{
+                      formatUKDateTime(job['deliveryStartTime']?.toDate ? job['deliveryStartTime'].toDate() : job['deliveryStartTime'])
+                    }}</time>
                   </div>
                   <div class="event-metadata">
                     <span class="metadata-item">
@@ -436,7 +442,7 @@
                 </div>
               </div>
 
-              <div class="timeline-event status-delivery-completed" *ngIf="job.deliveryCompleteTime">
+              <div class="timeline-event status-delivery-completed" *ngIf="job['deliveryCompleteTime']">
                 <div class="timeline-marker">
                   <div class="timeline-icon">
                     <span class="material-icons">done_all</span>
@@ -445,7 +451,9 @@
                 <div class="timeline-content">
                   <div class="event-header">
                     <h3 class="event-status">Delivery Completed</h3>
-                    <time class="event-time">{{ formatUKDateTime(job.deliveryCompleteTime) }}</time>
+                    <time class="event-time">{{
+                      formatUKDateTime(job['deliveryCompleteTime']?.toDate ? job['deliveryCompleteTime'].toDate() : job['deliveryCompleteTime'])
+                    }}</time>
                   </div>
                   <div class="event-metadata">
                     <span class="metadata-item">
