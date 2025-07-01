@@ -26,11 +26,14 @@ export interface JobProcessStepData {
 }
 
 export interface JobNote {
-  id: string;
+  id?: string;
+  content?: string;
+  text?: string; // Alternative property name
+  authorName?: string;
+  createdBy?: string; // Alternative property name
+  createdAt?: Date | Timestamp;
+  updatedAt?: Date | Timestamp;
   authorId: string;
-  authorName: string;
-  content: string;
-  createdAt: Timestamp;
 }
 
 export interface Job {

@@ -464,7 +464,7 @@
           </div>
         </mat-tab>
 
-        <!-- Billing Tab -->
+        <!-- Enhanced Billing Tab -->
         <mat-tab label="Billing" *ngIf="canManageBilling">
           <div class="tab-content">
             <div class="billing-section" *ngIf="!isLoadingBilling && jobBilling">
@@ -483,28 +483,59 @@
                 </div>
               </div>
 
-              <!-- Billing Summary -->
-              <div class="billing-summary">
-                <div class="summary-card">
-                  <div class="summary-item">
-                    <span class="label">Subtotal</span>
-                    <span class="value">£{{ jobBilling.subtotal.toFixed(2) }}</span>
-                  </div>
-                  <div class="summary-item">
-                    <span class="label">VAT ({{ (jobBilling.vatRate * 100).toFixed(0) }}%)</span>
-                    <span class="value">£{{ jobBilling.vatAmount.toFixed(2) }}</span>
-                  </div>
-                  <div class="summary-item total">
-                    <span class="label">Total Amount</span>
-                    <span class="value">£{{ jobBilling.totalAmount.toFixed(2) }}</span>
-                  </div>
-                  <div class="summary-item status">
-                    <span class="label">Status</span>
-                    <span class="status-badge" [ngClass]="'status-' + jobBilling.status">
-                      {{ jobBilling.status | titlecase }}
-                    </span>
-                  </div>
-                </div>
+              <!-- Enhanced Billing Summary Cards -->
+              <div class="billing-summary-grid">
+                <mat-card class="summary-card">
+                  <mat-card-header>
+                    <mat-card-title>
+                      <mat-icon>attach_money</mat-icon>
+                      Total Invoice
+                    </mat-card-title>
+                  </mat-card-header>
+                  <mat-card-content>
+                    <div class="summary-amount">£{{ jobBilling.totalAmount.toFixed(2) }}</div>
+                    <div class="summary-label">Including VAT</div>
+                  </mat-card-content>
+                </mat-card>
+
+                <mat-card class="summary-card">
+                  <mat-card-header>
+                    <mat-card-title>
+                      <mat-icon>account_balance</mat-icon>
+                      Customer Chargeable
+                    </mat-card-title>
+                  </mat-card-header>
+                  <mat-card-content>
+                    <div class="summary-amount">£{{ (jobBilling.customerChargeableTotal || jobBilling.subtotal).toFixed(2) }}</div>
+                    <div class="summary-label">Chargeable to Customer</div>
+                  </mat-card-content>
+                </mat-card>
+
+                <mat-card class="summary-card">
+                  <mat-card-header>
+                    <mat-card-title>
+                      <mat-icon>receipt</mat-icon>
+                      Total Expenses
+                    </mat-card-title>
+                  </mat-card-header>
+                  <mat-card-content>
+                    <div class="summary-amount">£{{ getTotalApprovedExpenses().toFixed(2) }}</div>
+                    <div class="summary-label">Approved Expenses</div>
+                  </mat-card-content>
+                </mat-card>
+
+                <mat-card class="summary-card">
+                  <mat-card-header>
+                    <mat-card-title>
+                      <mat-icon>business</mat-icon>
+                      Internal Costs
+                    </mat-card-title>
+                  </mat-card-header>
+                  <mat-card-content>
+                    <div class="summary-amount">£{{ getTotalInternalExpenses().toFixed(2) }}</div>
+                    <div class="summary-label">Non-chargeable</div>
+                  </mat-card-content>
+                </mat-card>
               </div>
 
               <!-- Base Price Section -->
@@ -512,17 +543,17 @@
                 <mat-card-header>
                   <mat-card-title>
                     <mat-icon>payments</mat-icon>
-                    Base Service Price
+                    Initial Job Cost
                   </mat-card-title>
                 </mat-card-header>
                 <mat-card-content>
                   <div class="base-price-section">
                     <mat-form-field appearance="outline">
-                      <mat-label>Base Price</mat-label>
+                      <mat-label>Base Job Price</mat-label>
                       <input matInput type="number" [(ngModel)]="jobBilling.basePrice" (blur)="updateBasePrice()" min="0" step="0.01" />
                       <span matTextPrefix>£</span>
                     </mat-form-field>
-                    <p class="base-price-description">Base charge for the logistics service (collection and delivery)</p>
+                    <p class="base-price-description">This is the initial cost for the job before any additional services or expenses.</p>
                   </div>
                 </mat-card-content>
               </mat-card>
@@ -536,13 +567,40 @@
                   </mat-card-title>
                 </mat-card-header>
                 <mat-card-content>
+                  <!-- Quick Add Standard Services -->
+                  <div class="quick-add-services">
+                    <h4>Quick Add Standard Services:</h4>
+                    <div class="service-chips">
+                      <mat-chip-row *ngFor="let service of standardPricingItems" (click)="addStandardPricingItem(service)" class="service-chip">
+                        <mat-icon matChipAvatar>{{
+                          service.name === 'Collection Service'
+                            ? 'departure_board'
+                            : service.name === 'Delivery Service'
+                            ? 'local_shipping'
+                            : service.name === 'Storage (per day)'
+                            ? 'storage'
+                            : service.name === 'Washing Service'
+                            ? 'local_car_wash'
+                            : service.name === 'Express Service'
+                            ? 'flash_on'
+                            : service.name === 'Mileage (per mile)'
+                            ? 'route'
+                            : service.name === 'Cleaning Service'
+                            ? 'cleaning_services'
+                            : 'build'
+                        }}</mat-icon>
+                        {{ service.name }} - £{{ service.price.toFixed(2) }}
+                      </mat-chip-row>
+                    </div>
+                  </div>
+
                   <!-- Add New Item Form -->
                   <div class="add-item-form">
-                    <h4>Add Service/Item</h4>
+                    <h4>Add Custom Service/Item:</h4>
                     <div class="item-form-grid">
                       <mat-form-field appearance="outline">
                         <mat-label>Service/Item Name</mat-label>
-                        <input matInput [(ngModel)]="newPricingItem.name" placeholder="e.g., Express Service" />
+                        <input matInput [(ngModel)]="newPricingItem.name" placeholder="e.g., Special handling fee" />
                       </mat-form-field>
 
                       <mat-form-field appearance="outline">
@@ -566,16 +624,6 @@
                         Add Item
                       </button>
                     </div>
-
-                    <!-- Standard Items -->
-                    <div class="standard-items">
-                      <h5>Quick Add Standard Items:</h5>
-                      <div class="standard-items-grid">
-                        <button *ngFor="let item of standardPricingItems" mat-stroked-button (click)="addStandardPricingItem(item)" class="standard-item-button">
-                          {{ item.name }} - £{{ item.price.toFixed(2) }}
-                        </button>
-                      </div>
-                    </div>
                   </div>
 
                   <!-- Items List -->
@@ -593,6 +641,7 @@
                         <div class="item-info">
                           <strong>{{ item.name }}</strong>
                           <small>{{ item.description }}</small>
+                          <mat-chip *ngIf="!item.isCustom" class="standard-chip">Standard</mat-chip>
                         </div>
                         <span>£{{ item.price.toFixed(2) }}</span>
                         <span>{{ item.quantity }}</span>
@@ -606,7 +655,7 @@
                 </mat-card-content>
               </mat-card>
 
-              <!-- Expenses Section -->
+              <!-- Enhanced Expenses Section -->
               <mat-card class="billing-card">
                 <mat-card-header>
                   <mat-card-title>
@@ -617,7 +666,7 @@
                 <mat-card-content>
                   <!-- Add Expense Form -->
                   <div class="add-expense-form">
-                    <h4>Add Expense</h4>
+                    <h4>Add New Expense:</h4>
                     <div class="expense-form-grid">
                       <mat-form-field appearance="outline">
                         <mat-label>Expense Type</mat-label>
@@ -640,23 +689,39 @@
                         <span matTextPrefix>£</span>
                       </mat-form-field>
 
+                      <mat-form-field appearance="outline" *ngIf="getExpenseTypeRequiresLiters(newExpense.type)">
+                        <mat-label>Liters</mat-label>
+                        <input matInput type="number" [(ngModel)]="newExpense.liters" min="0" step="0.1" />
+                        <span matTextSuffix>L</span>
+                      </mat-form-field>
+
                       <mat-form-field appearance="outline">
                         <mat-label>Receipt URL (optional)</mat-label>
                         <input matInput [(ngModel)]="newExpense.receiptUrl" placeholder="https://..." />
                       </mat-form-field>
 
-                      <button mat-raised-button color="accent" (click)="addExpense()" [disabled]="!newExpense.description || newExpense.amount <= 0">
-                        <mat-icon>add</mat-icon>
-                        Add Expense
-                      </button>
+                      <mat-form-field appearance="outline">
+                        <mat-label>Notes (optional)</mat-label>
+                        <textarea matInput [(ngModel)]="newExpense.notes" rows="2" placeholder="Additional notes..."></textarea>
+                      </mat-form-field>
                     </div>
+
+                    <div class="expense-options">
+                      <mat-checkbox [(ngModel)]="newExpense.isChargeable"> Chargeable to Customer </mat-checkbox>
+                      <mat-hint>If unchecked, this will be an internal cost only</mat-hint>
+                    </div>
+
+                    <button mat-raised-button color="accent" (click)="addExpense()" [disabled]="!newExpense.description || newExpense.amount <= 0">
+                      <mat-icon>add</mat-icon>
+                      Add Expense
+                    </button>
                   </div>
 
                   <!-- Expenses List -->
                   <div class="expenses-list" *ngIf="jobBilling.expenses.length > 0">
-                    <h4>Recorded Expenses</h4>
+                    <h4>Recorded Expenses:</h4>
 
-                    <!-- Expense Stats -->
+                    <!-- Enhanced Expense Stats -->
                     <div class="expense-stats">
                       <div class="stat-item approved">
                         <span class="label">Approved</span>
@@ -665,6 +730,14 @@
                       <div class="stat-item pending">
                         <span class="label">Pending</span>
                         <span class="value">£{{ getTotalPendingExpenses().toFixed(2) }}</span>
+                      </div>
+                      <div class="stat-item chargeable">
+                        <span class="label">Chargeable</span>
+                        <span class="value">£{{ getTotalChargeableExpenses().toFixed(2) }}</span>
+                      </div>
+                      <div class="stat-item internal">
+                        <span class="label">Internal</span>
+                        <span class="value">£{{ getTotalInternalExpenses().toFixed(2) }}</span>
                       </div>
                     </div>
 
@@ -677,14 +750,26 @@
                         <span>Status</span>
                         <span>Actions</span>
                       </div>
-                      <div *ngFor="let expense of jobBilling.expenses" class="expense-row" [class.approved]="expense.isApproved">
+                      <div
+                        *ngFor="let expense of jobBilling.expenses"
+                        class="expense-row"
+                        [class.approved]="expense.isApproved"
+                        [class.chargeable]="expense.isChargeable">
                         <div class="expense-type">
                           <mat-icon>{{ getExpenseTypeIcon(expense.type) }}</mat-icon>
-                          {{ getExpenseTypeLabel(expense.type) }}
+                          <div>
+                            <span>{{ getExpenseTypeLabel(expense.type) }}</span>
+                            <div class="expense-badges">
+                              <mat-chip *ngIf="expense.isChargeable" class="chargeable-chip">Chargeable</mat-chip>
+                              <mat-chip *ngIf="!expense.isChargeable" class="internal-chip">Internal</mat-chip>
+                              <mat-chip *ngIf="expense.liters" class="liters-chip">{{ expense.liters }}L</mat-chip>
+                            </div>
+                          </div>
                         </div>
                         <div class="expense-description">
-                          {{ expense.description }}
+                          <strong>{{ expense.description }}</strong>
                           <small>Added by {{ expense.addedByName }}</small>
+                          <small *ngIf="expense.notes" class="notes">{{ expense.notes }}</small>
                         </div>
                         <span class="expense-amount">£{{ expense.amount.toFixed(2) }}</span>
                         <span>{{ formatDate(expense.date) }}</span>
@@ -702,7 +787,7 @@
                             matTooltip="Approve expense">
                             <mat-icon>check</mat-icon>
                           </button>
-                          <button *ngIf="expense.receiptUrl" mat-icon-button (click)="window.open(expense.receiptUrl, '_blank')" matTooltip="View receipt">
+                          <button *ngIf="expense.receiptUrl" mat-icon-button (click)="openReceipt(expense.receiptUrl)" matTooltip="View receipt">
                             <mat-icon>attachment</mat-icon>
                           </button>
                           <button mat-icon-button color="warn" (click)="removeExpense(expense.id)" matTooltip="Remove expense">
@@ -726,7 +811,7 @@
                 <mat-card-content>
                   <mat-form-field appearance="outline" class="full-width">
                     <mat-label>Additional notes for invoice</mat-label>
-                    <textarea matInput [(ngModel)]="jobBilling.notes" rows="3" placeholder="Any additional notes to include on the invoice..."> </textarea>
+                    <textarea matInput [(ngModel)]="jobBilling.notes" rows="3" placeholder="Any additional notes to include on the invoice..."></textarea>
                   </mat-form-field>
                 </mat-card-content>
               </mat-card>
