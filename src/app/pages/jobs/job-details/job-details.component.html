@@ -1,3 +1,4 @@
+<!-- src/app/pages/jobs/job-details/job-details.component.html -->
 <div class="job-details-container">
   <!-- Header Section -->
   <div class="page-header">
@@ -180,6 +181,143 @@
                   </div>
                 </div>
               </div>
+
+              <!-- Vehicle Condition Summary -->
+              <div class="info-section" *ngIf="vehicleCondition?.collection || vehicleCondition?.delivery">
+                <div class="section-header">
+                  <mat-icon>assessment</mat-icon>
+                  <h3>Vehicle Condition Summary</h3>
+                </div>
+                <div class="condition-grid">
+                  <!-- Collection Condition -->
+                  <div class="condition-section" *ngIf="vehicleCondition?.collection">
+                    <h4>Collection</h4>
+                    <div class="condition-items">
+                      <div class="condition-item" *ngIf="vehicleCondition.collection.mileage !== undefined">
+                        <mat-icon>speed</mat-icon>
+                        <span>{{ vehicleCondition.collection.mileage }} miles</span>
+                      </div>
+                      <div class="condition-item" *ngIf="vehicleCondition.collection.fuelLevel !== undefined">
+                        <mat-icon>local_gas_station</mat-icon>
+                        <span>{{ vehicleCondition.collection.fuelLevel }}% {{ getEnergyLevelLabel(vehicleCondition.collection.energyType) }}</span>
+                      </div>
+                      <div class="condition-item" *ngIf="vehicleCondition.collection.energyType">
+                        <mat-icon>power</mat-icon>
+                        <span>{{ getEnergyTypeLabel(vehicleCondition.collection.energyType) }}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Delivery Condition -->
+                  <div class="condition-section" *ngIf="vehicleCondition?.delivery">
+                    <h4>Delivery</h4>
+                    <div class="condition-items">
+                      <div class="condition-item" *ngIf="vehicleCondition.delivery.mileage !== undefined">
+                        <mat-icon>speed</mat-icon>
+                        <span>{{ vehicleCondition.delivery.mileage }} miles</span>
+                      </div>
+                      <div class="condition-item" *ngIf="vehicleCondition.delivery.fuelLevel !== undefined">
+                        <mat-icon>local_gas_station</mat-icon>
+                        <span>{{ vehicleCondition.delivery.fuelLevel }}% {{ getEnergyLevelLabel(vehicleCondition.delivery.energyType) }}</span>
+                      </div>
+                      <div class="condition-item" *ngIf="vehicleCondition.delivery.energyType">
+                        <mat-icon>power</mat-icon>
+                        <span>{{ getEnergyTypeLabel(vehicleCondition.delivery.energyType) }}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Journey Summary -->
+                  <div class="journey-summary" *ngIf="getMileageDifference() !== null || getEnergyUsed() !== null">
+                    <h4>Journey Summary</h4>
+                    <div class="summary-items">
+                      <div class="summary-item" *ngIf="getMileageDifference() !== null">
+                        <mat-icon>straighten</mat-icon>
+                        <span>{{ getMileageDifference() }} miles traveled</span>
+                      </div>
+                      <div class="summary-item" *ngIf="getEnergyUsed() !== null">
+                        <mat-icon>trending_down</mat-icon>
+                        <span>{{ getEnergyUsed() }}% {{ getEnergyLevelLabel(vehicleCondition?.collection?.energyType) }} used</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Damage Reports -->
+              <div class="info-section" *ngIf="damageReports?.overall || damageReports?.collection || damageReports?.delivery">
+                <div class="section-header">
+                  <mat-icon [class.warning-icon]="damageReports.overall">warning</mat-icon>
+                  <h3>Damage Reports</h3>
+                </div>
+                <div class="damage-grid">
+                  <div class="damage-item" [class.damage-reported]="damageReports.overall">
+                    <mat-icon>{{ damageReports.overall ? 'warning' : 'check_circle' }}</mat-icon>
+                    <span>Overall Job Damage: {{ damageReports.overall ? 'Reported' : 'None' }}</span>
+                  </div>
+                  <div class="damage-item" [class.damage-reported]="damageReports.collection">
+                    <mat-icon>{{ damageReports.collection ? 'warning' : 'check_circle' }}</mat-icon>
+                    <span>Collection Damage: {{ damageReports.collection ? 'Reported' : 'None' }}</span>
+                  </div>
+                  <div class="damage-item" [class.damage-reported]="damageReports.delivery">
+                    <mat-icon>{{ damageReports.delivery ? 'warning' : 'check_circle' }}</mat-icon>
+                    <span>Delivery Damage: {{ damageReports.delivery ? 'Reported' : 'None' }}</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Process Contacts -->
+              <div class="info-section" *ngIf="processContacts?.collection || processContacts?.delivery">
+                <div class="section-header">
+                  <mat-icon>contacts</mat-icon>
+                  <h3>Process Contacts</h3>
+                </div>
+                <div class="contacts-grid">
+                  <div class="contact-section" *ngIf="processContacts?.collection">
+                    <h4>Collection Contact</h4>
+                    <div class="contact-details">
+                      <div class="contact-item">
+                        <mat-icon>person</mat-icon>
+                        <span>{{ processContacts.collection.name }}</span>
+                      </div>
+                      <div class="contact-item" *ngIf="processContacts.collection.position">
+                        <mat-icon>work</mat-icon>
+                        <span>{{ processContacts.collection.position }}</span>
+                      </div>
+                      <div class="contact-item" *ngIf="processContacts.collection.phone">
+                        <mat-icon>phone</mat-icon>
+                        <span>{{ processContacts.collection.phone }}</span>
+                      </div>
+                      <div class="contact-item" *ngIf="processContacts.collection.email">
+                        <mat-icon>email</mat-icon>
+                        <span>{{ processContacts.collection.email }}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="contact-section" *ngIf="processContacts?.delivery">
+                    <h4>Delivery Contact</h4>
+                    <div class="contact-details">
+                      <div class="contact-item">
+                        <mat-icon>person</mat-icon>
+                        <span>{{ processContacts.delivery.name }}</span>
+                      </div>
+                      <div class="contact-item" *ngIf="processContacts.delivery.position">
+                        <mat-icon>work</mat-icon>
+                        <span>{{ processContacts.delivery.position }}</span>
+                      </div>
+                      <div class="contact-item" *ngIf="processContacts.delivery.phone">
+                        <mat-icon>phone</mat-icon>
+                        <span>{{ processContacts.delivery.phone }}</span>
+                      </div>
+                      <div class="contact-item" *ngIf="processContacts.delivery.email">
+                        <mat-icon>email</mat-icon>
+                        <span>{{ processContacts.delivery.email }}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </mat-tab>
@@ -210,9 +348,23 @@
                         <mat-icon>schedule</mat-icon>
                         <span>Scheduled: {{ formatDateTime(job.collectionScheduledTime) }}</span>
                       </div>
+                      <div class="actual-times" *ngIf="job.collectionActualStartTime || job.collectionActualCompleteTime">
+                        <div *ngIf="job.collectionActualStartTime">
+                          <mat-icon>play_arrow</mat-icon>
+                          <span>Started: {{ formatDateTime(job.collectionActualStartTime) }}</span>
+                        </div>
+                        <div *ngIf="job.collectionActualCompleteTime">
+                          <mat-icon>check_circle</mat-icon>
+                          <span>Completed: {{ formatDateTime(job.collectionActualCompleteTime) }}</span>
+                        </div>
+                      </div>
                       <div class="notes" *ngIf="job.collectionNotes">
                         <mat-icon>note</mat-icon>
                         <p>{{ job.collectionNotes }}</p>
+                      </div>
+                      <div class="process-notes" *ngIf="jobProcessData?.collection?.notes">
+                        <mat-icon>assignment</mat-icon>
+                        <p><strong>Process Notes:</strong> {{ jobProcessData?.collection?.notes }}</p>
                       </div>
                     </div>
                   </div>
@@ -243,9 +395,23 @@
                         <mat-icon>schedule</mat-icon>
                         <span>Scheduled: {{ formatDateTime(job.deliveryScheduledTime) }}</span>
                       </div>
+                      <div class="actual-times" *ngIf="job.deliveryActualStartTime || job.deliveryActualCompleteTime">
+                        <div *ngIf="job.deliveryActualStartTime">
+                          <mat-icon>play_arrow</mat-icon>
+                          <span>Started: {{ formatDateTime(job.deliveryActualStartTime) }}</span>
+                        </div>
+                        <div *ngIf="job.deliveryActualCompleteTime">
+                          <mat-icon>check_circle</mat-icon>
+                          <span>Completed: {{ formatDateTime(job.deliveryActualCompleteTime) }}</span>
+                        </div>
+                      </div>
                       <div class="notes" *ngIf="job.deliveryNotes">
                         <mat-icon>note</mat-icon>
                         <p>{{ job.deliveryNotes }}</p>
+                      </div>
+                      <div class="process-notes" *ngIf="jobProcessData?.delivery?.notes">
+                        <mat-icon>assignment</mat-icon>
+                        <p><strong>Process Notes:</strong> {{ jobProcessData?.delivery?.notes }}</p>
                       </div>
                     </div>
                   </div>
@@ -274,11 +440,25 @@
                       </div>
                       <div class="schedule-info" *ngIf="job.collectionScheduledTime">
                         <mat-icon>schedule</mat-icon>
-                        <span>{{ formatDateTime(job.collectionScheduledTime) }}</span>
+                        <span>Scheduled: {{ formatDateTime(job.collectionScheduledTime) }}</span>
+                      </div>
+                      <div class="actual-times" *ngIf="job.collectionActualStartTime || job.collectionActualCompleteTime">
+                        <div *ngIf="job.collectionActualStartTime">
+                          <mat-icon>play_arrow</mat-icon>
+                          <span>Started: {{ formatDateTime(job.collectionActualStartTime) }}</span>
+                        </div>
+                        <div *ngIf="job.collectionActualCompleteTime">
+                          <mat-icon>check_circle</mat-icon>
+                          <span>Completed: {{ formatDateTime(job.collectionActualCompleteTime) }}</span>
+                        </div>
                       </div>
                       <div class="notes" *ngIf="job.collectionNotes">
                         <mat-icon>note</mat-icon>
                         <p>{{ job.collectionNotes }}</p>
+                      </div>
+                      <div class="process-notes" *ngIf="jobProcessData?.collection?.notes">
+                        <mat-icon>assignment</mat-icon>
+                        <p><strong>Process Notes:</strong> {{ jobProcessData?.collection?.notes }}</p>
                       </div>
                     </div>
                   </div>
@@ -306,11 +486,25 @@
                       </div>
                       <div class="schedule-info" *ngIf="job.secondaryCollectionScheduledTime">
                         <mat-icon>schedule</mat-icon>
-                        <span>{{ formatDateTime(job.secondaryCollectionScheduledTime) }}</span>
+                        <span>Scheduled: {{ formatDateTime(job.secondaryCollectionScheduledTime) }}</span>
+                      </div>
+                      <div class="actual-times" *ngIf="job.secondaryCollectionActualStartTime || job.secondaryCollectionActualCompleteTime">
+                        <div *ngIf="job.secondaryCollectionActualStartTime">
+                          <mat-icon>play_arrow</mat-icon>
+                          <span>Started: {{ formatDateTime(job.secondaryCollectionActualStartTime) }}</span>
+                        </div>
+                        <div *ngIf="job.secondaryCollectionActualCompleteTime">
+                          <mat-icon>check_circle</mat-icon>
+                          <span>Completed: {{ formatDateTime(job.secondaryCollectionActualCompleteTime) }}</span>
+                        </div>
                       </div>
                       <div class="notes" *ngIf="job.secondaryCollectionNotes">
                         <mat-icon>note</mat-icon>
                         <p>{{ job.secondaryCollectionNotes }}</p>
+                      </div>
+                      <div class="process-notes" *ngIf="jobProcessData?.secondaryCollection?.notes">
+                        <mat-icon>assignment</mat-icon>
+                        <p><strong>Process Notes:</strong> {{ jobProcessData?.secondaryCollection?.notes }}</p>
                       </div>
                     </div>
                   </div>
@@ -338,11 +532,25 @@
                       </div>
                       <div class="schedule-info" *ngIf="job.firstDeliveryScheduledTime">
                         <mat-icon>schedule</mat-icon>
-                        <span>{{ formatDateTime(job.firstDeliveryScheduledTime) }}</span>
+                        <span>Scheduled: {{ formatDateTime(job.firstDeliveryScheduledTime) }}</span>
+                      </div>
+                      <div class="actual-times" *ngIf="job.firstDeliveryActualStartTime || job.firstDeliveryActualCompleteTime">
+                        <div *ngIf="job.firstDeliveryActualStartTime">
+                          <mat-icon>play_arrow</mat-icon>
+                          <span>Started: {{ formatDateTime(job.firstDeliveryActualStartTime) }}</span>
+                        </div>
+                        <div *ngIf="job.firstDeliveryActualCompleteTime">
+                          <mat-icon>check_circle</mat-icon>
+                          <span>Completed: {{ formatDateTime(job.firstDeliveryActualCompleteTime) }}</span>
+                        </div>
                       </div>
                       <div class="notes" *ngIf="job.firstDeliveryNotes">
                         <mat-icon>note</mat-icon>
                         <p>{{ job.firstDeliveryNotes }}</p>
+                      </div>
+                      <div class="process-notes" *ngIf="jobProcessData?.firstDelivery?.notes">
+                        <mat-icon>assignment</mat-icon>
+                        <p><strong>Process Notes:</strong> {{ jobProcessData?.firstDelivery?.notes }}</p>
                       </div>
                     </div>
                   </div>
@@ -370,11 +578,25 @@
                       </div>
                       <div class="schedule-info" *ngIf="job.deliveryScheduledTime">
                         <mat-icon>schedule</mat-icon>
-                        <span>{{ formatDateTime(job.deliveryScheduledTime) }}</span>
+                        <span>Scheduled: {{ formatDateTime(job.deliveryScheduledTime) }}</span>
+                      </div>
+                      <div class="actual-times" *ngIf="job.deliveryActualStartTime || job.deliveryActualCompleteTime">
+                        <div *ngIf="job.deliveryActualStartTime">
+                          <mat-icon>play_arrow</mat-icon>
+                          <span>Started: {{ formatDateTime(job.deliveryActualStartTime) }}</span>
+                        </div>
+                        <div *ngIf="job.deliveryActualCompleteTime">
+                          <mat-icon>check_circle</mat-icon>
+                          <span>Completed: {{ formatDateTime(job.deliveryActualCompleteTime) }}</span>
+                        </div>
                       </div>
                       <div class="notes" *ngIf="job.deliveryNotes">
                         <mat-icon>note</mat-icon>
                         <p>{{ job.deliveryNotes }}</p>
+                      </div>
+                      <div class="process-notes" *ngIf="jobProcessData?.delivery?.notes">
+                        <mat-icon>assignment</mat-icon>
+                        <p><strong>Process Notes:</strong> {{ jobProcessData?.delivery?.notes }}</p>
                       </div>
                     </div>
                   </div>
@@ -424,18 +646,106 @@
               </div>
 
               <div class="notes-content">
-                <div class="note-item" *ngFor="let note of getFormattedNotes(job.generalNotes)">
-                  <div class="note-header">
-                    <div class="note-author">
-                      <mat-icon>person</mat-icon>
-                      <span>{{ note.authorName || 'System' }}</span>
+                <!-- General Notes -->
+                <div class="note-category" *ngIf="getFormattedNotes(job.generalNotes).length > 0">
+                  <h4>General Notes</h4>
+                  <div class="note-item" *ngFor="let note of getFormattedNotes(job.generalNotes)">
+                    <div class="note-header">
+                      <div class="note-author">
+                        <mat-icon>person</mat-icon>
+                        <span>{{ note.authorName || 'System' }}</span>
+                      </div>
+                      <div class="note-date">{{ formatDateTime(note.createdAt) }}</div>
                     </div>
-                    <div class="note-date">{{ formatDateTime(note.createdAt) }}</div>
+                    <div class="note-content">{{ note.content }}</div>
                   </div>
-                  <div class="note-content">{{ note.content }}</div>
                 </div>
 
-                <div class="notes-empty" *ngIf="getFormattedNotes(job.generalNotes).length === 0">
+                <!-- Process Notes -->
+                <div class="note-category" *ngIf="jobProcessData?.collection?.notes || jobProcessData?.delivery?.notes">
+                  <h4>Process Notes</h4>
+
+                  <div class="process-note-item" *ngIf="jobProcessData?.collection?.notes">
+                    <div class="process-note-header">
+                      <mat-icon>location_on</mat-icon>
+                      <span>Collection Notes</span>
+                    </div>
+                    <div class="process-note-content">{{ jobProcessData?.collection?.notes }}</div>
+                  </div>
+
+                  <div class="process-note-item" *ngIf="jobProcessData?.delivery?.notes">
+                    <div class="process-note-header">
+                      <mat-icon>flag</mat-icon>
+                      <span>Delivery Notes</span>
+                    </div>
+                    <div class="process-note-content">{{ jobProcessData?.delivery?.notes }}</div>
+                  </div>
+
+                  <!-- Split Journey Process Notes -->
+                  <div class="process-note-item" *ngIf="jobProcessData?.secondaryCollection?.notes">
+                    <div class="process-note-header">
+                      <mat-icon>location_on</mat-icon>
+                      <span>Secondary Collection Notes</span>
+                    </div>
+                    <div class="process-note-content">{{ jobProcessData?.secondaryCollection?.notes }}</div>
+                  </div>
+
+                  <div class="process-note-item" *ngIf="jobProcessData?.firstDelivery?.notes">
+                    <div class="process-note-header">
+                      <mat-icon>flag</mat-icon>
+                      <span>First Delivery Notes</span>
+                    </div>
+                    <div class="process-note-content">{{ jobProcessData?.firstDelivery?.notes }}</div>
+                  </div>
+                </div>
+
+                <!-- Original Job Notes -->
+                <div class="note-category" *ngIf="job.collectionNotes || job.deliveryNotes">
+                  <h4>Original Job Instructions</h4>
+
+                  <div class="instruction-note" *ngIf="job.collectionNotes">
+                    <div class="instruction-header">
+                      <mat-icon>input</mat-icon>
+                      <span>Collection Instructions</span>
+                    </div>
+                    <div class="instruction-content">{{ job.collectionNotes }}</div>
+                  </div>
+
+                  <div class="instruction-note" *ngIf="job.deliveryNotes">
+                    <div class="instruction-header">
+                      <mat-icon>output</mat-icon>
+                      <span>Delivery Instructions</span>
+                    </div>
+                    <div class="instruction-content">{{ job.deliveryNotes }}</div>
+                  </div>
+
+                  <!-- Split Journey Instructions -->
+                  <div class="instruction-note" *ngIf="job.secondaryCollectionNotes">
+                    <div class="instruction-header">
+                      <mat-icon>input</mat-icon>
+                      <span>Secondary Collection Instructions</span>
+                    </div>
+                    <div class="instruction-content">{{ job.secondaryCollectionNotes }}</div>
+                  </div>
+
+                  <div class="instruction-note" *ngIf="job.firstDeliveryNotes">
+                    <div class="instruction-header">
+                      <mat-icon>output</mat-icon>
+                      <span>First Delivery Instructions</span>
+                    </div>
+                    <div class="instruction-content">{{ job.firstDeliveryNotes }}</div>
+                  </div>
+                </div>
+
+                <div
+                  class="notes-empty"
+                  *ngIf="
+                    getFormattedNotes(job.generalNotes).length === 0 &&
+                    !jobProcessData?.collection?.notes &&
+                    !jobProcessData?.delivery?.notes &&
+                    !job.collectionNotes &&
+                    !job.deliveryNotes
+                  ">
                   <mat-icon>note_add</mat-icon>
                   <p>No notes added to this job yet</p>
                 </div>
@@ -453,13 +763,168 @@
                 <h3>Job Documents</h3>
               </div>
 
-              <div class="documents-content">
-                <div class="documents-empty">
-                  <mat-icon>description</mat-icon>
-                  <p>Document management coming soon</p>
-                  <small>Photos, signatures, and reports will be displayed here</small>
+              <div class="documents-content" *ngIf="hasProcessDocuments(); else noDocuments">
+                <!-- Photos Section -->
+                <div class="document-category" *ngIf="getAllPhotos().length > 0">
+                  <h4>
+                    <mat-icon>photo_library</mat-icon>
+                    Photos ({{ getAllPhotos().length }})
+                  </h4>
+
+                  <!-- Collection Photos -->
+                  <div class="photo-group" *ngIf="collectionPhotos.length > 0">
+                    <h5>Collection Photos</h5>
+                    <div class="photos-grid">
+                      <div class="photo-item" *ngFor="let photo of collectionPhotos">
+                        <div class="photo-thumbnail" (click)="viewPhoto(photo)">
+                          <img [src]="photo.url" [alt]="photo.description" loading="lazy" />
+                          <div class="photo-overlay">
+                            <mat-icon>zoom_in</mat-icon>
+                          </div>
+                        </div>
+                        <div class="photo-info">
+                          <div class="photo-description">{{ photo.description }}</div>
+                          <div class="photo-actions">
+                            <button mat-icon-button (click)="viewPhoto(photo)" matTooltip="View">
+                              <mat-icon>visibility</mat-icon>
+                            </button>
+                            <button mat-icon-button (click)="downloadPhoto(photo)" matTooltip="Download">
+                              <mat-icon>download</mat-icon>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Delivery Photos -->
+                  <div class="photo-group" *ngIf="deliveryPhotos.length > 0">
+                    <h5>Delivery Photos</h5>
+                    <div class="photos-grid">
+                      <div class="photo-item" *ngFor="let photo of deliveryPhotos">
+                        <div class="photo-thumbnail" (click)="viewPhoto(photo)">
+                          <img [src]="photo.url" [alt]="photo.description" loading="lazy" />
+                          <div class="photo-overlay">
+                            <mat-icon>zoom_in</mat-icon>
+                          </div>
+                        </div>
+                        <div class="photo-info">
+                          <div class="photo-description">{{ photo.description }}</div>
+                          <div class="photo-actions">
+                            <button mat-icon-button (click)="viewPhoto(photo)" matTooltip="View">
+                              <mat-icon>visibility</mat-icon>
+                            </button>
+                            <button mat-icon-button (click)="downloadPhoto(photo)" matTooltip="Download">
+                              <mat-icon>download</mat-icon>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Secondary Collection Photos (if split journey) -->
+                  <div class="photo-group" *ngIf="secondaryCollectionPhotos.length > 0">
+                    <h5>Secondary Collection Photos</h5>
+                    <div class="photos-grid">
+                      <div class="photo-item" *ngFor="let photo of secondaryCollectionPhotos">
+                        <div class="photo-thumbnail" (click)="viewPhoto(photo)">
+                          <img [src]="photo.url" [alt]="photo.description" loading="lazy" />
+                          <div class="photo-overlay">
+                            <mat-icon>zoom_in</mat-icon>
+                          </div>
+                        </div>
+                        <div class="photo-info">
+                          <div class="photo-description">{{ photo.description }}</div>
+                          <div class="photo-actions">
+                            <button mat-icon-button (click)="viewPhoto(photo)" matTooltip="View">
+                              <mat-icon>visibility</mat-icon>
+                            </button>
+                            <button mat-icon-button (click)="downloadPhoto(photo)" matTooltip="Download">
+                              <mat-icon>download</mat-icon>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- First Delivery Photos (if split journey) -->
+                  <div class="photo-group" *ngIf="firstDeliveryPhotos.length > 0">
+                    <h5>First Delivery Photos</h5>
+                    <div class="photos-grid">
+                      <div class="photo-item" *ngFor="let photo of firstDeliveryPhotos">
+                        <div class="photo-thumbnail" (click)="viewPhoto(photo)">
+                          <img [src]="photo.url" [alt]="photo.description" loading="lazy" />
+                          <div class="photo-overlay">
+                            <mat-icon>zoom_in</mat-icon>
+                          </div>
+                        </div>
+                        <div class="photo-info">
+                          <div class="photo-description">{{ photo.description }}</div>
+                          <div class="photo-actions">
+                            <button mat-icon-button (click)="viewPhoto(photo)" matTooltip="View">
+                              <mat-icon>visibility</mat-icon>
+                            </button>
+                            <button mat-icon-button (click)="downloadPhoto(photo)" matTooltip="Download">
+                              <mat-icon>download</mat-icon>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Signatures Section -->
+                <div class="document-category" *ngIf="getAllSignatures().length > 0">
+                  <h4>
+                    <mat-icon>draw</mat-icon>
+                    Signatures ({{ getAllSignatures().length }})
+                  </h4>
+                  <div class="signatures-grid">
+                    <div class="signature-item" *ngFor="let signature of getAllSignatures()">
+                      <div class="signature-preview" (click)="viewSignature(signature)">
+                        <img [src]="signature.url" [alt]="signature.type + ' signature'" loading="lazy" />
+                        <div class="signature-overlay">
+                          <mat-icon>zoom_in</mat-icon>
+                        </div>
+                      </div>
+                      <div class="signature-info">
+                        <div class="signature-title">{{ signature.type | titlecase }} Signature</div>
+                        <div class="signature-signer">
+                          <mat-icon>person</mat-icon>
+                          <span>{{ signature.signerName }}</span>
+                        </div>
+                        <div class="signature-position" *ngIf="signature.signerPosition">
+                          <mat-icon>work</mat-icon>
+                          <span>{{ signature.signerPosition }}</span>
+                        </div>
+                        <div class="signature-date">
+                          <mat-icon>schedule</mat-icon>
+                          <span>{{ formatDateTime(signature.uploadedAt) }}</span>
+                        </div>
+                        <div class="signature-actions">
+                          <button mat-icon-button (click)="viewSignature(signature)" matTooltip="View">
+                            <mat-icon>visibility</mat-icon>
+                          </button>
+                          <button mat-icon-button (click)="downloadSignature(signature)" matTooltip="Download">
+                            <mat-icon>download</mat-icon>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
+
+              <ng-template #noDocuments>
+                <div class="documents-empty">
+                  <mat-icon>description</mat-icon>
+                  <p>No documents available for this job</p>
+                  <small>Photos and signatures will appear here once the collection and delivery processes are completed</small>
+                </div>
+              </ng-template>
             </div>
           </div>
         </mat-tab>

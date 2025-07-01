@@ -4,8 +4,8 @@ import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { combineLatest, Subject } from 'rxjs';
+import { finalize, takeUntil } from 'rxjs/operators';
 import { Timestamp } from 'firebase/firestore';
 
 import { Job, JobNote } from '../../../interfaces/job-new.interface';
@@ -13,6 +13,8 @@ import { UserProfile } from '../../../interfaces/user-profile.interface';
 import { JobNewService } from '../../../services/job-new.service';
 import { AuthService } from '../../../services/auth.service';
 import { ConfirmationDialogComponent } from '../../../dialogs/confirmation-dialog.component';
+import { JobProcessData, JobProcessService, ProcessPhoto } from '../../../services/job-process.service';
+import { ProcessSignature } from '../../../services/job-process.service';
 
 // Enhanced expense interface matching mobile app
 export interface JobExpense {
@@ -125,6 +127,30 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
   selectedTabIndex = 0;
   private destroy$ = new Subject<void>();
 
+  // Process data
+  jobProcessData: JobProcessData | null = null;
+  collectionPhotos: ProcessPhoto[] = [];
+  deliveryPhotos: ProcessPhoto[] = [];
+  collectionSignature: ProcessSignature | null = null;
+  deliverySignature: ProcessSignature | null = null;
+  damageReports = { collection: false, delivery: false, overall: false };
+  processContacts: any = {};
+  vehicleCondition: any = {};
+
+  // Split journey support
+  secondaryCollectionPhotos: ProcessPhoto[] = [];
+  firstDeliveryPhotos: ProcessPhoto[] = [];
+  secondaryCollectionSignature: ProcessSignature | null = null;
+  firstDeliverySignature: ProcessSignature | null = null;
+
+  // Timeline data
+  timelineEvents: any[] = [];
+
+  // Notes data
+  formattedNotes: any[] = [];
+
+  canViewReports = false;
+
   constructor(
     private route: ActivatedRoute,
     private router: Router,
@@ -132,7 +158,8 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
     private authService: AuthService,
     private dialog: MatDialog,
     private snackBar: MatSnackBar,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private jobProcessService: JobProcessService
   ) {}
 
   ngOnInit(): void {
@@ -154,30 +181,57 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
         this.canEditJobs = user?.permissions?.canEditJobs || user?.permissions?.isAdmin || false;
         this.canManageJobs = user?.permissions?.canManageUsers || user?.permissions?.isAdmin || false;
         this.canManageBilling = user?.permissions?.['canManageBilling'] || user?.permissions?.isAdmin || false;
+        this.canViewReports = user?.permissions?.['canViewReports'] || user?.permissions?.isAdmin || false;
       });
   }
 
   private loadJob(): void {
     const jobId = this.route.snapshot.paramMap.get('id');
     if (!jobId) {
-      this.error = 'Invalid job ID';
+      this.error = 'Job ID not found';
       this.loading = false;
       return;
     }
 
-    this.jobService
-      .getJobById(jobId)
-      .pipe(takeUntil(this.destroy$))
+    this.loading = true;
+
+    // Load job data and process data in parallel
+    combineLatest([
+      this.jobService.getJobById(jobId),
+      this.jobProcessService.getJobProcessData(jobId),
+      this.jobProcessService.getDamageReports(jobId),
+      this.jobProcessService.getProcessContacts(jobId),
+      this.jobProcessService.getVehicleConditionData(jobId),
+    ])
+      .pipe(
+        takeUntil(this.destroy$),
+        finalize(() => (this.loading = false))
+      )
       .subscribe({
-        next: (job) => {
-          this.job = job;
-          this.loading = false;
-          this.loadBillingData();
+        next: ([job, processData, damageReports, contacts, vehicleCondition]) => {
+          if (job) {
+            this.job = job;
+            this.jobProcessData = processData;
+            this.damageReports = damageReports;
+            this.processContacts = contacts;
+            this.vehicleCondition = vehicleCondition;
+
+            this.extractProcessDocuments(processData);
+            this.generateTimelineEvents();
+            this.formatJobNotes();
+
+            // Load billing if user has permission
+            if (this.canManageBilling) {
+              this.loadBillingData();
+            }
+          } else {
+            this.error = 'Job not found';
+          }
         },
         error: (error) => {
+          console.error('Error loading job details:', error);
           this.error = 'Failed to load job details';
-          this.loading = false;
-          console.error('Error loading job:', error);
+          this.showError('Failed to load job details');
         },
       });
   }
@@ -823,83 +877,8 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
     return this.job?.isSplitJourney || false;
   }
 
-  getJobTimeline(): Array<{ status: string; date: Date | Timestamp; icon: string; color: string }> {
-    if (!this.job) return [];
-
-    const timeline = [];
-
-    if (this.job.createdAt) {
-      timeline.push({
-        status: 'Job Created',
-        date: this.job.createdAt,
-        icon: 'add_circle',
-        color: 'accent',
-      });
-    }
-
-    if (this.job.allocatedAt) {
-      timeline.push({
-        status: 'Job Allocated',
-        date: this.job.allocatedAt,
-        icon: 'person_add',
-        color: 'accent',
-      });
-    }
-
-    if (this.job.collectionActualStartTime) {
-      timeline.push({
-        status: 'Collection Started',
-        date: this.job.collectionActualStartTime,
-        icon: 'start',
-        color: 'primary',
-      });
-    }
-
-    if (this.job.collectionActualCompleteTime) {
-      timeline.push({
-        status: 'Collection Completed',
-        date: this.job.collectionActualCompleteTime,
-        icon: 'done',
-        color: 'primary',
-      });
-    }
-
-    if (this.job.deliveryActualStartTime) {
-      timeline.push({
-        status: 'Delivery Started',
-        date: this.job.deliveryActualStartTime,
-        icon: 'local_shipping',
-        color: 'primary',
-      });
-    }
-
-    if (this.job.deliveryActualCompleteTime) {
-      timeline.push({
-        status: 'Delivery Completed',
-        date: this.job.deliveryActualCompleteTime,
-        icon: 'done_all',
-        color: 'primary',
-      });
-    }
-
-    return timeline.sort((a, b) => {
-      const getTimestamp = (timestamp: any): number => {
-        if (timestamp && typeof timestamp.toMillis === 'function') {
-          return timestamp.toMillis();
-        }
-        if (timestamp && typeof timestamp.toDate === 'function') {
-          return timestamp.toDate().getTime();
-        }
-        if (timestamp instanceof Date) {
-          return timestamp.getTime();
-        }
-        return new Date(timestamp).getTime();
-      };
-
-      const dateA = getTimestamp(a.date);
-      const dateB = getTimestamp(b.date);
-      return dateA - dateB;
-    });
+  getJobTimeline(): any[] {
+    return this.timelineEvents;
   }
 
   goBack(): void {
@@ -918,5 +897,244 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
 
   printJob(): void {
     window.print();
+  }
+
+  private extractProcessDocuments(processData: JobProcessData): void {
+    if (!processData?.documents) return;
+
+    // Extract photos
+    this.collectionPhotos = processData.documents.collectionPhotos || [];
+    this.deliveryPhotos = processData.documents.deliveryPhotos || [];
+    this.secondaryCollectionPhotos = processData.documents.secondaryCollectionPhotos || [];
+    this.firstDeliveryPhotos = processData.documents.firstDeliveryPhotos || [];
+
+    // Extract signatures
+    this.collectionSignature = processData.documents.collectionSignature || null;
+    this.deliverySignature = processData.documents.deliverySignature || null;
+    this.secondaryCollectionSignature = processData.documents.secondaryCollectionSignature || null;
+    this.firstDeliverySignature = processData.documents.firstDeliverySignature || null;
+  }
+
+  private generateTimelineEvents(): void {
+    if (!this.job) return;
+
+    this.timelineEvents = [];
+
+    // Job created
+    if (this.job.createdAt) {
+      this.timelineEvents.push({
+        type: 'created',
+        title: 'Job Created',
+        description: `Created by ${this.job.createdBy || 'System'}`,
+        date: this.job.createdAt,
+        icon: 'add_circle',
+        color: 'primary',
+      });
+    }
+
+    // Driver allocated
+    if (this.job.allocatedAt && this.job.driverId) {
+      this.timelineEvents.push({
+        type: 'allocated',
+        title: 'Driver Allocated',
+        description: `Assigned to ${(this.job as any).driverName || 'Driver'}`,
+        date: this.job.allocatedAt,
+        icon: 'person_add',
+        color: 'accent',
+      });
+    }
+
+    // Collection process
+    if (this.job.collectionActualStartTime) {
+      this.timelineEvents.push({
+        type: 'collection_started',
+        title: 'Collection Started',
+        description: 'Vehicle collection process began',
+        date: this.job.collectionActualStartTime,
+        icon: 'play_arrow',
+        color: 'primary',
+      });
+    }
+
+    if (this.job.collectionActualCompleteTime) {
+      this.timelineEvents.push({
+        type: 'collection_completed',
+        title: 'Collection Completed',
+        description: `Vehicle collected from ${this.job.collectionCity || 'pickup location'}`,
+        date: this.job.collectionActualCompleteTime,
+        icon: 'check_circle',
+        color: 'success',
+      });
+    }
+
+    // Split journey events
+    if (this.job.isSplitJourney) {
+      if (this.job.secondaryCollectionActualStartTime) {
+        this.timelineEvents.push({
+          type: 'secondary_collection_started',
+          title: 'Secondary Collection Started',
+          description: 'Secondary collection process began',
+          date: this.job.secondaryCollectionActualStartTime,
+          icon: 'play_arrow',
+          color: 'primary',
+        });
+      }
+
+      if (this.job.secondaryCollectionActualCompleteTime) {
+        this.timelineEvents.push({
+          type: 'secondary_collection_completed',
+          title: 'Secondary Collection Completed',
+          description: 'Secondary collection finished',
+          date: this.job.secondaryCollectionActualCompleteTime,
+          icon: 'check_circle',
+          color: 'success',
+        });
+      }
+
+      if (this.job.firstDeliveryActualStartTime) {
+        this.timelineEvents.push({
+          type: 'first_delivery_started',
+          title: 'First Delivery Started',
+          description: 'First delivery process began',
+          date: this.job.firstDeliveryActualStartTime,
+          icon: 'local_shipping',
+          color: 'primary',
+        });
+      }
+
+      if (this.job.firstDeliveryActualCompleteTime) {
+        this.timelineEvents.push({
+          type: 'first_delivery_completed',
+          title: 'First Delivery Completed',
+          description: 'First delivery finished',
+          date: this.job.firstDeliveryActualCompleteTime,
+          icon: 'check_circle',
+          color: 'success',
+        });
+      }
+    }
+
+    // Final delivery
+    if (this.job.deliveryActualStartTime) {
+      this.timelineEvents.push({
+        type: 'delivery_started',
+        title: 'Delivery Started',
+        description: 'Vehicle delivery process began',
+        date: this.job.deliveryActualStartTime,
+        icon: 'local_shipping',
+        color: 'primary',
+      });
+    }
+
+    if (this.job.deliveryActualCompleteTime) {
+      this.timelineEvents.push({
+        type: 'delivery_completed',
+        title: 'Delivery Completed',
+        description: `Vehicle delivered to ${this.job.deliveryCity || 'destination'}`,
+        date: this.job.deliveryActualCompleteTime,
+        icon: 'flag',
+        color: 'success',
+      });
+    }
+
+    // Sort events by date
+    this.timelineEvents.sort((a, b) => {
+      const dateA = a.date instanceof Timestamp ? a.date.toDate() : new Date(a.date);
+      const dateB = b.date instanceof Timestamp ? b.date.toDate() : new Date(b.date);
+      return dateA.getTime() - dateB.getTime();
+    });
+  }
+
+  private formatJobNotes(): void {
+    if (!this.job?.generalNotes) {
+      this.formattedNotes = [];
+      return;
+    }
+
+    if (Array.isArray(this.job.generalNotes)) {
+      this.formattedNotes = this.job.generalNotes.map((note) => {
+        if (typeof note === 'object' && note.content) {
+          return {
+            content: note.content,
+            authorName: note.authorName || 'System',
+            createdAt: note.createdAt || new Date(),
+          };
+        }
+        return {
+          content: note.toString(),
+          authorName: 'System',
+          createdAt: new Date(),
+        };
+      });
+    }
+  }
+
+  getAllPhotos(): ProcessPhoto[] {
+    return [...this.collectionPhotos, ...this.deliveryPhotos, ...this.secondaryCollectionPhotos, ...this.firstDeliveryPhotos];
+  }
+
+  getAllSignatures(): ProcessSignature[] {
+    const signatures = [];
+    if (this.collectionSignature) signatures.push(this.collectionSignature);
+    if (this.deliverySignature) signatures.push(this.deliverySignature);
+    if (this.secondaryCollectionSignature) signatures.push(this.secondaryCollectionSignature);
+    if (this.firstDeliverySignature) signatures.push(this.firstDeliverySignature);
+    return signatures;
+  }
+
+  hasProcessDocuments(): boolean {
+    return this.getAllPhotos().length > 0 || this.getAllSignatures().length > 0;
+  }
+
+  getEnergyTypeLabel(energyType: string): string {
+    if (!energyType) return 'Unknown';
+    return energyType.charAt(0).toUpperCase() + energyType.slice(1).toLowerCase();
+  }
+
+  getEnergyLevelLabel(energyType: string): string {
+    if (!energyType) return 'Level';
+    return energyType.toLowerCase() === 'electric' ? 'Charge' : 'Fuel';
+  }
+
+  getMileageDifference(): number | null {
+    const collectionMileage = this.vehicleCondition?.collection?.mileage;
+    const deliveryMileage = this.vehicleCondition?.delivery?.mileage;
+
+    if (collectionMileage !== undefined && deliveryMileage !== undefined) {
+      return deliveryMileage - collectionMileage;
+    }
+    return null;
+  }
+
+  getEnergyUsed(): number | null {
+    const collectionLevel = this.vehicleCondition?.collection?.fuelLevel;
+    const deliveryLevel = this.vehicleCondition?.delivery?.fuelLevel;
+
+    if (collectionLevel !== undefined && deliveryLevel !== undefined) {
+      return collectionLevel - deliveryLevel;
+    }
+    return null;
+  }
+
+  viewPhoto(photo: ProcessPhoto): void {
+    window.open(photo.url, '_blank');
+  }
+
+  downloadPhoto(photo: ProcessPhoto): void {
+    const link = document.createElement('a');
+    link.href = photo.url;
+    link.download = photo.fileName;
+    link.click();
+  }
+
+  viewSignature(signature: ProcessSignature): void {
+    window.open(signature.url, '_blank');
+  }
+
+  downloadSignature(signature: ProcessSignature): void {
+    const link = document.createElement('a');
+    link.href = signature.url;
+    link.download = `${signature.type}_signature_${signature.signerName}.png`;
+    link.click();
   }
 }
