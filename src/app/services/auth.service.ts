@@ -156,6 +156,10 @@ export class AuthService {
     return this.auth.currentUser;
   }
 
+  getCurrentUser(): Observable<UserProfile | null> {
+    return this.userProfile$;
+  }
+
   get currentUserId(): string | null {
     return this.auth.currentUser?.uid || null;
   }

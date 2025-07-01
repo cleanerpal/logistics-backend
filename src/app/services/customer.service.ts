@@ -21,7 +21,7 @@ export class CustomerService extends BaseFirebaseService {
     super();
   }
 
-  getCustomers(): Observable<Customer[]> {
+  getAllCustomers(): Observable<Customer[]> {
     this.loadingSubject.next(true);
 
     const customersRef = collection(this.firestore, 'customers');
@@ -279,7 +279,7 @@ export class CustomerService extends BaseFirebaseService {
       return of([]);
     }
 
-    return this.getCustomers().pipe(
+    return this.getAllCustomers().pipe(
       map((customers) => {
         const normalizedSearchTerm = searchTerm.toLowerCase().trim();
 
@@ -304,7 +304,7 @@ export class CustomerService extends BaseFirebaseService {
 
   private refreshCustomersList(): void {
     if (this.customersSubject.getValue().length > 0) {
-      this.getCustomers().subscribe();
+      this.getAllCustomers().subscribe();
     }
   }
 

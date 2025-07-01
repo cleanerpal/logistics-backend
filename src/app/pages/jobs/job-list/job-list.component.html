@@ -1,160 +1,194 @@
-<mat-card class="mat-elevation-z3">
-  <div class="header-wrapper">
-    <div class="header-title">
-      <h1>Jobs</h1>
-      <p class="subtitle">{{ dataSource.filteredData.length }} total jobs</p>
-    </div>
-  </div>
+<div class="job-list-container">
+  <!-- Header Section -->
+  <div class="page-header">
+    <div class="header-content">
+      <div class="title-section">
+        <h1 class="page-title">
+          <mat-icon>work</mat-icon>
+          Jobs Management
+        </h1>
+        <p class="page-subtitle">Manage and track all logistics jobs</p>
+      </div>
 
-  <div class="filters-actions-wrapper">
-    <div class="filters-section">
-      <mat-form-field appearance="outline" class="search-field">
-        <mat-label>Search jobs</mat-label>
-        <input matInput [formControl]="searchControl" placeholder="Search by ID, make, model, or registration" />
-        <mat-icon matSuffix>search</mat-icon>
-      </mat-form-field>
+      <div class="header-actions">
+        <button mat-raised-button color="primary" (click)="createJob()" *ngIf="canCreateJobs" class="create-button">
+          <mat-icon>add</mat-icon>
+          Create Job
+        </button>
 
-      <div class="filters-group" [formGroup]="filterForm">
-        <mat-form-field appearance="outline">
-          <mat-label>Status</mat-label>
-          <mat-select formControlName="status">
-            <mat-option value="All">All</mat-option>
-            <mat-option *ngFor="let status of statusOptions" [value]="status">
-              {{ status | titlecase }}
-            </mat-option>
-          </mat-select>
-        </mat-form-field>
+        <button mat-stroked-button (click)="refresh()" class="refresh-button">
+          <mat-icon>refresh</mat-icon>
+          Refresh
+        </button>
 
-        <mat-form-field appearance="outline">
-          <mat-label>Driver</mat-label>
-          <mat-select formControlName="driver">
-            <mat-option value="All">All</mat-option>
-            <mat-option *ngFor="let driver of drivers" [value]="driver">
-              {{ driver }}
-            </mat-option>
-          </mat-select>
-        </mat-form-field>
-
-        <div class="date-range-group">
-          <mat-form-field appearance="outline">
-            <mat-label>Start Date</mat-label>
-            <input matInput [matDatepicker]="startPicker" formControlName="startDate" />
-            <mat-datepicker-toggle matSuffix [for]="startPicker"></mat-datepicker-toggle>
-            <mat-datepicker #startPicker></mat-datepicker>
-          </mat-form-field>
-
-          <mat-form-field appearance="outline">
-            <mat-label>End Date</mat-label>
-            <input matInput [matDatepicker]="endPicker" formControlName="endDate" />
-            <mat-datepicker-toggle matSuffix [for]="endPicker"></mat-datepicker-toggle>
-            <mat-datepicker #endPicker></mat-datepicker>
-          </mat-form-field>
-        </div>
+        <button mat-stroked-button (click)="exportJobs()" class="export-button">
+          <mat-icon>download</mat-icon>
+          Export
+        </button>
       </div>
     </div>
-
-    <div class="actions-group">
-      <button mat-flat-button color="primary" (click)="refreshJobs()" class="refresh-button" matTooltip="Refresh jobs list">
-        <mat-icon>refresh</mat-icon>
-      </button>
-      <button mat-flat-button color="primary" (click)="createNewJob()" class="create-button">
-        <mat-icon>add</mat-icon>
-        New Job
-      </button>
-    </div>
   </div>
 
-  <div class="table-container">
-    <div class="loading-overlay" *ngIf="isLoading">
-      <mat-spinner diameter="40"></mat-spinner>
-      <span>Loading jobs...</span>
-    </div>
+  <!-- Filters Section -->
+  <div class="filters-section">
+    <mat-card class="filters-card">
+      <mat-card-content>
+        <div class="filters-grid">
+          <!-- Search -->
+          <mat-form-field appearance="outline" class="search-field">
+            <mat-label>Search jobs</mat-label>
+            <input matInput [formControl]="searchControl" placeholder="Search by registration, customer, address..." autocomplete="off" />
+            <mat-icon matSuffix>search</mat-icon>
+          </mat-form-field>
 
-    <table mat-table [dataSource]="dataSource" matSort [class.loading]="isLoading">
-      <ng-container matColumnDef="shippingReference">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header>Shipping Reference</th>
-        <td mat-cell *matCellDef="let job" class="job-id">{{ job.shippingReference }}</td>
-      </ng-container>
+          <!-- Status Filter -->
+          <mat-form-field appearance="outline">
+            <mat-label>Status</mat-label>
+            <mat-select [formControl]="statusFilter">
+              <mat-option *ngFor="let status of statusOptions" [value]="status.value">
+                {{ status.label }}
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
 
-      <ng-container matColumnDef="regNumber">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header>Reg / Chassis</th>
-        <td mat-cell *matCellDef="let job">{{ job.vehicleRegistration || 'N/A' }}</td>
-      </ng-container>
+          <!-- Date Range Filter -->
+          <mat-form-field appearance="outline">
+            <mat-label>Date Range</mat-label>
+            <mat-select [formControl]="dateRangeFilter">
+              <mat-option *ngFor="let range of dateRangeOptions" [value]="range.value">
+                {{ range.label }}
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
 
-      <ng-container matColumnDef="make">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header>Make</th>
-        <td mat-cell *matCellDef="let job">{{ job.vehicleMake || 'N/A' | sentenceCase }}</td>
-      </ng-container>
+          <!-- Driver Filter -->
+          <mat-form-field appearance="outline">
+            <mat-label>Driver</mat-label>
+            <mat-select [formControl]="driverFilter">
+              <mat-option value="all">All Drivers</mat-option>
+              <mat-option value="unassigned">Unassigned</mat-option>
+              <!-- Add dynamic driver options here -->
+            </mat-select>
+          </mat-form-field>
 
-      <ng-container matColumnDef="model">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header>Model</th>
-        <td mat-cell *matCellDef="let job">{{ job.vehicleModel || 'N/A' | sentenceCase }}</td>
-      </ng-container>
-
-      <ng-container matColumnDef="collectionDate">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header>Created Date</th>
-        <td mat-cell *matCellDef="let job">
-          {{ formatCreationDate(job.createdAt) }}
-        </td>
-      </ng-container>
-
-      <ng-container matColumnDef="status">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header>Status</th>
-        <td mat-cell *matCellDef="let job">
-          <span class="status-chip" [ngClass]="getStatusClass(job.status)">
-            {{ job.status | titlecase }}
-          </span>
-        </td>
-      </ng-container>
-
-      <ng-container matColumnDef="driver">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header>Driver</th>
-        <td mat-cell *matCellDef="let job">
-          {{ getDriverName(job.driverId) }}
-        </td>
-      </ng-container>
-
-      <ng-container matColumnDef="actions">
-        <th mat-header-cell *matHeaderCellDef></th>
-        <td mat-cell *matCellDef="let job">
-          <button mat-icon-button [matMenuTriggerFor]="menu">
-            <mat-icon>more_vert</mat-icon>
+          <!-- Clear Filters -->
+          <button mat-stroked-button (click)="clearFilters()" class="clear-filters-button">
+            <mat-icon>clear</mat-icon>
+            Clear Filters
           </button>
-          <mat-menu #menu="matMenu" xPosition="before">
-            <button mat-menu-item (click)="viewJobDetails(job)">
-              <mat-icon>visibility</mat-icon>
-              <span>View Details</span>
-            </button>
-            <button mat-menu-item (click)="editJob(job, $event)">
-              <mat-icon>edit</mat-icon>
-              <span>Edit</span>
-            </button>
-            <button mat-menu-item (click)="duplicateJob(job, $event)">
-              <mat-icon>content_copy</mat-icon>
-              <span>Duplicate</span>
-            </button>
-            <button mat-menu-item *ngIf="job.status === 'unallocated'" (click)="allocateJob(job, $event)">
-              <mat-icon>assignment_ind</mat-icon>
-              <span>Allocate to Me</span>
-            </button>
-          </mat-menu>
-        </td>
-      </ng-container>
-
-      <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
-      <tr mat-row *matRowDef="let row; columns: displayedColumns" (click)="viewJobDetails(row)" class="job-row"></tr>
-    </table>
-
-    <div class="empty-state" *ngIf="!isLoading && dataSource.filteredData.length === 0">
-      <mat-icon class="empty-icon">work_outline</mat-icon>
-      <h3>No jobs found</h3>
-      <p>Try adjusting your filters or create a new job</p>
-      <button mat-flat-button color="primary" (click)="createNewJob()">
-        <mat-icon>add</mat-icon>
-        New Job
-      </button>
-    </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
   </div>
 
-  <mat-paginator [pageSize]="25" [pageSizeOptions]="[10, 25, 50, 100]" showFirstLastButtons> </mat-paginator>
-</mat-card>
+  <!-- Loading State -->
+  <div *ngIf="loading" class="loading-container">
+    <mat-spinner></mat-spinner>
+    <p>Loading jobs...</p>
+  </div>
+
+  <!-- Error State -->
+  <div *ngIf="error && !loading" class="error-container">
+    <mat-icon color="warn">error</mat-icon>
+    <p>{{ error }}</p>
+    <button mat-raised-button color="primary" (click)="refresh()">
+      <mat-icon>refresh</mat-icon>
+      Retry
+    </button>
+  </div>
+
+  <!-- Jobs Table -->
+  <div *ngIf="!loading && !error" class="table-container">
+    <mat-card class="table-card">
+      <mat-table [dataSource]="dataSource" matSort class="jobs-table">
+        <!-- Job ID Column -->
+        <ng-container matColumnDef="shippingReference">
+          <mat-header-cell *matHeaderCellDef mat-sort-header>Shipping Reference</mat-header-cell>
+          <mat-cell *matCellDef="let job">
+            <span class="job-id">{{ job.shippingReference }}</span>
+          </mat-cell>
+        </ng-container>
+
+        <!-- Vehicle Registration Column -->
+        <ng-container matColumnDef="vehicleRegistration">
+          <mat-header-cell *matHeaderCellDef mat-sort-header>Registration</mat-header-cell>
+          <mat-cell *matCellDef="let job">
+            <span class="vehicle-reg">{{ job.vehicleRegistration || '-' }}</span>
+          </mat-cell>
+        </ng-container>
+
+        <!-- Vehicle Make Column -->
+        <ng-container matColumnDef="vehicleMake">
+          <mat-header-cell *matHeaderCellDef mat-sort-header>Make</mat-header-cell>
+          <mat-cell *matCellDef="let job">{{ job.vehicleMake || '-' }}</mat-cell>
+        </ng-container>
+
+        <!-- Vehicle Model Column -->
+        <ng-container matColumnDef="vehicleModel">
+          <mat-header-cell *matHeaderCellDef mat-sort-header>Model</mat-header-cell>
+          <mat-cell *matCellDef="let job">{{ job.vehicleModel || '-' }}</mat-cell>
+        </ng-container>
+
+        <!-- Customer Name Column -->
+        <ng-container matColumnDef="customerName">
+          <mat-header-cell *matHeaderCellDef mat-sort-header>Customer</mat-header-cell>
+          <mat-cell *matCellDef="let job">{{ job.customerName || '-' }}</mat-cell>
+        </ng-container>
+
+        <!-- Status Column -->
+        <ng-container matColumnDef="status">
+          <mat-header-cell *matHeaderCellDef mat-sort-header>Status</mat-header-cell>
+          <mat-cell *matCellDef="let job">
+            <span class="status-chip" [ngClass]="'status-' + getStatusColor(job.status)">
+              {{ job.status }}
+            </span>
+          </mat-cell>
+        </ng-container>
+
+        <!-- Collection Time Column -->
+        <ng-container matColumnDef="collectionScheduledTime">
+          <mat-header-cell *matHeaderCellDef mat-sort-header>Collection Time</mat-header-cell>
+          <mat-cell *matCellDef="let job">
+            {{ formatDate(job.collectionScheduledTime) }}
+          </mat-cell>
+        </ng-container>
+
+        <!-- Delivery Time Column -->
+        <ng-container matColumnDef="deliveryScheduledTime">
+          <mat-header-cell *matHeaderCellDef mat-sort-header>Delivery Time</mat-header-cell>
+          <mat-cell *matCellDef="let job">
+            {{ formatDate(job.deliveryScheduledTime) }}
+          </mat-cell>
+        </ng-container>
+
+        <!-- Driver Column -->
+        <ng-container matColumnDef="driverName">
+          <mat-header-cell *matHeaderCellDef>Driver</mat-header-cell>
+          <mat-cell *matCellDef="let job">
+            <span *ngIf="job.driverId; else unassigned">
+              {{ job.driverName || 'Assigned' }}
+            </span>
+            <ng-template #unassigned>
+              <span class="unassigned">Unassigned</span>
+            </ng-template>
+          </mat-cell>
+        </ng-container>
+
+        <!-- Table Header and Rows -->
+        <mat-header-row *matHeaderRowDef="displayedColumns"></mat-header-row>
+        <mat-row *matRowDef="let job; columns: displayedColumns" (click)="viewJob(job)" class="job-row"> </mat-row>
+      </mat-table>
+
+      <!-- No Data State -->
+      <div *ngIf="dataSource.data.length === 0 && !loading" class="no-data-container">
+        <mat-icon class="no-data-icon">work_off</mat-icon>
+        <h3>No jobs found</h3>
+        <p>No jobs match your current filters. Try adjusting your search criteria.</p>
+        <button mat-raised-button color="primary" (click)="clearFilters()">Clear Filters</button>
+      </div>
+
+      <!-- Paginator -->
+      <mat-paginator [pageSizeOptions]="[10, 25, 50, 100]" [pageSize]="25" showFirstLastButtons class="table-paginator"> </mat-paginator>
+    </mat-card>
+  </div>
+</div>

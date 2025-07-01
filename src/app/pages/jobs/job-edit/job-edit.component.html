@@ -1,323 +1,480 @@
-<div class="edit-job-container">
-  <div class="loading-overlay" *ngIf="isLoading">
-    <mat-spinner diameter="40"></mat-spinner>
-    <span>Loading...</span>
-  </div>
-
-  <div class="edit-job-content">
-    <div class="form-header">
-      <h1>Edit Job</h1>
-      <div class="header-actions">
-        <button type="button" class="action-btn secondary-btn" (click)="onCancel()">
-          <span class="material-icons">close</span>
-          Cancel
+<div class="job-edit-container">
+  <!-- Header Section -->
+  <div class="page-header">
+    <div class="header-content">
+      <div class="title-section">
+        <button mat-icon-button (click)="onCancel()" class="back-button">
+          <mat-icon>arrow_back</mat-icon>
         </button>
-        <button type="button" class="action-btn primary-btn" (click)="onSubmit()" [disabled]="!jobForm.valid || isSubmitting || jobForm.pristine">
-          <span class="material-icons">save</span>
-          {{ isSubmitting ? 'Saving...' : 'Save Changes' }}
+        <div class="title-content">
+          <h1 class="page-title">
+            <mat-icon>edit</mat-icon>
+            Edit Job
+            <span class="job-id" *ngIf="originalJob">{{ originalJob.id | slice : 0 : 8 }}...</span>
+          </h1>
+          <p class="page-subtitle" *ngIf="originalJob">{{ originalJob.vehicleRegistration }} - {{ originalJob.customerName }}</p>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <button mat-stroked-button (click)="onCancel()" class="cancel-button">
+          <mat-icon>close</mat-icon>
+          Cancel
         </button>
       </div>
     </div>
 
-    <form [formGroup]="jobForm" class="job-form">
-      <div class="form-section">
-        <h2>Customer Information</h2>
-        <div class="form-grid">
-          <div class="form-group full-width">
-            <label for="customerId">Customer</label>
-            <select id="customerId" formControlName="customerId" (change)="onCustomerSelected($event)">
-              <option value="">Select a customer</option>
-              <option *ngFor="let customer of customers" [value]="customer.id">
-                {{ customer.name }}
-                {{ customer.city ? '- ' + customer.city : '' }}
-              </option>
-            </select>
-            <span class="error-message">{{ getErrorMessage('customerId') }}</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="form-section">
-        <h2>Vehicle Information</h2>
-        <div class="form-grid">
-          <div class="form-group">
-            <label for="vehicleMake">Make</label>
-            <select id="vehicleMake" formControlName="vehicleMake">
-              <option value="">Select make</option>
-              <option *ngFor="let make of vehicleMakes" [value]="make.id">
-                {{ make.displayName }}
-              </option>
-            </select>
-            <span class="error-message">{{ getErrorMessage('vehicleMake') }}</span>
-          </div>
-
-          <div class="form-group">
-            <label for="vehicleModel">Model</label>
-            <select id="vehicleModel" formControlName="vehicleModel">
-              <option value="">Select model</option>
-              <option *ngFor="let model of availableModels" [value]="model.id">
-                {{ model.name }}
-              </option>
-            </select>
-            <span class="error-message">{{ getErrorMessage('vehicleModel') }}</span>
-          </div>
-
-          <div class="form-group">
-            <label for="vehicleType">Type</label>
-            <select id="vehicleType" formControlName="vehicleType">
-              <option value="">Select type</option>
-              <option *ngFor="let type of vehicleTypes" [value]="type">
-                {{ type }}
-              </option>
-            </select>
-            <span class="error-message">{{ getErrorMessage('vehicleType') }}</span>
-          </div>
-
-          <div class="form-group">
-            <label for="registration">Registration (UPPERCASE, NO SPACES)</label>
-            <input id="registration" type="text" formControlName="registration" style="text-transform: uppercase" />
-            <span class="error-message">{{ getErrorMessage('registration') }}</span>
-          </div>
-
-          <div class="form-group">
-            <label for="chassisNumber">Chassis Number (optional)</label>
-            <input id="chassisNumber" type="text" formControlName="chassisNumber" style="text-transform: uppercase" />
-            <span class="error-message">{{ getErrorMessage('chassisNumber') }}</span>
-          </div>
-
-          <div class="form-group">
-            <label for="color">Color (optional)</label>
-            <input id="color" type="text" formControlName="color" />
-          </div>
-
-          <div class="form-group">
-            <label for="year">Year (optional)</label>
-            <input id="year" type="number" formControlName="year" />
-          </div>
-        </div>
-
-        <div class="previous-selections" *ngIf="previousSelections.length > 0">
-          <h3>Previously Used Vehicles</h3>
-          <div class="selection-pills">
-            <div *ngFor="let item of previousSelections" class="selection-pill" (click)="applyPreviousSelection(item)">
-              {{ item.makeName }} {{ item.modelName }} ({{ item.registration }})
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="form-section">
-        <div class="journey-type-header">
-          <h2>Journey Type</h2>
-          <div class="split-journey-toggle">
-            <button type="button" class="toggle-btn" (click)="toggleSplitJourney()">
-              <span class="material-icons">{{ jobForm.get('isSplitJourney')?.value ? 'check_box' : 'check_box_outline_blank' }}</span>
-              Split Journey
-            </button>
-            <div class="journey-info" *ngIf="jobForm.get('isSplitJourney')?.value">
-              <span class="material-icons info-icon">info</span>
-              <span class="info-text">Split journey enables multiple collection and delivery points</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="journey-visualization">
-          <div class="journey-step primary">
-            <div class="step-icon">
-              <span class="material-icons">location_on</span>
-            </div>
-            <div class="step-label">Primary Collection</div>
-          </div>
-          <div class="journey-arrow">
-            <span class="material-icons">arrow_forward</span>
-          </div>
-          <div class="journey-step secondary" *ngIf="jobForm.get('isSplitJourney')?.value">
-            <div class="step-icon">
-              <span class="material-icons">add_location</span>
-            </div>
-            <div class="step-label">Secondary Collection</div>
-          </div>
-          <div class="journey-arrow" *ngIf="jobForm.get('isSplitJourney')?.value">
-            <span class="material-icons">arrow_forward</span>
-          </div>
-          <div class="journey-step secondary" *ngIf="jobForm.get('isSplitJourney')?.value">
-            <div class="step-icon">
-              <span class="material-icons">add_location</span>
-            </div>
-            <div class="step-label">Secondary Delivery</div>
-          </div>
-          <div class="journey-arrow">
-            <span class="material-icons">arrow_forward</span>
-          </div>
-          <div class="journey-step primary">
-            <div class="step-icon">
-              <span class="material-icons">flag</span>
-            </div>
-            <div class="step-label">Final Delivery</div>
-          </div>
-        </div>
-      </div>
-
-      <div class="form-section">
-        <h2>Primary Collection Details</h2>
-        <div class="form-grid">
-          <div class="form-group full-width">
-            <label for="collectionAddress">Address</label>
-            <input id="collectionAddress" type="text" formControlName="collectionAddress" />
-            <span class="error-message">{{ getErrorMessage('collectionAddress') }}</span>
-          </div>
-
-          <div class="form-group">
-            <label for="collectionCity">City</label>
-            <input id="collectionCity" type="text" formControlName="collectionCity" />
-          </div>
-
-          <div class="form-group">
-            <label for="collectionPostcode">Postcode</label>
-            <input id="collectionPostcode" type="text" formControlName="collectionPostcode" />
-          </div>
-
-          <div class="form-group">
-            <label for="collectionContactName">Contact Name</label>
-            <input id="collectionContactName" type="text" formControlName="collectionContactName" />
-          </div>
-
-          <div class="form-group">
-            <label for="collectionContactPhone">Contact Phone</label>
-            <input id="collectionContactPhone" type="text" formControlName="collectionContactPhone" />
-          </div>
-
-          <div class="form-group full-width">
-            <label for="collectionNotes">Notes</label>
-            <textarea id="collectionNotes" formControlName="collectionNotes" rows="2"></textarea>
-          </div>
-        </div>
-      </div>
-
-      <div class="form-section" *ngIf="jobForm.get('isSplitJourney')?.value">
-        <h2>Secondary Collection Details</h2>
-        <div class="form-grid">
-          <div class="form-group full-width">
-            <label for="secondaryCollectionAddress">Address</label>
-            <input id="secondaryCollectionAddress" type="text" formControlName="secondaryCollectionAddress" />
-            <span class="error-message">{{ getErrorMessage('secondaryCollectionAddress') }}</span>
-          </div>
-
-          <div class="form-group">
-            <label for="secondaryCollectionCity">City</label>
-            <input id="secondaryCollectionCity" type="text" formControlName="secondaryCollectionCity" />
-          </div>
-
-          <div class="form-group">
-            <label for="secondaryCollectionPostcode">Postcode</label>
-            <input id="secondaryCollectionPostcode" type="text" formControlName="secondaryCollectionPostcode" />
-          </div>
-
-          <div class="form-group">
-            <label for="secondaryCollectionContactName">Contact Name</label>
-            <input id="secondaryCollectionContactName" type="text" formControlName="secondaryCollectionContactName" />
-          </div>
-
-          <div class="form-group">
-            <label for="secondaryCollectionContactPhone">Contact Phone</label>
-            <input id="secondaryCollectionContactPhone" type="text" formControlName="secondaryCollectionContactPhone" />
-          </div>
-
-          <div class="form-group full-width">
-            <label for="secondaryCollectionNotes">Notes</label>
-            <textarea id="secondaryCollectionNotes" formControlName="secondaryCollectionNotes" rows="2"></textarea>
-          </div>
-        </div>
-      </div>
-
-      <div class="form-section" *ngIf="jobForm.get('isSplitJourney')?.value">
-        <h2>Secondary Delivery Details</h2>
-        <div class="form-grid">
-          <div class="form-group full-width">
-            <label for="secondaryDeliveryAddress">Address</label>
-            <input id="secondaryDeliveryAddress" type="text" formControlName="secondaryDeliveryAddress" />
-            <span class="error-message">{{ getErrorMessage('secondaryDeliveryAddress') }}</span>
-          </div>
-
-          <div class="form-group">
-            <label for="secondaryDeliveryCity">City</label>
-            <input id="secondaryDeliveryCity" type="text" formControlName="secondaryDeliveryCity" />
-          </div>
-
-          <div class="form-group">
-            <label for="secondaryDeliveryPostcode">Postcode</label>
-            <input id="secondaryDeliveryPostcode" type="text" formControlName="secondaryDeliveryPostcode" />
-          </div>
-
-          <div class="form-group">
-            <label for="secondaryDeliveryContactName">Contact Name</label>
-            <input id="secondaryDeliveryContactName" type="text" formControlName="secondaryDeliveryContactName" />
-          </div>
-
-          <div class="form-group">
-            <label for="secondaryDeliveryContactPhone">Contact Phone</label>
-            <input id="secondaryDeliveryContactPhone" type="text" formControlName="secondaryDeliveryContactPhone" />
-          </div>
-
-          <div class="form-group full-width">
-            <label for="secondaryDeliveryNotes">Notes</label>
-            <textarea id="secondaryDeliveryNotes" formControlName="secondaryDeliveryNotes" rows="2"></textarea>
-          </div>
-        </div>
-      </div>
-
-      <div class="form-section">
-        <h2>Final Delivery Details</h2>
-        <div class="form-grid">
-          <div class="form-group full-width">
-            <label for="deliveryAddress">Address</label>
-            <input id="deliveryAddress" type="text" formControlName="deliveryAddress" />
-            <span class="error-message">{{ getErrorMessage('deliveryAddress') }}</span>
-          </div>
-
-          <div class="form-group">
-            <label for="deliveryCity">City</label>
-            <input id="deliveryCity" type="text" formControlName="deliveryCity" />
-          </div>
-
-          <div class="form-group">
-            <label for="deliveryPostcode">Postcode</label>
-            <input id="deliveryPostcode" type="text" formControlName="deliveryPostcode" />
-          </div>
-
-          <div class="form-group">
-            <label for="deliveryContactName">Contact Name</label>
-            <input id="deliveryContactName" type="text" formControlName="deliveryContactName" />
-          </div>
-
-          <div class="form-group">
-            <label for="deliveryContactPhone">Contact Phone</label>
-            <input id="deliveryContactPhone" type="text" formControlName="deliveryContactPhone" />
-          </div>
-
-          <div class="form-group full-width">
-            <label for="deliveryNotes">Notes</label>
-            <textarea id="deliveryNotes" formControlName="deliveryNotes" rows="2"></textarea>
-          </div>
-        </div>
-      </div>
-
-      <div class="form-section">
-        <h2>Additional Information</h2>
-        <div class="form-grid">
-          <div class="form-group full-width">
-            <label for="notes">Job Notes</label>
-            <textarea id="notes" formControlName="notes" rows="4"></textarea>
-          </div>
-        </div>
-      </div>
-
-      <div class="form-actions">
-        <button type="button" class="cancel-btn" (click)="onCancel()">Cancel</button>
-        <button type="submit" class="submit-btn" [disabled]="!jobForm.valid || isSubmitting || jobForm.pristine" (click)="onSubmit()">
-          {{ isSubmitting ? 'Saving...' : 'Save Changes' }}
-        </button>
-      </div>
-    </form>
+    <!-- Unsaved Changes Warning -->
+    <div class="unsaved-changes-warning" *ngIf="hasUnsavedChanges">
+      <mat-icon>warning</mat-icon>
+      <span>You have unsaved changes</span>
+    </div>
   </div>
+
+  <!-- Loading State -->
+  <div *ngIf="loading" class="loading-container">
+    <mat-spinner></mat-spinner>
+    <p>Loading job data...</p>
+  </div>
+
+  <!-- Job Edit Form -->
+  <form [formGroup]="jobForm" (ngSubmit)="onSubmit()" *ngIf="!loading && originalJob" class="job-form">
+    <!-- Status Section (if user has permission) -->
+    <mat-card class="form-section status-section" *ngIf="canEditStatus">
+      <mat-card-header>
+        <mat-card-title>
+          <mat-icon>update</mat-icon>
+          Job Status
+        </mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="status-controls">
+          <mat-form-field appearance="outline" class="status-field">
+            <mat-label>Current Status</mat-label>
+            <mat-select formControlName="status">
+              <mat-option *ngFor="let status of statusOptions" [value]="status.value">
+                {{ status.label }}
+              </mat-option>
+            </mat-select>
+            <mat-hint>Only change status if you're authorized to manage job workflows</mat-hint>
+          </mat-form-field>
+
+          <div class="current-status-display">
+            <span class="label">Original Status:</span>
+            <span class="status-badge" [ngClass]="'status-' + originalJob.status">
+              {{ originalJob.status | titlecase }}
+            </span>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Vehicle Information Section -->
+    <mat-card class="form-section" formGroupName="vehicleInfo">
+      <mat-card-header>
+        <mat-card-title>
+          <mat-icon>directions_car</mat-icon>
+          Vehicle Information
+        </mat-card-title>
+        <div class="validation-indicator" [class.valid]="isVehicleFormValid">
+          <mat-icon>{{ isVehicleFormValid ? 'check_circle' : 'error' }}</mat-icon>
+        </div>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="form-grid">
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Vehicle Registration *</mat-label>
+            <input matInput formControlName="vehicleRegistration" placeholder="e.g., AB12 CDE" style="text-transform: uppercase" autocomplete="off" />
+            <mat-error *ngIf="vehicleInfoForm.get('vehicleRegistration')?.hasError('required')"> Vehicle registration is required </mat-error>
+            <mat-error *ngIf="vehicleInfoForm.get('vehicleRegistration')?.hasError('invalidRegistration')"> Please enter a valid UK registration number </mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Vehicle Type *</mat-label>
+            <mat-select formControlName="vehicleType">
+              <mat-option *ngFor="let type of vehicleTypes" [value]="type">
+                {{ type }}
+              </mat-option>
+            </mat-select>
+            <mat-error>Vehicle type is required</mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Make</mat-label>
+            <mat-select formControlName="vehicleMake">
+              <mat-option *ngFor="let make of makes" [value]="make.id">
+                {{ make.displayName || make.name }}
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Model</mat-label>
+            <mat-select formControlName="vehicleModel">
+              <mat-option *ngFor="let model of models" [value]="model.id">
+                {{ model.displayName || model.name }}
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Color</mat-label>
+            <input matInput formControlName="vehicleColor" autocomplete="off" />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Year</mat-label>
+            <input matInput type="number" formControlName="vehicleYear" [min]="1900" [max]="maxYear" />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Chassis Number</mat-label>
+            <input matInput formControlName="chassisNumber" autocomplete="off" />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Fuel Type</mat-label>
+            <mat-select formControlName="vehicleFuelType">
+              <mat-option *ngFor="let fuel of fuelTypes" [value]="fuel">
+                {{ fuel }}
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Customer Information Section -->
+    <mat-card class="form-section" formGroupName="customerInfo">
+      <mat-card-header>
+        <mat-card-title>
+          <mat-icon>business</mat-icon>
+          Customer Information
+        </mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="form-grid">
+          <mat-form-field appearance="outline">
+            <mat-label>Select Customer</mat-label>
+            <mat-select formControlName="customerId" (selectionChange)="onCustomerSelect($event.value)">
+              <mat-option value="">No Customer Selected</mat-option>
+              <mat-option *ngFor="let customer of customers" [value]="customer.id">
+                {{ customer.name }}
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Customer Name *</mat-label>
+            <input matInput formControlName="customerName" autocomplete="off" />
+            <mat-error>Customer name is required</mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Customer Job Number</mat-label>
+            <input matInput formControlName="customerJobNumber" autocomplete="off" />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Shipping Reference</mat-label>
+            <input matInput formControlName="shippingReference" autocomplete="off" />
+          </mat-form-field>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Collection Details Section -->
+    <mat-card class="form-section" formGroupName="collectionDetails">
+      <mat-card-header>
+        <mat-card-title>
+          <mat-icon>location_on</mat-icon>
+          Collection Details
+        </mat-card-title>
+        <div class="validation-indicator" [class.valid]="isCollectionFormValid">
+          <mat-icon>{{ isCollectionFormValid ? 'check_circle' : 'error' }}</mat-icon>
+        </div>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="form-grid">
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Collection Address *</mat-label>
+            <textarea matInput formControlName="collectionAddress" rows="2" autocomplete="off"> </textarea>
+            <mat-error>Collection address is required</mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>City *</mat-label>
+            <input matInput formControlName="collectionCity" autocomplete="off" />
+            <mat-error>City is required</mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Postcode *</mat-label>
+            <input matInput formControlName="collectionPostcode" style="text-transform: uppercase" autocomplete="off" />
+            <mat-error>Postcode is required</mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Contact Name *</mat-label>
+            <input matInput formControlName="collectionContactName" autocomplete="off" />
+            <mat-error>Contact name is required</mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Contact Phone *</mat-label>
+            <input matInput formControlName="collectionContactPhone" autocomplete="off" />
+            <mat-error *ngIf="collectionDetailsForm.get('collectionContactPhone')?.hasError('required')"> Contact phone is required </mat-error>
+            <mat-error *ngIf="collectionDetailsForm.get('collectionContactPhone')?.hasError('invalidPhone')"> Please enter a valid UK phone number </mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Contact Email</mat-label>
+            <input matInput type="email" formControlName="collectionContactEmail" autocomplete="off" />
+            <mat-error>Please enter a valid email address</mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Scheduled Collection Time</mat-label>
+            <input matInput type="datetime-local" formControlName="collectionScheduledTime" />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Collection Notes</mat-label>
+            <textarea matInput formControlName="collectionNotes" rows="3" placeholder="Any special instructions or notes for collection..." autocomplete="off">
+            </textarea>
+          </mat-form-field>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Split Journey Toggle -->
+    <mat-card class="form-section">
+      <mat-card-content>
+        <div class="split-journey-toggle">
+          <mat-slide-toggle formControlName="isSplitJourney" (change)="onSplitJourneyToggle()" color="primary">
+            <span class="toggle-label">
+              <mat-icon>alt_route</mat-icon>
+              Split Journey (Multiple Stops)
+            </span>
+          </mat-slide-toggle>
+          <p class="toggle-description">Enable this for jobs that require secondary collection or first delivery stops</p>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Secondary Collection Details (Split Journey) -->
+    <mat-card class="form-section split-section" formGroupName="secondaryCollectionDetails" *ngIf="isSplitJourney">
+      <mat-card-header>
+        <mat-card-title>
+          <mat-icon>add_location</mat-icon>
+          Secondary Collection Details
+        </mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="form-grid">
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Secondary Collection Address *</mat-label>
+            <textarea matInput formControlName="secondaryCollectionAddress" rows="2" autocomplete="off"> </textarea>
+            <mat-error>Secondary collection address is required</mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>City *</mat-label>
+            <input matInput formControlName="secondaryCollectionCity" autocomplete="off" />
+            <mat-error>City is required</mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Postcode *</mat-label>
+            <input matInput formControlName="secondaryCollectionPostcode" style="text-transform: uppercase" autocomplete="off" />
+            <mat-error>Postcode is required</mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Contact Name *</mat-label>
+            <input matInput formControlName="secondaryCollectionContactName" autocomplete="off" />
+            <mat-error>Contact name is required</mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Contact Phone *</mat-label>
+            <input matInput formControlName="secondaryCollectionContactPhone" autocomplete="off" />
+            <mat-error *ngIf="secondaryCollectionForm.get('secondaryCollectionContactPhone')?.hasError('required')"> Contact phone is required </mat-error>
+            <mat-error *ngIf="secondaryCollectionForm.get('secondaryCollectionContactPhone')?.hasError('invalidPhone')"> Please enter a valid UK phone number </mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Contact Email</mat-label>
+            <input matInput type="email" formControlName="secondaryCollectionContactEmail" autocomplete="off" />
+            <mat-error>Please enter a valid email address</mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Scheduled Time</mat-label>
+            <input matInput type="datetime-local" formControlName="secondaryCollectionScheduledTime" />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Secondary Collection Notes</mat-label>
+            <textarea matInput formControlName="secondaryCollectionNotes" rows="3" autocomplete="off"> </textarea>
+          </mat-form-field>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- First Delivery Details (Split Journey) -->
+    <mat-card class="form-section split-section" formGroupName="firstDeliveryDetails" *ngIf="isSplitJourney">
+      <mat-card-header>
+        <mat-card-title>
+          <mat-icon>location_on</mat-icon>
+          First Delivery Details
+        </mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="form-grid">
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>First Delivery Address *</mat-label>
+            <textarea matInput formControlName="firstDeliveryAddress" rows="2" autocomplete="off"> </textarea>
+            <mat-error>First delivery address is required</mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>City *</mat-label>
+            <input matInput formControlName="firstDeliveryCity" autocomplete="off" />
+            <mat-error>City is required</mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Postcode *</mat-label>
+            <input matInput formControlName="firstDeliveryPostcode" style="text-transform: uppercase" autocomplete="off" />
+            <mat-error>Postcode is required</mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Contact Name *</mat-label>
+            <input matInput formControlName="firstDeliveryContactName" autocomplete="off" />
+            <mat-error>Contact name is required</mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Contact Phone *</mat-label>
+            <input matInput formControlName="firstDeliveryContactPhone" autocomplete="off" />
+            <mat-error *ngIf="firstDeliveryForm.get('firstDeliveryContactPhone')?.hasError('required')"> Contact phone is required </mat-error>
+            <mat-error *ngIf="firstDeliveryForm.get('firstDeliveryContactPhone')?.hasError('invalidPhone')"> Please enter a valid UK phone number </mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Contact Email</mat-label>
+            <input matInput type="email" formControlName="firstDeliveryContactEmail" autocomplete="off" />
+            <mat-error>Please enter a valid email address</mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Scheduled Time</mat-label>
+            <input matInput type="datetime-local" formControlName="firstDeliveryScheduledTime" />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>First Delivery Notes</mat-label>
+            <textarea matInput formControlName="firstDeliveryNotes" rows="3" autocomplete="off"> </textarea>
+          </mat-form-field>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Final Delivery Details Section -->
+    <mat-card class="form-section" formGroupName="deliveryDetails">
+      <mat-card-header>
+        <mat-card-title>
+          <mat-icon>flag</mat-icon>
+          {{ isSplitJourney ? 'Final Delivery Details' : 'Delivery Details' }}
+        </mat-card-title>
+        <div class="validation-indicator" [class.valid]="isDeliveryFormValid">
+          <mat-icon>{{ isDeliveryFormValid ? 'check_circle' : 'error' }}</mat-icon>
+        </div>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="form-grid">
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Delivery Address *</mat-label>
+            <textarea matInput formControlName="deliveryAddress" rows="2" autocomplete="off"> </textarea>
+            <mat-error>Delivery address is required</mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>City *</mat-label>
+            <input matInput formControlName="deliveryCity" autocomplete="off" />
+            <mat-error>City is required</mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Postcode *</mat-label>
+            <input matInput formControlName="deliveryPostcode" style="text-transform: uppercase" autocomplete="off" />
+            <mat-error>Postcode is required</mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Contact Name *</mat-label>
+            <input matInput formControlName="deliveryContactName" autocomplete="off" />
+            <mat-error>Contact name is required</mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Contact Phone *</mat-label>
+            <input matInput formControlName="deliveryContactPhone" autocomplete="off" />
+            <mat-error *ngIf="deliveryDetailsForm.get('deliveryContactPhone')?.hasError('required')"> Contact phone is required </mat-error>
+            <mat-error *ngIf="deliveryDetailsForm.get('deliveryContactPhone')?.hasError('invalidPhone')"> Please enter a valid UK phone number </mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Contact Email</mat-label>
+            <input matInput type="email" formControlName="deliveryContactEmail" autocomplete="off" />
+            <mat-error>Please enter a valid email address</mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Scheduled Delivery Time</mat-label>
+            <input matInput type="datetime-local" formControlName="deliveryScheduledTime" />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Delivery Notes</mat-label>
+            <textarea matInput formControlName="deliveryNotes" rows="3" placeholder="Any special instructions or notes for delivery..." autocomplete="off"> </textarea>
+          </mat-form-field>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- General Notes Section -->
+    <mat-card class="form-section">
+      <mat-card-header>
+        <mat-card-title>
+          <mat-icon>notes</mat-icon>
+          General Notes
+        </mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Add New Notes</mat-label>
+          <textarea matInput formControlName="generalNotes" rows="4" placeholder="Add any updates or additional information about this job..." autocomplete="off">
+          </textarea>
+          <mat-hint>New notes will be appended to existing job notes</mat-hint>
+        </mat-form-field>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Form Actions -->
+    <div class="form-actions">
+      <button type="button" mat-stroked-button (click)="onCancel()" class="cancel-button">
+        <mat-icon>close</mat-icon>
+        Cancel
+      </button>
+
+      <button type="submit" mat-raised-button color="primary" [disabled]="jobForm.invalid || submitting" class="submit-button">
+        <mat-spinner diameter="20" *ngIf="submitting"></mat-spinner>
+        <mat-icon *ngIf="!submitting">save</mat-icon>
+        {{ submitting ? 'Updating Job...' : 'Update Job' }}
+      </button>
+    </div>
+  </form>
 </div>

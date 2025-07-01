@@ -1,36 +1,55 @@
-import { Component, OnDestroy, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
+import { ActivatedRoute, Router } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { ActivatedRoute, Router } from '@angular/router';
-import { Observable, Subscription, combineLatest, forkJoin, of } from 'rxjs';
-import { catchError, switchMap, tap } from 'rxjs/operators';
-import { ConfirmationDialogComponent } from '../../../dialogs/confirmation-dialog.component';
-import { AuthService } from '../../../services/auth.service';
+import { Observable, Subject, of } from 'rxjs';
+import { takeUntil, switchMap, tap } from 'rxjs/operators';
+import { Timestamp } from '@angular/fire/firestore';
+
 import { JobNewService } from '../../../services/job-new.service';
-import { Job } from '../../../interfaces/job-new.interface';
+import { AuthService } from '../../../services/auth.service';
+import { Customer } from '../../../interfaces/customer.interface';
+import { MakeModel } from '../../../interfaces/make-model.interface';
 import { UserProfile } from '../../../interfaces/user-profile.interface';
-import { DriverSelectionDialogComponent } from '../../../dialogs/driver-selection-dialog.component';
-import { JobDuplicateDialogComponent } from '../../../dialogs/job-duplicate-dialog.component';
-import { Timestamp } from 'firebase/firestore';
+import { Job, JobNote } from '../../../interfaces/job-new.interface';
 
-interface Note {
-  author: string;
-  content: string;
-  date: Date;
-  id?: string;
+// Billing Interfaces
+export interface JobExpense {
+  id: string;
+  type: 'fuel' | 'tolls' | 'parking' | 'accommodation' | 'meals' | 'other';
+  description: string;
+  amount: number;
+  date: Timestamp;
+  receiptUrl?: string;
+  addedBy: string;
+  addedByName: string;
+  isApproved: boolean;
+  approvedBy?: string;
+  approvedAt?: Timestamp;
 }
 
-interface NoteData {
-  author: string;
-  content: string;
-  date: string | Date;
-  id?: string;
-}
-
-interface DriverInfo {
+export interface PricingItem {
   id: string;
   name: string;
-  phoneNumber?: string;
+  description: string;
+  price: number;
+  quantity: number;
+  total: number;
+}
+
+export interface JobBilling {
+  basePrice: number;
+  additionalItems: PricingItem[];
+  expenses: JobExpense[];
+  subtotal: number;
+  vatRate: number;
+  vatAmount: number;
+  totalAmount: number;
+  invoiceNumber?: string;
+  invoiceDate?: Timestamp;
+  dueDate?: Timestamp;
+  status: 'draft' | 'pending' | 'sent' | 'paid' | 'overdue';
+  notes?: string;
 }
 
 @Component({
@@ -40,24 +59,63 @@ interface DriverInfo {
   standalone: false,
 })
 export class JobDetailsComponent implements OnInit, OnDestroy {
-  jobId: string = '';
+  [x: string]: any;
   job: Job | null = null;
-  activeTab: 'details' | 'timeline' | 'expenses' = 'details';
-  isLoading = true;
-  hasEditPermission = false;
-  hasAllocatePermission = false;
-  isAdmin = false;
+  loading = true;
+  error: string | null = null;
+
   currentUser: UserProfile | null = null;
-  private isDestroyed = false;
+  canEditJobs = false;
+  canManageJobs = false;
+  canManageBilling = false;
 
-  driverInfo: DriverInfo | null = null;
+  // Billing data
+  jobBilling: JobBilling | null = null;
+  isLoadingBilling = false;
 
-  jobNotes: Note[] = [];
-  newNote: string = '';
+  // Add expense form data
+  newExpense = {
+    type: 'fuel' as const,
+    description: '',
+    amount: 0,
+    receiptUrl: '',
+  };
 
-  allowedStatuses: ('unallocated' | 'allocated' | 'collected' | 'delivered' | 'completed')[] = ['unallocated', 'allocated', 'collected', 'delivered', 'completed'];
+  // Add pricing item form data
+  newPricingItem = {
+    name: '',
+    description: '',
+    price: 0,
+    quantity: 1,
+  };
 
-  private subscriptions: Subscription[] = [];
+  // Expense types
+  expenseTypes = [
+    { value: 'fuel', label: 'Fuel', icon: 'local_gas_station' },
+    { value: 'tolls', label: 'Tolls', icon: 'toll' },
+    { value: 'parking', label: 'Parking', icon: 'local_parking' },
+    { value: 'accommodation', label: 'Accommodation', icon: 'hotel' },
+    { value: 'meals', label: 'Meals', icon: 'restaurant' },
+    { value: 'other', label: 'Other', icon: 'receipt' },
+  ];
+
+  // Standard pricing items
+  standardPricingItems = [
+    { name: 'Collection Service', description: 'Vehicle collection service', price: 50.0 },
+    { name: 'Delivery Service', description: 'Vehicle delivery service', price: 50.0 },
+    { name: 'Storage (per day)', description: 'Vehicle storage per day', price: 15.0 },
+    { name: 'Washing Service', description: 'Vehicle washing service', price: 25.0 },
+    { name: 'Express Service', description: 'Same day service premium', price: 75.0 },
+    { name: 'Mileage (per mile)', description: 'Additional mileage charge', price: 1.5 },
+  ];
+
+  // Status progression
+  statusFlow = ['unallocated', 'allocated', 'collection-in-progress', 'collected', 'loaded', 'in-transit', 'delivery-in-progress', 'delivered', 'completed'];
+
+  // Tab selection
+  selectedTabIndex = 0;
+
+  private destroy$ = new Subject<void>();
 
   constructor(
     private route: ActivatedRoute,
@@ -65,725 +123,806 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
     private jobService: JobNewService,
     private authService: AuthService,
     private dialog: MatDialog,
-    private snackBar: MatSnackBar,
-    private cdr: ChangeDetectorRef
+    private snackBar: MatSnackBar
   ) {}
 
-  ngOnInit() {
-    const routeSub = this.route.params.subscribe((params) => {
-      this.jobId = params['id'];
-      this.loadJobDetails();
-    });
-
-    this.subscriptions.push(routeSub);
-
-    this.checkUserPermissions();
+  ngOnInit(): void {
+    this.initializePermissions();
+    this.loadJob();
+    this.loadBillingData();
   }
 
-  ngOnDestroy() {
-    this.isDestroyed = true;
-    this.subscriptions.forEach((sub) => sub.unsubscribe());
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
-  private loadJobDetails() {
-    this.isLoading = true;
+  private initializePermissions(): void {
+    this.authService
+      .getCurrentUser()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((user) => {
+        this.currentUser = user;
+        this.canEditJobs = user?.permissions?.canEditJobs || user?.permissions?.isAdmin || false;
+        this.canManageJobs = user?.permissions?.canManageUsers || user?.permissions?.isAdmin || false;
+        this.canManageBilling = user?.permissions?.['canManageBilling'] || user?.permissions?.isAdmin || false;
+      });
+  }
 
-    const jobSub = this.jobService
-      .getJobById(this.jobId)
+  private loadJob(): void {
+    this.loading = true;
+    this.error = null;
+
+    this.route.params
       .pipe(
-        switchMap((job) => {
-          if (!job) {
-            return of({ job: null, driverInfo: null });
+        switchMap((params) => {
+          const jobId = params['id'];
+          if (!jobId) {
+            throw new Error('Job ID not provided');
           }
-
-          if (job.driverId) {
-            return this.authService.getUserById(job.driverId).pipe(
-              catchError(() => of(null)),
-              switchMap((driverProfile) => {
-                const driver: DriverInfo | null = driverProfile
-                  ? {
-                      id: driverProfile.id,
-                      name: driverProfile.name || `${driverProfile.firstName || ''} ${driverProfile.lastName || ''}`.trim() || 'Unknown Driver',
-                      phoneNumber: driverProfile.phoneNumber,
-                    }
-                  : null;
-
-                return of({ job, driverInfo: driver });
-              })
-            );
-          } else {
-            return of({ job, driverInfo: null });
-          }
-        })
+          return this.jobService.getJobById(jobId);
+        }),
+        takeUntil(this.destroy$)
       )
       .subscribe({
-        next: (result) => {
-          this.job = result.job;
-          this.driverInfo = result.driverInfo;
-          this.isLoading = false;
-          this.cdr.detectChanges();
-
-          if (this.job && this.job['notes']) {
-            this.processJobNotes(this.job);
+        next: (job) => {
+          if (job) {
+            this.job = job;
+          } else {
+            this.error = 'Job not found';
           }
+          this.loading = false;
         },
         error: (error) => {
-          this.isLoading = false;
-          console.error('Error loading job details:', error);
-          this.showSnackbar('Error loading job details');
-          this.cdr.detectChanges();
+          console.error('Error loading job:', error);
+          this.error = error.message || 'Failed to load job details';
+          this.loading = false;
         },
       });
-
-    this.subscriptions.push(jobSub);
   }
 
-  private processJobNotes(job: Job) {
-    const rawNotes: Note[] = [];
-
-    if (Array.isArray(job['notes'])) {
-      rawNotes.push(...(job['notes'] as Note[]));
-    } else if (typeof job['notes'] === 'string') {
-      rawNotes.push({
-        author: job.createdBy || 'System',
-        content: job['notes'],
-        date: job.createdAt.toDate(),
-      });
-    } else if (typeof job['notes'] === 'object' && job['notes'] !== null) {
-      try {
-        const notesObject = job['notes'] as Record<string, any>;
-        const noteEntries = Object.entries(notesObject).map(([id, noteData]) => {
-          const note: Note = {
-            author: (noteData as any).author || 'Unknown',
-            content: (noteData as any).content || '',
-            date: new Date((noteData as any).date || new Date()),
-          };
-          return note;
-        });
-
-        rawNotes.push(...noteEntries);
-      } catch (error) {
-        console.error('Error processing notes:', error);
-      }
-    }
-
-    if (rawNotes.length === 0) {
-      this.jobNotes = [];
-      return;
-    }
-
-    const authorIds = new Set<string>();
-
-    rawNotes.forEach((note) => {
-      if (typeof note.author === 'string' && note.author !== 'System' && note.author !== 'Unknown' && note.author.length > 20) {
-        authorIds.add(note.author);
-      }
-    });
-
-    if (authorIds.size === 0) {
-      this.jobNotes = rawNotes;
-      return;
-    }
-
-    const authorMap = new Map<string, string>();
-    const authorRequests: Observable<any>[] = [];
-
-    Array.from(authorIds).forEach((authorId) => {
-      const request = this.authService.getUserById(authorId).pipe(
-        tap((user) => {
-          if (user) {
-            const authorName = user.name || `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Unknown User';
-            authorMap.set(authorId, authorName);
-          }
-        }),
-        catchError(() => {
-          authorMap.set(authorId, 'Unknown User');
-          return of(null);
-        })
-      );
-      authorRequests.push(request);
-    });
-
-    if (authorRequests.length > 0) {
-      const authorSub = forkJoin(authorRequests).subscribe({
-        next: () => {
-          this.jobNotes = rawNotes.map((note) => {
-            if (authorMap.has(note.author)) {
-              return {
-                ...note,
-                author: authorMap.get(note.author) || note.author,
-              };
-            }
-            return note;
-          });
-          this.cdr.detectChanges();
-        },
-        error: (error) => {
-          console.error('Error fetching note author names:', error);
-          this.jobNotes = rawNotes;
-          this.cdr.detectChanges();
-        },
-        complete: () => {
-          if (authorSub) {
-            this.subscriptions.push(authorSub);
-          }
-        },
-      });
-    } else {
-      this.jobNotes = rawNotes;
+  // Navigation actions
+  editJob(): void {
+    if (this.job && this.canEditJobs) {
+      this.router.navigate(['/jobs', this.job.id, 'edit']);
     }
   }
 
-  private checkUserPermissions() {
-    const permissionsSub = combineLatest([
-      this.authService.getUserProfile(),
-      this.authService.hasPermission('canEditJobs'),
-      this.authService.hasPermission('canAllocateJobs'),
-      this.authService.hasPermission('isAdmin'),
-    ]).subscribe(([user, canEdit, canAllocate, isAdmin]) => {
-      this.currentUser = user;
-      this.hasEditPermission = canEdit;
-      this.hasAllocatePermission = canAllocate;
-      this.isAdmin = isAdmin;
-      this.cdr.detectChanges();
-    });
-
-    this.subscriptions.push(permissionsSub);
-  }
-
-  setActiveTab(tab: 'details' | 'timeline' | 'expenses') {
-    this.activeTab = tab;
-    this.cdr.detectChanges();
-  }
-
-  getStatusClass(status: string): string {
-    const statusMap: Record<string, string> = {
-      unallocated: 'status-unallocated',
-      allocated: 'status-allocated',
-      collected: 'status-collected',
-      delivered: 'status-delivered',
-      completed: 'status-completed',
-    };
-    return statusMap[status] || 'status-default';
-  }
-
-  getTimelineIcon(status: string): string {
-    const iconMap: Record<string, string> = {
-      unallocated: 'assignment',
-      allocated: 'assignment_ind',
-      collected: 'local_shipping',
-      'in-transit': 'directions_car',
-      delivered: 'check_circle',
-      completed: 'done_all',
-    };
-    return iconMap[status] || 'radio_button_unchecked';
-  }
-
-  isLastEvent(event: any): boolean {
-    return this.job?.['timeline']?.indexOf(event) === this.job?.['timeline']?.length - 1;
-  }
-
-  goBack() {
+  goBack(): void {
     this.router.navigate(['/jobs']);
   }
 
-  editJob(job: Job, event: Event): void {
-    event.stopPropagation(); // Prevent row click event
-    this.router.navigate(['/jobs', job.id, 'edit']);
+  // Status management
+  getStatusColor(status: string): string {
+    const statusColors: { [key: string]: string } = {
+      unallocated: 'warn',
+      allocated: 'accent',
+      'collection-in-progress': 'primary',
+      collected: 'primary',
+      loaded: 'primary',
+      'in-transit': 'primary',
+      'delivery-in-progress': 'primary',
+      delivered: 'primary',
+      completed: 'primary',
+      cancelled: 'warn',
+      aborted: 'warn',
+    };
+    return statusColors[status] || 'basic';
   }
 
-  printJobDetails() {
+  getStatusIcon(status: string): string {
+    const statusIcons: { [key: string]: string } = {
+      unallocated: 'help_outline',
+      allocated: 'person',
+      'collection-in-progress': 'directions_car',
+      collected: 'done',
+      loaded: 'inventory',
+      'in-transit': 'local_shipping',
+      'delivery-in-progress': 'local_shipping',
+      delivered: 'done_all',
+      completed: 'check_circle',
+      cancelled: 'cancel',
+      aborted: 'error',
+    };
+    return statusIcons[status] || 'help_outline';
+  }
+
+  getStatusProgress(): number {
+    if (!this.job) return 0;
+
+    const currentIndex = this.statusFlow.indexOf(this.job.status);
+    if (currentIndex === -1) return 0;
+
+    return ((currentIndex + 1) / this.statusFlow.length) * 100;
+  }
+
+  // Address formatting
+  getFullAddress(address?: string | null, city?: string | null, postcode?: string | null): string {
+    const parts = [address, city, postcode].filter(Boolean);
+    return parts.join(', ') || 'Not specified';
+  }
+
+  // Contact formatting
+  getContactInfo(name?: string | null, phone?: string | null, email?: string | null): string {
+    const parts = [];
+    if (name) parts.push(name);
+    if (phone) parts.push(phone);
+    if (email) parts.push(`(${email})`);
+    return parts.join(' - ') || 'Not specified';
+  }
+
+  // Date formatting
+  formatDateTime(timestamp: any): string {
+    if (!timestamp) return 'Not scheduled';
+
+    const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+    return date.toLocaleString('en-GB', {
+      weekday: 'short',
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  }
+
+  formatDate(timestamp: any): string {
+    if (!timestamp) return 'Not set';
+
+    const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+    return date.toLocaleDateString('en-GB', {
+      weekday: 'long',
+      day: '2-digit',
+      month: 'long',
+      year: 'numeric',
+    });
+  }
+
+  formatTime(timestamp: any): string {
+    if (!timestamp) return 'Not set';
+
+    const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+    return date.toLocaleTimeString('en-GB', {
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  }
+
+  // Vehicle information
+  getVehicleInfo(): string {
+    if (!this.job) return '';
+
+    const parts = [];
+    if (this.job.vehicleRegistration) parts.push(this.job.vehicleRegistration);
+    if (this.job.vehicleMake) parts.push(this.job.vehicleMake);
+    if (this.job.vehicleModel) parts.push(this.job.vehicleModel);
+    if (this.job.vehicleYear) parts.push(`(${this.job.vehicleYear})`);
+
+    return parts.join(' ') || 'Vehicle details not specified';
+  }
+
+  getVehicleSpecs(): { label: string; value: string }[] {
+    if (!this.job) return [];
+
+    const specs = [];
+
+    if (this.job.vehicleType) {
+      specs.push({ label: 'Type', value: this.job.vehicleType });
+    }
+    if (this.job.vehicleColor) {
+      specs.push({ label: 'Color', value: this.job.vehicleColor });
+    }
+    if (this.job.vehicleFuelType) {
+      specs.push({ label: 'Fuel', value: this.job.vehicleFuelType });
+    }
+    if (this.job.chassisNumber) {
+      specs.push({ label: 'Chassis', value: this.job.chassisNumber });
+    }
+
+    return specs;
+  }
+
+  // Journey type
+  get isStandardJourney(): boolean {
+    return !this.job?.isSplitJourney;
+  }
+
+  get isSplitJourney(): boolean {
+    return this.job?.isSplitJourney || false;
+  }
+
+  // Notes handling
+  getFormattedNotes(notes: JobNote[] | string | null | undefined): JobNote[] {
+    if (!notes) return [];
+
+    if (typeof notes === 'string') {
+      return [
+        {
+          id: `legacy_note_${Date.now()}`,
+          authorId: 'system',
+          authorName: 'System',
+          content: notes,
+          createdAt: this.job?.createdAt || Timestamp.now(),
+        },
+      ];
+    }
+
+    if (Array.isArray(notes)) {
+      return notes;
+    }
+
+    return [];
+  }
+
+  // Timeline data
+  getJobTimeline(): { status: string; date: any; icon: string; color: string }[] {
+    if (!this.job) return [];
+
+    const timeline = [];
+
+    if (this.job.createdAt) {
+      timeline.push({
+        status: 'Job Created',
+        date: this.job.createdAt,
+        icon: 'add_task',
+        color: 'primary',
+      });
+    }
+
+    if (this.job.allocatedAt) {
+      timeline.push({
+        status: 'Job Allocated',
+        date: this.job.allocatedAt,
+        icon: 'person_add',
+        color: 'accent',
+      });
+    }
+
+    if (this.job.collectionActualStartTime) {
+      timeline.push({
+        status: 'Collection Started',
+        date: this.job.collectionActualStartTime,
+        icon: 'start',
+        color: 'primary',
+      });
+    }
+
+    if (this.job.collectionActualCompleteTime) {
+      timeline.push({
+        status: 'Collection Completed',
+        date: this.job.collectionActualCompleteTime,
+        icon: 'done',
+        color: 'primary',
+      });
+    }
+
+    if (this.job.deliveryActualStartTime) {
+      timeline.push({
+        status: 'Delivery Started',
+        date: this.job.deliveryActualStartTime,
+        icon: 'local_shipping',
+        color: 'primary',
+      });
+    }
+
+    if (this.job.deliveryActualCompleteTime) {
+      timeline.push({
+        status: 'Delivery Completed',
+        date: this.job.deliveryActualCompleteTime,
+        icon: 'done_all',
+        color: 'primary',
+      });
+    }
+
+    return timeline.sort((a, b) => {
+      // Properly handle Timestamp objects
+      const getTimestamp = (timestamp: any): number => {
+        if (timestamp && typeof timestamp.toMillis === 'function') {
+          return timestamp.toMillis();
+        }
+        if (timestamp && typeof timestamp.toDate === 'function') {
+          return timestamp.toDate().getTime();
+        }
+        if (timestamp instanceof Date) {
+          return timestamp.getTime();
+        }
+        return new Date(timestamp).getTime();
+      };
+
+      const dateA = getTimestamp(a.date);
+      const dateB = getTimestamp(b.date);
+      return dateA - dateB;
+    });
+  }
+
+  // Actions
+  refreshJob(): void {
+    this.loadJob();
+  }
+
+  printJob(): void {
     window.print();
   }
 
-  addNote() {
-    if (!this.newNote.trim() || !this.job) return;
+  exportJob(): void {
+    // TODO: Implement export functionality
+    this.showSuccess('Export functionality coming soon');
+  }
 
-    const newNote: Note = {
-      author: this.currentUser?.name || 'User',
-      content: this.newNote.trim(),
-      date: new Date(),
-    };
-
-    const notesList: Note[] = [...(this.jobNotes || []), newNote];
-
-    this.isLoading = true;
-
-    const notesData: NoteData[] = notesList.map((note) => ({
-      author: note.author,
-      content: note.content,
-      date: note.date,
-    }));
-
-    this.jobService.updateJob(this.job.id, { notes: notesData }).subscribe({
-      next: () => {
-        this.jobNotes = notesList;
-        this.newNote = '';
-        this.isLoading = false;
-        this.showSnackbar('Note added successfully');
-        this.cdr.detectChanges();
-      },
-      error: (error) => {
-        console.error('Error adding note:', error);
-        this.isLoading = false;
-        this.showSnackbar('Error adding note');
-        this.cdr.detectChanges();
-      },
+  // Utility methods
+  private showSuccess(message: string): void {
+    this.snackBar.open(message, 'Close', {
+      duration: 3000,
+      panelClass: ['success-snackbar'],
     });
   }
 
-  updateJobStatus(newStatus: 'unallocated' | 'allocated' | 'collected' | 'delivered' | 'completed') {
-    if (!this.job) return;
+  private showError(message: string): void {
+    this.snackBar.open(message, 'Close', {
+      duration: 5000,
+      panelClass: ['error-snackbar'],
+    });
+  }
 
-    if (this.job.status === newStatus) return;
+  // Tab selection
+  onTabChange(index: number): void {
+    this.selectedTabIndex = index;
 
-    this.isLoading = true;
-    this.cdr.detectChanges();
-
-    switch (newStatus) {
-      case 'allocated':
-        if (!this.hasAllocatePermission && !this.isAdmin) {
-          this.showSnackbar('You do not have permission to allocate jobs');
-          this.isLoading = false;
-          this.cdr.detectChanges();
-          return;
-        }
-
-        this.showDriverSelectionDialog();
-        break;
-
-      case 'unallocated':
-        if (!this.hasEditPermission && !this.isAdmin) {
-          this.showSnackbar('You do not have permission to unallocate jobs');
-          this.isLoading = false;
-          this.cdr.detectChanges();
-          return;
-        }
-
-        this.jobService.unallocateJob(this.job.id).subscribe({
-          next: () => {
-            this.loadJobDetails();
-            this.showSnackbar('Job unallocated successfully');
-            this.cdr.detectChanges();
-          },
-          error: (error) => {
-            console.error('Error unallocating job:', error);
-            this.isLoading = false;
-            this.showSnackbar('Error unallocating job');
-            this.cdr.detectChanges();
-          },
-        });
-        break;
-
-      case 'collected':
-        this.startCollection();
-        break;
-
-      case 'delivered':
-        this.startDelivery();
-        break;
-
-      case 'completed':
-        this.completeJob();
-        break;
+    // Load billing data when billing tab is selected
+    if (index === 4 && !this.jobBilling) {
+      // Billing is the 5th tab (index 4)
+      this.loadBillingData();
     }
   }
 
-  private showDriverSelectionDialog(): void {
-    const dialogRef = this.dialog.open(DriverSelectionDialogComponent, {
-      data: {
-        jobId: this.job!.id,
-        jobTitle: `${this.job!['make']} ${this.job!['model']} (${this.job!['registration'] || 'No Reg'})`,
-      },
-      width: '450px',
-      panelClass: ['custom-dialog-container', 'allocation-dialog'],
-    });
+  // Billing Data Management
+  private loadBillingData(): void {
+    if (!this.job) return;
 
-    dialogRef.afterClosed().subscribe((driver) => {
-      if (this.isDestroyed) return;
+    this.isLoadingBilling = true;
 
-      if (driver) {
-        this.allocateJobToDriver(driver.id);
-      } else {
-        this.isLoading = false;
-        this.cdr.detectChanges();
-      }
-    });
+    // TODO: Replace with actual service call to load billing data
+    // For now, using mock data
+    setTimeout(() => {
+      this.jobBilling = {
+        basePrice: 100.0,
+        additionalItems: [
+          {
+            id: '1',
+            name: 'Collection Service',
+            description: 'Vehicle collection from customer location',
+            price: 50.0,
+            quantity: 1,
+            total: 50.0,
+          },
+        ],
+        expenses: [
+          {
+            id: '1',
+            type: 'fuel',
+            description: 'Fuel for collection journey',
+            amount: 25.5,
+            date: Timestamp.now(),
+            addedBy: this.currentUser?.id || 'system',
+            addedByName: this.currentUser?.name || 'System',
+            isApproved: true,
+            approvedBy: 'admin',
+            approvedAt: Timestamp.now(),
+          },
+        ],
+        subtotal: 150.0,
+        vatRate: 0.2,
+        vatAmount: 30.0,
+        totalAmount: 180.0,
+        status: 'draft',
+        notes: '',
+      };
+      this.isLoadingBilling = false;
+    }, 1000);
   }
 
-  private allocateJobToDriver(driverId: string): void {
-    if (!this.job) {
-      this.isLoading = false;
-      this.cdr.detectChanges();
+  // Add Expense
+  addExpense(): void {
+    if (!this.job || !this.currentUser || !this.newExpense.description || this.newExpense.amount <= 0) {
+      this.showError('Please fill in all required fields with valid values');
       return;
     }
 
-    const jobData: Partial<Job> = {
-      status: 'allocated',
-      driverId: driverId,
-      allocatedAt: Timestamp.now(),
-      updatedAt: Timestamp.now(),
-      updatedBy: this.currentUser?.id,
+    const expense: JobExpense = {
+      id: `exp_${Date.now()}`,
+      type: this.newExpense.type,
+      description: this.newExpense.description,
+      amount: this.newExpense.amount,
+      date: Timestamp.now(),
+      receiptUrl: this.newExpense.receiptUrl || undefined,
+      addedBy: this.currentUser.id,
+      addedByName: this.currentUser.name,
+      isApproved: false,
     };
 
-    this.jobService.updateJob(this.job.id, jobData).subscribe({
-      next: () => {
-        this.loadJobDetails();
-        this.showSnackbar('Job allocated successfully');
-        this.cdr.detectChanges();
-      },
-      error: (error) => {
-        console.error('Error allocating job to driver:', error);
-        this.isLoading = false;
-        this.showSnackbar('Error allocating job to driver');
-        this.cdr.detectChanges();
-      },
-    });
-  }
-
-  startCollection() {
-    if (!this.job) return;
-
-    const dialogRef = this.dialog.open(ConfirmationDialogComponent, {
-      data: {
-        title: 'Start Collection',
-        message: 'Are you ready to start the collection process for this job?',
-        confirmText: 'Start Collection',
-        cancelText: 'Cancel',
-        icon: 'departure_board',
-        confirmColor: 'primary',
-      },
-      width: '400px',
-      panelClass: ['custom-dialog-container', 'collection-dialog'],
-    });
-
-    const dialogSub = dialogRef.afterClosed().subscribe((result) => {
-      if (this.isDestroyed) return;
-
-      if (result) {
-        this.isLoading = true;
-        this.cdr.detectChanges();
-
-        const collectionSub = this.jobService.startCollection(this.job!.id).subscribe({
-          next: () => {
-            this.loadJobDetails();
-            this.showSnackbar('Collection started successfully');
-            this.cdr.detectChanges();
-          },
-          error: (error) => {
-            console.error('Error starting collection:', error);
-            this.isLoading = false;
-            this.showSnackbar('Error starting collection: ' + error.message);
-            this.cdr.detectChanges();
-          },
-        });
-
-        this.subscriptions.push(collectionSub);
-      } else {
-        this.isLoading = false;
-        this.cdr.detectChanges();
-      }
-    });
-
-    this.subscriptions.push(dialogSub);
-  }
-
-  startDelivery() {
-    if (!this.job) return;
-
-    const dialogRef = this.dialog.open(ConfirmationDialogComponent, {
-      data: {
-        title: 'Start Delivery',
-        message: 'Are you ready to start the delivery process for this job?',
-        confirmText: 'Start Delivery',
-        cancelText: 'Cancel',
-        icon: 'local_shipping',
-        confirmColor: 'primary',
-      },
-      width: '400px',
-      panelClass: ['custom-dialog-container', 'delivery-dialog'],
-    });
-
-    dialogRef.afterClosed().subscribe((result) => {
-      if (this.isDestroyed) return;
-
-      if (result) {
-        this.isLoading = true;
-        this.cdr.detectChanges();
-
-        this.jobService.startDelivery(this.job!.id).subscribe({
-          next: () => {
-            this.loadJobDetails();
-            this.showSnackbar('Delivery started successfully');
-
-            this.cdr.detectChanges();
-          },
-          error: (error) => {
-            console.error('Error starting delivery:', error);
-            this.isLoading = false;
-            this.showSnackbar('Error starting delivery');
-            this.cdr.detectChanges();
-          },
-        });
-      } else {
-        this.isLoading = false;
-        this.cdr.detectChanges();
-      }
-    });
-  }
-
-  completeJob() {
-    if (!this.job) return;
-
-    const dialogRef = this.dialog.open(ConfirmationDialogComponent, {
-      data: {
-        title: 'Complete Job',
-        message: 'Are you sure you want to mark this job as completed?',
-        confirmText: 'Complete Job',
-        cancelText: 'Cancel',
-        icon: 'check_circle',
-        confirmColor: 'primary',
-      },
-      width: '400px',
-      panelClass: ['custom-dialog-container'],
-    });
-
-    dialogRef.afterClosed().subscribe((result) => {
-      if (this.isDestroyed) return;
-
-      if (result) {
-        this.isLoading = true;
-        this.cdr.detectChanges();
-
-        this.jobService
-          .updateJob(this.job!.id, {
-            status: 'completed',
-            updatedAt: Timestamp.now(),
-          })
-          .subscribe({
-            next: () => {
-              this.loadJobDetails();
-              this.showSnackbar('Job marked as completed');
-              this.cdr.detectChanges();
-            },
-            error: (error) => {
-              console.error('Error completing job:', error);
-              this.isLoading = false;
-              this.showSnackbar('Error completing job');
-              this.cdr.detectChanges();
-            },
-          });
-      } else {
-        this.isLoading = false;
-        this.cdr.detectChanges();
-      }
-    });
-  }
-
-  getDriverName(): string {
-    if (this.driverInfo) {
-      return this.driverInfo.name;
+    if (!this.jobBilling) {
+      this.initializeDefaultBilling();
     }
 
-    if (!this.job?.driverId) {
-      return 'Unassigned';
-    }
+    this.jobBilling!.expenses.push(expense);
+    this.calculateTotals();
+    this.saveBillingData();
 
-    return 'Unknown Driver';
-  }
-
-  formatDate(date: Date | undefined): string {
-    if (!date) return 'N/A';
-
-    if (typeof date === 'string') {
-      return new Date(date).toLocaleString();
-    }
-
-    if (date && typeof date === 'object' && 'toDate' in date) {
-      const timestamp = date as unknown as { toDate: () => Date };
-      return timestamp.toDate().toLocaleString();
-    }
-
-    return date.toLocaleString();
-  }
-
-  formatUKDate(date: Date | Timestamp | undefined): string {
-    if (!date) return 'N/A';
-    let d: Date;
-    if (typeof date === 'string') {
-      d = new Date(date);
-    } else if (date instanceof Date) {
-      d = date;
-    } else if (date instanceof Timestamp || this.hasToDate(date)) {
-      d = (date as { toDate: () => Date }).toDate();
-    } else {
-      return 'N/A';
-    }
-    const day = d.getDate().toString().padStart(2, '0');
-    const month = (d.getMonth() + 1).toString().padStart(2, '0');
-    const year = d.getFullYear();
-    return `${day}/${month}/${year}`;
-  }
-
-  private hasToDate(val: any): val is { toDate: () => Date } {
-    return val && typeof val.toDate === 'function';
-  }
-
-  formatUKDateTime(date: Date | Timestamp | undefined): string {
-    if (!date) return 'N/A';
-    let d: Date;
-    if (typeof date === 'string') {
-      d = new Date(date);
-    } else if (date instanceof Date) {
-      d = date;
-    } else if (date instanceof Timestamp || this.hasToDate(date)) {
-      d = (date as { toDate: () => Date }).toDate();
-    } else {
-      return 'N/A';
-    }
-    const day = d.getDate().toString().padStart(2, '0');
-    const month = (d.getMonth() + 1).toString().padStart(2, '0');
-    const year = d.getFullYear();
-    const hours = d.getHours().toString().padStart(2, '0');
-    const minutes = d.getMinutes().toString().padStart(2, '0');
-    return `${day}/${month}/${year} ${hours}:${minutes}`;
-  }
-
-  getStatusFlowProgress(): number {
-    if (!this.job) return 0;
-
-    const statusOrder = ['unallocated', 'allocated', 'collected', 'delivered', 'completed'];
-
-    const currentStatusIndex = statusOrder.indexOf(this.job.status);
-    if (currentStatusIndex === -1) return 0;
-
-    return (currentStatusIndex / (statusOrder.length - 1)) * 100;
-  }
-
-  getStatusFlow() {
-    if (!this.job) return [];
-
-    const statusOrder = [
-      { key: 'unallocated', label: 'Unallocated' },
-      { key: 'allocated', label: 'Allocated' },
-      { key: 'collected', label: 'Collected' },
-      { key: 'delivered', label: 'Delivered' },
-      { key: 'completed', label: 'Completed' },
-    ];
-
-    const currentStatusIndex = statusOrder.findIndex((s) => s.key === this.job?.status);
-
-    return statusOrder.map((status, index) => {
-      return {
-        ...status,
-        active: index === currentStatusIndex,
-        completed: index < currentStatusIndex,
-      };
-    });
-  }
-
-  getVehicleLogo(make: string): string {
-    if (!make) return 'assets/images/car-logos/default.png';
-
-    const specialCases: Record<string, string> = {
-      'mercedes-benz': 'mercedes',
-      'mercedes benz': 'mercedes',
-      vw: 'volkswagen',
-      'range rover': 'land_rover',
-      'jaguar land rover': 'jaguar',
-      'rolls-royce': 'rolls_royce',
-      'rolls royce': 'rolls_royce',
-      bmw: 'bmw',
-      audi: 'audi',
-      toyota: 'toyota',
-      honda: 'honda',
-      nissan: 'nissan',
-      ford: 'ford',
-      chevrolet: 'chevrolet',
-      hyundai: 'hyundai',
-      kia: 'kia',
-      mazda: 'mazda',
-      subaru: 'subaru',
-      lexus: 'lexus',
-      jeep: 'jeep',
-      tesla: 'tesla',
-      porsche: 'porsche',
-      ferrari: 'ferrari',
-      lamborghini: 'lamborghini',
-      bentley: 'bentley',
-      maserati: 'maserati',
-      bugatti: 'bugatti',
-      mini: 'mini',
+    // Reset form
+    this.newExpense = {
+      type: 'fuel',
+      description: '',
+      amount: 0,
+      receiptUrl: '',
     };
 
-    const normalized = make.toLowerCase().trim();
+    this.showSuccess('Expense added successfully');
+  }
 
-    if (specialCases[normalized]) {
-      return `assets/images/car-logos/${specialCases[normalized]}.png`;
+  // Add Pricing Item
+  addPricingItem(): void {
+    if (!this.job || !this.newPricingItem.name || this.newPricingItem.price <= 0) {
+      this.showError('Please fill in all required fields with valid values');
+      return;
     }
 
-    const normalizedFilename = normalized
-      .replace(/\s+/g, '_')
-      .replace(/-/g, '_')
-      .replace(/[^a-z0-9_]/g, '');
+    const pricingItem: PricingItem = {
+      id: `item_${Date.now()}`,
+      name: this.newPricingItem.name,
+      description: this.newPricingItem.description,
+      price: this.newPricingItem.price,
+      quantity: this.newPricingItem.quantity || 1,
+      total: this.newPricingItem.price * (this.newPricingItem.quantity || 1),
+    };
 
-    return `assets/images/car-logos/${normalizedFilename}.png`;
+    if (!this.jobBilling) {
+      this.initializeDefaultBilling();
+    }
+
+    this.jobBilling!.additionalItems.push(pricingItem);
+    this.calculateTotals();
+    this.saveBillingData();
+
+    // Reset form
+    this.newPricingItem = {
+      name: '',
+      description: '',
+      price: 0,
+      quantity: 1,
+    };
+
+    this.showSuccess('Pricing item added successfully');
   }
 
-  handleImageError(event: Event): void {
-    const imgElement = event.target as HTMLImageElement;
-    imgElement.src = 'assets/images/car-logos/default.png';
+  // Add Standard Pricing Item
+  addStandardPricingItem(standardItem: any): void {
+    this.newPricingItem = {
+      name: standardItem.name,
+      description: standardItem.description,
+      price: standardItem.price,
+      quantity: 1,
+    };
+    this.addPricingItem();
   }
 
-  showSnackbar(message: string): void {
-    this.snackBar.open(message, 'Close', {
-      duration: 3000,
-      horizontalPosition: 'center',
-      verticalPosition: 'bottom',
-    });
+  // Remove Expense
+  removeExpense(expenseId: string): void {
+    if (!this.jobBilling) return;
+
+    this.jobBilling.expenses = this.jobBilling.expenses.filter((exp) => exp.id !== expenseId);
+    this.calculateTotals();
+    this.saveBillingData();
+    this.showSuccess('Expense removed');
   }
 
-  duplicateJob(): void {
-    if (!this.job) return;
+  // Remove Pricing Item
+  removePricingItem(itemId: string): void {
+    if (!this.jobBilling) return;
 
-    const dialogRef = this.dialog.open(JobDuplicateDialogComponent, {
-      data: {
-        jobId: this.job.id,
-        registrationNumber: this.job['registration'],
-        makeModel: this.job['make'] && this.job['model'] ? `${this.job['make']} ${this.job['model']}` : undefined,
-      },
-      width: '400px',
-      panelClass: ['custom-dialog-container', 'duplication-dialog'],
-    });
-
-    dialogRef.afterClosed().subscribe((result) => {
-      if (this.isDestroyed) return;
-
-      if (result) {
-        this.isLoading = true;
-        this.cdr.detectChanges();
-
-        this.jobService.duplicateJob(this.job!.id).subscribe({
-          next: (newJobId) => {
-            this.isLoading = false;
-            this.showSnackbar('Job duplicated successfully');
-            this.router.navigate(['/jobs', newJobId]);
-          },
-          error: (error) => {
-            console.error('Error duplicating job:', error);
-            this.isLoading = false;
-            this.showSnackbar('Error duplicating job: ' + error.message);
-            this.cdr.detectChanges();
-          },
-        });
-      }
-    });
+    this.jobBilling.additionalItems = this.jobBilling.additionalItems.filter((item) => item.id !== itemId);
+    this.calculateTotals();
+    this.saveBillingData();
+    this.showSuccess('Pricing item removed');
   }
 
-  toDateSafe(val: any): Date | undefined {
-    if (!val) return undefined;
-    if (typeof val === 'object' && typeof val.toDate === 'function') return val.toDate();
-    if (val instanceof Date) return val;
-    return undefined;
+  // Update Base Price
+  updateBasePrice(): void {
+    if (!this.jobBilling) {
+      this.initializeDefaultBilling();
+    }
+    this.calculateTotals();
+    this.saveBillingData();
+    this.showSuccess('Base price updated');
+  }
+
+  // Calculate Totals
+  private calculateTotals(): void {
+    if (!this.jobBilling) return;
+
+    // Calculate subtotal
+    const additionalItemsTotal = this.jobBilling.additionalItems.reduce((sum, item) => sum + item.total, 0);
+    this.jobBilling.subtotal = this.jobBilling.basePrice + additionalItemsTotal;
+
+    // Calculate VAT
+    this.jobBilling.vatAmount = this.jobBilling.subtotal * this.jobBilling.vatRate;
+
+    // Calculate total
+    this.jobBilling.totalAmount = this.jobBilling.subtotal + this.jobBilling.vatAmount;
+  }
+
+  // Initialize Default Billing
+  private initializeDefaultBilling(): void {
+    this.jobBilling = {
+      basePrice: 100.0,
+      additionalItems: [],
+      expenses: [],
+      subtotal: 100.0,
+      vatRate: 0.2,
+      vatAmount: 20.0,
+      totalAmount: 120.0,
+      status: 'draft',
+    };
+  }
+
+  // Save Billing Data
+  private saveBillingData(): void {
+    if (!this.job || !this.jobBilling) return;
+
+    // TODO: Implement actual save to database
+    console.log('Saving billing data:', this.jobBilling);
+  }
+
+  // Approve Expense
+  approveExpense(expenseId: string): void {
+    if (!this.jobBilling || !this.currentUser || !this.canManageBilling) return;
+
+    const expense = this.jobBilling.expenses.find((exp) => exp.id === expenseId);
+    if (expense) {
+      expense.isApproved = true;
+      expense.approvedBy = this.currentUser.id;
+      expense.approvedAt = Timestamp.now();
+      this.saveBillingData();
+      this.showSuccess('Expense approved');
+    }
+  }
+
+  // Generate PDF Invoice
+  generatePDFInvoice(): void {
+    if (!this.job || !this.jobBilling) {
+      this.showError('No billing data available to generate invoice');
+      return;
+    }
+
+    // Generate invoice number if not exists
+    if (!this.jobBilling.invoiceNumber) {
+      this.jobBilling.invoiceNumber = `INV-${this.job.id.substring(0, 8).toUpperCase()}-${Date.now().toString().slice(-6)}`;
+      this.jobBilling.invoiceDate = Timestamp.now();
+      this.jobBilling.dueDate = Timestamp.fromDate(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)); // 30 days from now
+      this.saveBillingData();
+    }
+
+    this.createPDFInvoice();
+  }
+
+  // Create PDF Invoice
+  private createPDFInvoice(): void {
+    // Create invoice HTML content
+    const invoiceHTML = this.generateInvoiceHTML();
+
+    // Open in new window for printing/saving
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(invoiceHTML);
+      printWindow.document.close();
+      printWindow.focus();
+
+      // Auto-trigger print dialog
+      setTimeout(() => {
+        printWindow.print();
+      }, 1000);
+    }
+  }
+
+  // Generate Invoice HTML
+  private generateInvoiceHTML(): string {
+    if (!this.job || !this.jobBilling) return '';
+
+    const currentDate = new Date().toLocaleDateString('en-GB');
+    const invoiceDate = this.jobBilling.invoiceDate?.toDate().toLocaleDateString('en-GB') || currentDate;
+    const dueDate = this.jobBilling.dueDate?.toDate().toLocaleDateString('en-GB') || 'Net 30';
+
+    return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <title>Invoice ${this.jobBilling.invoiceNumber}</title>
+        <style>
+            body { font-family: Arial, sans-serif; margin: 0; padding: 20px; color: #333; }
+            .header { display: flex; justify-content: space-between; margin-bottom: 30px; border-bottom: 2px solid #3b82f6; padding-bottom: 20px; }
+            .company-info { font-size: 14px; }
+            .company-name { font-size: 24px; font-weight: bold; color: #3b82f6; margin-bottom: 10px; }
+            .invoice-details { text-align: right; }
+            .invoice-title { font-size: 32px; font-weight: bold; color: #1e293b; margin-bottom: 10px; }
+            .invoice-meta { font-size: 14px; }
+            .billing-section { margin: 30px 0; }
+            .section-title { font-size: 18px; font-weight: bold; margin-bottom: 15px; color: #1e293b; }
+            .customer-info { background: #f8fafc; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
+            .job-info { background: #f1f5f9; padding: 15px; border-radius: 8px; margin-bottom: 30px; }
+            table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+            th, td { padding: 12px; text-align: left; border-bottom: 1px solid #e5e7eb; }
+            th { background: #f8fafc; font-weight: bold; color: #374151; }
+            .amount { text-align: right; }
+            .totals { margin-top: 30px; }
+            .totals table { width: 50%; margin-left: auto; }
+            .totals th, .totals td { border: none; padding: 8px 12px; }
+            .total-row { font-weight: bold; font-size: 18px; background: #dbeafe; }
+            .notes { margin-top: 30px; font-size: 14px; }
+            .footer { margin-top: 50px; text-align: center; font-size: 12px; color: #6b7280; border-top: 1px solid #e5e7eb; padding-top: 20px; }
+            @media print {
+                body { margin: 0; }
+                .no-print { display: none; }
+            }
+        </style>
+    </head>
+    <body>
+        <div class="header">
+            <div class="company-info">
+                <div class="company-name">CleanerPal Logistics</div>
+                <div>123 Business Street</div>
+                <div>Belfast, BT1 1AA</div>
+                <div>Northern Ireland</div>
+                <div>Phone: 028 9xxx xxxx</div>
+                <div>Email: billing@cleanerpal.com</div>
+            </div>
+            <div class="invoice-details">
+                <div class="invoice-title">INVOICE</div>
+                <div class="invoice-meta">
+                    <div><strong>Invoice #:</strong> ${this.jobBilling.invoiceNumber}</div>
+                    <div><strong>Date:</strong> ${invoiceDate}</div>
+                    <div><strong>Due Date:</strong> ${dueDate}</div>
+                    <div><strong>Job ID:</strong> ${this.job.id.substring(0, 8)}...</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="customer-info">
+            <div class="section-title">Bill To:</div>
+            <div><strong>${this.job.customerName || 'Customer'}</strong></div>
+            <div>${this.job.collectionAddress || ''}</div>
+            <div>${this.job.collectionCity || ''} ${this.job.collectionPostcode || ''}</div>
+        </div>
+
+        <div class="job-info">
+            <div class="section-title">Job Details:</div>
+            <div><strong>Vehicle:</strong> ${this.job.vehicleRegistration} - ${this.job.vehicleMake || ''} ${this.job.vehicleModel || ''}</div>
+            <div><strong>Service Type:</strong> ${this.job.isSplitJourney ? 'Split Journey' : 'Standard Delivery'}</div>
+            <div><strong>Collection:</strong> ${this.job.collectionAddress}, ${this.job.collectionCity}</div>
+            <div><strong>Delivery:</strong> ${this.job.deliveryAddress}, ${this.job.deliveryCity}</div>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Description</th>
+                    <th>Quantity</th>
+                    <th class="amount">Unit Price</th>
+                    <th class="amount">Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>Base Service Fee</strong><br><small>Vehicle logistics service</small></td>
+                    <td>1</td>
+                    <td class="amount">£${this.jobBilling.basePrice.toFixed(2)}</td>
+                    <td class="amount">£${this.jobBilling.basePrice.toFixed(2)}</td>
+                </tr>
+                ${this.jobBilling.additionalItems
+                  .map(
+                    (item) => `
+                <tr>
+                    <td><strong>${item.name}</strong><br><small>${item.description}</small></td>
+                    <td>${item.quantity}</td>
+                    <td class="amount">£${item.price.toFixed(2)}</td>
+                    <td class="amount">£${item.total.toFixed(2)}</td>
+                </tr>
+                `
+                  )
+                  .join('')}
+            </tbody>
+        </table>
+
+        ${
+          this.jobBilling.expenses.length > 0
+            ? `
+        <div class="section-title">Expenses:</div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Type</th>
+                    <th>Description</th>
+                    <th>Date</th>
+                    <th class="amount">Amount</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${this.jobBilling.expenses
+                  .filter((exp) => exp.isApproved)
+                  .map(
+                    (expense) => `
+                <tr>
+                    <td>${expense.type.charAt(0).toUpperCase() + expense.type.slice(1)}</td>
+                    <td>${expense.description}</td>
+                    <td>${expense.date.toDate().toLocaleDateString('en-GB')}</td>
+                    <td class="amount">£${expense.amount.toFixed(2)}</td>
+                </tr>
+                `
+                  )
+                  .join('')}
+            </tbody>
+        </table>
+        `
+            : ''
+        }
+
+        <div class="totals">
+            <table>
+                <tr>
+                    <th>Subtotal:</th>
+                    <td class="amount">£${this.jobBilling.subtotal.toFixed(2)}</td>
+                </tr>
+                <tr>
+                    <th>VAT (${(this.jobBilling.vatRate * 100).toFixed(0)}%):</th>
+                    <td class="amount">£${this.jobBilling.vatAmount.toFixed(2)}</td>
+                </tr>
+                <tr class="total-row">
+                    <th>TOTAL:</th>
+                    <td class="amount">£${this.jobBilling.totalAmount.toFixed(2)}</td>
+                </tr>
+            </table>
+        </div>
+
+        ${
+          this.jobBilling.notes
+            ? `
+        <div class="notes">
+            <div class="section-title">Notes:</div>
+            <p>${this.jobBilling.notes}</p>
+        </div>
+        `
+            : ''
+        }
+
+        <div class="footer">
+            <p>Thank you for your business!</p>
+            <p>Payment terms: Net 30 days | All prices include VAT where applicable</p>
+        </div>
+    </body>
+    </html>
+    `;
+  }
+
+  // Get Expense Type Label
+  getExpenseTypeLabel(type: string): string {
+    const expenseType = this.expenseTypes.find((et) => et.value === type);
+    return expenseType?.label || type;
+  }
+
+  // Get Expense Type Icon
+  getExpenseTypeIcon(type: string): string {
+    const expenseType = this.expenseTypes.find((et) => et.value === type);
+    return expenseType?.icon || 'receipt';
+  }
+
+  // Get Total Approved Expenses
+  getTotalApprovedExpenses(): number {
+    if (!this.jobBilling) return 0;
+    return this.jobBilling.expenses.filter((exp) => exp.isApproved).reduce((sum, exp) => sum + exp.amount, 0);
+  }
+
+  // Get Total Pending Expenses
+  getTotalPendingExpenses(): number {
+    if (!this.jobBilling) return 0;
+    return this.jobBilling.expenses.filter((exp) => !exp.isApproved).reduce((sum, exp) => sum + exp.amount, 0);
   }
 }

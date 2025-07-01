@@ -120,7 +120,7 @@ export class CustomerListComponent implements OnInit, AfterViewInit, OnDestroy {
   loadCustomers(): void {
     this.isLoading = true;
 
-    const customersSub = this.customerService.getCustomers().subscribe({
+    const customersSub = this.customerService.getAllCustomers().subscribe({
       next: (customers) => {
         this.dataSource.data = customers;
         this.isLoading = false;

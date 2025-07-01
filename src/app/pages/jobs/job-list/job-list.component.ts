@@ -1,26 +1,17 @@
-import { AfterViewInit, Component, OnDestroy, OnInit, ViewChild } from '@angular/core';
-import { FormControl, FormGroup } from '@angular/forms';
+import { Component, OnDestroy, OnInit, ViewChild } from '@angular/core';
+import { FormControl } from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
 import { MatPaginator } from '@angular/material/paginator';
-import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatSort } from '@angular/material/sort';
 import { MatTableDataSource } from '@angular/material/table';
 import { Router } from '@angular/router';
-import { Subscription } from 'rxjs';
-import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
-import { JobDuplicateDialogComponent } from '../../../dialogs/job-duplicate-dialog.component';
+import { Subject, combineLatest } from 'rxjs';
+import { debounceTime, startWith, takeUntil } from 'rxjs/operators';
+
 import { Job } from '../../../interfaces/job-new.interface';
+import { UserProfile } from '../../../interfaces/user-profile.interface';
 import { AuthService } from '../../../services/auth.service';
 import { JobNewService } from '../../../services/job-new.service';
-
-interface JobFilters {
-  status: string;
-  driver: string;
-  dateRange: {
-    start: Date | null;
-    end: Date | null;
-  };
-}
 
 @Component({
   selector: 'app-job-list',
@@ -28,252 +19,299 @@ interface JobFilters {
   styleUrls: ['./job-list.component.scss'],
   standalone: false,
 })
-export class JobListComponent implements OnInit, AfterViewInit, OnDestroy {
-  displayedColumns: string[] = ['shippingReference', 'regNumber', 'make', 'model', 'collectionDate', 'status', 'driver', 'actions'];
-
-  isLoading = false;
-  dataSource = new MatTableDataSource<Job>([]);
-
-  private subscriptions: Subscription[] = [];
-  filterForm: FormGroup;
-  searchControl = new FormControl('');
-
-  @ViewChild(MatSort) sort!: MatSort;
+export class JobListComponent implements OnInit, OnDestroy {
   @ViewChild(MatPaginator) paginator!: MatPaginator;
+  @ViewChild(MatSort) sort!: MatSort;
 
-  statusOptions = ['unallocated', 'allocated', 'collected', 'delivered', 'completed'];
-  drivers: string[] = [];
-  driverMap: { [key: string]: string } = {};
+  displayedColumns: string[] = [
+    'shippingReference',
+    'vehicleRegistration',
+    'vehicleMake',
+    'vehicleModel',
+    'customerName',
+    'status',
+    'collectionScheduledTime',
+    'driverName',
+  ];
 
-  filters: JobFilters = {
-    status: 'All',
-    driver: 'All',
-    dateRange: {
-      start: null,
-      end: null,
-    },
-  };
+  dataSource = new MatTableDataSource<Job>();
+  loading = false;
+  error: string | null = null;
 
-  constructor(private router: Router, private jobService: JobNewService, private authService: AuthService, private snackBar: MatSnackBar, private dialog: MatDialog) {
-    this.filterForm = new FormGroup({
-      status: new FormControl('All'),
-      driver: new FormControl('All'),
-      startDate: new FormControl(null),
-      endDate: new FormControl(null),
-    });
-  }
+  currentUser: UserProfile | null = null;
+  canCreateJobs = false;
+  canEditJobs = false;
+  canManageJobs = false;
+
+  // Filters
+  searchControl = new FormControl('');
+  statusFilter = new FormControl('all');
+  dateRangeFilter = new FormControl('all');
+  driverFilter = new FormControl('all');
+
+  statusOptions = [
+    { value: 'all', label: 'All Statuses' },
+    { value: 'unallocated', label: 'Unallocated' },
+    { value: 'allocated', label: 'Allocated' },
+    { value: 'collection-in-progress', label: 'Collection In Progress' },
+    { value: 'collected', label: 'Collected' },
+    { value: 'loaded', label: 'Loaded' },
+    { value: 'in-transit', label: 'In Transit' },
+    { value: 'delivery-in-progress', label: 'Delivery In Progress' },
+    { value: 'delivered', label: 'Delivered' },
+    { value: 'completed', label: 'Completed' },
+    { value: 'cancelled', label: 'Cancelled' },
+    { value: 'aborted', label: 'Aborted' },
+  ];
+
+  dateRangeOptions = [
+    { value: 'all', label: 'All Time' },
+    { value: 'today', label: 'Today' },
+    { value: 'yesterday', label: 'Yesterday' },
+    { value: 'thisWeek', label: 'This Week' },
+    { value: 'lastWeek', label: 'Last Week' },
+    { value: 'thisMonth', label: 'This Month' },
+    { value: 'lastMonth', label: 'Last Month' },
+  ];
+
+  private destroy$ = new Subject<void>();
+
+  constructor(private jobService: JobNewService, private authService: AuthService, private router: Router, private dialog: MatDialog) {}
 
   ngOnInit(): void {
-    this.isLoading = true;
-
-    this.loadDrivers();
-
-    const jobsSub = this.jobService.jobs$.subscribe((jobs) => {
-      this.dataSource.data = jobs;
-      this.isLoading = false;
-    });
-    this.subscriptions.push(jobsSub);
-
-    const loadingSub = this.jobService.loading$.subscribe((loading) => (this.isLoading = loading));
-    this.subscriptions.push(loadingSub);
-
-    this.jobService.getDriverJobs().subscribe();
-
-    this.setupFilterListeners();
-  }
-
-  private setupFilterListeners(): void {
-    const searchSub = this.searchControl.valueChanges.pipe(debounceTime(300), distinctUntilChanged()).subscribe((value) => {
-      this.applyFilter(value || '');
-    });
-    this.subscriptions.push(searchSub);
-
-    const filterSub = this.filterForm.valueChanges.subscribe(() => {
-      this.applyFilters();
-    });
-    this.subscriptions.push(filterSub);
-  }
-
-  private loadDrivers(): void {
-    this.authService.getDrivers().subscribe((drivers) => {
-      this.drivers = drivers.map((driver) => driver.name);
-
-      drivers.forEach((driver) => {
-        this.driverMap[driver.id] = driver.name;
-      });
-    });
-  }
-
-  ngAfterViewInit(): void {
-    this.dataSource.sort = this.sort;
-    this.dataSource.paginator = this.paginator;
-    this.setupCustomFilter();
+    this.initializePermissions();
+    this.setupFilters();
+    this.loadJobs();
   }
 
   ngOnDestroy(): void {
-    this.subscriptions.forEach((sub) => sub.unsubscribe());
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
-  private setupCustomFilter(): void {
-    this.dataSource.filterPredicate = (data: Job, filter: string) => {
-      const searchStr = filter.toLowerCase();
+  private initializePermissions(): void {
+    this.authService
+      .getCurrentUser()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((user) => {
+        this.currentUser = user;
+        this.canCreateJobs = user?.permissions?.canCreateJobs || user?.permissions?.isAdmin || false;
+        this.canEditJobs = user?.permissions?.canEditJobs || user?.permissions?.isAdmin || false;
+        this.canManageJobs = user?.permissions?.canManageUsers || user?.permissions?.isAdmin || false;
+      });
+  }
 
-      if (this.filters.status !== 'All' && data.status !== this.filters.status) {
-        return false;
+  private setupFilters(): void {
+    // Combine all filter controls
+    combineLatest([
+      this.searchControl.valueChanges.pipe(startWith('')),
+      this.statusFilter.valueChanges.pipe(startWith('all')),
+      this.dateRangeFilter.valueChanges.pipe(startWith('all')),
+      this.driverFilter.valueChanges.pipe(startWith('all')),
+    ])
+      .pipe(debounceTime(300), takeUntil(this.destroy$))
+      .subscribe(() => {
+        this.applyFilters();
+      });
+  }
+
+  private loadJobs(): void {
+    this.loading = true;
+    this.error = null;
+
+    this.jobService
+      .getRecentJobs(1000)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (jobs) => {
+          this.dataSource.data = jobs;
+          this.dataSource.paginator = this.paginator;
+          this.dataSource.sort = this.sort;
+          this.setupCustomSorting();
+          this.applyFilters();
+          this.loading = false;
+        },
+        error: (error) => {
+          console.error('Error loading jobs:', error);
+          this.error = 'Failed to load jobs. Please try again.';
+          this.loading = false;
+        },
+      });
+  }
+
+  private setupCustomSorting(): void {
+    this.dataSource.sortingDataAccessor = (item: Job, property: string) => {
+      switch (property) {
+        case 'createdAt':
+          return item.createdAt?.toDate() || new Date(0);
+        case 'collectionScheduledTime':
+          return item.collectionScheduledTime?.toDate() || new Date(0);
+        case 'deliveryScheduledTime':
+          return item.deliveryScheduledTime?.toDate() || new Date(0);
+        case 'vehicleRegistration':
+          return item.vehicleRegistration || '';
+        case 'vehicleMake':
+          return item.vehicleMake || '';
+        case 'vehicleModel':
+          return item.vehicleModel || '';
+        case 'customerName':
+          return item.customerName || '';
+        case 'status':
+          return item.status || '';
+        default:
+          return (item as any)[property] || '';
       }
-
-      if (this.filters.driver !== 'All' && this.driverMap[data.driverId || ''] !== this.filters.driver) {
-        return false;
-      }
-
-      if (this.filters.dateRange.start && this.filters.dateRange.end) {
-        const jobDate = data.createdAt.toDate();
-        const startDate = new Date(this.filters.dateRange.start);
-        const endDate = new Date(this.filters.dateRange.end);
-
-        if (jobDate < startDate || jobDate > endDate) {
-          return false;
-        }
-      }
-
-      return (
-        data.id?.toLowerCase().includes(searchStr) ||
-        data['registration']?.toLowerCase().includes(searchStr) ||
-        data.vehicleMake?.toLowerCase().includes(searchStr) ||
-        data.vehicleModel?.toLowerCase().includes(searchStr) ||
-        this.driverMap[data.driverId || '']?.toLowerCase().includes(searchStr)
-      );
     };
   }
 
-  applyFilter(filterValue: string): void {
-    this.dataSource.filter = filterValue.trim().toLowerCase();
+  private applyFilters(): void {
+    const searchTerm = this.searchControl.value?.toLowerCase() || '';
+    const statusFilter = this.statusFilter.value || 'all';
+    const dateFilter = this.dateRangeFilter.value || 'all';
+    const driverFilter = this.driverFilter.value || 'all';
 
-    if (this.dataSource.paginator) {
-      this.dataSource.paginator.firstPage();
-    }
-  }
+    this.dataSource.filterPredicate = (data: Job) => {
+      // Search filter
+      const matchesSearch =
+        !searchTerm ||
+        data.vehicleRegistration?.toLowerCase().includes(searchTerm) ||
+        data.vehicleMake?.toLowerCase().includes(searchTerm) ||
+        data.vehicleModel?.toLowerCase().includes(searchTerm) ||
+        data.customerName?.toLowerCase().includes(searchTerm) ||
+        data.collectionAddress?.toLowerCase().includes(searchTerm) ||
+        data.deliveryAddress?.toLowerCase().includes(searchTerm) ||
+        data.id.toLowerCase().includes(searchTerm);
 
-  applyFilters(): void {
-    const formValues = this.filterForm.value;
+      // Status filter
+      const matchesStatus = statusFilter === 'all' || data.status === statusFilter;
 
-    this.filters.status = formValues.status;
-    this.filters.driver = formValues.driver;
-    this.filters.dateRange.start = formValues.startDate;
-    this.filters.dateRange.end = formValues.endDate;
+      // Driver filter
+      const matchesDriver = driverFilter === 'all' || (driverFilter === 'unassigned' && !data.driverId) || data.driverId === driverFilter;
 
-    this.dataSource.filter = this.dataSource.filter || ' ';
-  }
+      // Date filter
+      const matchesDate = this.matchesDateFilter(data, dateFilter);
 
-  getDriverName(driverId: string | null): string {
-    if (!driverId) return 'Unassigned';
-    return this.driverMap[driverId] || 'Unknown Driver';
-  }
-
-  formatCreationDate(date: Date | undefined): string {
-    if (!date) return 'N/A';
-
-    if (typeof date === 'string') {
-      return new Date(date).toLocaleDateString();
-    }
-
-    if (date && typeof date === 'object' && 'toDate' in date) {
-      const timestamp = date as unknown as { toDate: () => Date };
-      return timestamp.toDate().toLocaleDateString();
-    }
-
-    return date.toLocaleDateString();
-  }
-
-  getStatusClass(status: string): string {
-    const statusMap: Record<string, string> = {
-      unallocated: 'status-unallocated',
-      allocated: 'status-allocated',
-      collected: 'status-collected',
-      delivered: 'status-delivered',
-      completed: 'status-completed',
+      return matchesSearch && matchesStatus && matchesDriver && matchesDate;
     };
-    return statusMap[status] || 'status-default';
+
+    this.dataSource.filter = 'trigger'; // Trigger filter
   }
 
-  createNewJob(): void {
-    this.router.navigate(['/jobs/new']);
+  private matchesDateFilter(job: Job, dateFilter: string): boolean {
+    if (dateFilter === 'all') return true;
+
+    const jobDate = job.collectionScheduledTime?.toDate() || job.createdAt?.toDate();
+    if (!jobDate) return false;
+
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const yesterday = new Date(today.getTime() - 24 * 60 * 60 * 1000);
+
+    switch (dateFilter) {
+      case 'today':
+        return jobDate >= today;
+      case 'yesterday':
+        return jobDate >= yesterday && jobDate < today;
+      case 'thisWeek':
+        const startOfWeek = new Date(today.getTime() - today.getDay() * 24 * 60 * 60 * 1000);
+        return jobDate >= startOfWeek;
+      case 'lastWeek':
+        const startOfLastWeek = new Date(today.getTime() - (today.getDay() + 7) * 24 * 60 * 60 * 1000);
+        const endOfLastWeek = new Date(today.getTime() - today.getDay() * 24 * 60 * 60 * 1000);
+        return jobDate >= startOfLastWeek && jobDate < endOfLastWeek;
+      case 'thisMonth':
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+        return jobDate >= startOfMonth;
+      case 'lastMonth':
+        const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+        return jobDate >= startOfLastMonth && jobDate < endOfLastMonth;
+      default:
+        return true;
+    }
   }
 
-  viewJobDetails(job: Job): void {
+  // Actions
+  createJob(): void {
+    if (this.canCreateJobs) {
+      this.router.navigate(['/jobs/new']);
+    }
+  }
+
+  viewJob(job: Job): void {
     this.router.navigate(['/jobs', job.id]);
   }
 
-  editJob(job: Job, event: Event): void {
-    event.stopPropagation(); // Prevent row click event
-    this.router.navigate(['/jobs', job.id, 'edit']);
+  editJob(job: Job): void {
+    if (this.canEditJobs) {
+      this.router.navigate(['/jobs', job.id, 'edit']);
+    }
   }
 
-  allocateJob(job: Job, event: Event): void {
-    event.stopPropagation(); // Prevent row click event
+  refresh(): void {
+    this.loadJobs();
+  }
 
-    this.isLoading = true;
-    this.jobService.allocateJob(job.id).subscribe({
-      next: () => {
-        this.isLoading = false;
-      },
-      error: (error) => {
-        console.error('Error allocating job:', error);
-        this.isLoading = false;
-      },
+  clearFilters(): void {
+    this.searchControl.setValue('');
+    this.statusFilter.setValue('all');
+    this.dateRangeFilter.setValue('all');
+    this.driverFilter.setValue('all');
+  }
+
+  exportJobs(): void {
+    // TODO: Implement export functionality
+    console.log('Export jobs functionality to be implemented');
+  }
+
+  getStatusColor(status: string): string {
+    const statusColors: { [key: string]: string } = {
+      unallocated: 'warning',
+      allocated: 'secondary',
+      'collection-in-progress': 'tertiary',
+      collected: 'success',
+      loaded: 'primary',
+      'in-transit': 'primary',
+      'delivery-in-progress': 'tertiary',
+      delivered: 'success',
+      completed: 'success',
+      cancelled: 'danger',
+      aborted: 'danger',
+    };
+    return statusColors[status] || 'medium';
+  }
+
+  getStatusIcon(status: string): string {
+    const statusIcons: { [key: string]: string } = {
+      unallocated: 'help-circle',
+      allocated: 'person',
+      'collection-in-progress': 'car',
+      collected: 'checkmark-circle',
+      loaded: 'cube',
+      'in-transit': 'airplane',
+      'delivery-in-progress': 'car',
+      delivered: 'checkmark-circle-outline',
+      completed: 'checkmark-done',
+      cancelled: 'close-circle',
+      aborted: 'warning',
+    };
+    return statusIcons[status] || 'ellipse';
+  }
+
+  formatDate(timestamp: any): string {
+    if (!timestamp) return '-';
+    const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+    return date.toLocaleDateString('en-GB', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
     });
   }
 
-  refreshJobs(): void {
-    this.isLoading = true;
-    this.jobService.getDriverJobs().subscribe({
-      next: () => {
-        this.isLoading = false;
-      },
-      error: () => {
-        this.isLoading = false;
-      },
-    });
-  }
-
-  duplicateJob(job: Job, event: Event): void {
-    event.stopPropagation(); // Prevent row click event
-
-    const dialogRef = this.dialog.open(JobDuplicateDialogComponent, {
-      data: {
-        jobId: job.id,
-        registrationNumber: job['registration'],
-        makeModel: job.vehicleMake && job.vehicleModel ? `${job.vehicleMake} ${job.vehicleModel}` : undefined,
-      },
-      width: '400px',
-      panelClass: ['custom-dialog-container', 'duplication-dialog'],
-    });
-
-    dialogRef.afterClosed().subscribe((result: any) => {
-      if (result) {
-        this.isLoading = true;
-
-        this.jobService.duplicateJob(job.id).subscribe({
-          next: (newJobId) => {
-            this.isLoading = false;
-            this.showSnackbar('Job duplicated successfully');
-            this.router.navigate(['/jobs', newJobId]);
-          },
-          error: (error) => {
-            console.error('Error duplicating job:', error);
-            this.isLoading = false;
-            this.showSnackbar('Error duplicating job: ' + error.message);
-          },
-        });
-      }
-    });
-  }
-
-  private showSnackbar(message: string): void {
-    this.snackBar.open(message, 'Close', {
-      duration: 5000,
-      horizontalPosition: 'center',
-      verticalPosition: 'bottom',
-    });
+  formatAddress(address: string | null | undefined): string {
+    if (!address) return '-';
+    return address.length > 30 ? address.substring(0, 30) + '...' : address;
   }
 }
