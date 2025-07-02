@@ -245,23 +245,23 @@
               </div>
 
               <!-- Damage Reports -->
-              <div class="info-section" *ngIf="damageReports?.overall || damageReports?.collection || damageReports?.delivery">
+              <div class="info-section" *ngIf="damageReports_old?.overall || damageReports_old?.collection || damageReports_old?.delivery">
                 <div class="section-header">
-                  <mat-icon [class.warning-icon]="damageReports.overall">warning</mat-icon>
+                  <mat-icon [class.warning-icon]="damageReports_old.overall">warning</mat-icon>
                   <h3>Damage Reports</h3>
                 </div>
                 <div class="damage-grid">
-                  <div class="damage-item" [class.damage-reported]="damageReports.overall">
-                    <mat-icon>{{ damageReports.overall ? 'warning' : 'check_circle' }}</mat-icon>
-                    <span>Overall Job Damage: {{ damageReports.overall ? 'Reported' : 'None' }}</span>
+                  <div class="damage-item" [class.damage-reported]="damageReports_old.overall">
+                    <mat-icon>{{ damageReports_old.overall ? 'warning' : 'check_circle' }}</mat-icon>
+                    <span>Overall Job Damage: {{ damageReports_old.overall ? 'Reported' : 'None' }}</span>
                   </div>
-                  <div class="damage-item" [class.damage-reported]="damageReports.collection">
-                    <mat-icon>{{ damageReports.collection ? 'warning' : 'check_circle' }}</mat-icon>
-                    <span>Collection Damage: {{ damageReports.collection ? 'Reported' : 'None' }}</span>
+                  <div class="damage-item" [class.damage-reported]="damageReports_old.collection">
+                    <mat-icon>{{ damageReports_old.collection ? 'warning' : 'check_circle' }}</mat-icon>
+                    <span>Collection Damage: {{ damageReports_old.collection ? 'Reported' : 'None' }}</span>
                   </div>
-                  <div class="damage-item" [class.damage-reported]="damageReports.delivery">
-                    <mat-icon>{{ damageReports.delivery ? 'warning' : 'check_circle' }}</mat-icon>
-                    <span>Delivery Damage: {{ damageReports.delivery ? 'Reported' : 'None' }}</span>
+                  <div class="damage-item" [class.damage-reported]="damageReports_old.delivery">
+                    <mat-icon>{{ damageReports_old.delivery ? 'warning' : 'check_circle' }}</mat-icon>
+                    <span>Delivery Damage: {{ damageReports_old.delivery ? 'Reported' : 'None' }}</span>
                   </div>
                 </div>
               </div>
@@ -754,29 +754,62 @@
           </div>
         </mat-tab>
 
-        <!-- Documents Tab -->
+        <!-- Enhanced Documents Tab -->
         <mat-tab label="Documents">
           <div class="tab-content">
             <div class="documents-section">
               <div class="documents-header">
                 <mat-icon>folder</mat-icon>
                 <h3>Job Documents</h3>
+                <div class="documents-stats" *ngIf="hasAnyDocuments()">
+                  <span class="stat-item">
+                    <mat-icon>photo_library</mat-icon>
+                    {{ getPhotoCount() }} Photos
+                  </span>
+                  <span class="stat-item">
+                    <mat-icon>draw</mat-icon>
+                    {{ getSignatureCount() }} Signatures
+                  </span>
+                  <span class="stat-item" *ngIf="hasDamageDocuments()">
+                    <mat-icon>warning</mat-icon>
+                    {{ getDamageDocumentCount() }} Damage Items
+                  </span>
+                </div>
               </div>
 
-              <div class="documents-content" *ngIf="hasProcessDocuments(); else noDocuments">
-                <!-- Photos Section -->
-                <div class="document-category" *ngIf="getAllPhotos().length > 0">
+              <!-- Loading State -->
+              <div *ngIf="documentsLoading" class="documents-loading">
+                <mat-spinner></mat-spinner>
+                <p>Loading documents...</p>
+              </div>
+
+              <!-- Error State -->
+              <div *ngIf="documentsError" class="documents-error">
+                <mat-icon>error</mat-icon>
+                <p>{{ documentsError }}</p>
+                <button mat-raised-button color="primary" (click)="loadJobDocuments(job.id)">
+                  <mat-icon>refresh</mat-icon>
+                  Retry
+                </button>
+              </div>
+
+              <!-- Documents Content -->
+              <div class="documents-content" *ngIf="hasAnyDocuments() && !documentsLoading && !documentsError">
+                <!-- Collection Documents -->
+                <div class="document-category" *ngIf="hasCollectionDocuments()">
                   <h4>
-                    <mat-icon>photo_library</mat-icon>
-                    Photos ({{ getAllPhotos().length }})
+                    <mat-icon>location_on</mat-icon>
+                    Collection Documents ({{ collectionPhotos.length + collectionSignatures.length }})
                   </h4>
 
                   <!-- Collection Photos -->
                   <div class="photo-group" *ngIf="collectionPhotos.length > 0">
-                    <h5>Collection Photos</h5>
+                    <h5>Collection Photos ({{ collectionPhotos.length }})</h5>
                     <div class="photos-grid">
                       <div class="photo-item" *ngFor="let photo of collectionPhotos">
-                        <div class="photo-thumbnail" (click)="viewPhoto(photo)">
+                        <div class="photo-thumbnail" (click)="viewDocument(photo)">
+                          <p>URL: {{ photo }}</p>
+
                           <img [src]="photo.url" [alt]="photo.description" loading="lazy" />
                           <div class="photo-overlay">
                             <mat-icon>zoom_in</mat-icon>
@@ -784,11 +817,14 @@
                         </div>
                         <div class="photo-info">
                           <div class="photo-description">{{ photo.description }}</div>
+                          <div class="photo-meta">
+                            <small>{{ formatFileSize(photo.size) }} • {{ formatDateTime(photo.uploadedAt) }}</small>
+                          </div>
                           <div class="photo-actions">
-                            <button mat-icon-button (click)="viewPhoto(photo)" matTooltip="View">
+                            <button mat-icon-button (click)="viewDocument(photo)" matTooltip="View">
                               <mat-icon>visibility</mat-icon>
                             </button>
-                            <button mat-icon-button (click)="downloadPhoto(photo)" matTooltip="Download">
+                            <button mat-icon-button (click)="downloadDocument(photo)" matTooltip="Download">
                               <mat-icon>download</mat-icon>
                             </button>
                           </div>
@@ -797,76 +833,27 @@
                     </div>
                   </div>
 
-                  <!-- Delivery Photos -->
-                  <div class="photo-group" *ngIf="deliveryPhotos.length > 0">
-                    <h5>Delivery Photos</h5>
-                    <div class="photos-grid">
-                      <div class="photo-item" *ngFor="let photo of deliveryPhotos">
-                        <div class="photo-thumbnail" (click)="viewPhoto(photo)">
-                          <img [src]="photo.url" [alt]="photo.description" loading="lazy" />
-                          <div class="photo-overlay">
+                  <!-- Collection Signatures -->
+                  <div class="signature-group" *ngIf="collectionSignatures.length > 0">
+                    <h5>Collection Signatures ({{ collectionSignatures.length }})</h5>
+                    <div class="signatures-grid">
+                      <div class="signature-item" *ngFor="let signature of collectionSignatures">
+                        <div class="signature-preview" (click)="viewDocument(signature)">
+                          <img [src]="signature.url" [alt]="signature.description" loading="lazy" />
+                          <div class="signature-overlay">
                             <mat-icon>zoom_in</mat-icon>
                           </div>
                         </div>
-                        <div class="photo-info">
-                          <div class="photo-description">{{ photo.description }}</div>
-                          <div class="photo-actions">
-                            <button mat-icon-button (click)="viewPhoto(photo)" matTooltip="View">
+                        <div class="signature-info">
+                          <div class="signature-title">{{ signature.description }}</div>
+                          <div class="signature-meta">
+                            <small>{{ formatFileSize(signature.size) }} • {{ formatDateTime(signature.uploadedAt) }}</small>
+                          </div>
+                          <div class="signature-actions">
+                            <button mat-icon-button (click)="viewDocument(signature)" matTooltip="View">
                               <mat-icon>visibility</mat-icon>
                             </button>
-                            <button mat-icon-button (click)="downloadPhoto(photo)" matTooltip="Download">
-                              <mat-icon>download</mat-icon>
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <!-- Secondary Collection Photos (if split journey) -->
-                  <div class="photo-group" *ngIf="secondaryCollectionPhotos.length > 0">
-                    <h5>Secondary Collection Photos</h5>
-                    <div class="photos-grid">
-                      <div class="photo-item" *ngFor="let photo of secondaryCollectionPhotos">
-                        <div class="photo-thumbnail" (click)="viewPhoto(photo)">
-                          <img [src]="photo.url" [alt]="photo.description" loading="lazy" />
-                          <div class="photo-overlay">
-                            <mat-icon>zoom_in</mat-icon>
-                          </div>
-                        </div>
-                        <div class="photo-info">
-                          <div class="photo-description">{{ photo.description }}</div>
-                          <div class="photo-actions">
-                            <button mat-icon-button (click)="viewPhoto(photo)" matTooltip="View">
-                              <mat-icon>visibility</mat-icon>
-                            </button>
-                            <button mat-icon-button (click)="downloadPhoto(photo)" matTooltip="Download">
-                              <mat-icon>download</mat-icon>
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <!-- First Delivery Photos (if split journey) -->
-                  <div class="photo-group" *ngIf="firstDeliveryPhotos.length > 0">
-                    <h5>First Delivery Photos</h5>
-                    <div class="photos-grid">
-                      <div class="photo-item" *ngFor="let photo of firstDeliveryPhotos">
-                        <div class="photo-thumbnail" (click)="viewPhoto(photo)">
-                          <img [src]="photo.url" [alt]="photo.description" loading="lazy" />
-                          <div class="photo-overlay">
-                            <mat-icon>zoom_in</mat-icon>
-                          </div>
-                        </div>
-                        <div class="photo-info">
-                          <div class="photo-description">{{ photo.description }}</div>
-                          <div class="photo-actions">
-                            <button mat-icon-button (click)="viewPhoto(photo)" matTooltip="View">
-                              <mat-icon>visibility</mat-icon>
-                            </button>
-                            <button mat-icon-button (click)="downloadPhoto(photo)" matTooltip="Download">
+                            <button mat-icon-button (click)="downloadDocument(signature)" matTooltip="Download">
                               <mat-icon>download</mat-icon>
                             </button>
                           </div>
@@ -876,41 +863,309 @@
                   </div>
                 </div>
 
-                <!-- Signatures Section -->
-                <div class="document-category" *ngIf="getAllSignatures().length > 0">
+                <!-- Delivery Documents -->
+                <div class="document-category" *ngIf="hasDeliveryDocuments()">
                   <h4>
-                    <mat-icon>draw</mat-icon>
-                    Signatures ({{ getAllSignatures().length }})
+                    <mat-icon>flag</mat-icon>
+                    Delivery Documents ({{ deliveryPhotos.length + deliverySignatures.length }})
                   </h4>
-                  <div class="signatures-grid">
-                    <div class="signature-item" *ngFor="let signature of getAllSignatures()">
-                      <div class="signature-preview" (click)="viewSignature(signature)">
-                        <img [src]="signature.url" [alt]="signature.type + ' signature'" loading="lazy" />
-                        <div class="signature-overlay">
-                          <mat-icon>zoom_in</mat-icon>
+
+                  <!-- Delivery Photos -->
+                  <div class="photo-group" *ngIf="deliveryPhotos.length > 0">
+                    <h5>Delivery Photos ({{ deliveryPhotos.length }})</h5>
+                    <div class="photos-grid">
+                      <div class="photo-item" *ngFor="let photo of deliveryPhotos">
+                        <div class="photo-thumbnail" (click)="viewDocument(photo)">
+                          <img [src]="photo.url" [alt]="photo.description" loading="lazy" />
+                          <div class="photo-overlay">
+                            <mat-icon>zoom_in</mat-icon>
+                          </div>
+                        </div>
+                        <div class="photo-info">
+                          <div class="photo-description">{{ photo.description }}</div>
+                          <div class="photo-meta">
+                            <small>{{ formatFileSize(photo.size) }} • {{ formatDateTime(photo.uploadedAt) }}</small>
+                          </div>
+                          <div class="photo-actions">
+                            <button mat-icon-button (click)="viewDocument(photo)" matTooltip="View">
+                              <mat-icon>visibility</mat-icon>
+                            </button>
+                            <button mat-icon-button (click)="downloadDocument(photo)" matTooltip="Download">
+                              <mat-icon>download</mat-icon>
+                            </button>
+                          </div>
                         </div>
                       </div>
-                      <div class="signature-info">
-                        <div class="signature-title">{{ signature.type | titlecase }} Signature</div>
-                        <div class="signature-signer">
-                          <mat-icon>person</mat-icon>
-                          <span>{{ signature.signerName }}</span>
+                    </div>
+                  </div>
+
+                  <!-- Delivery Signatures -->
+                  <div class="signature-group" *ngIf="deliverySignatures.length > 0">
+                    <h5>Delivery Signatures ({{ deliverySignatures.length }})</h5>
+                    <div class="signatures-grid">
+                      <div class="signature-item" *ngFor="let signature of deliverySignatures">
+                        <div class="signature-preview" (click)="viewDocument(signature)">
+                          <img [src]="signature.url" [alt]="signature.description" loading="lazy" />
+                          <div class="signature-overlay">
+                            <mat-icon>zoom_in</mat-icon>
+                          </div>
                         </div>
-                        <div class="signature-position" *ngIf="signature.signerPosition">
-                          <mat-icon>work</mat-icon>
-                          <span>{{ signature.signerPosition }}</span>
+                        <div class="signature-info">
+                          <div class="signature-title">{{ signature.description }}</div>
+                          <div class="signature-meta">
+                            <small>{{ formatFileSize(signature.size) }} • {{ formatDateTime(signature.uploadedAt) }}</small>
+                          </div>
+                          <div class="signature-actions">
+                            <button mat-icon-button (click)="viewDocument(signature)" matTooltip="View">
+                              <mat-icon>visibility</mat-icon>
+                            </button>
+                            <button mat-icon-button (click)="downloadDocument(signature)" matTooltip="Download">
+                              <mat-icon>download</mat-icon>
+                            </button>
+                          </div>
                         </div>
-                        <div class="signature-date">
-                          <mat-icon>schedule</mat-icon>
-                          <span>{{ formatDateTime(signature.uploadedAt) }}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Secondary Collection Documents (Split Journey) -->
+                <div class="document-category" *ngIf="isSplitJourney && (secondaryCollectionPhotos.length > 0 || secondaryCollectionSignatures.length > 0)">
+                  <h4>
+                    <mat-icon>add_location</mat-icon>
+                    Secondary Collection Documents ({{ secondaryCollectionPhotos.length + secondaryCollectionSignatures.length }})
+                  </h4>
+
+                  <!-- Secondary Collection Photos -->
+                  <div class="photo-group" *ngIf="secondaryCollectionPhotos.length > 0">
+                    <h5>Secondary Collection Photos ({{ secondaryCollectionPhotos.length }})</h5>
+                    <div class="photos-grid">
+                      <div class="photo-item" *ngFor="let photo of secondaryCollectionPhotos">
+                        <div class="photo-thumbnail" (click)="viewDocument(photo)">
+                          <img [src]="photo.url" [alt]="photo.description" loading="lazy" />
+                          <div class="photo-overlay">
+                            <mat-icon>zoom_in</mat-icon>
+                          </div>
                         </div>
-                        <div class="signature-actions">
-                          <button mat-icon-button (click)="viewSignature(signature)" matTooltip="View">
-                            <mat-icon>visibility</mat-icon>
-                          </button>
-                          <button mat-icon-button (click)="downloadSignature(signature)" matTooltip="Download">
-                            <mat-icon>download</mat-icon>
-                          </button>
+                        <div class="photo-info">
+                          <div class="photo-description">{{ photo.description }}</div>
+                          <div class="photo-meta">
+                            <small>{{ formatFileSize(photo.size) }} • {{ formatDateTime(photo.uploadedAt) }}</small>
+                          </div>
+                          <div class="photo-actions">
+                            <button mat-icon-button (click)="viewDocument(photo)" matTooltip="View">
+                              <mat-icon>visibility</mat-icon>
+                            </button>
+                            <button mat-icon-button (click)="downloadDocument(photo)" matTooltip="Download">
+                              <mat-icon>download</mat-icon>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Secondary Collection Signatures -->
+                  <div class="signature-group" *ngIf="secondaryCollectionSignatures.length > 0">
+                    <h5>Secondary Collection Signatures ({{ secondaryCollectionSignatures.length }})</h5>
+                    <div class="signatures-grid">
+                      <div class="signature-item" *ngFor="let signature of secondaryCollectionSignatures">
+                        <div class="signature-preview" (click)="viewDocument(signature)">
+                          <img [src]="signature.url" [alt]="signature.description" loading="lazy" />
+                          <div class="signature-overlay">
+                            <mat-icon>zoom_in</mat-icon>
+                          </div>
+                        </div>
+                        <div class="signature-info">
+                          <div class="signature-title">{{ signature.description }}</div>
+                          <div class="signature-meta">
+                            <small>{{ formatFileSize(signature.size) }} • {{ formatDateTime(signature.uploadedAt) }}</small>
+                          </div>
+                          <div class="signature-actions">
+                            <button mat-icon-button (click)="viewDocument(signature)" matTooltip="View">
+                              <mat-icon>visibility</mat-icon>
+                            </button>
+                            <button mat-icon-button (click)="downloadDocument(signature)" matTooltip="Download">
+                              <mat-icon>download</mat-icon>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- First Delivery Documents (Split Journey) -->
+                <div class="document-category" *ngIf="isSplitJourney && (firstDeliveryPhotos.length > 0 || firstDeliverySignatures.length > 0)">
+                  <h4>
+                    <mat-icon>flag_outlined</mat-icon>
+                    First Delivery Documents ({{ firstDeliveryPhotos.length + firstDeliverySignatures.length }})
+                  </h4>
+
+                  <!-- First Delivery Photos -->
+                  <div class="photo-group" *ngIf="firstDeliveryPhotos.length > 0">
+                    <h5>First Delivery Photos ({{ firstDeliveryPhotos.length }})</h5>
+                    <div class="photos-grid">
+                      <div class="photo-item" *ngFor="let photo of firstDeliveryPhotos">
+                        <div class="photo-thumbnail" (click)="viewDocument(photo)">
+                          <img [src]="photo.url" [alt]="photo.description" loading="lazy" />
+                          <div class="photo-overlay">
+                            <mat-icon>zoom_in</mat-icon>
+                          </div>
+                        </div>
+                        <div class="photo-info">
+                          <div class="photo-description">{{ photo.description }}</div>
+                          <div class="photo-meta">
+                            <small>{{ formatFileSize(photo.size) }} • {{ formatDateTime(photo.uploadedAt) }}</small>
+                          </div>
+                          <div class="photo-actions">
+                            <button mat-icon-button (click)="viewDocument(photo)" matTooltip="View">
+                              <mat-icon>visibility</mat-icon>
+                            </button>
+                            <button mat-icon-button (click)="downloadDocument(photo)" matTooltip="Download">
+                              <mat-icon>download</mat-icon>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- First Delivery Signatures -->
+                  <div class="signature-group" *ngIf="firstDeliverySignatures.length > 0">
+                    <h5>First Delivery Signatures ({{ firstDeliverySignatures.length }})</h5>
+                    <div class="signatures-grid">
+                      <div class="signature-item" *ngFor="let signature of firstDeliverySignatures">
+                        <div class="signature-preview" (click)="viewDocument(signature)">
+                          <img [src]="signature.url" [alt]="signature.description" loading="lazy" />
+                          <div class="signature-overlay">
+                            <mat-icon>zoom_in</mat-icon>
+                          </div>
+                        </div>
+                        <div class="signature-info">
+                          <div class="signature-title">{{ signature.description }}</div>
+                          <div class="signature-meta">
+                            <small>{{ formatFileSize(signature.size) }} • {{ formatDateTime(signature.uploadedAt) }}</small>
+                          </div>
+                          <div class="signature-actions">
+                            <button mat-icon-button (click)="viewDocument(signature)" matTooltip="View">
+                              <mat-icon>visibility</mat-icon>
+                            </button>
+                            <button mat-icon-button (click)="downloadDocument(signature)" matTooltip="Download">
+                              <mat-icon>download</mat-icon>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Damage Reports and Documents -->
+                <div class="document-category" *ngIf="hasDamageDocuments() || damageReports.length > 0">
+                  <h4>
+                    <mat-icon>warning</mat-icon>
+                    Damage Reports & Documentation ({{ getDamageDocumentCount() + damageReports.length }})
+                  </h4>
+
+                  <!-- Damage Reports Summary -->
+                  <div class="damage-reports" *ngIf="damageReports.length > 0">
+                    <h5>Damage Reports ({{ damageReports.length }})</h5>
+                    <div class="damage-reports-list">
+                      <div class="damage-report-item" *ngFor="let report of damageReports">
+                        <div class="damage-report-header">
+                          <div class="damage-severity">
+                            <mat-icon [color]="getDamageSeverityColor(report.severity)">
+                              {{ getDamageSeverityIcon(report.severity) }}
+                            </mat-icon>
+                            <span class="severity-label" [class]="'severity-' + report.severity">
+                              {{ report.severity | titlecase }}
+                            </span>
+                          </div>
+                          <div class="damage-date">
+                            {{ formatDateTime(report.reportedAt) }}
+                          </div>
+                        </div>
+                        <div class="damage-report-content">
+                          <div class="damage-description">
+                            <strong>{{ report.description }}</strong>
+                          </div>
+                          <div class="damage-details">
+                            <span class="damage-location">
+                              <mat-icon>place</mat-icon>
+                              Location: {{ report.location | titlecase }}
+                            </span>
+                            <span class="damage-reporter">
+                              <mat-icon>person</mat-icon>
+                              Reported by: {{ report.reportedByName }}
+                            </span>
+                          </div>
+                          <div class="damage-notes" *ngIf="report.notes">
+                            <mat-icon>note</mat-icon>
+                            <span>{{ report.notes }}</span>
+                          </div>
+                          <div class="damage-estimate" *ngIf="report.repairEstimate">
+                            <mat-icon>attach_money</mat-icon>
+                            <span>Estimated Repair Cost: £{{ report.repairEstimate.toFixed(2) }}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Damage Photos -->
+                  <div class="photo-group" *ngIf="damagePhotos.length > 0">
+                    <h5>Damage Photos ({{ damagePhotos.length }})</h5>
+                    <div class="photos-grid">
+                      <div class="photo-item damage-photo" *ngFor="let photo of damagePhotos">
+                        <div class="photo-thumbnail" (click)="viewDocument(photo)">
+                          <img [src]="photo.url" [alt]="photo.description" loading="lazy" />
+                          <div class="photo-overlay damage-overlay">
+                            <mat-icon>warning</mat-icon>
+                          </div>
+                        </div>
+                        <div class="photo-info">
+                          <div class="photo-description">{{ photo.description }}</div>
+                          <div class="photo-meta">
+                            <small>{{ formatFileSize(photo.size) }} • {{ formatDateTime(photo.uploadedAt) }}</small>
+                          </div>
+                          <div class="photo-actions">
+                            <button mat-icon-button (click)="viewDocument(photo)" matTooltip="View">
+                              <mat-icon>visibility</mat-icon>
+                            </button>
+                            <button mat-icon-button (click)="downloadDocument(photo)" matTooltip="Download">
+                              <mat-icon>download</mat-icon>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Damage Diagrams -->
+                  <div class="diagram-group" *ngIf="damageDiagrams.length > 0">
+                    <h5>Damage Diagrams ({{ damageDiagrams.length }})</h5>
+                    <div class="diagrams-grid">
+                      <div class="diagram-item" *ngFor="let diagram of damageDiagrams">
+                        <div class="diagram-preview" (click)="viewDocument(diagram)">
+                          <img [src]="diagram.url" [alt]="diagram.description" loading="lazy" />
+                          <div class="diagram-overlay">
+                            <mat-icon>zoom_in</mat-icon>
+                          </div>
+                        </div>
+                        <div class="diagram-info">
+                          <div class="diagram-description">{{ diagram.description }}</div>
+                          <div class="diagram-meta">
+                            <small>{{ formatFileSize(diagram.size) }} • {{ formatDateTime(diagram.uploadedAt) }}</small>
+                          </div>
+                          <div class="diagram-actions">
+                            <button mat-icon-button (click)="viewDocument(diagram)" matTooltip="View">
+                              <mat-icon>visibility</mat-icon>
+                            </button>
+                            <button mat-icon-button (click)="downloadDocument(diagram)" matTooltip="Download">
+                              <mat-icon>download</mat-icon>
+                            </button>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -918,13 +1173,12 @@
                 </div>
               </div>
 
-              <ng-template #noDocuments>
-                <div class="documents-empty">
-                  <mat-icon>description</mat-icon>
-                  <p>No documents available for this job</p>
-                  <small>Photos and signatures will appear here once the collection and delivery processes are completed</small>
-                </div>
-              </ng-template>
+              <!-- No Documents State -->
+              <div *ngIf="!hasAnyDocuments() && !documentsLoading && !documentsError" class="documents-empty">
+                <mat-icon>description</mat-icon>
+                <p>No documents available for this job</p>
+                <small>Photos, signatures, and damage reports will appear here once the collection and delivery processes are completed</small>
+              </div>
             </div>
           </div>
         </mat-tab>

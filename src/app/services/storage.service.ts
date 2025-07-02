@@ -1,7 +1,7 @@
 // src/app/services/storage.service.ts
 import { Injectable } from '@angular/core';
 import { Observable, from, throwError, of, forkJoin } from 'rxjs';
-import { map, catchError, switchMap } from 'rxjs/operators';
+import { map, catchError, switchMap, tap } from 'rxjs/operators';
 import { Storage, ref, uploadBytes, uploadString, getDownloadURL, deleteObject, getMetadata, updateMetadata, listAll, StorageReference } from '@angular/fire/storage';
 
 export interface UploadResult {
@@ -23,10 +23,13 @@ export interface FileMetadata {
   downloadUrl?: string;
 }
 
+import { EnvironmentInjector, inject } from '@angular/core';
+
 @Injectable({
   providedIn: 'root',
 })
 export class StorageService {
+  private injector = inject(EnvironmentInjector);
   constructor(private storage: Storage) {}
 
   /**
@@ -48,9 +51,9 @@ export class StorageService {
       },
     };
 
-    return from(uploadBytes(storageRef, file, uploadMetadata)).pipe(
+    return from(this.injector.runInContext(() => uploadBytes(storageRef, file, uploadMetadata))).pipe(
       switchMap((snapshot) =>
-        from(getDownloadURL(snapshot.ref)).pipe(
+        from(this.injector.runInContext(() => getDownloadURL(snapshot.ref))).pipe(
           map((downloadUrl) => ({
             downloadUrl,
             fullPath: snapshot.ref.fullPath,
@@ -90,8 +93,8 @@ export class StorageService {
       },
     };
 
-    return from(uploadString(storageRef, cleanBase64, 'base64', uploadMetadata)).pipe(
-      switchMap((snapshot) => from(getDownloadURL(snapshot.ref))),
+    return from(this.injector.runInContext(() => uploadString(storageRef, cleanBase64, 'base64', uploadMetadata))).pipe(
+      switchMap((snapshot) => from(this.injector.runInContext(() => getDownloadURL(snapshot.ref)))),
       catchError((error) => {
         console.error('Signature upload failed:', error);
         return throwError(() => new Error(`Signature upload failed: ${error.message}`));
@@ -117,9 +120,9 @@ export class StorageService {
       },
     };
 
-    return from(uploadBytes(storageRef, blob, uploadMetadata)).pipe(
+    return from(this.injector.runInContext(() => uploadBytes(storageRef, blob, uploadMetadata))).pipe(
       switchMap((snapshot) =>
-        from(getDownloadURL(snapshot.ref)).pipe(
+        from(this.injector.runInContext(() => getDownloadURL(snapshot.ref))).pipe(
           map((downloadUrl) => ({
             downloadUrl,
             fullPath: snapshot.ref.fullPath,
@@ -142,7 +145,7 @@ export class StorageService {
    */
   getDownloadUrl(path: string): Observable<string> {
     const storageRef = ref(this.storage, path);
-    return from(getDownloadURL(storageRef)).pipe(
+    return from(this.injector.runInContext(() => getDownloadURL(storageRef))).pipe(
       catchError((error) => {
         console.error('Failed to get download URL:', error);
         return throwError(() => new Error(`Failed to get download URL: ${error.message}`));
@@ -155,7 +158,7 @@ export class StorageService {
    */
   deleteFile(path: string): Observable<void> {
     const storageRef = ref(this.storage, path);
-    return from(deleteObject(storageRef)).pipe(
+    return from(this.injector.runInContext(() => deleteObject(storageRef))).pipe(
       catchError((error) => {
         console.error('Delete failed:', error);
         return throwError(() => new Error(`Delete failed: ${error.message}`));
@@ -168,9 +171,9 @@ export class StorageService {
    */
   getFileMetadata(path: string): Observable<FileMetadata> {
     const storageRef = ref(this.storage, path);
-    return from(getMetadata(storageRef)).pipe(
+    return from(this.injector.runInContext(() => getMetadata(storageRef))).pipe(
       switchMap((metadata) =>
-        from(getDownloadURL(storageRef)).pipe(
+        from(this.injector.runInContext(() => getDownloadURL(storageRef))).pipe(
           map((downloadUrl) => ({
             name: metadata.name,
             fullPath: metadata.fullPath,
@@ -205,47 +208,48 @@ export class StorageService {
    */
   listFiles(path: string): Observable<FileMetadata[]> {
     const storageRef = ref(this.storage, path);
-    return from(listAll(storageRef)).pipe(
+
+    return from(this.injector.runInContext(() => listAll(storageRef))).pipe(
       switchMap((result) => {
-        const filePromises = result.items.map((item) =>
-          from(getMetadata(item)).pipe(
+        const fileObservables = result.items.map((itemRef) => {
+          const filePath = itemRef.fullPath;
+
+          return from(this.injector.runInContext(() => getMetadata(itemRef))).pipe(
             switchMap((metadata) =>
-              from(getDownloadURL(item)).pipe(
-                map(
-                  (downloadUrl) =>
-                    ({
-                      name: metadata.name,
-                      fullPath: metadata.fullPath,
-                      size: metadata.size,
-                      contentType: metadata.contentType || 'unknown',
-                      timeCreated: metadata.timeCreated,
-                      updated: metadata.updated,
-                      downloadUrl,
-                    } as FileMetadata)
-                ),
-                catchError(() =>
-                  of({
+              from(this.injector.runInContext(() => getDownloadURL(itemRef))).pipe(
+                map((downloadUrl) => ({
+                  name: metadata.name,
+                  fullPath: metadata.fullPath,
+                  size: metadata.size,
+                  contentType: metadata.contentType || 'unknown',
+                  timeCreated: metadata.timeCreated,
+                  updated: metadata.updated,
+                  downloadUrl,
+                })),
+                catchError((downloadError) => {
+                  console.warn(`[StorageService] Using fallback metadata for ${filePath}:`, downloadError);
+                  return of({
                     name: metadata.name,
                     fullPath: metadata.fullPath,
                     size: metadata.size,
                     contentType: metadata.contentType || 'unknown',
                     timeCreated: metadata.timeCreated,
                     updated: metadata.updated,
-                  } as FileMetadata)
-                )
+                  });
+                })
               )
             ),
-            catchError((error) => {
-              console.warn(`Failed to get metadata for ${item.fullPath}:`, error);
-              return of(null);
+            catchError((metadataError) => {
+              console.warn(`[StorageService] Skipping file due to metadata error for ${filePath}:`, metadataError);
+              return of(null); // Exclude this file
             })
-          )
-        );
+          );
+        });
 
-        return from(Promise.all(filePromises)).pipe(map((files) => files.filter((file) => file !== null) as unknown as FileMetadata[]));
+        return forkJoin(fileObservables).pipe(map((files) => files.filter((file): file is FileMetadata => file !== null)));
       }),
       catchError((error) => {
-        console.error('Failed to list files:', error);
+        console.error('[StorageService] Failed to list files:', error);
         return throwError(() => new Error(`Failed to list files: ${error.message}`));
       })
     );
@@ -256,7 +260,7 @@ export class StorageService {
    */
   updateFileMetadata(path: string, metadata: any): Observable<any> {
     const storageRef = ref(this.storage, path);
-    return from(updateMetadata(storageRef, metadata)).pipe(
+    return from(this.injector.runInContext(() => updateMetadata(storageRef, metadata))).pipe(
       catchError((error) => {
         console.error('Failed to update metadata:', error);
         return throwError(() => new Error(`Failed to update metadata: ${error.message}`));

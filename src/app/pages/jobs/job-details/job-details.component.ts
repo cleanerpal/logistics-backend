@@ -4,17 +4,46 @@ import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { combineLatest, Subject } from 'rxjs';
-import { finalize, takeUntil } from 'rxjs/operators';
+import { combineLatest, Subject, forkJoin, of } from 'rxjs';
+import { finalize, takeUntil, catchError, map, tap, startWith } from 'rxjs/operators';
 import { Timestamp } from 'firebase/firestore';
 
 import { Job, JobNote } from '../../../interfaces/job-new.interface';
 import { UserProfile } from '../../../interfaces/user-profile.interface';
 import { JobNewService } from '../../../services/job-new.service';
 import { AuthService } from '../../../services/auth.service';
+import { StorageService } from '../../../services/storage.service';
 import { ConfirmationDialogComponent } from '../../../dialogs/confirmation-dialog.component';
 import { JobProcessData, JobProcessService, ProcessPhoto } from '../../../services/job-process.service';
 import { ProcessSignature } from '../../../services/job-process.service';
+
+// Enhanced interfaces for documents
+export interface JobDocument {
+  id: string;
+  type: 'photo' | 'signature' | 'damage_diagram';
+  category: 'collection' | 'delivery' | 'secondary_collection' | 'first_delivery' | 'damage';
+  url: string;
+  fileName: string;
+  description: string;
+  uploadedAt: Date;
+  size?: number;
+}
+
+export interface DamageReport {
+  id: string;
+  reportedAt: Timestamp;
+  reportedBy: string;
+  reportedByName: string;
+  description: string;
+  severity: 'minor' | 'moderate' | 'severe';
+  location: 'front' | 'rear' | 'left' | 'right' | 'interior' | 'undercarriage' | 'other';
+  photos: string[];
+  diagrams: string[];
+  notes?: string;
+  repairEstimate?: number;
+  repairCompleted?: boolean;
+  repairCompletedAt?: Timestamp;
+}
 
 // Enhanced expense interface matching mobile app
 export interface JobExpense {
@@ -76,6 +105,27 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
   canManageJobs = false;
   canManageBilling = false;
 
+  // Document loading states
+  documentsLoading = false;
+  documentsError: string | null = null;
+
+  // Enhanced document management
+  allDocuments: JobDocument[] = [];
+  collectionPhotos: JobDocument[] = [];
+  deliveryPhotos: JobDocument[] = [];
+  secondaryCollectionPhotos: JobDocument[] = [];
+  firstDeliveryPhotos: JobDocument[] = [];
+  collectionSignatures: JobDocument[] = [];
+  deliverySignatures: JobDocument[] = [];
+  secondaryCollectionSignatures: JobDocument[] = [];
+  firstDeliverySignatures: JobDocument[] = [];
+  damagePhotos: JobDocument[] = [];
+  damageDiagrams: JobDocument[] = [];
+
+  // Damage reports
+  damageReports: DamageReport[] = [];
+  hasDamageReported = false;
+
   // Billing data
   jobBilling: JobBilling | null = null;
   isLoadingBilling = false;
@@ -129,19 +179,9 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
 
   // Process data
   jobProcessData: JobProcessData | null = null;
-  collectionPhotos: ProcessPhoto[] = [];
-  deliveryPhotos: ProcessPhoto[] = [];
-  collectionSignature: ProcessSignature | null = null;
-  deliverySignature: ProcessSignature | null = null;
-  damageReports = { collection: false, delivery: false, overall: false };
+  damageReports_old = { collection: false, delivery: false, overall: false };
   processContacts: any = {};
   vehicleCondition: any = {};
-
-  // Split journey support
-  secondaryCollectionPhotos: ProcessPhoto[] = [];
-  firstDeliveryPhotos: ProcessPhoto[] = [];
-  secondaryCollectionSignature: ProcessSignature | null = null;
-  firstDeliverySignature: ProcessSignature | null = null;
 
   // Timeline data
   timelineEvents: any[] = [];
@@ -156,6 +196,7 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
     private router: Router,
     private jobService: JobNewService,
     private authService: AuthService,
+    private storageService: StorageService,
     private dialog: MatDialog,
     private snackBar: MatSnackBar,
     private cdr: ChangeDetectorRef,
@@ -212,13 +253,15 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
           if (job) {
             this.job = job;
             this.jobProcessData = processData;
-            this.damageReports = damageReports;
+            this.damageReports_old = damageReports;
             this.processContacts = contacts;
             this.vehicleCondition = vehicleCondition;
 
             this.extractProcessDocuments(processData);
             this.generateTimelineEvents();
             this.formatJobNotes();
+            this.loadJobDocuments(jobId);
+            this.loadDamageReports(jobId);
 
             // Load billing if user has permission
             if (this.canManageBilling) {
@@ -234,6 +277,143 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
           this.showError('Failed to load job details');
         },
       });
+  }
+
+  // Enhanced document loading from Firebase Storage
+  loadJobDocuments(jobId: string): void {
+    this.documentsLoading = true;
+    this.documentsError = null;
+
+    const documentPaths = [
+      { path: `jobs/${jobId}/collection_photos`, category: 'collection', type: 'photo' },
+      { path: `jobs/${jobId}/delivery_photos`, category: 'delivery', type: 'photo' },
+      { path: `jobs/${jobId}/secondary_collection_photos`, category: 'secondary_collection', type: 'photo' },
+      { path: `jobs/${jobId}/first_delivery_photos`, category: 'first_delivery', type: 'photo' },
+      { path: `jobs/${jobId}/collection_signatures`, category: 'collection', type: 'signature' },
+      { path: `jobs/${jobId}/delivery_signatures`, category: 'delivery', type: 'signature' },
+      { path: `jobs/${jobId}/secondary_collection_signatures`, category: 'secondary_collection', type: 'signature' },
+      { path: `jobs/${jobId}/first_delivery_signatures`, category: 'first_delivery', type: 'signature' },
+      { path: `jobs/${jobId}/damage_photos`, category: 'damage', type: 'photo' },
+      { path: `jobs/${jobId}/damage_diagrams`, category: 'damage', type: 'damage_diagram' },
+    ];
+
+    const documentObservables = documentPaths.map((pathConfig) =>
+      this.storageService.listFiles(pathConfig.path).pipe(
+        startWith([]),
+        map((files) =>
+          files.map((file) => ({
+            id: file.name,
+            type: pathConfig.type as 'photo' | 'signature' | 'damage_diagram',
+            category: pathConfig.category as JobDocument['category'],
+            url: file.downloadUrl || '',
+            fileName: file.name,
+            description: this.getDocumentDescription(file.name, pathConfig.category, pathConfig.type),
+            uploadedAt: file.timeCreated ? new Date(file.timeCreated) : new Date(),
+            size: file.size,
+          }))
+        ),
+        catchError(() => of([] as JobDocument[]))
+      )
+    );
+
+    combineLatest(documentObservables)
+      .pipe(
+        takeUntil(this.destroy$),
+        finalize(() => {
+          this.documentsLoading = false;
+          this.cdr.detectChanges();
+        })
+      )
+      .subscribe({
+        next: (documentArrays) => {
+          this.allDocuments = documentArrays.flat();
+          this.categorizeDocuments();
+          this.hasDamageReported = this.damagePhotos.length > 0 || this.damageDiagrams.length > 0;
+        },
+        error: () => {
+          this.documentsError = 'Failed to load documents';
+          this.showError('Failed to load job documents');
+        },
+      });
+  }
+
+  // Load damage reports from job data
+  private loadDamageReports(jobId: string): void {
+    // Extract damage reports from job data
+    if (this.job?.collectionData?.damageReportedThisStep || this.job?.deliveryData?.damageReportedThisStep || this.job?.hasDamageCommitted) {
+      const reports: DamageReport[] = [];
+
+      if (this.job.collectionData?.damageReportedThisStep) {
+        reports.push({
+          id: `collection_damage_${jobId}`,
+          reportedAt: Timestamp.now(),
+          reportedBy: 'system',
+          reportedByName: 'Collection Process',
+          description: 'Damage reported during collection process',
+          severity: 'moderate',
+          location: 'other',
+          photos: this.damagePhotos.filter((photo) => photo.fileName.includes('collection')).map((photo) => photo.url),
+          diagrams: this.damageDiagrams.filter((diagram) => diagram.fileName.includes('collection')).map((diagram) => diagram.url),
+          notes: this.job.collectionData?.notes || '',
+        });
+      }
+
+      if (this.job.deliveryData?.damageReportedThisStep) {
+        reports.push({
+          id: `delivery_damage_${jobId}`,
+          reportedAt: Timestamp.now(),
+          reportedBy: 'system',
+          reportedByName: 'Delivery Process',
+          description: 'Damage reported during delivery process',
+          severity: 'moderate',
+          location: 'other',
+          photos: this.damagePhotos.filter((photo) => photo.fileName.includes('delivery')).map((photo) => photo.url),
+          diagrams: this.damageDiagrams.filter((diagram) => diagram.fileName.includes('delivery')).map((diagram) => diagram.url),
+          notes: this.job.deliveryData?.notes || '',
+        });
+      }
+
+      this.damageReports = reports;
+    }
+  }
+
+  // Categorize documents by type and category
+  private categorizeDocuments(): void {
+    this.collectionPhotos = this.allDocuments.filter((doc) => doc.category === 'collection' && doc.type === 'photo');
+    this.deliveryPhotos = this.allDocuments.filter((doc) => doc.category === 'delivery' && doc.type === 'photo');
+    this.secondaryCollectionPhotos = this.allDocuments.filter((doc) => doc.category === 'secondary_collection' && doc.type === 'photo');
+    this.firstDeliveryPhotos = this.allDocuments.filter((doc) => doc.category === 'first_delivery' && doc.type === 'photo');
+
+    this.collectionSignatures = this.allDocuments.filter((doc) => doc.category === 'collection' && doc.type === 'signature');
+    this.deliverySignatures = this.allDocuments.filter((doc) => doc.category === 'delivery' && doc.type === 'signature');
+    this.secondaryCollectionSignatures = this.allDocuments.filter((doc) => doc.category === 'secondary_collection' && doc.type === 'signature');
+    this.firstDeliverySignatures = this.allDocuments.filter((doc) => doc.category === 'first_delivery' && doc.type === 'signature');
+
+    this.damagePhotos = this.allDocuments.filter((doc) => doc.category === 'damage' && doc.type === 'photo');
+    this.damageDiagrams = this.allDocuments.filter((doc) => doc.category === 'damage' && doc.type === 'damage_diagram');
+  }
+
+  // Generate document description based on filename and category
+  private getDocumentDescription(fileName: string, category: string, type: string): string {
+    const cleanName = fileName.replace(/\.(jpg|jpeg|png|pdf|gif)$/i, '');
+
+    if (type === 'signature') {
+      return `${category.replace('_', ' ')} signature`;
+    }
+
+    if (type === 'damage_diagram') {
+      return `Damage diagram - ${cleanName}`;
+    }
+
+    // For photos, try to extract meaningful description
+    if (cleanName.includes('front')) return `${category} - Front view`;
+    if (cleanName.includes('rear')) return `${category} - Rear view`;
+    if (cleanName.includes('left')) return `${category} - Left side`;
+    if (cleanName.includes('right')) return `${category} - Right side`;
+    if (cleanName.includes('interior')) return `${category} - Interior view`;
+    if (cleanName.includes('damage')) return `${category} - Damage documentation`;
+
+    return `${category.replace('_', ' ')} photo`;
   }
 
   // Tab selection
@@ -270,6 +450,96 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
     }
 
     return [];
+  }
+
+  // Enhanced document viewing methods
+  viewDocument(document: JobDocument): void {
+    if (document.url) {
+      window.open(document.url, '_blank');
+    } else {
+      this.showError('Document URL not available');
+    }
+  }
+
+  downloadDocument(document: JobDocument): void {
+    if (document.url) {
+      window.open(document.url, '_blank');
+    } else {
+      this.showError('Document URL not available for download');
+    }
+  }
+
+  // Get document counts for display
+  getTotalDocumentCount(): number {
+    return this.allDocuments.length;
+  }
+
+  getPhotoCount(): number {
+    return this.allDocuments.filter((doc) => doc.type === 'photo').length;
+  }
+
+  getSignatureCount(): number {
+    return this.allDocuments.filter((doc) => doc.type === 'signature').length;
+  }
+
+  getDamageDocumentCount(): number {
+    return this.damagePhotos.length + this.damageDiagrams.length;
+  }
+
+  // Check if documents exist
+  hasAnyDocuments(): boolean {
+    // console.log('hasAnyDocuments', this.allDocuments);
+    return this.allDocuments.length > 0;
+  }
+
+  hasCollectionDocuments(): boolean {
+    return this.collectionPhotos.length > 0 || this.collectionSignatures.length > 0;
+  }
+
+  hasDeliveryDocuments(): boolean {
+    return this.deliveryPhotos.length > 0 || this.deliverySignatures.length > 0;
+  }
+
+  hasDamageDocuments(): boolean {
+    return this.damagePhotos.length > 0 || this.damageDiagrams.length > 0;
+  }
+
+  // Get damage severity color
+  getDamageSeverityColor(severity: string): string {
+    switch (severity) {
+      case 'minor':
+        return 'warn';
+      case 'moderate':
+        return 'accent';
+      case 'severe':
+        return 'warn';
+      default:
+        return 'primary';
+    }
+  }
+
+  // Get damage severity icon
+  getDamageSeverityIcon(severity: string): string {
+    switch (severity) {
+      case 'minor':
+        return 'info';
+      case 'moderate':
+        return 'warning';
+      case 'severe':
+        return 'error';
+      default:
+        return 'help';
+    }
+  }
+
+  // Format file size
+  formatFileSize(bytes?: number): string {
+    if (!bytes) return 'Unknown size';
+
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+    return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`;
   }
 
   // Billing Data Management
@@ -902,17 +1172,8 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
   private extractProcessDocuments(processData: JobProcessData): void {
     if (!processData?.documents) return;
 
-    // Extract photos
-    this.collectionPhotos = processData.documents.collectionPhotos || [];
-    this.deliveryPhotos = processData.documents.deliveryPhotos || [];
-    this.secondaryCollectionPhotos = processData.documents.secondaryCollectionPhotos || [];
-    this.firstDeliveryPhotos = processData.documents.firstDeliveryPhotos || [];
-
-    // Extract signatures
-    this.collectionSignature = processData.documents.collectionSignature || null;
-    this.deliverySignature = processData.documents.deliverySignature || null;
-    this.secondaryCollectionSignature = processData.documents.secondaryCollectionSignature || null;
-    this.firstDeliverySignature = processData.documents.firstDeliverySignature || null;
+    // This method is now primarily handled by loadJobDocuments
+    // Keep for backward compatibility with existing data structure
   }
 
   private generateTimelineEvents(): void {
@@ -1069,23 +1330,6 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
     }
   }
 
-  getAllPhotos(): ProcessPhoto[] {
-    return [...this.collectionPhotos, ...this.deliveryPhotos, ...this.secondaryCollectionPhotos, ...this.firstDeliveryPhotos];
-  }
-
-  getAllSignatures(): ProcessSignature[] {
-    const signatures = [];
-    if (this.collectionSignature) signatures.push(this.collectionSignature);
-    if (this.deliverySignature) signatures.push(this.deliverySignature);
-    if (this.secondaryCollectionSignature) signatures.push(this.secondaryCollectionSignature);
-    if (this.firstDeliverySignature) signatures.push(this.firstDeliverySignature);
-    return signatures;
-  }
-
-  hasProcessDocuments(): boolean {
-    return this.getAllPhotos().length > 0 || this.getAllSignatures().length > 0;
-  }
-
   getEnergyTypeLabel(energyType: string): string {
     if (!energyType) return 'Unknown';
     return energyType.charAt(0).toUpperCase() + energyType.slice(1).toLowerCase();
@@ -1116,15 +1360,24 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
     return null;
   }
 
-  viewPhoto(photo: ProcessPhoto): void {
-    window.open(photo.url, '_blank');
+  // Legacy methods for backward compatibility
+  viewPhoto(photo: ProcessPhoto | JobDocument): void {
+    if ('url' in photo) {
+      this.viewDocument(photo as JobDocument);
+    } else {
+      window.open((photo as ProcessPhoto).url, '_blank');
+    }
   }
 
-  downloadPhoto(photo: ProcessPhoto): void {
-    const link = document.createElement('a');
-    link.href = photo.url;
-    link.download = photo.fileName;
-    link.click();
+  downloadPhoto(photo: ProcessPhoto | JobDocument): void {
+    if ('url' in photo && 'fileName' in photo) {
+      this.downloadDocument(photo as JobDocument);
+    } else {
+      const link = document.createElement('a');
+      link.href = (photo as ProcessPhoto).url;
+      link.download = (photo as ProcessPhoto).fileName;
+      link.click();
+    }
   }
 
   viewSignature(signature: ProcessSignature): void {
