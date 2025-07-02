@@ -88,6 +88,67 @@
           <mat-progress-bar mode="determinate" [value]="getStatusProgress()" [color]="getStatusColor(job.status)"> </mat-progress-bar>
           <div class="progress-text">{{ getStatusProgress() | number : '1.0-0' }}% Complete</div>
         </div>
+
+        <!-- Report Generation Buttons -->
+        <div class="report-actions" *ngIf="canViewReports">
+          <!-- Collection Report -->
+          <button
+            mat-raised-button
+            color="accent"
+            class="report-button"
+            *ngIf="canGenerateCollectionReport()"
+            (click)="generateCollectionReport()"
+            [disabled]="generatingReport">
+            <mat-icon>description</mat-icon>
+            POC Report
+          </button>
+
+          <!-- Secondary Collection Report (for split journeys) -->
+          <button
+            mat-raised-button
+            color="accent"
+            class="report-button"
+            *ngIf="canGenerateSecondaryCollectionReport()"
+            (click)="generateSecondaryCollectionReport()"
+            [disabled]="generatingReport">
+            <mat-icon>description</mat-icon>
+            Secondary POC
+          </button>
+
+          <!-- First Delivery Report (for split journeys) -->
+          <button
+            mat-raised-button
+            color="accent"
+            class="report-button"
+            *ngIf="canGenerateFirstDeliveryReport()"
+            (click)="generateFirstDeliveryReport()"
+            [disabled]="generatingReport">
+            <mat-icon>description</mat-icon>
+            First POD
+          </button>
+
+          <!-- Final Delivery Report -->
+          <button
+            mat-raised-button
+            color="accent"
+            class="report-button"
+            *ngIf="canGenerateDeliveryReport()"
+            (click)="generateDeliveryReport()"
+            [disabled]="generatingReport">
+            <mat-icon>description</mat-icon>
+            POD Report
+          </button>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Report Generation Progress -->
+    <mat-card *ngIf="generatingReport" class="report-progress-card">
+      <mat-card-content>
+        <div class="report-progress">
+          <mat-spinner diameter="24"></mat-spinner>
+          <span>Generating {{ currentReportType }} report...</span>
+        </div>
       </mat-card-content>
     </mat-card>
 
@@ -808,8 +869,6 @@
                     <div class="photos-grid">
                       <div class="photo-item" *ngFor="let photo of collectionPhotos">
                         <div class="photo-thumbnail" (click)="viewDocument(photo)">
-                          <p>URL: {{ photo }}</p>
-
                           <img [src]="photo.url" [alt]="photo.description" loading="lazy" />
                           <div class="photo-overlay">
                             <mat-icon>zoom_in</mat-icon>

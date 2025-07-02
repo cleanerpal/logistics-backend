@@ -328,6 +328,76 @@
       font-weight: 500;
     }
   }
+
+  // Report Actions
+  .report-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: flex-start;
+    margin-top: 16px;
+
+    .report-button {
+      background: rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: #3b82f6;
+      background: white;
+      transition: all 0.3s ease;
+      border-radius: 8px;
+      height: 36px;
+
+      &:hover:not(:disabled) {
+        background: #f0f9ff;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
+      }
+
+      &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+
+      mat-icon {
+        margin-right: 6px;
+        font-size: 18px;
+      }
+    }
+
+    @media (max-width: 768px) {
+      justify-content: stretch;
+
+      .report-button {
+        flex: 1;
+        min-width: 0;
+        font-size: 0.875rem;
+      }
+    }
+  }
+}
+
+// ========== REPORT PROGRESS CARD ==========
+.report-progress-card {
+  background: var(--ion-color-light);
+  border: 1px solid #e3f2fd;
+  border-radius: 12px;
+
+  .report-progress {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px;
+
+    mat-spinner {
+      --mdc-circular-progress-active-indicator-color: var(--ion-color-primary);
+    }
+
+    span {
+      color: var(--ion-color-primary);
+      font-weight: 500;
+      font-size: 14px;
+    }
+  }
 }
 
 // ========== MAIN CONTENT CARD ==========
@@ -1151,6 +1221,24 @@
       font-weight: 600;
       color: #1e293b;
     }
+
+    .documents-stats {
+      margin-left: auto;
+      display: flex;
+      gap: 16px;
+
+      .stat-item {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 14px;
+        color: #6b7280;
+
+        mat-icon {
+          font-size: 16px;
+        }
+      }
+    }
   }
 
   .documents-content {
@@ -1213,6 +1301,14 @@
       border-color: #3b82f6;
     }
 
+    &.damage-photo {
+      border-color: #f59e0b;
+
+      .photo-overlay.damage-overlay {
+        background: rgba(245, 158, 11, 0.7);
+      }
+    }
+
     .photo-thumbnail {
       position: relative;
       aspect-ratio: 4/3;
@@ -1266,6 +1362,12 @@
         margin-bottom: 12px;
         color: #1a1a1a;
         line-height: 1.4;
+      }
+
+      .photo-meta {
+        font-size: 12px;
+        color: #9ca3af;
+        margin-bottom: 12px;
       }
 
       .photo-actions {
@@ -1370,6 +1472,12 @@
         color: #1a1a1a;
       }
 
+      .signature-meta {
+        font-size: 12px;
+        color: #9ca3af;
+        margin-bottom: 12px;
+      }
+
       .signature-signer,
       .signature-position,
       .signature-date {
@@ -1417,6 +1525,51 @@
     }
   }
 
+  .documents-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 48px;
+    text-align: center;
+    color: #6b7280;
+    background: white;
+    border-radius: 12px;
+    border: 1px solid #e5e7eb;
+
+    mat-spinner {
+      margin-bottom: 16px;
+    }
+
+    p {
+      margin: 0;
+      font-size: 16px;
+    }
+  }
+
+  .documents-error {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 48px;
+    text-align: center;
+    color: #dc2626;
+    background: #fef2f2;
+    border-radius: 12px;
+    border: 1px solid #fecaca;
+
+    mat-icon {
+      font-size: 48px;
+      margin-bottom: 16px;
+    }
+
+    p {
+      margin: 0 0 16px 0;
+      font-size: 16px;
+    }
+  }
+
   .documents-empty {
     display: flex;
     flex-direction: column;
@@ -1446,6 +1599,242 @@
       font-size: 14px;
       color: #9ca3af;
       line-height: 1.5;
+    }
+  }
+
+  // Damage document specific styles
+  .damage-reports {
+    margin-bottom: 24px;
+
+    h5 {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 16px;
+      color: #dc2626;
+      padding-left: 8px;
+      border-left: 3px solid #dc2626;
+    }
+  }
+
+  .damage-reports-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .damage-report-item {
+    background: linear-gradient(135deg, #fef3c7 0%, #fed7aa 100%);
+    border: 1px solid #f59e0b;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 2px 8px rgba(245, 158, 11, 0.2);
+
+    .damage-report-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+
+      .damage-severity {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+
+        .severity-label {
+          font-weight: 600;
+          text-transform: uppercase;
+          font-size: 12px;
+          letter-spacing: 0.5px;
+
+          &.severity-minor {
+            color: #059669;
+          }
+
+          &.severity-moderate {
+            color: #d97706;
+          }
+
+          &.severity-severe {
+            color: #dc2626;
+          }
+        }
+      }
+
+      .damage-date {
+        font-size: 12px;
+        color: #92400e;
+        font-weight: 500;
+      }
+    }
+
+    .damage-report-content {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+
+      .damage-description {
+        font-size: 16px;
+        color: #92400e;
+        margin-bottom: 8px;
+
+        strong {
+          font-weight: 600;
+        }
+      }
+
+      .damage-details {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 16px;
+
+        span {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 14px;
+          color: #92400e;
+
+          mat-icon {
+            font-size: 16px;
+          }
+        }
+      }
+
+      .damage-notes,
+      .damage-estimate {
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+        font-size: 14px;
+        color: #92400e;
+
+        mat-icon {
+          font-size: 16px;
+          margin-top: 2px;
+        }
+      }
+    }
+  }
+
+  .diagram-group {
+    margin-bottom: 24px;
+
+    h5 {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 16px;
+      color: #7c3aed;
+      padding-left: 8px;
+      border-left: 3px solid #7c3aed;
+    }
+  }
+
+  .diagrams-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 20px;
+  }
+
+  .diagram-item {
+    background: white;
+    border: 1px solid #d1d5db;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s ease;
+
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+      border-color: #7c3aed;
+    }
+
+    .diagram-preview {
+      position: relative;
+      height: 200px;
+      background: linear-gradient(135deg, #fafafa 0%, #f3f4f6 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      overflow: hidden;
+      border-bottom: 1px solid #e5e7eb;
+
+      img {
+        max-width: 90%;
+        max-height: 90%;
+        object-fit: contain;
+        transition: transform 0.3s ease;
+        filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+      }
+
+      .diagram-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(124, 58, 237, 0.7);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+
+        mat-icon {
+          color: white;
+          font-size: 32px;
+          filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+        }
+      }
+
+      &:hover {
+        img {
+          transform: scale(1.05);
+        }
+
+        .diagram-overlay {
+          opacity: 1;
+        }
+      }
+    }
+
+    .diagram-info {
+      padding: 16px;
+
+      .diagram-description {
+        font-size: 14px;
+        font-weight: 500;
+        margin-bottom: 12px;
+        color: #1a1a1a;
+        line-height: 1.4;
+      }
+
+      .diagram-meta {
+        font-size: 12px;
+        color: #9ca3af;
+        margin-bottom: 12px;
+      }
+
+      .diagram-actions {
+        display: flex;
+        gap: 8px;
+        justify-content: flex-end;
+
+        button {
+          border-radius: 6px;
+          width: 36px;
+          height: 36px;
+
+          mat-icon {
+            font-size: 18px;
+          }
+
+          &:hover {
+            background-color: #f3f4f6;
+          }
+        }
+      }
     }
   }
 }
@@ -2734,7 +3123,8 @@
 
   .page-header .header-actions,
   .photo-actions,
-  .signature-actions {
+  .signature-actions,
+  .report-actions {
     display: none;
   }
 
@@ -2766,5 +3156,9 @@
   .photo-item,
   .signature-item {
     page-break-inside: avoid;
+  }
+
+  .report-progress-card {
+    display: none;
   }
 }

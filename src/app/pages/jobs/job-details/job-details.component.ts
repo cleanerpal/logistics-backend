@@ -16,6 +16,7 @@ import { StorageService } from '../../../services/storage.service';
 import { ConfirmationDialogComponent } from '../../../dialogs/confirmation-dialog.component';
 import { JobProcessData, JobProcessService, ProcessPhoto } from '../../../services/job-process.service';
 import { ProcessSignature } from '../../../services/job-process.service';
+import { ReportGenerationService } from '../../../services/report-generation.service';
 
 // Enhanced interfaces for documents
 export interface JobDocument {
@@ -130,6 +131,10 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
   jobBilling: JobBilling | null = null;
   isLoadingBilling = false;
 
+  // Report generation
+  generatingReport = false;
+  currentReportType: string = '';
+
   // Add expense form data
   newExpense = {
     type: 'fuel' as const,
@@ -197,6 +202,7 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
     private jobService: JobNewService,
     private authService: AuthService,
     private storageService: StorageService,
+    private reportGenerationService: ReportGenerationService,
     private dialog: MatDialog,
     private snackBar: MatSnackBar,
     private cdr: ChangeDetectorRef,
@@ -848,12 +854,11 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
     <body>
         <div class="header">
             <div class="company-info">
-                <div class="company-name">CleanerPal Logistics</div>
-                <div>123 Business Street</div>
-                <div>Belfast, BT1 1AA</div>
+                <div class="company-name">NI Vehicle Logistics Ltd.</div>
                 <div>Northern Ireland</div>
-                <div>Phone: 028 9xxx xxxx</div>
-                <div>Email: billing@cleanerpal.com</div>
+                <div>United Kingdom</div>
+                <div>Phone: +44 (0) 28 XXXX XXXX</div>
+                <div>Email: info@nivehiclelogistics.com</div>
             </div>
             <div class="invoice-details">
                 <div class="invoice-title">INVOICE</div>
@@ -961,6 +966,95 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
     </body>
     </html>
     `;
+  }
+
+  // Report generation methods
+  canGenerateCollectionReport(): boolean {
+    return this.job?.collectionData != null && this.job?.collectionData?.completedAt != null;
+  }
+
+  canGenerateSecondaryCollectionReport(): boolean {
+    return this.job?.isSplitJourney === true && this.job?.secondaryCollectionData != null && this.job?.secondaryCollectionData?.completedAt != null;
+  }
+
+  canGenerateFirstDeliveryReport(): boolean {
+    return this.job?.isSplitJourney === true && this.job?.firstDeliveryData != null && this.job?.firstDeliveryData?.completedAt != null;
+  }
+
+  canGenerateDeliveryReport(): boolean {
+    return this.job?.deliveryData != null && this.job?.deliveryData?.completedAt != null;
+  }
+
+  async generateCollectionReport() {
+    if (!this.job || !this.canGenerateCollectionReport()) return;
+
+    this.generatingReport = true;
+    this.currentReportType = 'Collection (POC)';
+
+    try {
+      await this.reportGenerationService.generateCollectionReport(this.job);
+      this.showSuccess('Collection report generated successfully');
+    } catch (error) {
+      console.error('Error generating collection report:', error);
+      this.showError('Failed to generate collection report');
+    } finally {
+      this.generatingReport = false;
+      this.currentReportType = '';
+    }
+  }
+
+  async generateSecondaryCollectionReport() {
+    if (!this.job || !this.canGenerateSecondaryCollectionReport()) return;
+
+    this.generatingReport = true;
+    this.currentReportType = 'Secondary Collection (POC)';
+
+    try {
+      await this.reportGenerationService.generateSecondaryCollectionReport(this.job);
+      this.showSuccess('Secondary collection report generated successfully');
+    } catch (error) {
+      console.error('Error generating secondary collection report:', error);
+      this.showError('Failed to generate secondary collection report');
+    } finally {
+      this.generatingReport = false;
+      this.currentReportType = '';
+    }
+  }
+
+  async generateFirstDeliveryReport() {
+    if (!this.job || !this.canGenerateFirstDeliveryReport()) return;
+
+    this.generatingReport = true;
+    this.currentReportType = 'First Delivery (POD)';
+
+    try {
+      await this.reportGenerationService.generateFirstDeliveryReport(this.job);
+      this.showSuccess('First delivery report generated successfully');
+    } catch (error) {
+      console.error('Error generating first delivery report:', error);
+      this.showError('Failed to generate first delivery report');
+    } finally {
+      this.generatingReport = false;
+      this.currentReportType = '';
+    }
+  }
+
+  async generateDeliveryReport() {
+    if (!this.job || !this.canGenerateDeliveryReport()) return;
+
+    this.generatingReport = true;
+    this.currentReportType = 'Delivery (POD)';
+
+    try {
+      await this.reportGenerationService.generateDeliveryReport(this.job);
+      this.showSuccess('Delivery report generated successfully');
+    } catch (error) {
+      console.error('Error generating delivery report:', error);
+      this.showError('Failed to generate delivery report');
+    } finally {
+      this.generatingReport = false;
+      this.currentReportType = '';
+    }
   }
 
   // Utility methods
