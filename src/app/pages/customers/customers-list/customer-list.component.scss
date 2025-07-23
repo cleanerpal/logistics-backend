@@ -1,10 +1,5 @@
 :host {
   display: block;
-  padding: 24px;
-  background-color: var(--background-color);
-  min-height: 100vh;
-  margin-left: 250px;
-  padding-top: 88px;
 }
 
 .mat-mdc-card {
@@ -351,6 +346,26 @@ table.loading {
 
 .delete-action {
   color: #f44336;
+}
+
+.card-wrapper {
+  padding: 24px 24px 24px 24px;
+}
+
+@media (max-width: 768px) {
+  .card-wrapper {
+    padding: 12px 8px 12px 8px;
+  }
+}
+
+.mat-elevation-z3 {
+  padding: 0;
+}
+
+@media (max-width: 768px) {
+  .mat-elevation-z3 {
+    padding: 0 12px 12px 12px;
+  }
 }
 
 @media screen and (max-width: 1200px) {

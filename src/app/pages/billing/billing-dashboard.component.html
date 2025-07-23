@@ -1,0 +1,202 @@
+<!-- src/app/pages/billing/billing-dashboard.component.html -->
+
+<div class="billing-dashboard-container">
+  <!-- Page Header -->
+  <div class="page-header">
+    <div class="header-content">
+      <h1>
+        <mat-icon>account_balance</mat-icon>
+        Billing Dashboard
+      </h1>
+      <p class="page-subtitle">Manage invoices and track payments</p>
+    </div>
+    <div class="header-actions">
+      <button mat-raised-button color="primary" (click)="refreshData()">
+        <mat-icon>refresh</mat-icon>
+        Refresh
+      </button>
+      <button mat-stroked-button (click)="exportInvoices()">
+        <mat-icon>download</mat-icon>
+        Export CSV
+      </button>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="isLoading" class="loading-container">
+    <mat-spinner diameter="40"></mat-spinner>
+    <p>Loading billing data...</p>
+  </div>
+
+  <!-- Dashboard Content -->
+  <div *ngIf="!isLoading" class="dashboard-content">
+    <div class="card-wrapper">
+      <mat-card class="mat-elevation-z3">
+        <div class="header-wrapper">
+          <div class="header-title">
+            <h1>Invoices</h1>
+            <p class="subtitle">{{ dataSource.filteredData?.length || 0 }} total invoices</p>
+          </div>
+        </div>
+        <div class="filters-actions-wrapper">
+          <div class="filters-section">
+            <mat-form-field appearance="outline" class="search-field">
+              <mat-label>Search invoices</mat-label>
+              <input matInput [(ngModel)]="searchTerm" (input)="onSearchChange()" placeholder="Search invoices..." />
+              <mat-icon matSuffix>search</mat-icon>
+            </mat-form-field>
+            <div class="filters-group">
+              <mat-form-field appearance="outline">
+                <mat-label>Status</mat-label>
+                <mat-select [(value)]="statusFilter" (selectionChange)="onStatusFilterChange()">
+                  <mat-option *ngFor="let option of statusOptions" [value]="option.value">
+                    {{ option.label }}
+                  </mat-option>
+                </mat-select>
+              </mat-form-field>
+              <mat-form-field appearance="outline">
+                <mat-label>Date Range</mat-label>
+                <mat-select [(value)]="dateFilter" (selectionChange)="onDateFilterChange()">
+                  <mat-option *ngFor="let option of dateOptions" [value]="option.value">
+                    {{ option.label }}
+                  </mat-option>
+                </mat-select>
+              </mat-form-field>
+            </div>
+          </div>
+          <div class="actions-group">
+            <button mat-raised-button color="primary" (click)="refreshData()">
+              <mat-icon>refresh</mat-icon>
+              Refresh
+            </button>
+            <button mat-stroked-button (click)="exportInvoices()">
+              <mat-icon>download</mat-icon>
+              Export CSV
+            </button>
+          </div>
+        </div>
+        <div class="table-container">
+          <table mat-table [dataSource]="dataSource" matSort class="invoices-table">
+            <!-- Invoice Number Column -->
+            <ng-container matColumnDef="invoiceNumber">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>Invoice #</th>
+              <td mat-cell *matCellDef="let invoice">
+                <div class="invoice-number">
+                  <strong>{{ invoice.invoiceNumber }}</strong>
+                  <mat-icon *ngIf="isOverdue(invoice)" class="overdue-icon" matTooltip="{{ getDaysOverdue(invoice) }} days overdue"> warning </mat-icon>
+                </div>
+              </td>
+            </ng-container>
+
+            <!-- Job ID Column -->
+            <ng-container matColumnDef="jobId">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>Job ID</th>
+              <td mat-cell *matCellDef="let invoice">
+                <button mat-button color="primary" (click)="viewJob(invoice.jobId)" class="job-link">
+                  {{ invoice.jobId }}
+                </button>
+              </td>
+            </ng-container>
+
+            <!-- Customer Name Column -->
+            <ng-container matColumnDef="customerName">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>Customer</th>
+              <td mat-cell *matCellDef="let invoice">
+                <div class="customer-info">
+                  <div class="customer-name">{{ invoice.customerName }}</div>
+                  <div class="customer-email" *ngIf="invoice.customerEmail">
+                    {{ invoice.customerEmail }}
+                  </div>
+                </div>
+              </td>
+            </ng-container>
+
+            <!-- Issue Date Column -->
+            <ng-container matColumnDef="issueDate">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>Issue Date</th>
+              <td mat-cell *matCellDef="let invoice">
+                {{ invoice.issueDate | date : 'dd/MM/yyyy' }}
+              </td>
+            </ng-container>
+
+            <!-- Due Date Column -->
+            <ng-container matColumnDef="dueDate">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>Due Date</th>
+              <td mat-cell *matCellDef="let invoice">
+                <div class="due-date" [ngClass]="{ overdue: isOverdue(invoice) }">
+                  {{ invoice.dueDate | date : 'dd/MM/yyyy' }}
+                  <div *ngIf="isOverdue(invoice)" class="overdue-text">{{ getDaysOverdue(invoice) }} days overdue</div>
+                </div>
+              </td>
+            </ng-container>
+
+            <!-- Total Column -->
+            <ng-container matColumnDef="total">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>Total</th>
+              <td mat-cell *matCellDef="let invoice">
+                <strong class="invoice-total">{{ formatCurrency(invoice.total) }}</strong>
+              </td>
+            </ng-container>
+
+            <!-- Status Column -->
+            <ng-container matColumnDef="status">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>Status</th>
+              <td mat-cell *matCellDef="let invoice">
+                <mat-chip [color]="getStatusColor(invoice.status)" [ngClass]="'status-' + invoice.status" selected>
+                  {{ isOverdue(invoice) ? 'Overdue' : (invoice.status | titlecase) }}
+                </mat-chip>
+              </td>
+            </ng-container>
+
+            <!-- Actions Column -->
+            <ng-container matColumnDef="actions">
+              <th mat-header-cell *matHeaderCellDef>Actions</th>
+              <td mat-cell *matCellDef="let invoice">
+                <button mat-icon-button [matMenuTriggerFor]="actionMenu">
+                  <mat-icon>more_vert</mat-icon>
+                </button>
+                <mat-menu #actionMenu="matMenu">
+                  <button mat-menu-item (click)="viewInvoice(invoice)">
+                    <mat-icon>visibility</mat-icon>
+                    View Invoice
+                  </button>
+                  <button mat-menu-item (click)="viewJob(invoice.jobId)">
+                    <mat-icon>work</mat-icon>
+                    View Job
+                  </button>
+                  <hr class="mat-divider" />
+                  <button mat-menu-item (click)="printInvoice(invoice)">
+                    <mat-icon>print</mat-icon>
+                    Print
+                  </button>
+                  <button mat-menu-item (click)="emailInvoice(invoice)" [disabled]="!invoice.customerEmail">
+                    <mat-icon>email</mat-icon>
+                    Email to Customer
+                  </button>
+                  <hr class="mat-divider" />
+                  <button mat-menu-item (click)="markInvoiceAsPaid(invoice)" *ngIf="invoice.status !== 'paid'">
+                    <mat-icon>payments</mat-icon>
+                    Mark as Paid
+                  </button>
+                  <button mat-menu-item (click)="markInvoiceAsOutstanding(invoice)" *ngIf="invoice.status === 'draft' || invoice.status === 'sent'">
+                    <mat-icon>pending_actions</mat-icon>
+                    Mark as Outstanding
+                  </button>
+                </mat-menu>
+              </td>
+            </ng-container>
+
+            <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+            <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+          </table>
+          <div *ngIf="dataSource.filteredData?.length === 0" class="no-data">
+            <mat-icon>receipt</mat-icon>
+            <p>No invoices found</p>
+            <p class="no-data-subtitle">Try adjusting your filters or create some invoices from jobs.</p>
+          </div>
+        </div>
+        <mat-paginator [pageSizeOptions]="[10, 25, 50, 100]" showFirstLastButtons></mat-paginator>
+      </mat-card>
+    </div>
+  </div>
+</div>

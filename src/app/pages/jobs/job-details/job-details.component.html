@@ -1,59 +1,45 @@
 <!-- src/app/pages/jobs/job-details/job-details.component.html -->
-<div class="job-details-container">
-  <!-- Header Section -->
-  <div class="page-header">
-    <div class="header-content">
-      <div class="title-section">
-        <button mat-icon-button (click)="goBack()" class="back-button">
-          <mat-icon>arrow_back</mat-icon>
-        </button>
-        <div class="title-content">
-          <h1 class="page-title">
-            Job Details
-            <span class="job-id" *ngIf="job">{{ job.id | slice : 0 : 8 }}...</span>
-          </h1>
-          <p class="page-subtitle" *ngIf="job">
-            {{ getVehicleInfo() }}
-          </p>
-        </div>
+<mat-card class="mat-elevation-z3 job-details-card">
+  <div class="header-wrapper">
+    <div class="header-title">
+      <button mat-icon-button (click)="goBack()" class="back-button">
+        <mat-icon>arrow_back</mat-icon>
+      </button>
+      <div class="title-content">
+        <h1>Job Details</h1>
+        <p class="subtitle" *ngIf="job">{{ getVehicleInfo() }}</p>
       </div>
-
-      <div class="header-actions" *ngIf="job">
-        <button mat-stroked-button (click)="refreshJob()" class="action-button">
-          <mat-icon>refresh</mat-icon>
-          Refresh
-        </button>
-
-        <button mat-stroked-button (click)="printJob()" class="action-button">
-          <mat-icon>print</mat-icon>
-          Print
-        </button>
-
-        <button mat-raised-button color="primary" (click)="editJob()" *ngIf="canEditJobs" class="edit-button">
-          <mat-icon>edit</mat-icon>
-          Edit Job
-        </button>
-      </div>
+    </div>
+    <div class="actions-group" *ngIf="job">
+      <button mat-stroked-button (click)="refreshJob()" class="export-button">
+        <mat-icon>refresh</mat-icon>
+        Refresh
+      </button>
+      <button mat-stroked-button (click)="printJob()" class="export-button">
+        <mat-icon>print</mat-icon>
+        Print
+      </button>
+      <button mat-flat-button color="primary" (click)="editJob()" *ngIf="canEditJobs" class="create-button">
+        <mat-icon>edit</mat-icon>
+        Edit Job
+      </button>
     </div>
   </div>
 
-  <!-- Loading State -->
-  <div *ngIf="loading" class="loading-container">
+  <div *ngIf="loading" class="loading-overlay">
     <mat-spinner></mat-spinner>
     <p>Loading job details...</p>
   </div>
 
-  <!-- Error State -->
-  <div *ngIf="error && !loading" class="error-container">
-    <mat-icon color="warn">error</mat-icon>
+  <div *ngIf="error && !loading" class="empty-state">
+    <mat-icon class="empty-icon" color="warn">error</mat-icon>
     <h3>{{ error }}</h3>
-    <button mat-raised-button color="primary" (click)="goBack()">
+    <button mat-flat-button color="primary" (click)="goBack()">
       <mat-icon>arrow_back</mat-icon>
       Back to Jobs
     </button>
   </div>
 
-  <!-- Job Details Content -->
   <div *ngIf="job && !loading && !error" class="job-content">
     <!-- Status Overview Card -->
     <mat-card class="status-overview-card">
@@ -1612,4 +1598,4 @@
       </mat-tab-group>
     </mat-card>
   </div>
-</div>
+</mat-card>

@@ -1,0 +1,503 @@
+<!-- src/app/components/job-billing/job-billing.component.html -->
+
+<div class="job-billing-container">
+  <!-- Loading State -->
+  <div *ngIf="isLoading" class="loading-container">
+    <mat-spinner diameter="40"></mat-spinner>
+    <p>Loading billing information...</p>
+  </div>
+
+  <!-- Content -->
+  <div *ngIf="!isLoading" class="billing-content">
+    
+    <!-- Billing Summary Cards -->
+    <div class="billing-summary">
+      <mat-card class="summary-card billable">
+        <mat-card-header>
+          <mat-card-title>Total Billable</mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          <div class="amount">{{ formatCurrency(totalBillable) }}</div>
+          <div class="label">Ready to invoice</div>
+        </mat-card-content>
+      </mat-card>
+
+      <mat-card class="summary-card non-billable">
+        <mat-card-header>
+          <mat-card-title>Non-Billable</mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          <div class="amount">{{ formatCurrency(totalNonBillable) }}</div>
+          <div class="label">Internal costs</div>
+        </mat-card-content>
+      </mat-card>
+
+      <mat-card class="summary-card outstanding">
+        <mat-card-header>
+          <mat-card-title>Outstanding</mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          <div class="amount">{{ formatCurrency(totalOutstanding) }}</div>
+          <div class="label">Awaiting payment</div>
+        </mat-card-content>
+      </mat-card>
+
+      <mat-card class="summary-card paid">
+        <mat-card-header>
+          <mat-card-title>Paid</mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          <div class="amount">{{ formatCurrency(totalPaid) }}</div>
+          <div class="label">Received</div>
+        </mat-card-content>
+      </mat-card>
+    </div>
+
+    <!-- Billing Items Section -->
+    <mat-card class="billing-items-card">
+      <mat-card-header>
+        <mat-card-title>
+          <mat-icon>receipt_long</mat-icon>
+          Billing Items
+        </mat-card-title>
+        <div class="card-actions">
+          <button mat-raised-button color="primary" (click)="openAddItemDialog()">
+            <mat-icon>add</mat-icon>
+            Add Item
+          </button>
+        </div>
+      </mat-card-header>
+
+      <mat-card-content>
+        <div class="table-container">
+          <table mat-table [dataSource]="billingItemsDataSource" class="billing-items-table">
+            
+            <!-- Date Column -->
+            <ng-container matColumnDef="date">
+              <th mat-header-cell *matHeaderCellDef>Date</th>
+              <td mat-cell *matCellDef="let item">
+                {{ item.date | date: 'dd/MM/yyyy' }}
+              </td>
+            </ng-container>
+
+            <!-- Type Column -->
+            <ng-container matColumnDef="type">
+              <th mat-header-cell *matHeaderCellDef>Type</th>
+              <td mat-cell *matCellDef="let item">
+                <mat-chip [color]="item.type === 'expense' ? 'warn' : 'primary'" selected>
+                  {{ item.type | titlecase }}
+                </mat-chip>
+              </td>
+            </ng-container>
+
+            <!-- Description Column -->
+            <ng-container matColumnDef="description">
+              <th mat-header-cell *matHeaderCellDef>Description</th>
+              <td mat-cell *matCellDef="let item">
+                <div class="item-description">
+                  <div class="description-text">{{ item.description }}</div>
+                  <div class="category-text">{{ item.category }}</div>
+                  <div *ngIf="item.notes" class="notes-text">{{ item.notes }}</div>
+                </div>
+              </td>
+            </ng-container>
+
+            <!-- Quantity Column -->
+            <ng-container matColumnDef="quantity">
+              <th mat-header-cell *matHeaderCellDef>Qty</th>
+              <td mat-cell *matCellDef="let item">{{ item.quantity }}</td>
+            </ng-container>
+
+            <!-- Unit Price Column -->
+            <ng-container matColumnDef="unitPrice">
+              <th mat-header-cell *matHeaderCellDef>Unit Price</th>
+              <td mat-cell *matCellDef="let item">{{ formatCurrency(item.unitPrice) }}</td>
+            </ng-container>
+
+            <!-- Amount Column -->
+            <ng-container matColumnDef="amount">
+              <th mat-header-cell *matHeaderCellDef>Amount</th>
+              <td mat-cell *matCellDef="let item">
+                <strong>{{ formatCurrency(item.amount * item.quantity) }}</strong>
+              </td>
+            </ng-container>
+
+            <!-- Chargeable Column -->
+            <ng-container matColumnDef="isChargeable">
+              <th mat-header-cell *matHeaderCellDef>Billable</th>
+              <td mat-cell *matCellDef="let item">
+                <mat-icon [color]="item.isChargeable ? 'primary' : 'warn'">
+                  {{ item.isChargeable ? 'check_circle' : 'cancel' }}
+                </mat-icon>
+              </td>
+            </ng-container>
+
+            <!-- Actions Column -->
+            <ng-container matColumnDef="actions">
+              <th mat-header-cell *matHeaderCellDef>Actions</th>
+              <td mat-cell *matCellDef="let item">
+                <button mat-icon-button [matMenuTriggerFor]="itemMenu">
+                  <mat-icon>more_vert</mat-icon>
+                </button>
+                <mat-menu #itemMenu="matMenu">
+                  <button mat-menu-item (click)="editBillingItem(item)">
+                    <mat-icon>edit</mat-icon>
+                    Edit
+                  </button>
+                  <button mat-menu-item (click)="deleteBillingItem(item)" class="delete-action">
+                    <mat-icon>delete</mat-icon>
+                    Delete
+                  </button>
+                </mat-menu>
+              </td>
+            </ng-container>
+
+            <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+            <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+          </table>
+
+          <!-- No Data Message -->
+          <div *ngIf="billingItems.length === 0" class="no-data">
+            <mat-icon>receipt</mat-icon>
+            <p>No billing items added yet</p>
+            <button mat-raised-button color="primary" (click)="openAddItemDialog()">
+              Add First Item
+            </button>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Invoices Section -->
+    <mat-card class="invoices-card">
+      <mat-card-header>
+        <mat-card-title>
+          <mat-icon>description</mat-icon>
+          Invoices
+        </mat-card-title>
+        <div class="card-actions">
+          <button 
+            mat-raised-button 
+            color="accent" 
+            (click)="createInvoice()"
+            [disabled]="totalBillable === 0">
+            <mat-icon>add_box</mat-icon>
+            Create Invoice
+          </button>
+        </div>
+      </mat-card-header>
+
+      <mat-card-content>
+        <div class="table-container">
+          <table mat-table [dataSource]="invoicesDataSource" class="invoices-table">
+            
+            <!-- Invoice Number Column -->
+            <ng-container matColumnDef="invoiceNumber">
+              <th mat-header-cell *matHeaderCellDef>Invoice #</th>
+              <td mat-cell *matCellDef="let invoice">
+                <strong>{{ invoice.invoiceNumber }}</strong>
+              </td>
+            </ng-container>
+
+            <!-- Issue Date Column -->
+            <ng-container matColumnDef="issueDate">
+              <th mat-header-cell *matHeaderCellDef>Issue Date</th>
+              <td mat-cell *matCellDef="let invoice">
+                {{ invoice.issueDate | date: 'dd/MM/yyyy' }}
+              </td>
+            </ng-container>
+
+            <!-- Due Date Column -->
+            <ng-container matColumnDef="dueDate">
+              <th mat-header-cell *matHeaderCellDef>Due Date</th>
+              <td mat-cell *matCellDef="let invoice">
+                {{ invoice.dueDate | date: 'dd/MM/yyyy' }}
+              </td>
+            </ng-container>
+
+            <!-- Total Column -->
+            <ng-container matColumnDef="total">
+              <th mat-header-cell *matHeaderCellDef>Total</th>
+              <td mat-cell *matCellDef="let invoice">
+                <strong>{{ formatCurrency(invoice.total) }}</strong>
+              </td>
+            </ng-container>
+
+            <!-- Status Column -->
+            <ng-container matColumnDef="status">
+              <th mat-header-cell *matHeaderCellDef>Status</th>
+              <td mat-cell *matCellDef="let invoice">
+                <mat-chip [color]="getStatusColor(invoice.status)" selected>
+                  {{ invoice.status | titlecase }}
+                </mat-chip>
+              </td>
+            </ng-container>
+
+            <!-- Actions Column -->
+            <ng-container matColumnDef="actions">
+              <th mat-header-cell *matHeaderCellDef>Actions</th>
+              <td mat-cell *matCellDef="let invoice">
+                <button mat-icon-button [matMenuTriggerFor]="invoiceMenu">
+                  <mat-icon>more_vert</mat-icon>
+                </button>
+                <mat-menu #invoiceMenu="matMenu">
+                  <button mat-menu-item (click)="viewInvoice(invoice)">
+                    <mat-icon>visibility</mat-icon>
+                    View
+                  </button>
+                  <button mat-menu-item (click)="printInvoice(invoice)">
+                    <mat-icon>print</mat-icon>
+                    Print
+                  </button>
+                  <button 
+                    mat-menu-item 
+                    (click)="emailInvoice(invoice)"
+                    [disabled]="!invoice.customerEmail">
+                    <mat-icon>email</mat-icon>
+                    Email
+                  </button>
+                  <mat-divider></mat-divider>
+                  <button 
+                    mat-menu-item 
+                    (click)="markInvoiceAsPaid(invoice)"
+                    *ngIf="invoice.status !== 'paid'">
+                    <mat-icon>payments</mat-icon>
+                    Mark as Paid
+                  </button>
+                </mat-menu>
+              </td>
+            </ng-container>
+
+            <tr mat-header-row *matHeaderRowDef="invoiceColumns"></tr>
+            <tr mat-row *matRowDef="let row; columns: invoiceColumns;"></tr>
+          </table>
+
+          <!-- No Data Message -->
+          <div *ngIf="invoices.length === 0" class="no-data">
+            <mat-icon>description</mat-icon>
+            <p>No invoices created yet</p>
+            <button 
+              mat-raised-button 
+              color="accent" 
+              (click)="createInvoice()"
+              [disabled]="totalBillable === 0">
+              Create First Invoice
+            </button>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+</div>
+
+<!-- Add/Edit Item Dialog -->
+<ng-template #addItemDialog>
+  <div class="add-item-dialog">
+    <h2 mat-dialog-title>Add Billing Item</h2>
+    
+    <mat-dialog-content>
+      <form [formGroup]="addItemForm" class="billing-form">
+        <div class="form-row">
+          <mat-form-field appearance="outline" class="half-width">
+            <mat-label>Type</mat-label>
+            <mat-select formControlName="type">
+              <mat-option *ngFor="let type of itemTypes" [value]="type.value">
+                {{ type.label }}
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="half-width">
+            <mat-label>Category</mat-label>
+            <mat-select formControlName="category">
+              <mat-option *ngFor="let category of categories" [value]="category">
+                {{ category }}
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
+        </div>
+
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Description</mat-label>
+          <input matInput formControlName="description" placeholder="Enter item description">
+        </mat-form-field>
+
+        <div class="form-row">
+          <mat-form-field appearance="outline" class="third-width">
+            <mat-label>Quantity</mat-label>
+            <input 
+              matInput 
+              type="number" 
+              formControlName="quantity" 
+              min="1"
+              (input)="onQuantityChange()">
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="third-width">
+            <mat-label>Unit Price</mat-label>
+            <input 
+              matInput 
+              type="number" 
+              formControlName="unitPrice" 
+              min="0" 
+              step="0.01"
+              (input)="onUnitPriceChange()">
+            <span matPrefix>£</span>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="third-width">
+            <mat-label>Total Amount</mat-label>
+            <input 
+              matInput 
+              type="number" 
+              formControlName="amount" 
+              min="0" 
+              step="0.01"
+              (input)="onAmountChange()">
+            <span matPrefix>£</span>
+          </mat-form-field>
+        </div>
+
+        <div class="form-row">
+          <mat-form-field appearance="outline" class="half-width">
+            <mat-label>Date</mat-label>
+            <input matInput [matDatepicker]="picker" formControlName="date">
+            <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+            <mat-datepicker #picker></mat-datepicker>
+          </mat-form-field>
+
+          <div class="checkbox-container half-width">
+            <mat-checkbox formControlName="isChargeable">
+              Billable to Customer
+            </mat-checkbox>
+          </div>
+        </div>
+
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Notes (Optional)</mat-label>
+          <textarea matInput formControlName="notes" rows="3"></textarea>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Receipt URL (Optional)</mat-label>
+          <input matInput formControlName="receiptUrl" placeholder="Link to receipt or document">
+        </mat-form-field>
+      </form>
+    </mat-dialog-content>
+
+    <mat-dialog-actions align="end">
+      <button mat-button mat-dialog-close>Cancel</button>
+      <button 
+        mat-raised-button 
+        color="primary" 
+        (click)="addBillingItem()"
+        [disabled]="addItemForm.invalid || isAddingItem">
+        <mat-spinner *ngIf="isAddingItem" diameter="20"></mat-spinner>
+        <span *ngIf="!isAddingItem">Add Item</span>
+        <span *ngIf="isAddingItem">Adding...</span>
+      </button>
+    </mat-dialog-actions>
+  </div>
+</ng-template>
+
+<!-- Invoice Preview Dialog -->
+<ng-template #invoiceDialog>
+  <div class="invoice-dialog" *ngIf="selectedInvoice">
+    <h2 mat-dialog-title>
+      Invoice {{ selectedInvoice.invoiceNumber }}
+      <button mat-icon-button mat-dialog-close class="close-button">
+        <mat-icon>close</mat-icon>
+      </button>
+    </h2>
+    
+    <mat-dialog-content>
+      <div class="invoice-preview">
+        <!-- Invoice content would go here -->
+        <div class="invoice-header">
+          <h1>INVOICE {{ selectedInvoice.invoiceNumber }}</h1>
+          <div class="invoice-dates">
+            <p><strong>Issue Date:</strong> {{ selectedInvoice.issueDate | date: 'dd MMMM yyyy' }}</p>
+            <p><strong>Due Date:</strong> {{ selectedInvoice.dueDate | date: 'dd MMMM yyyy' }}</p>
+          </div>
+        </div>
+
+        <div class="invoice-customer">
+          <h3>Bill To:</h3>
+          <p><strong>{{ selectedInvoice.customerName }}</strong></p>
+          <div *ngIf="selectedInvoice.billingAddress">
+            <p>{{ selectedInvoice.billingAddress.address }}</p>
+            <p>{{ selectedInvoice.billingAddress.city }} {{ selectedInvoice.billingAddress.postcode }}</p>
+            <p>{{ selectedInvoice.billingAddress.country }}</p>
+          </div>
+        </div>
+
+        <table class="invoice-items-table">
+          <thead>
+            <tr>
+              <th>Description</th>
+              <th>Qty</th>
+              <th>Unit Price</th>
+              <th>Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let item of selectedInvoice.items">
+              <td>
+                <div class="item-details">
+                  <div class="item-description">{{ item.description }}</div>
+                  <div class="item-category">{{ item.category }}</div>
+                </div>
+              </td>
+              <td>{{ item.quantity }}</td>
+              <td>{{ formatCurrency(item.unitPrice) }}</td>
+              <td>{{ formatCurrency(item.amount * item.quantity) }}</td>
+            </tr>
+          </tbody>
+          <tfoot>
+            <tr>
+              <td colspan="3"><strong>Subtotal</strong></td>
+              <td><strong>{{ formatCurrency(selectedInvoice.subtotal) }}</strong></td>
+            </tr>
+            <tr>
+              <td colspan="3"><strong>VAT ({{ selectedInvoice.vatRate }}%)</strong></td>
+              <td><strong>{{ formatCurrency(selectedInvoice.vatAmount) }}</strong></td>
+            </tr>
+            <tr class="total-row">
+              <td colspan="3"><strong>TOTAL</strong></td>
+              <td><strong>{{ formatCurrency(selectedInvoice.total) }}</strong></td>
+            </tr>
+          </tfoot>
+        </table>
+
+        <div class="invoice-status">
+          <mat-chip [color]="getStatusColor(selectedInvoice.status)" selected>
+            {{ selectedInvoice.status | titlecase }}
+          </mat-chip>
+        </div>
+      </div>
+    </mat-dialog-content>
+
+    <mat-dialog-actions align="end">
+      <button mat-button (click)="printInvoice(selectedInvoice)">
+        <mat-icon>print</mat-icon>
+        Print
+      </button>
+      <button 
+        mat-button 
+        (click)="emailInvoice(selectedInvoice)"
+        [disabled]="!selectedInvoice.customerEmail">
+        <mat-icon>email</mat-icon>
+        Email
+      </button>
+      <button 
+        mat-raised-button 
+        color="primary"
+        (click)="markInvoiceAsPaid(selectedInvoice)"
+        *ngIf="selectedInvoice.status !== 'paid'">
+        <mat-icon>payments</mat-icon>
+        Mark as Paid
+      </button>
+      <button mat-button mat-dialog-close>Close</button>
+    </mat-dialog-actions>
+  </div>
+</ng-template>

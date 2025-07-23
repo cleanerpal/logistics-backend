@@ -29,6 +29,8 @@ export class DriverListComponent implements OnInit, AfterViewInit, OnDestroy {
   selection = new SelectionModel<UserProfile>(true, []);
   hasEditPermission = false;
 
+  error: string | null = null;
+
   @ViewChild(MatSort) sort!: MatSort;
   @ViewChild(MatPaginator) paginator!: MatPaginator;
 
@@ -132,6 +134,18 @@ export class DriverListComponent implements OnInit, AfterViewInit, OnDestroy {
       });
 
     this.subscriptions.push(driversSub);
+  }
+
+  refresh(): void {
+    this.loadDrivers();
+  }
+
+  clearFilters(): void {
+    this.typeFilter = 'All';
+    this.roleFilter = 'All';
+    this.statusFilter = 'All';
+    this.dataSource.filter = '';
+    this.loadDrivers();
   }
 
   getStatusClass(status: string | undefined): string {

@@ -58,6 +58,7 @@ interface DashboardMetrics {
 
 enum DriverStatus {
   AVAILABLE = 'Available',
+  UNASSIGNED = 'Unassigned',
   BUSY = 'Busy',
   ON_LEAVE = 'On Leave',
   OFFLINE = 'Offline',
@@ -814,6 +815,7 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
       [DriverStatus.BUSY]: 'driver-busy',
       [DriverStatus.ON_LEAVE]: 'driver-on-leave',
       [DriverStatus.OFFLINE]: 'driver-offline',
+      [DriverStatus.UNASSIGNED]: 'driver-available',
     };
     return statusMap[status] || 'driver-default';
   }

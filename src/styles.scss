@@ -69,7 +69,23 @@ body {
   font-size: 16px;
   line-height: 1.5;
   color: var(--text-primary);
-  background-color: var(--background-color);
+  background-color: #f5f7fa;
+}
+
+.main-content {
+  margin-left: 250px;
+  min-height: 100vh;
+  padding: 24px 0 0 0;
+  padding-top: 64px;
+  background-color: #f5f7fa;
+}
+
+@media (max-width: 768px) {
+  .main-content {
+    margin-left: 60px;
+    padding: 16px 0 0 0;
+    padding-top: 56px;
+  }
 }
 
 /* Typography */

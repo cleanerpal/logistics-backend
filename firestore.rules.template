@@ -1,0 +1,51 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper function to check if user exists and has role
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function hasRole(roles) {
+      return isAuthenticated() 
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in roles;
+    }
+    
+    // Users collection
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read: if hasRole(['admin', 'manager']);
+    }
+    
+    // Jobs collection
+    match /jobs/{jobId} {
+      allow read, write: if hasRole(['admin', 'manager', 'driver']);
+    }
+    
+    // Job Billing Items
+    match /jobBillingItems/{itemId} {
+      allow read, write: if hasRole(['admin', 'manager']);
+    }
+    
+    // Job Invoices
+    match /jobInvoices/{invoiceId} {
+      allow read, write: if hasRole(['admin', 'manager']);
+    }
+    
+    // Billing Settings
+    match /settings/billing {
+      allow read, write: if hasRole(['admin']);
+    }
+    
+    // Expenses (existing)
+    match /expenses/{expenseId} {
+      allow read, write: if hasRole(['admin', 'manager', 'driver']);
+    }
+    
+    // Customers
+    match /customers/{customerId} {
+      allow read, write: if hasRole(['admin', 'manager']);
+    }
+  }
+}

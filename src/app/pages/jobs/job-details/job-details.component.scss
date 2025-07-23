@@ -3162,3 +3162,130 @@
     display: none;
   }
 }
+
+.mat-elevation-z3.job-details-card {
+  margin-bottom: 24px;
+  background-color: white;
+  border-radius: 8px;
+  padding: 0;
+}
+
+.header-wrapper {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 24px 24px 0 24px;
+}
+
+.header-title {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.header-title .back-button {
+  background: white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  color: #6b7280;
+  border-radius: 50%;
+  width: 44px;
+  height: 44px;
+  margin-right: 8px;
+}
+
+.header-title .title-content h1 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 500;
+  color: var(--primary-color);
+}
+
+.header-title .title-content .subtitle {
+  margin: 4px 0 0;
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.actions-group {
+  display: flex;
+  gap: 12px;
+  margin-left: auto;
+}
+
+.export-button {
+  height: 40px;
+}
+
+.create-button {
+  height: 40px;
+  padding: 0 20px;
+  background-color: var(--primary-color);
+  transition: background-color 0.2s ease;
+}
+
+.create-button:hover {
+  background-color: var(--tertiary-color);
+}
+
+.loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.9);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  gap: 16px;
+}
+
+.loading-overlay p {
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.empty-state {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  width: 100%;
+  padding: 0 24px;
+  box-sizing: border-box;
+}
+
+.empty-state .empty-icon {
+  font-size: 48px;
+  width: 48px;
+  height: 48px;
+  color: rgba(0, 0, 0, 0.38);
+  margin-bottom: 16px;
+}
+
+.empty-state h3 {
+  margin: 0 0 8px;
+  font-size: 16px;
+  color: var(--text-primary);
+}
+
+.empty-state p {
+  margin: 0 0 24px;
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.empty-state button {
+  min-width: 160px;
+}
+
+.empty-state .mat-icon {
+  margin-right: 8px;
+}
+
+.job-content {
+  padding: 24px;
+}

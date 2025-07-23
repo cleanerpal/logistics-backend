@@ -1,12 +1,14 @@
 // job-details.component.ts
 
-import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectorRef, ViewChild, ElementRef } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { combineLatest, Subject, forkJoin, of } from 'rxjs';
 import { finalize, takeUntil, catchError, map, tap, startWith } from 'rxjs/operators';
 import { Timestamp } from 'firebase/firestore';
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
 
 import { Job, JobNote } from '../../../interfaces/job-new.interface';
 import { UserProfile } from '../../../interfaces/user-profile.interface';
@@ -196,6 +198,8 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
 
   canViewReports = false;
 
+  @ViewChild('reportContent', { static: false }) reportContent!: ElementRef;
+
   constructor(
     private route: ActivatedRoute,
     private router: Router,
@@ -335,6 +339,7 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
           this.allDocuments = documentArrays.flat();
           this.categorizeDocuments();
           this.hasDamageReported = this.damagePhotos.length > 0 || this.damageDiagrams.length > 0;
+          this.syncDocumentsToProcessData();
         },
         error: () => {
           this.documentsError = 'Failed to load documents';
@@ -397,6 +402,48 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
 
     this.damagePhotos = this.allDocuments.filter((doc) => doc.category === 'damage' && doc.type === 'photo');
     this.damageDiagrams = this.allDocuments.filter((doc) => doc.category === 'damage' && doc.type === 'damage_diagram');
+  }
+
+  // Sync all loaded document URLs into jobProcessData for report generation
+  private syncDocumentsToProcessData(): void {
+    if (!this.jobProcessData) return;
+
+    // Sync collection photos
+    this.jobProcessData.collection = this.jobProcessData.collection || {};
+    this.jobProcessData.collection.photoUrls = this.collectionPhotos.map((doc) => doc.url);
+
+    // Sync delivery photos
+    this.jobProcessData.delivery = this.jobProcessData.delivery || {};
+    this.jobProcessData.delivery.photoUrls = this.deliveryPhotos.map((doc) => doc.url);
+
+    // Sync secondary collection photos
+    if (this.jobProcessData.secondaryCollection) {
+      this.jobProcessData.secondaryCollection.photoUrls = this.secondaryCollectionPhotos.map((doc) => doc.url);
+    }
+    // Sync first delivery photos
+    if (this.jobProcessData.firstDelivery) {
+      this.jobProcessData.firstDelivery.photoUrls = this.firstDeliveryPhotos.map((doc) => doc.url);
+    }
+
+    // Sync signatures (first one per category)
+    const collectionSignature = this.collectionSignatures[0];
+    if (collectionSignature) {
+      this.jobProcessData.collection.signatureUrl = collectionSignature.url;
+    }
+    const deliverySignature = this.deliverySignatures[0];
+    if (deliverySignature) {
+      this.jobProcessData.delivery.signatureUrl = deliverySignature.url;
+    }
+    if (this.jobProcessData.secondaryCollection && this.secondaryCollectionSignatures[0]) {
+      this.jobProcessData.secondaryCollection.signatureUrl = this.secondaryCollectionSignatures[0].url;
+    }
+    if (this.jobProcessData.firstDelivery && this.firstDeliverySignatures[0]) {
+      this.jobProcessData.firstDelivery.signatureUrl = this.firstDeliverySignatures[0].url;
+    }
+
+    // Optionally, sync damage images if your report generator supports them
+    // e.g., this.jobProcessData.collection.damagePhotoUrls = this.damagePhotos.map(doc => doc.url);
+    //       this.jobProcessData.collection.damageDiagramUrls = this.damageDiagrams.map(doc => doc.url);
   }
 
   // Generate document description based on filename and category
@@ -985,12 +1032,169 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
     return this.job?.deliveryData != null && this.job?.deliveryData?.completedAt != null;
   }
 
+  // Utility to convert DOM image to data URL (base64)
+  private async toDataURLFromDOM(img: HTMLImageElement): Promise<string> {
+    return new Promise((resolve, reject) => {
+      if (img.complete && img.naturalWidth !== 0) {
+        try {
+          const canvas = document.createElement('canvas');
+          canvas.width = img.naturalWidth;
+          canvas.height = img.naturalHeight;
+          const ctx = canvas.getContext('2d');
+          ctx?.drawImage(img, 0, 0);
+          resolve(canvas.toDataURL('image/png'));
+        } catch (e) {
+          reject(e);
+        }
+      } else {
+        img.onload = () => {
+          try {
+            const canvas = document.createElement('canvas');
+            canvas.width = img.naturalWidth;
+            canvas.height = img.naturalHeight;
+            const ctx = canvas.getContext('2d');
+            ctx?.drawImage(img, 0, 0);
+            resolve(canvas.toDataURL('image/png'));
+          } catch (e) {
+            reject(e);
+          }
+        };
+        img.onerror = reject;
+      }
+    });
+  }
+
+  // Generate PDF from HTML report template, ensuring images are embedded as data URLs using DOM
+  async generateHtmlPdfReport() {
+    // Show loading spinner
+    this.generatingReport = true;
+    this.currentReportType = 'HTML PDF Report';
+
+    try {
+      const pdf = new jsPDF('p', 'mm', 'a4');
+
+      if (!this.job || !this.job.id) {
+        throw new Error('No job found');
+      }
+
+      // List all images from different folders
+      const photoPaths = [
+        `jobs/${this.job.id}/collection_photos`,
+        `jobs/${this.job.id}/delivery_photos`,
+        `jobs/${this.job.id}/secondary_collection_photos`,
+        `jobs/${this.job.id}/first_delivery_photos`,
+        `jobs/${this.job.id}/collection_signatures`,
+        `jobs/${this.job.id}/delivery_signatures`,
+        `jobs/${this.job.id}/secondary_collection_signatures`,
+        `jobs/${this.job.id}/first_delivery_signatures`,
+        `jobs/${this.job.id}/damage_photos`,
+        `jobs/${this.job.id}/damage_diagrams`,
+      ];
+
+      let allImages: any[] = [];
+
+      // Get all images from all paths
+      for (const path of photoPaths) {
+        try {
+          const files = await this.storageService.listFiles(path).toPromise();
+          allImages = allImages.concat(files || []);
+        } catch (error) {
+          console.warn(`No files found in ${path}`);
+        }
+      }
+
+      if (allImages.length === 0) {
+        throw new Error('No images found for this job');
+      }
+
+      // Download and add each image to PDF
+      let yPosition = 20;
+      const pageHeight = pdf.internal.pageSize.height;
+      const margin = 20;
+
+      for (let i = 0; i < allImages.length; i++) {
+        const image = allImages[i];
+
+        // Check if we need a new page
+        if (yPosition > pageHeight - 50) {
+          pdf.addPage();
+          yPosition = margin;
+        }
+
+        try {
+          // Download image from Firebase as blob
+          const response = await fetch(image.downloadUrl);
+          if (!response.ok) {
+            console.warn(`Failed to fetch image ${image.name}: ${response.statusText}`);
+            continue;
+          }
+
+          const blob = await response.blob();
+
+          // Convert blob to data URL
+          const dataUrl = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result as string);
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+          });
+
+          // Add image to PDF
+          pdf.addImage(dataUrl, 'PNG', margin, yPosition, 40, 30);
+
+          // Add image name below
+          pdf.setFontSize(8);
+          pdf.text(image.name, margin, yPosition + 35);
+
+          yPosition += 50; // Move down for next image
+        } catch (error) {
+          console.warn(`Failed to process image ${image.name}:`, error);
+        }
+      }
+
+      pdf.save(`Job_Report_${this.job.id}.pdf`);
+      this.showSuccess(`PDF generated successfully with ${allImages.length} images`);
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      this.showError('Failed to generate PDF: ' + (error instanceof Error ? error.message : 'Unknown error'));
+    } finally {
+      // Hide loading spinner
+      this.generatingReport = false;
+      this.currentReportType = '';
+    }
+  }
+
+  // For normal report generation, before passing image URLs to the report service, convert them to data URLs using the DOM if available
+  private async convertAllDocumentImagesToDataUrls(): Promise<void> {
+    // This will update allDocuments' url fields to data URLs if possible
+    const tempDiv = document.createElement('div');
+    document.body.appendChild(tempDiv);
+    try {
+      for (const doc of this.allDocuments) {
+        if (doc.url && !doc.url.startsWith('data:')) {
+          // Create a temporary img element
+          const img = document.createElement('img');
+          img.src = doc.url;
+          tempDiv.appendChild(img);
+          try {
+            doc.url = await this.toDataURLFromDOM(img);
+          } catch (e) {
+            // fallback: leave as is
+          }
+          tempDiv.removeChild(img);
+        }
+      }
+    } finally {
+      document.body.removeChild(tempDiv);
+    }
+  }
+
+  // Patch the report generation triggers to use data URLs for images
   async generateCollectionReport() {
     if (!this.job || !this.canGenerateCollectionReport()) return;
-
+    await this.convertAllDocumentImagesToDataUrls();
     this.generatingReport = true;
     this.currentReportType = 'Collection (POC)';
-
     try {
       await this.reportGenerationService.generateCollectionReport(this.job);
       this.showSuccess('Collection report generated successfully');
@@ -1005,10 +1209,9 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
 
   async generateSecondaryCollectionReport() {
     if (!this.job || !this.canGenerateSecondaryCollectionReport()) return;
-
+    await this.convertAllDocumentImagesToDataUrls();
     this.generatingReport = true;
     this.currentReportType = 'Secondary Collection (POC)';
-
     try {
       await this.reportGenerationService.generateSecondaryCollectionReport(this.job);
       this.showSuccess('Secondary collection report generated successfully');
@@ -1023,10 +1226,9 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
 
   async generateFirstDeliveryReport() {
     if (!this.job || !this.canGenerateFirstDeliveryReport()) return;
-
+    await this.convertAllDocumentImagesToDataUrls();
     this.generatingReport = true;
     this.currentReportType = 'First Delivery (POD)';
-
     try {
       await this.reportGenerationService.generateFirstDeliveryReport(this.job);
       this.showSuccess('First delivery report generated successfully');
@@ -1041,10 +1243,9 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
 
   async generateDeliveryReport() {
     if (!this.job || !this.canGenerateDeliveryReport()) return;
-
+    await this.convertAllDocumentImagesToDataUrls();
     this.generatingReport = true;
     this.currentReportType = 'Delivery (POD)';
-
     try {
       await this.reportGenerationService.generateDeliveryReport(this.job);
       this.showSuccess('Delivery report generated successfully');
