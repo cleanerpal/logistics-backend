@@ -4,7 +4,7 @@ import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { HttpClientModule } from '@angular/common/http';
 
-import { initializeApp, provideFirebaseApp } from '@angular/fire/app';
+import { getApp, initializeApp, provideFirebaseApp } from '@angular/fire/app';
 import { getFirestore, provideFirestore, connectFirestoreEmulator } from '@angular/fire/firestore';
 import { getAuth, provideAuth, connectAuthEmulator } from '@angular/fire/auth';
 import { getStorage, provideStorage, connectStorageEmulator } from '@angular/fire/storage';
@@ -120,11 +120,10 @@ import { SentenceCasePipe } from './shared/pipes/sentence-case.pipe';
       return storage;
     }),
     provideFunctions(() => {
-      const functions = getFunctions();
-
+      const app = getApp();
+      const functions = getFunctions(app, 'europe-west2');
       return functions;
     }),
-
     JobService,
     AuthService,
     VehicleService,
