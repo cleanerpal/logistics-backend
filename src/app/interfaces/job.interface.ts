@@ -1,8 +1,9 @@
-export interface NoteData {
-  author: string;
+export interface Note {
+  id: string;
+  authorId: string;
+  authorName: string;
   content: string;
-  date: Date | string;
-  id?: string;
+  createdAt: Date | string;
 }
 
 export interface Job {
@@ -25,7 +26,7 @@ export interface Job {
   model?: string;
   registration?: string;
 
-  notes?: string | NoteData[] | Record<string, any>;
+  notes?: Note[];
 
   customerId?: string;
   customerName?: string;
@@ -37,14 +38,12 @@ export interface Job {
   collectionPostcode?: string;
   collectionContactName?: string;
   collectionContactPhone?: string;
-  collectionNotes?: string;
 
   deliveryAddress?: string;
   deliveryCity?: string;
   deliveryPostcode?: string;
   deliveryContactName?: string;
   deliveryContactPhone?: string;
-  deliveryNotes?: string;
 
   color?: string;
   year?: number;
@@ -61,14 +60,14 @@ export interface Job {
   secondaryCollectionPostcode?: string;
   secondaryCollectionContactName?: string;
   secondaryCollectionContactPhone?: string;
-  secondaryCollectionNotes?: string;
+  secondaryCollectionNotes?: Note[];
 
   firstDeliveryAddress?: string;
   firstDeliveryCity?: string;
   firstDeliveryPostcode?: string;
   firstDeliveryContactName?: string;
   firstDeliveryContactPhone?: string;
-  firstDeliveryNotes?: string;
+  firstDeliveryNotes?: Note[];
 
   collectionActualDateTime?: Date;
   deliveryActualDateTime?: Date;
@@ -77,6 +76,10 @@ export interface Job {
   deliveryPhotos?: string[];
   collectionSignature?: string;
   deliverySignature?: string;
+
+  collectionNotes?: Note[];
+  deliveryNotes?: Note[];
+  generalNotes?: Note[];
 
   [key: string]: any;
 }
@@ -122,7 +125,6 @@ export interface JobEntry {
   collectionContactPhone?: string | null;
   collectionEmail?: string | null;
   collectionDate?: string | null;
-  collectionNotes?: string | null;
 
   deliveryAddress?: string | null;
   deliveryCity?: string | null;
@@ -130,7 +132,6 @@ export interface JobEntry {
   deliveryContactPhone?: string | null;
   deliveryEmail?: string | null;
   deliveryDate?: string | null;
-  deliveryNotes?: string | null;
 
   isSplitJourney?: boolean;
   secondaryCollectionAddress?: string | null;

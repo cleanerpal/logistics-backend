@@ -15,13 +15,14 @@ import { finalize } from 'rxjs/operators';
 
 interface ExpenseFilters {
   status: string;
-  driver: string;
+  company: string;
   chargeable: boolean | 'All';
   dateRange: {
     start: Date | null;
     end: Date | null;
   };
   paidStatus: 'All' | 'Paid' | 'Unpaid';
+  jobId: string;
 }
 
 interface Driver {
@@ -75,16 +76,19 @@ export class ExpenseListComponent implements OnInit, AfterViewInit {
 
   filters: ExpenseFilters = {
     status: 'All',
-    driver: 'All',
+    company: 'All',
     chargeable: 'All',
     dateRange: {
       start: null,
       end: null,
     },
     paidStatus: 'All',
+    jobId: '',
   };
 
-  drivers: Driver[] = [];
+  searchTerm: string = '';
+
+  companies: string[] = [];
 
   constructor(
     private router: Router,
@@ -101,7 +105,6 @@ export class ExpenseListComponent implements OnInit, AfterViewInit {
 
   ngOnInit(): void {
     this.loadExpenses();
-    this.loadDrivers();
     this.checkPermissions();
   }
 
@@ -117,18 +120,14 @@ export class ExpenseListComponent implements OnInit, AfterViewInit {
     });
   }
 
-  private loadDrivers(): void {
-    this.authService.getUsersByRole('driver').subscribe({
-      next: (drivers) => {
-        this.drivers = drivers.map((driver) => ({
-          id: driver.id,
-          name: driver.name,
-        }));
-      },
-      error: (error) => {
-        console.error('Error loading drivers:', error);
-      },
+  private loadCompanies(expenses: ExtendedExpense[]): void {
+    const companySet = new Set<string>();
+    expenses.forEach((exp) => {
+      // customerName comes from the invoice document
+      const e: any = exp;
+      if (e.customerName) companySet.add(e.customerName);
     });
+    this.companies = Array.from(companySet);
   }
 
   private setupCustomFilter(): void {
@@ -155,6 +154,7 @@ export class ExpenseListComponent implements OnInit, AfterViewInit {
           isPaid: (expense as ExtendedExpense).isPaid !== undefined ? (expense as ExtendedExpense).isPaid : false,
         })) as ExtendedExpense[];
 
+        this.loadCompanies(this.allExpenses);
         this.applyFilters();
         this.isLoading = false;
       },
@@ -180,12 +180,19 @@ export class ExpenseListComponent implements OnInit, AfterViewInit {
   applyFilters(): void {
     let filtered = [...this.allExpenses];
 
-    if (this.filters.status !== 'All') {
-      filtered = filtered.filter((expense) => expense.status === this.filters.status);
+    if (this.filters.jobId && this.filters.jobId.trim() !== '') {
+      filtered = filtered.filter((expense) => expense.jobId && expense.jobId.toLowerCase().includes(this.filters.jobId.trim().toLowerCase()));
     }
 
-    if (this.filters.driver !== 'All') {
-      filtered = filtered.filter((expense) => expense.driverId === this.filters.driver);
+    if (this.filters.company !== 'All') {
+      filtered = filtered.filter((expense) => {
+        const e: any = expense;
+        return e.customerName && e.customerName === this.filters.company;
+      });
+    }
+
+    if (this.filters.status !== 'All') {
+      filtered = filtered.filter((expense) => expense.status === this.filters.status);
     }
 
     if (this.filters.chargeable !== 'All') {
@@ -200,12 +207,18 @@ export class ExpenseListComponent implements OnInit, AfterViewInit {
     if (this.filters.dateRange.start && this.filters.dateRange.end) {
       const startDate = new Date(this.filters.dateRange.start);
       const endDate = new Date(this.filters.dateRange.end);
-      endDate.setHours(23, 59, 59); // Include the entire end day
-
+      endDate.setHours(23, 59, 59);
       filtered = filtered.filter((expense) => {
         const expenseDate = new Date(expense.date);
         return expenseDate >= startDate && expenseDate <= endDate;
       });
+    }
+
+    if (this.searchTerm && this.searchTerm.trim() !== '') {
+      const search = this.searchTerm.trim().toLowerCase();
+      filtered = filtered.filter((expense) =>
+        [expense.id, expense.description, expense.driverName, expense.jobId, expense.status].join(' ').toLowerCase().includes(search)
+      );
     }
 
     this.dataSource.data = filtered;
@@ -249,156 +262,27 @@ export class ExpenseListComponent implements OnInit, AfterViewInit {
   }
 
   approveExpense(expense: ExtendedExpense): void {
-    const dialogRef = this.dialog.open(ConfirmationDialogComponent, {
-      width: '400px',
-      data: {
-        title: 'Approve Invoice',
-        message: `Are you sure you want to approve this invoice of ${this.formatCurrency(expense.amount)}?`,
-        confirmText: 'Approve',
-        cancelText: 'Cancel',
-      },
-    });
-
-    dialogRef.afterClosed().subscribe((result) => {
-      if (result) {
-        this.expenseService
-          .updateExpenseStatus(
-            expense.id,
-            ExpenseStatus.APPROVED,
-            { approvedBy: 'Admin User' } // In a real app, this would be the current user
-          )
-          .subscribe({
-            next: (updatedExpense: Expense) => {
-              const index = this.allExpenses.findIndex((e) => e.id === updatedExpense.id);
-              if (index !== -1) {
-                this.allExpenses[index] = {
-                  ...updatedExpense,
-                  isPaid: this.allExpenses[index].isPaid,
-                  paidDate: this.allExpenses[index].paidDate,
-                } as ExtendedExpense;
-
-                this.applyFilters();
-              }
-
-              this.showSuccessMessage('Invoice approved successfully');
-              this.dialog.closeAll();
-            },
-            error: (error: any) => {
-              this.showErrorMessage('Failed to approve invoice');
-              console.error('Error approving invoice:', error);
-            },
-          });
-      }
-    });
+    this.showErrorMessage('Approving expenses is now managed via the job details page or invoice system.');
   }
 
   openRejectDialog(expense: ExtendedExpense): void {
-    this.expenseToReject = expense;
-    this.rejectionForm.reset({
-      reason: '',
-    });
-    this.dialog.open(this.rejectDialog, {
-      width: '400px',
-    });
+    this.showErrorMessage('Rejecting expenses is now managed via the job details page or invoice system.');
   }
 
   confirmReject(): void {
-    if (!this.expenseToReject || this.rejectionForm.invalid) {
-      return;
-    }
-
-    const reason = this.rejectionForm.get('reason')?.value;
-
-    this.expenseService
-      .updateExpenseStatus(
-        this.expenseToReject.id,
-        ExpenseStatus.REJECTED,
-        { approvedBy: 'Admin User' } // In a real app, this would be the current user
-      )
-      .subscribe({
-        next: (updatedExpense: Expense) => {
-          const index = this.allExpenses.findIndex((e) => e.id === updatedExpense.id);
-          if (index !== -1) {
-            const updatedWithNotes = {
-              ...updatedExpense,
-              notes: (updatedExpense.notes || '') + `\nRejection reason: ${reason}`,
-              isPaid: this.allExpenses[index].isPaid,
-              paidDate: this.allExpenses[index].paidDate,
-            } as ExtendedExpense;
-
-            this.allExpenses[index] = updatedWithNotes;
-            this.applyFilters();
-          }
-
-          this.showSuccessMessage('Invoice rejected');
-          this.dialog.closeAll();
-          this.expenseToReject = null;
-        },
-        error: (error: any) => {
-          this.showErrorMessage('Failed to reject invoice');
-          console.error('Error rejecting invoice:', error);
-        },
-      });
+    this.showErrorMessage('Rejecting expenses is now managed via the job details page or invoice system.');
   }
 
   rejectExpense(expense: ExtendedExpense): void {
-    this.openRejectDialog(expense);
+    this.showErrorMessage('Rejecting expenses is now managed via the job details page or invoice system.');
   }
 
   updateChargeable(expense: ExtendedExpense, event: MatCheckboxChange): void {
-    if (expense.status !== ExpenseStatus.APPROVED) {
-      this.showErrorMessage('Only approved invoices can be marked as chargeable');
-      return;
-    }
-
-    this.expenseService.updateExpenseChargeableStatus(expense.id, event.checked).subscribe({
-      next: (updatedExpense: Expense) => {
-        const index = this.allExpenses.findIndex((e) => e.id === updatedExpense.id);
-        if (index !== -1) {
-          this.allExpenses[index] = {
-            ...updatedExpense,
-            isPaid: this.allExpenses[index].isPaid,
-            paidDate: this.allExpenses[index].paidDate,
-          } as ExtendedExpense;
-
-          this.applyFilters();
-        }
-
-        this.showSuccessMessage(event.checked ? 'Invoice marked as chargeable' : 'Invoice marked as non-chargeable');
-      },
-      error: (error: any) => {
-        this.showErrorMessage('Failed to update invoice');
-        console.error('Error updating invoice:', error);
-      },
-    });
+    this.showErrorMessage('Chargeable status is now managed via the job details page or invoice system.');
   }
 
   updatePaidStatus(expense: ExtendedExpense, isPaid: boolean): void {
-    if (expense.status !== ExpenseStatus.APPROVED) {
-      this.showErrorMessage('Only approved invoices can be marked as paid');
-      return;
-    }
-
-    this.expenseService.updateExpensePaidStatus(expense.id, isPaid).subscribe({
-      next: (updatedExpense: Expense) => {
-        const index = this.allExpenses.findIndex((e) => e.id === updatedExpense.id);
-        if (index !== -1) {
-          this.allExpenses[index] = {
-            ...this.allExpenses[index],
-            isPaid: isPaid,
-            paidDate: isPaid ? new Date() : undefined,
-          } as ExtendedExpense;
-
-          this.applyFilters();
-        }
-
-        this.showSuccessMessage(isPaid ? 'Invoice marked as paid' : 'Invoice marked as unpaid');
-      },
-      error: (error) => {
-        this.showErrorMessage('Failed to update invoice payment status');
-        console.error('Error updating invoice payment status:', error);
-      },
-    });
+    this.showErrorMessage('Paid status is now managed via the job details page or invoice system.');
   }
 
   printInvoice(expense: ExtendedExpense): void {
@@ -479,71 +363,7 @@ export class ExpenseListComponent implements OnInit, AfterViewInit {
   }
 
   bulkApproveExpenses(): void {
-    const pendingExpenses = this.filteredExpenses.filter((expense) => expense.status === ExpenseStatus.PENDING);
-
-    if (pendingExpenses.length === 0) {
-      this.showErrorMessage('No pending invoices to approve');
-      return;
-    }
-
-    const dialogRef = this.dialog.open(ConfirmationDialogComponent, {
-      width: '400px',
-      data: {
-        title: 'Bulk Approve Invoices',
-        message: `Are you sure you want to approve all ${pendingExpenses.length} pending invoices?`,
-        confirmText: 'Approve All',
-        cancelText: 'Cancel',
-      },
-    });
-
-    dialogRef.afterClosed().subscribe((result) => {
-      if (result) {
-        let approvedCount = 0;
-        let errorCount = 0;
-
-        pendingExpenses.forEach((expense) => {
-          this.expenseService
-            .updateExpenseStatus(expense.id, ExpenseStatus.APPROVED, {
-              approvedBy: 'Admin User',
-            })
-            .subscribe({
-              next: (updatedExpense: Expense) => {
-                const index = this.allExpenses.findIndex((e) => e.id === updatedExpense.id);
-                if (index !== -1) {
-                  this.allExpenses[index] = {
-                    ...updatedExpense,
-                    isPaid: this.allExpenses[index].isPaid,
-                    paidDate: this.allExpenses[index].paidDate,
-                  } as ExtendedExpense;
-                }
-
-                approvedCount++;
-
-                if (approvedCount + errorCount === pendingExpenses.length) {
-                  this.applyFilters();
-                  if (errorCount === 0) {
-                    this.showSuccessMessage(`Successfully approved ${approvedCount} invoices`);
-                  } else {
-                    this.showErrorMessage(`Approved ${approvedCount} invoices, but failed to approve ${errorCount} invoices`);
-                  }
-                }
-              },
-              error: () => {
-                errorCount++;
-
-                if (approvedCount + errorCount === pendingExpenses.length) {
-                  this.applyFilters();
-                  if (errorCount === 0) {
-                    this.showSuccessMessage(`Successfully approved ${approvedCount} invoices`);
-                  } else {
-                    this.showErrorMessage(`Approved ${approvedCount} invoices, but failed to approve ${errorCount} invoices`);
-                  }
-                }
-              },
-            });
-        });
-      }
-    });
+    this.showErrorMessage('Bulk approval is now managed via the job details page or invoice system.');
   }
 
   getCurrentDate(): string {
@@ -552,6 +372,19 @@ export class ExpenseListComponent implements OnInit, AfterViewInit {
 
   getInvoiceNumber(expense: ExtendedExpense): string {
     return `INV-${expense.id.replace('EXP', '')}`;
+  }
+
+  clearFilters(): void {
+    this.filters = {
+      status: 'All',
+      company: 'All',
+      chargeable: 'All',
+      dateRange: { start: null, end: null },
+      paidStatus: 'All',
+      jobId: '',
+    };
+    this.searchTerm = '';
+    this.applyFilters();
   }
 
   private showSuccessMessage(message: string): void {

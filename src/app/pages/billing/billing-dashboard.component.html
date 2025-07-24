@@ -38,42 +38,34 @@
             <p class="subtitle">{{ dataSource.filteredData?.length || 0 }} total invoices</p>
           </div>
         </div>
-        <div class="filters-actions-wrapper">
-          <div class="filters-section">
-            <mat-form-field appearance="outline" class="search-field">
-              <mat-label>Search invoices</mat-label>
-              <input matInput [(ngModel)]="searchTerm" (input)="onSearchChange()" placeholder="Search invoices..." />
-              <mat-icon matSuffix>search</mat-icon>
-            </mat-form-field>
-            <div class="filters-group">
-              <mat-form-field appearance="outline">
-                <mat-label>Status</mat-label>
-                <mat-select [(value)]="statusFilter" (selectionChange)="onStatusFilterChange()">
-                  <mat-option *ngFor="let option of statusOptions" [value]="option.value">
-                    {{ option.label }}
-                  </mat-option>
-                </mat-select>
-              </mat-form-field>
-              <mat-form-field appearance="outline">
-                <mat-label>Date Range</mat-label>
-                <mat-select [(value)]="dateFilter" (selectionChange)="onDateFilterChange()">
-                  <mat-option *ngFor="let option of dateOptions" [value]="option.value">
-                    {{ option.label }}
-                  </mat-option>
-                </mat-select>
-              </mat-form-field>
-            </div>
-          </div>
-          <div class="actions-group">
-            <button mat-raised-button color="primary" (click)="refreshData()">
-              <mat-icon>refresh</mat-icon>
-              Refresh
-            </button>
-            <button mat-stroked-button (click)="exportInvoices()">
-              <mat-icon>download</mat-icon>
-              Export CSV
-            </button>
-          </div>
+        <!-- Add filter UI above the invoice table -->
+        <div class="billing-filters" style="display: flex; gap: 16px; align-items: center; margin-bottom: 24px; flex-wrap: wrap">
+          <mat-form-field appearance="outline" style="min-width: 180px">
+            <mat-label>Job ID</mat-label>
+            <input matInput [(ngModel)]="jobIdFilter" (ngModelChange)="applyFilters()" placeholder="Filter by Job ID" />
+          </mat-form-field>
+          <mat-form-field appearance="outline" style="min-width: 180px">
+            <mat-label>Customer Name</mat-label>
+            <input matInput [(ngModel)]="customerNameFilter" (ngModelChange)="applyFilters()" placeholder="Filter by Customer" />
+          </mat-form-field>
+          <mat-form-field appearance="outline" style="min-width: 180px">
+            <mat-label>Status</mat-label>
+            <mat-select [(ngModel)]="statusFilter" (selectionChange)="applyFilters()">
+              <mat-option value="all">All Status</mat-option>
+              <mat-option value="draft">Draft</mat-option>
+              <mat-option value="sent">Sent</mat-option>
+              <mat-option value="viewed">Viewed</mat-option>
+              <mat-option value="outstanding">Outstanding</mat-option>
+              <mat-option value="paid">Paid</mat-option>
+              <mat-option value="overdue">Overdue</mat-option>
+              <mat-option value="preparing">Preparing</mat-option>
+            </mat-select>
+          </mat-form-field>
+          <mat-form-field appearance="outline" style="min-width: 180px">
+            <mat-label>Search</mat-label>
+            <input matInput [(ngModel)]="searchTerm" (ngModelChange)="onSearchChange()" placeholder="Search invoices" />
+          </mat-form-field>
+          <button mat-stroked-button color="primary" (click)="clearFilters()">Clear Filters</button>
         </div>
         <div class="table-container">
           <table mat-table [dataSource]="dataSource" matSort class="invoices-table">

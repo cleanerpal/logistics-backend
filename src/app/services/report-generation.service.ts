@@ -31,46 +31,44 @@ export class ReportGenerationService {
 
   // Enhanced Firebase image loading with multiple fallback strategies
   private async addFirebaseImageToPdf(doc: jsPDF, imageUrl: string, x: number, y: number, width: number, height: number): Promise<void> {
-    return new Promise(async (resolve, reject) => {
-      console.log('Loading Firebase image:', imageUrl);
-
-      try {
-        // Strategy 1: Try using fetch with proper CORS handling
-        const imageBlob = await this.fetchImageAsBlob(imageUrl);
-
-        if (imageBlob) {
-          const reader = new FileReader();
+    try {
+      const imageBlob = await this.fetchImageAsBlob(imageUrl);
+      if (imageBlob) {
+        const reader = new FileReader();
+        return new Promise((resolve) => {
           reader.onload = () => {
             try {
               const dataUrl = reader.result as string;
-              doc.addImage(dataUrl, 'PNG', x, y, width, height);
-              console.log('Firebase image successfully added via blob method');
-              resolve();
-            } catch (error) {
-              console.error('Error adding blob image to PDF:', error);
-              this.fallbackToPlaceholder(doc, x, y, width, height, 'Image unavailable');
+              const img = new window.Image();
+              img.onload = () => {
+                try {
+                  doc.addImage(dataUrl, 'PNG', x, y, width, height);
+                } catch (addErr) {
+                  try {
+                    doc.addImage(dataUrl, 'JPEG', x, y, width, height);
+                  } catch (jpegErr) {}
+                }
+                resolve();
+              };
+              img.onerror = () => {
+                try {
+                  doc.addImage(dataUrl, 'PNG', x, y, width, height);
+                } catch (addErr) {
+                  try {
+                    doc.addImage(dataUrl, 'JPEG', x, y, width, height);
+                  } catch (jpegErr) {}
+                }
+                resolve();
+              };
+              img.src = dataUrl;
+            } catch (err) {
               resolve();
             }
           };
-          reader.onerror = () => {
-            console.error('FileReader error');
-            this.fallbackToPlaceholder(doc, x, y, width, height, 'Image read error');
-            resolve();
-          };
           reader.readAsDataURL(imageBlob);
-          return;
-        }
-
-        // Strategy 2: If blob fetch fails, try direct image loading with CORS proxy
-        console.log('Blob fetch failed, trying CORS proxy approach');
-        await this.loadImageWithProxy(doc, imageUrl, x, y, width, height);
-        resolve();
-      } catch (error) {
-        console.error('All image loading strategies failed:', error);
-        this.fallbackToPlaceholder(doc, x, y, width, height, 'Image unavailable');
-        resolve();
+        });
       }
-    });
+    } catch (err) {}
   }
 
   // Enhanced fetch method with multiple strategies for Firebase Storage
@@ -86,8 +84,6 @@ export class ReportGenerationService {
 
     for (let i = 0; i < strategies.length; i++) {
       try {
-        console.log(`Trying fetch strategy ${i + 1}:`, strategies[i]);
-
         const response = await fetch(url, {
           method: 'GET',
           headers: {
@@ -97,16 +93,13 @@ export class ReportGenerationService {
         });
 
         if (response.ok && response.type !== 'opaque') {
-          console.log(`Fetch strategy ${i + 1} successful`);
           return await response.blob();
         } else if (response.type === 'opaque') {
-          console.log(`Fetch strategy ${i + 1} returned opaque response (no-cors mode)`);
           // For no-cors mode, we can't access the response, but it might still be usable
           // However, we can't convert it to blob in this case
           continue;
         }
       } catch (error) {
-        console.warn(`Fetch strategy ${i + 1} failed:`, error);
         continue;
       }
     }
@@ -197,6 +190,45 @@ export class ReportGenerationService {
     doc.setTextColor(0, 0, 0);
   }
 
+  // Add a placeholder image from the web if the real image can't be loaded
+  private async addPlaceholderImage(doc: jsPDF, x: number, y: number, width: number, height: number, originalUrl: string): Promise<void> {
+    const placeholderUrl = 'https://placehold.co/300x100.png?text=Image+Unavailable';
+    console.warn(`[PDF] STEP P1: Adding placeholder image for: ${originalUrl}`);
+    try {
+      const response = await fetch(placeholderUrl);
+      const blob = await response.blob();
+      const reader = new FileReader();
+      return new Promise((resolve) => {
+        reader.onload = () => {
+          try {
+            const dataUrl = reader.result as string;
+            try {
+              doc.addImage(dataUrl, 'PNG', x, y, width, height);
+            } catch (addErr) {
+              console.error('[PDF] STEP P4 ERROR: doc.addImage failed for placeholder:', addErr);
+            }
+            resolve();
+          } catch (err) {
+            console.error('[PDF] STEP P3 ERROR: Error adding placeholder image to PDF:', err);
+            resolve();
+          }
+        };
+        reader.onerror = (err) => {
+          console.error('[PDF] STEP P3 ERROR: FileReader error for placeholder:', err);
+          resolve();
+        };
+        try {
+          reader.readAsDataURL(blob);
+        } catch (readErr) {
+          console.error('[PDF] STEP P3 ERROR: FileReader readAsDataURL failed for placeholder:', readErr);
+          resolve();
+        }
+      });
+    } catch (err) {
+      console.error('[PDF] STEP P2 ERROR: Failed to fetch placeholder image:', err);
+    }
+  }
+
   // Enhanced method with better error handling and fallbacks
   private async addVehiclePhotosSection(doc: jsPDF, photoUrls: string[], yPos: number): Promise<number> {
     yPos = this.checkPageBreak(doc, yPos, 40);
@@ -238,7 +270,6 @@ export class ReportGenerationService {
       const y = currentRowY + (i >= 2 ? Math.floor(i / 2) * (photoHeight + 25) : 0);
 
       try {
-        console.log(`Processing photo ${i + 1}/${photoUrls.length}:`, photoUrls[i]);
         await this.addFirebaseImageToPdf(doc, photoUrls[i], x, y, photoWidth, photoHeight);
 
         // Add photo caption
@@ -248,7 +279,6 @@ export class ReportGenerationService {
         doc.text(caption, x + photoWidth / 2, y + photoHeight + 8, { align: 'center' });
 
         photosProcessed++;
-        console.log(`Successfully processed photo ${i + 1}`);
       } catch (error) {
         console.error(`Error processing photo ${i + 1}:`, error);
         // Placeholder is already handled in addFirebaseImageToPdf
@@ -260,7 +290,6 @@ export class ReportGenerationService {
       }
     }
 
-    console.log(`Photos section complete. Processed: ${photosProcessed}/${photoUrls.length}`);
     return yPos + 10;
   }
 
@@ -294,8 +323,6 @@ export class ReportGenerationService {
 
     // Add signature image with enhanced error handling
     if (stepData.signatureUrl) {
-      console.log('Processing signature URL:', stepData.signatureUrl);
-
       try {
         yPos = this.checkPageBreak(doc, yPos, 50);
         doc.setFontSize(12);
@@ -304,15 +331,12 @@ export class ReportGenerationService {
         yPos += 10;
 
         await this.addFirebaseImageToPdf(doc, stepData.signatureUrl, 20, yPos, 120, 40);
-        console.log('Signature successfully added to PDF');
         yPos += 50;
       } catch (error) {
-        console.error('Signature loading failed:', error);
         // Error handling is already done in addFirebaseImageToPdf
         yPos += 50;
       }
     } else {
-      console.log('No signature URL found in stepData');
       doc.setFontSize(10);
       doc.setFont('helvetica', 'italic');
       doc.text('[No signature provided for this step]', 20, yPos);
@@ -412,66 +436,124 @@ export class ReportGenerationService {
     };
   }
 
+  // Improved helper to recursively extract all image directories from an object
+  private extractAllImageDirs(obj: any): Set<string> {
+    const dirs = new Set<string>();
+    function recurse(val: any) {
+      if (!val) return;
+      if (typeof val === 'string') {
+        // Check for Firebase Storage URL
+        const match = val.match(/https:\/\/firebasestorage\.googleapis\.com\/v0\/b\/([^/]+)\/o\/(.+)\?alt=media/);
+        if (match) {
+          const bucket = match[1];
+          const path = match[2];
+          const lastSlash = path.lastIndexOf('%2F');
+          const dir = lastSlash !== -1 ? path.substring(0, lastSlash) : path;
+          dirs.add(`${bucket}/o/${dir}`.replace(/%2F/g, '/'));
+        }
+        // Check for image file path (even if not a full URL)
+        if (val.match(/(\.png|\.jpg|\.jpeg|\.webp|\.gif)$/i)) {
+          const lastSlash = val.lastIndexOf('/');
+          if (lastSlash !== -1) {
+            dirs.add(val.substring(0, lastSlash));
+          }
+        }
+      } else if (Array.isArray(val)) {
+        val.forEach(recurse);
+      } else if (typeof val === 'object') {
+        // If object has a 'url' or 'path' property, check those
+        if (val.url) recurse(val.url);
+        if (val.path) recurse(val.path);
+        Object.values(val).forEach(recurse);
+      }
+    }
+    recurse(obj);
+    return dirs;
+  }
+
   private async createPOCReport(job: Job, reportData: any, reportTitle: string = 'Collection'): Promise<void> {
     const doc = new jsPDF();
     const { stepData, locationData, contactData } = reportData;
 
-    // Add header
+    // --- Main Report Structure ---
+    // Page 1: Job info and collection/delivery details
+    let yPos = 80;
     this.addCompanyHeader(doc);
-
-    // Add title
     doc.setFontSize(18);
     doc.setFont('helvetica', 'bold');
     doc.text(`Proof of Collection - ${reportTitle}`, 20, 60);
-
-    let yPos = 80;
-
-    // Add job information
     yPos = this.addJobInformation(doc, job, yPos);
-
-    // Add vehicle details
-    yPos = this.addVehicleDetails(doc, job, yPos);
-
-    // Add location details
     yPos = this.addLocationDetails(doc, locationData, contactData, `${reportTitle} Details`, yPos);
 
-    // Add vehicle condition if data exists
-    if (stepData) {
-      yPos = this.addVehicleConditionSection(doc, stepData, yPos);
+    // Page 2: Vehicle details and vehicle condition
+    doc.addPage();
+    yPos = 30;
+    yPos = this.addVehicleDetails(doc, job, yPos);
+    yPos = this.addVehicleConditionSection(doc, stepData, yPos);
 
-      // Add checklist if exists
-      if (stepData.checklistItems && stepData.checklistItems.length > 0) {
-        yPos = this.addChecklistSection(doc, stepData.checklistItems, yPos);
-      }
+    // Page 3: Vehicle checklist (if present)
+    if (stepData?.checklistItems && stepData.checklistItems.length > 0) {
+      doc.addPage();
+      yPos = 30;
+      yPos = await this.addChecklistSection(doc, stepData.checklistItems, yPos);
+    }
 
-      // Add damage section with photos
+    // Page 4: Damage report, notes, legend, thumbnails
+    if (stepData?.damageReportImageUrl || (stepData?.damagePhotoUrls && stepData.damagePhotoUrls.length > 0)) {
+      doc.addPage();
+      yPos = 30;
       yPos = await this.addDamageSection(doc, job, stepData, yPos);
+    }
 
-      // Get all available photos for this step
-      const allPhotos = this.getAllPhotosForStep(stepData, job, reportTitle.toLowerCase());
-      if (allPhotos.length > 0) {
-        console.log(`Found ${allPhotos.length} photos for ${reportTitle} report`);
-        yPos = await this.addVehiclePhotosSection(doc, allPhotos, yPos);
-      } else {
-        console.log(`No photos found for ${reportTitle} report`);
-      }
+    // Page 5: Signature details and image
+    if (stepData?.signatureUrl) {
+      doc.addPage();
+      yPos = 30;
+      yPos = await this.addSignatureSection(doc, stepData, contactData, yPos);
+    }
 
-      // Add signature section
-      if (stepData.signatureUrl) {
-        console.log(`Adding signature for ${reportTitle} report:`, stepData.signatureUrl);
-        yPos = await this.addSignatureSection(doc, stepData, contactData, yPos);
-      } else {
-        console.log(`No signature found for ${reportTitle} report`);
+    // Page 6+: Each damage photo full screen, one per page
+    if (stepData?.damagePhotoUrls && stepData.damagePhotoUrls.length > 0) {
+      for (const url of stepData.damagePhotoUrls) {
+        doc.addPage();
+        await this.addFirebaseImageToPdf(doc, url, 10, 10, 190, 277);
       }
     }
 
-    // Add footer
-    this.addFooter(doc, job, reportTitle.toLowerCase(), stepData?.completedAt);
+    // --- Add images from expected folders ---
+    const expectedFolders = [
+      { key: 'collection_photos', label: 'Collection Photo' },
+      { key: 'damage_diagrams', label: 'Damage Diagram' },
+      { key: 'collection_signatures', label: 'Collection Signature' },
+      { key: 'delivery_signatures', label: 'Delivery Signature' },
+      { key: 'delivery_photos', label: 'Delivery Photo' },
+      { key: 'collection_overview', label: 'Collection Overview' },
+      { key: 'delivery_overview', label: 'Delivery Overview' },
+    ];
+    // Recursively extract all image URLs from stepData
+    const allImageUrls: string[] = Array.from(new Set(this.extractAllImageDirs(stepData))).filter(
+      (url) => typeof url === 'string' && (url.startsWith('http') || url.match(/(\.png|\.jpg|\.jpeg|\.webp|\.gif)$/i))
+    );
+    for (const folder of expectedFolders) {
+      const folderUrls = allImageUrls.filter((url) => url.includes(`/${folder.key}/`));
+      let imageIndex = 1;
+      for (const urlRaw of folderUrls) {
+        doc.addPage();
+        doc.setFontSize(16);
+        doc.setFont('helvetica', 'bold');
+        doc.text(`${folder.label} ${imageIndex}`, 20, 15);
+        try {
+          await this.addFirebaseImageToPdf(doc, urlRaw, 20, 20, 170, 120);
+        } catch (err) {
+          doc.setFontSize(10);
+          doc.setFont('helvetica', 'italic');
+          doc.text('[Image failed to load]', 20, 40);
+        }
+        imageIndex++;
+      }
+    }
 
-    // Save the document
-    const fileName = `${job.customerName || 'Job'}_${job.id}_${reportTitle.replace(' ', '')}_${this.formatDateForFilename(stepData?.completedAt)}.pdf`;
-    console.log('Saving PDF:', fileName);
-    doc.save(fileName);
+    doc.save(`POC_All_Images_${job['jobNumber'] || ''}.pdf`);
   }
 
   private async createPODReport(job: Job, reportData: any, reportTitle: string = 'Delivery'): Promise<void> {
@@ -722,7 +804,6 @@ export class ReportGenerationService {
     // Get photos from stepData (primary source)
     if (stepData?.photoUrls && Array.isArray(stepData.photoUrls)) {
       photoUrls.push(...stepData.photoUrls);
-      console.log(`Found ${stepData.photoUrls.length} photos in stepData for ${stepType}`);
     }
 
     return photoUrls.filter((url) => url && typeof url === 'string' && url.trim() !== '');

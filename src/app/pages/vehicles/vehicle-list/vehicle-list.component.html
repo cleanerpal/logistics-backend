@@ -37,7 +37,7 @@
           </mat-form-field>
 
           <mat-form-field appearance="outline">
-            <mat-label>Color</mat-label>
+            <mat-label>Colour</mat-label>
             <mat-select formControlName="color">
               <mat-option value="All">All</mat-option>
               <mat-option *ngFor="let color of colors" [value]="color">
@@ -89,9 +89,9 @@
         </ng-container>
 
         <ng-container matColumnDef="color">
-          <th mat-header-cell *matHeaderCellDef mat-sort-header>Color</th>
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Colour</th>
           <td mat-cell *matCellDef="let vehicle">
-            <span class="color-chip" [style.background]="getColorHex(vehicle.color)"></span>
+            <span class="colour-chip" [style.background]="getColorHex(vehicle.color)"></span>
             {{ vehicle.color }}
           </td>
         </ng-container>

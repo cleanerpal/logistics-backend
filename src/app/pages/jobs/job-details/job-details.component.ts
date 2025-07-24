@@ -1,6 +1,6 @@
 // job-details.component.ts
 
-import { Component, OnInit, OnDestroy, ChangeDetectorRef, ViewChild, ElementRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectorRef, ViewChild, ElementRef, Inject } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
@@ -19,6 +19,8 @@ import { ConfirmationDialogComponent } from '../../../dialogs/confirmation-dialo
 import { JobProcessData, JobProcessService, ProcessPhoto } from '../../../services/job-process.service';
 import { ProcessSignature } from '../../../services/job-process.service';
 import { ReportGenerationService } from '../../../services/report-generation.service';
+import { CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
+import { JobBillingService } from '../../../services/job-billing.service';
 
 // Enhanced interfaces for documents
 export interface JobDocument {
@@ -87,7 +89,7 @@ export interface JobBilling {
   invoiceNumber?: string;
   invoiceDate?: Timestamp;
   dueDate?: Timestamp;
-  status: 'draft' | 'pending' | 'sent' | 'paid' | 'overdue';
+  status: 'draft' | 'pending' | 'sent' | 'paid' | 'overdue' | 'preparing';
   notes?: string;
   customerChargeableTotal?: number; // Total amount to charge customer (excluding internal costs)
 }
@@ -200,6 +202,63 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
 
   @ViewChild('reportContent', { static: false }) reportContent!: ElementRef;
 
+  adminSelectedFile: File | null = null;
+  adminUploading = false;
+  adminDocuments: any[] = [];
+
+  onAdminFileSelected(event: Event) {
+    const input = event.target as HTMLInputElement;
+    if (input.files && input.files.length > 0) {
+      this.adminSelectedFile = input.files[0];
+    } else {
+      this.adminSelectedFile = null;
+    }
+  }
+
+  uploadAdminDocument() {
+    if (!this.adminSelectedFile || !this.job?.id) return;
+    this.adminUploading = true;
+    const file = this.adminSelectedFile;
+    const path = `jobs/${this.job.id}/admin_documents/${Date.now()}_${file.name}`;
+    this.storageService
+      .uploadFile(path, file, { uploadedBy: this.currentUser?.id || 'admin' })
+      .pipe(
+        finalize(() => {
+          this.adminUploading = false;
+          this.adminSelectedFile = null;
+        }),
+        takeUntil(this.destroy$)
+      )
+      .subscribe({
+        next: (result) => {
+          this.snackBar.open('Document uploaded successfully', 'Close', { duration: 3000 });
+          this.loadAdminDocuments();
+        },
+        error: (err) => {
+          this.snackBar.open('Failed to upload document', 'Close', { duration: 4000 });
+        },
+      });
+  }
+
+  loadAdminDocuments() {
+    if (!this.job?.id) return;
+    this.documentsLoading = true;
+    this.storageService
+      .listFiles(`jobs/${this.job.id}/admin_documents`)
+      .pipe(
+        finalize(() => (this.documentsLoading = false)),
+        takeUntil(this.destroy$)
+      )
+      .subscribe({
+        next: (files) => {
+          this.adminDocuments = files;
+        },
+        error: () => {
+          this.adminDocuments = [];
+        },
+      });
+  }
+
   constructor(
     private route: ActivatedRoute,
     private router: Router,
@@ -210,7 +269,8 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
     private dialog: MatDialog,
     private snackBar: MatSnackBar,
     private cdr: ChangeDetectorRef,
-    private jobProcessService: JobProcessService
+    private jobProcessService: JobProcessService,
+    @Inject(JobBillingService) private jobBillingService: JobBillingService
   ) {}
 
   ngOnInit(): void {
@@ -272,6 +332,7 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
             this.formatJobNotes();
             this.loadJobDocuments(jobId);
             this.loadDamageReports(jobId);
+            this.loadAdminDocuments(); // <-- Add this line
 
             // Load billing if user has permission
             if (this.canManageBilling) {
@@ -479,29 +540,15 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
   }
 
   // Notes methods
-  getFormattedNotes(notes?: JobNote[] | string | null | undefined): Array<{ content: string; authorName: string; createdAt: Date }> {
+  getFormattedNotes(notes?: JobNote[] | null | undefined): Array<{ content: string; authorName: string; createdAt: Date }> {
     if (!notes) return [];
-
-    // Handle string notes (legacy format)
-    if (typeof notes === 'string') {
-      return [
-        {
-          content: notes,
-          authorName: this.job?.createdBy || 'System',
-          createdAt: Timestamp.now().toDate(),
-        },
-      ];
-    }
-
-    // Handle JobNote array format
     if (Array.isArray(notes)) {
       return notes.map((note) => ({
-        content: note.content || note.text || '', // Handle different property names
-        authorName: note.authorName || note.createdBy || 'System',
+        content: note.content || '',
+        authorName: note.authorName || 'System',
         createdAt: note.createdAt instanceof Timestamp ? note.createdAt.toDate() : note.createdAt instanceof Date ? note.createdAt : new Date(),
       }));
     }
-
     return [];
   }
 
@@ -541,7 +588,6 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
 
   // Check if documents exist
   hasAnyDocuments(): boolean {
-    // console.log('hasAnyDocuments', this.allDocuments);
     return this.allDocuments.length > 0;
   }
 
@@ -601,23 +647,83 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
 
     this.isLoadingBilling = true;
 
-    // TODO: Replace with actual Firebase service call
-    setTimeout(() => {
-      this.jobBilling = {
-        basePrice: 150.0, // Initial job cost
-        additionalItems: [],
-        expenses: [],
-        subtotal: 150.0,
-        vatRate: 0.2,
-        vatAmount: 30.0,
-        totalAmount: 180.0,
-        status: 'draft',
-        notes: '',
-        customerChargeableTotal: 150.0,
-      };
-      this.isLoadingBilling = false;
-      this.cdr.detectChanges();
-    }, 1000);
+    // Fetch the invoice for this job
+    this.jobBillingService.getJobInvoices(this.job.id).subscribe({
+      next: (invoices: any[]) => {
+        if (invoices && invoices.length > 0) {
+          const invoice = invoices[0];
+          this.jobBilling = {
+            basePrice: invoice.items.find((i: any) => i.type === 'initial_cost')?.amount || 0,
+            additionalItems: invoice.items
+              .filter((i: any) => i.type !== 'initial_cost' && i.type !== 'expense')
+              .map((i: any) => ({
+                id: i.id,
+                name: i.description,
+                description: i.category,
+                price: i.unitPrice,
+                quantity: i.quantity,
+                total: i.amount,
+                isCustom: i.type === 'additional_fee',
+              })),
+            expenses: invoice.items
+              .filter((i: any) => i.type === 'expense')
+              .map((i: any) => ({
+                id: i.id,
+                type: i.category,
+                description: i.description,
+                amount: i.amount,
+                liters: undefined,
+                date: i.date,
+                receiptUrl: i.receiptUrl,
+                addedBy: i.createdBy,
+                addedByName: '',
+                isApproved: true,
+                isChargeable: i.isChargeable,
+                notes: i.notes,
+              })),
+            subtotal: invoice.subtotal,
+            vatRate: invoice.vatRate,
+            vatAmount: invoice.vatAmount,
+            totalAmount: invoice.total,
+            status: invoice.status === 'draft' ? 'preparing' : invoice.status,
+            notes: invoice.notes,
+            customerChargeableTotal: invoice.subtotal,
+          };
+        } else {
+          // No invoice found, show blank
+          this.jobBilling = {
+            basePrice: 0,
+            additionalItems: [],
+            expenses: [],
+            subtotal: 0,
+            vatRate: 0,
+            vatAmount: 0,
+            totalAmount: 0,
+            status: 'preparing',
+            notes: '',
+            customerChargeableTotal: 0,
+          };
+        }
+        this.isLoadingBilling = false;
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.jobBilling = {
+          basePrice: 0,
+          additionalItems: [],
+          expenses: [],
+          subtotal: 0,
+          vatRate: 0,
+          vatAmount: 0,
+          totalAmount: 0,
+          status: 'preparing',
+          notes: '',
+          customerChargeableTotal: 0,
+        };
+        this.isLoadingBilling = false;
+        this.cdr.detectChanges();
+      },
+    });
   }
 
   // Update base price
@@ -1481,7 +1587,7 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
       this.timelineEvents.push({
         type: 'created',
         title: 'Job Created',
-        description: `Created by ${this.job.createdBy || 'System'}`,
+        description: `Created`,
         date: this.job.createdAt,
         icon: 'add_circle',
         color: 'primary',
@@ -1684,5 +1790,165 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
     link.href = signature.url;
     link.download = `${signature.type}_signature_${signature.signerName}.png`;
     link.click();
+  }
+
+  setJobToCompleted() {
+    if (!this.job?.id) return;
+    this.jobService.updateJob(this.job.id, { status: 'completed' }).subscribe({
+      next: () => {
+        this.job!.status = 'completed';
+        // Optionally show a notification/snackbar here
+      },
+      error: (err) => {
+        // Optionally show an error notification/snackbar here
+        console.error('Failed to set job to completed:', err);
+      },
+    });
+  }
+
+  reopenJob() {
+    if (!this.job?.id) return;
+    if (confirm('Are you sure you want to reopen this job? This will set the status back to delivered.')) {
+      this.jobService.updateJob(this.job.id, { status: 'delivered' }).subscribe({
+        next: () => {
+          this.job!.status = 'delivered';
+        },
+        error: (err) => {
+          console.error('Failed to reopen job:', err);
+        },
+      });
+    }
+  }
+
+  archiveJob() {
+    if (!this.job?.id) return;
+    if (confirm('Are you sure you want to archive this job? It will be hidden from active lists but not deleted.')) {
+      this.jobService.updateJob(this.job.id, { archived: true }).subscribe({
+        next: () => {
+          this.job!['archived'] = true;
+        },
+        error: (err) => {
+          console.error('Failed to archive job:', err);
+        },
+      });
+    }
+  }
+
+  deleteJob() {
+    if (!this.job?.id) return;
+    if (confirm('Are you sure you want to permanently delete this job? This action cannot be undone!')) {
+      this.jobService.deleteJob(this.job.id).subscribe({
+        next: () => {
+          /* Optionally navigate away or show a message */
+        },
+        error: (err) => {
+          console.error('Failed to delete job:', err);
+        },
+      });
+    }
+  }
+
+  openAddNoteDialog() {
+    const dialogRef = this.dialog.open(AddNoteDialogComponent, {
+      width: '400px',
+      data: { job: this.job },
+    });
+    dialogRef.afterClosed().subscribe((result) => {
+      if (result) {
+        this.saveNote(result);
+      }
+    });
+  }
+
+  saveNote(noteData: { note: string; type: string }) {
+    if (!this.job?.id) return;
+    let update: any = {};
+    const now = new Date();
+    const authorId = this.currentUser?.id || 'unknown';
+    const authorName = this.currentUser?.name || this.currentUser?.email || 'User';
+    const newNote = {
+      id: Math.random().toString(36).slice(2) + Date.now().toString(36),
+      authorId,
+      authorName,
+      content: noteData.note,
+      createdAt: now,
+    };
+    function normalizeNotes(notes: any[]): any[] {
+      return (notes || []).map((n) =>
+        typeof n === 'string' ? { id: Math.random().toString(36).slice(2) + Date.now().toString(36), authorId, authorName, content: n, createdAt: now } : n
+      );
+    }
+    if (noteData.type === 'collection') {
+      update.collectionNotes = [...normalizeNotes(Array.isArray(this.job.collectionNotes) ? this.job.collectionNotes : []), newNote];
+    } else if (noteData.type === 'delivery') {
+      update.deliveryNotes = [...normalizeNotes(Array.isArray(this.job.deliveryNotes) ? this.job.deliveryNotes : []), newNote];
+    } else {
+      update.generalNotes = [...normalizeNotes(Array.isArray(this.job.generalNotes) ? this.job.generalNotes : []), newNote];
+    }
+    this.jobService.updateJob(this.job.id, update).subscribe({
+      next: () => {
+        // Optionally update local job object or refresh
+      },
+      error: (err) => {
+        console.error('Failed to add note:', err);
+      },
+    });
+  }
+
+  isNoteObject(note: any): note is { content: string; authorName: string; createdAt: any } {
+    return note && typeof note === 'object' && 'content' in note && 'authorName' in note && 'createdAt' in note;
+  }
+
+  formatNoteDate(date: any): string {
+    if (!date) return '';
+    if (typeof date === 'string') return new Date(date).toLocaleString();
+    if (date instanceof Date) return date.toLocaleString();
+    if (date && typeof date.toDate === 'function') return date.toDate().toLocaleString(); // Firestore Timestamp
+    return '';
+  }
+}
+
+// Basic AddNoteDialogComponent (inline, to be expanded)
+import { MatDialogRef, MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatRadioModule } from '@angular/material/radio';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { FormsModule } from '@angular/forms';
+
+@Component({
+  selector: 'add-note-dialog',
+  template: `
+    <h2 mat-dialog-title>Add Note</h2>
+    <mat-dialog-content>
+      <mat-form-field appearance="fill" style="width: 100%;">
+        <mat-label>Note</mat-label>
+        <textarea matInput [(ngModel)]="note" rows="4"></textarea>
+      </mat-form-field>
+      <mat-radio-group [(ngModel)]="type" style="margin-top: 16px;">
+        <mat-radio-button value="collection">Collection Notes</mat-radio-button>
+        <mat-radio-button value="delivery" style="margin-left: 16px;">Delivery Notes</mat-radio-button>
+        <mat-radio-button value="general" style="margin-left: 16px;">General Job Notes</mat-radio-button>
+      </mat-radio-group>
+    </mat-dialog-content>
+    <mat-dialog-actions align="end">
+      <button mat-button (click)="onCancel()">Cancel</button>
+      <button mat-flat-button color="primary" [disabled]="!note || !type" (click)="onSave()">Save</button>
+    </mat-dialog-actions>
+  `,
+  standalone: true,
+  imports: [MatDialogModule, MatFormFieldModule, MatInputModule, MatRadioModule, MatButtonModule, MatIconModule, FormsModule],
+  schemas: [CUSTOM_ELEMENTS_SCHEMA],
+})
+export class AddNoteDialogComponent {
+  note = '';
+  type = 'collection';
+  constructor(public dialogRef: MatDialogRef<AddNoteDialogComponent>, @Inject(MAT_DIALOG_DATA) public data: any) {}
+  onCancel() {
+    this.dialogRef.close();
+  }
+  onSave() {
+    this.dialogRef.close({ note: this.note, type: this.type });
   }
 }

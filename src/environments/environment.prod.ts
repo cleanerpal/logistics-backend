@@ -10,4 +10,5 @@ export const environment = {
     measurementId: 'G-M3SC9Z72FM',
   },
   appVersion: '1.0.0',
+  apiUrl: 'https://api.yourdomain.com', // <-- Set to your production backend API URL
 };

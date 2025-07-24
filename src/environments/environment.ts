@@ -10,6 +10,7 @@ export const environment = {
     measurementId: 'G-M3SC9Z72FM',
   },
   appVersion: '1.0.0',
+  apiUrl: 'http://localhost:3000', // <-- Set to your backend API URL
 };
 
 /*

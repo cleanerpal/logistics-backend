@@ -146,42 +146,8 @@ export class ExpenseCreateComponent implements OnInit {
   }
 
   onSubmit(): void {
-    if (this.expenseForm.invalid) {
-      return;
-    }
-
-    this.isSubmitting = true;
-    const formValue = this.expenseForm.value;
-
-    const expense: Omit<Expense, 'id' | 'status'> = {
-      jobId: formValue.jobId || undefined,
-      driverId: this.currentUserId || '',
-      driverName: this.currentUserName,
-      description: formValue.description,
-      amount: parseFloat(formValue.amount),
-      date: formValue.date,
-      receiptUrl: formValue.receiptUrl || undefined,
-      isChargeable: formValue.isChargeable,
-      notes: formValue.notes || undefined,
-    };
-
-    this.expenseService
-      .createExpense(expense)
-      .pipe(
-        finalize(() => {
-          this.isSubmitting = false;
-        })
-      )
-      .subscribe({
-        next: (createdExpense) => {
-          this.showSuccessMessage('Invoice created successfully');
-          this.router.navigate(['/expenses']);
-        },
-        error: (error) => {
-          console.error('Error creating expense:', error);
-          this.showErrorMessage('Failed to create invoice. Please try again.');
-        },
-      });
+    // Expense creation is now managed via the job/invoice system.
+    this.showErrorMessage('Expenses must be added via the job details page or invoice system.');
   }
 
   uploadReceipt(event: Event): void {

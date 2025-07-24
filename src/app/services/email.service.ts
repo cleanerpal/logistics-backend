@@ -2,10 +2,11 @@
 
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { Observable, throwError } from 'rxjs';
+import { Observable, throwError, of } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
 import { JobInvoice, BillingSettings } from '../interfaces/job-billing.interface';
 import { environment } from '../../environments/environment';
+import { lastValueFrom } from 'rxjs';
 
 interface EmailTemplate {
   subject: string;
@@ -26,7 +27,7 @@ interface EmailRequest {
 }
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class EmailService {
   private readonly emailApiUrl = `${environment.apiUrl}/email`; // Your backend email endpoint
@@ -43,7 +44,7 @@ export class EmailService {
 
     const emailTemplate = this.buildInvoiceEmailTemplate(invoice, settings);
     const invoiceHtml = this.generateInvoiceHtml(invoice, settings);
-    
+
     const emailRequest: EmailRequest = {
       to: invoice.customerEmail,
       subject: emailTemplate.subject,
@@ -53,9 +54,9 @@ export class EmailService {
         {
           filename: `Invoice-${invoice.invoiceNumber}.pdf`,
           content: this.generateInvoicePdf(invoice, settings),
-          contentType: 'application/pdf'
-        }
-      ]
+          contentType: 'application/pdf',
+        },
+      ],
     };
 
     return this.sendEmail(emailRequest);
@@ -70,12 +71,12 @@ export class EmailService {
     }
 
     const emailTemplate = this.buildReminderEmailTemplate(invoice, settings);
-    
+
     const emailRequest: EmailRequest = {
       to: invoice.customerEmail,
       subject: emailTemplate.subject,
       text: emailTemplate.body,
-      html: emailTemplate.html || this.generateEmailHtml(emailTemplate.body)
+      html: emailTemplate.html || this.generateEmailHtml(emailTemplate.body),
     };
 
     return this.sendEmail(emailRequest);
@@ -85,23 +86,24 @@ export class EmailService {
    * Send bulk reminder emails for overdue invoices
    */
   sendBulkReminders(overdueInvoices: JobInvoice[], settings?: BillingSettings): Observable<{ success: number; failed: number }> {
-    const emailPromises = overdueInvoices.map(invoice => 
+    const emailPromises = overdueInvoices.map((invoice) =>
       this.sendPaymentReminder(invoice, settings).pipe(
         map(() => ({ success: true, invoice: invoice.invoiceNumber })),
-        catchError(error => ({ success: false, invoice: invoice.invoiceNumber, error }))
+        catchError((error) => of({ success: false, invoice: invoice.invoiceNumber, error }))
       )
     );
 
-    return new Observable(observer => {
-      Promise.all(emailPromises).then(results => {
-        const success = results.filter(r => r.success).length;
-        const failed = results.filter(r => !r.success).length;
-        
-        observer.next({ success, failed });
-        observer.complete();
-      }).catch(error => {
-        observer.error(error);
-      });
+    return new Observable((observer) => {
+      Promise.all(emailPromises.map((p) => lastValueFrom(p)))
+        .then((results) => {
+          const success = results.filter((r) => r.success).length;
+          const failed = results.filter((r) => !r.success).length;
+          observer.next({ success, failed });
+          observer.complete();
+        })
+        .catch((error) => {
+          observer.error(error);
+        });
     });
   }
 
@@ -113,7 +115,7 @@ export class EmailService {
       to: 'test@example.com',
       subject: 'Email Configuration Test',
       text: 'This is a test email to verify email configuration.',
-      html: '<p>This is a test email to verify email configuration.</p>'
+      html: '<p>This is a test email to verify email configuration.</p>',
     };
 
     return this.sendEmail(testEmail).pipe(
@@ -127,11 +129,11 @@ export class EmailService {
    */
   private sendEmail(emailRequest: EmailRequest): Observable<void> {
     const headers = new HttpHeaders({
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
     });
 
     return this.http.post<void>(this.emailApiUrl, emailRequest, { headers }).pipe(
-      catchError(error => {
+      catchError((error) => {
         console.error('Email sending failed:', error);
         return throwError(() => new Error('Failed to send email'));
       })
@@ -160,7 +162,7 @@ Best regards,
     return {
       subject: this.substituteVariables(subject, invoice, settings),
       body: this.substituteVariables(body, invoice, settings),
-      html: this.generateInvoiceEmailHtml(invoice, settings)
+      html: this.generateInvoiceEmailHtml(invoice, settings),
     };
   }
 
@@ -190,19 +192,14 @@ Best regards,
 
     return {
       subject: this.substituteVariables(subject, invoice, settings, { daysOverdue }),
-      body: this.substituteVariables(body, invoice, settings, { daysOverdue })
+      body: this.substituteVariables(body, invoice, settings, { daysOverdue }),
     };
   }
 
   /**
    * Substitute template variables
    */
-  private substituteVariables(
-    template: string, 
-    invoice: JobInvoice, 
-    settings?: BillingSettings,
-    extraVars?: { [key: string]: any }
-  ): string {
+  private substituteVariables(template: string, invoice: JobInvoice, settings?: BillingSettings, extraVars?: { [key: string]: any }): string {
     const variables = {
       invoiceNumber: invoice.invoiceNumber,
       customerName: invoice.customerName,
@@ -216,7 +213,7 @@ Best regards,
       companyAddress: settings?.companyDetails?.address || '',
       companyPhone: settings?.companyDetails?.phone || '',
       companyEmail: settings?.companyDetails?.email || '',
-      ...extraVars
+      ...extraVars,
     };
 
     let result = template;
@@ -282,7 +279,10 @@ Best regards,
             <h1>NI VEHICLE LOGISTICS LTD</h1>
           </div>
           <div class="content">
-            ${textContent.split('\n').map(line => `<p>${line}</p>`).join('')}
+            ${textContent
+              .split('\n')
+              .map((line) => `<p>${line}</p>`)
+              .join('')}
             ${additionalContent || ''}
           </div>
           <div class="footer">
@@ -300,14 +300,18 @@ Best regards,
    * Generate invoice-specific email HTML
    */
   private generateInvoiceEmailHtml(invoice: JobInvoice, settings?: BillingSettings): string {
-    const itemsHtml = invoice.items.map(item => `
+    const itemsHtml = invoice.items
+      .map(
+        (item) => `
       <tr>
         <td style="padding: 8px; border-bottom: 1px solid #ddd;">${item.description}</td>
         <td style="padding: 8px; border-bottom: 1px solid #ddd; text-align: center;">${item.quantity}</td>
         <td style="padding: 8px; border-bottom: 1px solid #ddd; text-align: right;">${this.formatCurrency(item.unitPrice)}</td>
         <td style="padding: 8px; border-bottom: 1px solid #ddd; text-align: right;">${this.formatCurrency(item.amount * item.quantity)}</td>
       </tr>
-    `).join('');
+    `
+      )
+      .join('');
 
     return `
       <div style="margin-top: 30px;">
@@ -358,10 +362,14 @@ Best regards,
         <div style="margin-bottom: 30px;">
           <h3>Bill To:</h3>
           <p><strong>${invoice.customerName}</strong></p>
-          ${invoice.billingAddress ? `
+          ${
+            invoice.billingAddress
+              ? `
             <p>${invoice.billingAddress.address}<br>
                ${invoice.billingAddress.city} ${invoice.billingAddress.postcode}</p>
-          ` : ''}
+          `
+              : ''
+          }
         </div>
         
         ${this.generateInvoiceEmailHtml(invoice, settings)}
@@ -394,7 +402,7 @@ Best regards,
   private formatCurrency(amount: number): string {
     return new Intl.NumberFormat('en-GB', {
       style: 'currency',
-      currency: 'GBP'
+      currency: 'GBP',
     }).format(amount);
   }
 }

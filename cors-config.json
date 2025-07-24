@@ -1,0 +1,9 @@
+[
+  {
+    "origin": ["http://localhost:3000", "http://localhost:4200", "https://ni-vehicle-logistics-ef2bf.web.app", "https://ni-vehicle-logistics-ef2bf.firebaseapp.com"],
+    "method": ["GET", "PUT", "POST", "DELETE", "HEAD", "OPTIONS"],
+    "responseHeader": ["Content-Type", "Authorization"],
+    "maxAgeSeconds": 3600,
+    "allowCredentials": true
+  }
+]

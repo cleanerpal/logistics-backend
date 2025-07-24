@@ -24,7 +24,7 @@
           <div class="vehicle-meta">
             <span class="registration-badge">{{ vehicle.registration }}</span>
             <span class="year">{{ vehicle.year }}</span>
-            <span class="color-badge" [style.background]="getColorHex(vehicle.color)">
+            <span class="colour-badge" [style.background]="getColorHex(vehicle.color)">
               {{ vehicle.color }}
             </span>
           </div>
@@ -69,9 +69,9 @@
                   <span class="value">{{ vehicle.type }}</span>
                 </div>
                 <div class="info-row">
-                  <span class="label">Color</span>
+                  <span class="label">Colour</span>
                   <span class="value">
-                    <span class="color-chip" [style.background]="getColorHex(vehicle.color)"></span>
+                    <span class="colour-chip" [style.background]="getColorHex(vehicle.color)"></span>
                     {{ vehicle.color }}
                   </span>
                 </div>

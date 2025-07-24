@@ -18,7 +18,7 @@ import { ConfirmationDialogComponent } from '../../dialogs/confirmation-dialog.c
   selector: 'app-billing-dashboard',
   templateUrl: './billing-dashboard.component.html',
   styleUrls: ['./billing-dashboard.component.scss'],
-  standalone: false
+  standalone: false,
 })
 export class BillingDashboardComponent implements OnInit, OnDestroy, AfterViewInit {
   @ViewChild(MatSort) sort!: MatSort;
@@ -27,16 +27,7 @@ export class BillingDashboardComponent implements OnInit, OnDestroy, AfterViewIn
   private destroy$ = new Subject<void>();
 
   dataSource = new MatTableDataSource<JobInvoice>([]);
-  displayedColumns: string[] = [
-    'invoiceNumber',
-    'jobId', 
-    'customerName',
-    'issueDate',
-    'dueDate',
-    'total',
-    'status',
-    'actions'
-  ];
+  displayedColumns: string[] = ['invoiceNumber', 'jobId', 'customerName', 'issueDate', 'dueDate', 'total', 'status', 'actions'];
 
   isLoading = false;
   dashboardStats: BillingDashboardStats = {
@@ -46,12 +37,14 @@ export class BillingDashboardComponent implements OnInit, OnDestroy, AfterViewIn
     overdueAmount: 0,
     thisMonthInvoiced: 0,
     thisMonthPaid: 0,
-    averagePaymentDays: 0
+    averagePaymentDays: 0,
   };
 
   statusFilter = 'all';
   dateFilter = 'all';
   searchTerm = '';
+  jobIdFilter: string = '';
+  customerNameFilter: string = '';
 
   statusOptions = [
     { value: 'all', label: 'All Status' },
@@ -60,7 +53,7 @@ export class BillingDashboardComponent implements OnInit, OnDestroy, AfterViewIn
     { value: 'viewed', label: 'Viewed' },
     { value: 'outstanding', label: 'Outstanding' },
     { value: 'paid', label: 'Paid' },
-    { value: 'overdue', label: 'Overdue' }
+    { value: 'overdue', label: 'Overdue' },
   ];
 
   dateOptions = [
@@ -69,7 +62,7 @@ export class BillingDashboardComponent implements OnInit, OnDestroy, AfterViewIn
     { value: 'week', label: 'This Week' },
     { value: 'month', label: 'This Month' },
     { value: 'quarter', label: 'This Quarter' },
-    { value: 'year', label: 'This Year' }
+    { value: 'year', label: 'This Year' },
   ];
 
   allInvoices: JobInvoice[] = [];
@@ -100,34 +93,26 @@ export class BillingDashboardComponent implements OnInit, OnDestroy, AfterViewIn
   private loadDashboardData(): void {
     this.isLoading = true;
 
-    forkJoin({
-      invoices: this.jobBillingService.getAllInvoices(),
-      stats: this.jobBillingService.getBillingDashboardStats()
-    }).pipe(
-      takeUntil(this.destroy$)
-    ).subscribe({
-      next: ({ invoices, stats }) => {
-        this.allInvoices = invoices;
-        this.dashboardStats = stats;
-        this.applyFilters();
-        this.isLoading = false;
-      },
-      error: (error) => {
-        console.error('Error loading billing dashboard:', error);
-        this.snackBar.open('Error loading billing data', 'Close', { duration: 3000 });
-        this.isLoading = false;
-      }
-    });
+    this.jobBillingService
+      .getAllInvoices()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (invoices) => {
+          this.allInvoices = invoices;
+          this.applyFilters();
+          this.isLoading = false;
+        },
+        error: (error) => {
+          console.error('Error loading invoices:', error);
+          this.snackBar.open('Error loading invoices', 'Close', { duration: 3000 });
+          this.isLoading = false;
+        },
+      });
   }
 
   private setupCustomFilter(): void {
     this.dataSource.filterPredicate = (invoice: JobInvoice, filter: string) => {
-      const searchData = [
-        invoice.invoiceNumber,
-        invoice.jobId,
-        invoice.customerName,
-        invoice.status
-      ].join(' ').toLowerCase();
+      const searchData = [invoice.invoiceNumber, invoice.jobId, invoice.customerName, invoice.status].join(' ').toLowerCase();
 
       return searchData.includes(filter);
     };
@@ -136,54 +121,33 @@ export class BillingDashboardComponent implements OnInit, OnDestroy, AfterViewIn
   applyFilters(): void {
     let filteredInvoices = [...this.allInvoices];
 
+    // Job ID filter
+    if (this.jobIdFilter && this.jobIdFilter.trim() !== '') {
+      filteredInvoices = filteredInvoices.filter((invoice) => invoice.jobId && invoice.jobId.toLowerCase().includes(this.jobIdFilter.trim().toLowerCase()));
+    }
+
+    // Customer Name filter
+    if (this.customerNameFilter && this.customerNameFilter.trim() !== '') {
+      filteredInvoices = filteredInvoices.filter(
+        (invoice) => invoice.customerName && invoice.customerName.toLowerCase().includes(this.customerNameFilter.trim().toLowerCase())
+      );
+    }
+
     // Status filter
     if (this.statusFilter !== 'all') {
       if (this.statusFilter === 'overdue') {
         const now = new Date();
-        filteredInvoices = filteredInvoices.filter(invoice => 
-          ['sent', 'viewed', 'outstanding'].includes(invoice.status) && 
-          invoice.dueDate < now
-        );
+        filteredInvoices = filteredInvoices.filter((invoice) => ['sent', 'viewed', 'outstanding'].includes(invoice.status) && invoice.dueDate < now);
       } else {
-        filteredInvoices = filteredInvoices.filter(invoice => 
-          invoice.status === this.statusFilter
-        );
+        filteredInvoices = filteredInvoices.filter((invoice) => invoice.status === this.statusFilter);
       }
     }
 
-    // Date filter
-    if (this.dateFilter !== 'all') {
-      const now = new Date();
-      const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      const startOfWeek = new Date(startOfDay);
-      startOfWeek.setDate(startOfDay.getDate() - startOfDay.getDay());
-      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-      const startOfQuarter = new Date(now.getFullYear(), Math.floor(now.getMonth() / 3) * 3, 1);
-      const startOfYear = new Date(now.getFullYear(), 0, 1);
-
-      let dateFrom: Date;
-      switch (this.dateFilter) {
-        case 'today':
-          dateFrom = startOfDay;
-          break;
-        case 'week':
-          dateFrom = startOfWeek;
-          break;
-        case 'month':
-          dateFrom = startOfMonth;
-          break;
-        case 'quarter':
-          dateFrom = startOfQuarter;
-          break;
-        case 'year':
-          dateFrom = startOfYear;
-          break;
-        default:
-          dateFrom = new Date(0);
-      }
-
-      filteredInvoices = filteredInvoices.filter(invoice => 
-        invoice.issueDate >= dateFrom
+    // Search filter
+    if (this.searchTerm && this.searchTerm.trim() !== '') {
+      const search = this.searchTerm.trim().toLowerCase();
+      filteredInvoices = filteredInvoices.filter((invoice) =>
+        [invoice.invoiceNumber, invoice.jobId, invoice.customerName, invoice.status].join(' ').toLowerCase().includes(search)
       );
     }
 
@@ -199,6 +163,14 @@ export class BillingDashboardComponent implements OnInit, OnDestroy, AfterViewIn
   }
 
   onDateFilterChange(): void {
+    this.applyFilters();
+  }
+
+  clearFilters(): void {
+    this.jobIdFilter = '';
+    this.customerNameFilter = '';
+    this.statusFilter = 'all';
+    this.searchTerm = '';
     this.applyFilters();
   }
 
@@ -228,18 +200,19 @@ export class BillingDashboardComponent implements OnInit, OnDestroy, AfterViewIn
       return;
     }
 
-    this.jobBillingService.emailInvoice(invoice.id).pipe(
-      takeUntil(this.destroy$)
-    ).subscribe({
-      next: () => {
-        this.loadDashboardData();
-        this.snackBar.open('Invoice emailed successfully', 'Close', { duration: 3000 });
-      },
-      error: (error) => {
-        console.error('Error emailing invoice:', error);
-        this.snackBar.open('Error emailing invoice', 'Close', { duration: 3000 });
-      }
-    });
+    this.jobBillingService
+      .emailInvoice(invoice.id)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: () => {
+          this.loadDashboardData();
+          this.snackBar.open('Invoice emailed successfully', 'Close', { duration: 3000 });
+        },
+        error: (error) => {
+          console.error('Error emailing invoice:', error);
+          this.snackBar.open('Error emailing invoice', 'Close', { duration: 3000 });
+        },
+      });
   }
 
   markInvoiceAsPaid(invoice: JobInvoice): void {
@@ -248,45 +221,47 @@ export class BillingDashboardComponent implements OnInit, OnDestroy, AfterViewIn
         title: 'Mark Invoice as Paid',
         message: `Mark invoice ${invoice.invoiceNumber} for ${this.formatCurrency(invoice.total)} as paid?`,
         confirmText: 'Mark as Paid',
-        cancelText: 'Cancel'
-      }
+        cancelText: 'Cancel',
+      },
     });
 
-    dialogRef.afterClosed().subscribe(result => {
+    dialogRef.afterClosed().subscribe((result) => {
       if (result) {
-        this.jobBillingService.updateInvoiceStatus(invoice.id, 'paid', {
-          paidAmount: invoice.total,
-          paymentReference: `Payment-${invoice.invoiceNumber}`,
-          paidDate: new Date()
-        }).pipe(
-          takeUntil(this.destroy$)
-        ).subscribe({
-          next: () => {
-            this.loadDashboardData();
-            this.snackBar.open('Invoice marked as paid', 'Close', { duration: 3000 });
-          },
-          error: (error) => {
-            console.error('Error updating invoice status:', error);
-            this.snackBar.open('Error updating invoice status', 'Close', { duration: 3000 });
-          }
-        });
+        this.jobBillingService
+          .updateInvoiceStatus(invoice.id, 'paid', {
+            paidAmount: invoice.total,
+            paymentReference: `Payment-${invoice.invoiceNumber}`,
+            paidDate: new Date(),
+          })
+          .pipe(takeUntil(this.destroy$))
+          .subscribe({
+            next: () => {
+              this.loadDashboardData();
+              this.snackBar.open('Invoice marked as paid', 'Close', { duration: 3000 });
+            },
+            error: (error) => {
+              console.error('Error updating invoice status:', error);
+              this.snackBar.open('Error updating invoice status', 'Close', { duration: 3000 });
+            },
+          });
       }
     });
   }
 
   markInvoiceAsOutstanding(invoice: JobInvoice): void {
-    this.jobBillingService.updateInvoiceStatus(invoice.id, 'outstanding').pipe(
-      takeUntil(this.destroy$)
-    ).subscribe({
-      next: () => {
-        this.loadDashboardData();
-        this.snackBar.open('Invoice marked as outstanding', 'Close', { duration: 3000 });
-      },
-      error: (error) => {
-        console.error('Error updating invoice status:', error);
-        this.snackBar.open('Error updating invoice status', 'Close', { duration: 3000 });
-      }
-    });
+    this.jobBillingService
+      .updateInvoiceStatus(invoice.id, 'outstanding')
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: () => {
+          this.loadDashboardData();
+          this.snackBar.open('Invoice marked as outstanding', 'Close', { duration: 3000 });
+        },
+        error: (error) => {
+          console.error('Error updating invoice status:', error);
+          this.snackBar.open('Error updating invoice status', 'Close', { duration: 3000 });
+        },
+      });
   }
 
   exportInvoices(): void {
@@ -303,19 +278,9 @@ export class BillingDashboardComponent implements OnInit, OnDestroy, AfterViewIn
   }
 
   private prepareCsvData(): string {
-    const headers = [
-      'Invoice Number',
-      'Job ID',
-      'Customer Name',
-      'Issue Date',
-      'Due Date',
-      'Total',
-      'Status',
-      'Sent Date',
-      'Paid Date'
-    ];
+    const headers = ['Invoice Number', 'Job ID', 'Customer Name', 'Issue Date', 'Due Date', 'Total', 'Status', 'Sent Date', 'Paid Date'];
 
-    const rows = this.dataSource.filteredData.map(invoice => [
+    const rows = this.dataSource.filteredData.map((invoice) => [
       invoice.invoiceNumber,
       invoice.jobId,
       invoice.customerName,
@@ -324,12 +289,10 @@ export class BillingDashboardComponent implements OnInit, OnDestroy, AfterViewIn
       invoice.total.toString(),
       invoice.status,
       invoice.sentDate?.toLocaleDateString() || '',
-      invoice.paidDate?.toLocaleDateString() || ''
+      invoice.paidDate?.toLocaleDateString() || '',
     ]);
 
-    return [headers, ...rows].map(row => 
-      row.map(cell => `"${cell}"`).join(',')
-    ).join('\n');
+    return [headers, ...rows].map((row) => row.map((cell) => `"${cell}"`).join(',')).join('\n');
   }
 
   refreshData(): void {
@@ -339,26 +302,25 @@ export class BillingDashboardComponent implements OnInit, OnDestroy, AfterViewIn
   formatCurrency(amount: number): string {
     return new Intl.NumberFormat('en-GB', {
       style: 'currency',
-      currency: 'GBP'
+      currency: 'GBP',
     }).format(amount);
   }
 
   getStatusColor(status: string): string {
     const colors: { [key: string]: string } = {
-      'draft': 'gray',
-      'sent': 'blue',
-      'viewed': 'orange',
-      'outstanding': 'orange',
-      'paid': 'green',
-      'overdue': 'red'
+      draft: 'gray',
+      sent: 'blue',
+      viewed: 'orange',
+      outstanding: 'orange',
+      paid: 'green',
+      overdue: 'red',
     };
     return colors[status] || 'gray';
   }
 
   isOverdue(invoice: JobInvoice): boolean {
     const now = new Date();
-    return ['sent', 'viewed', 'outstanding'].includes(invoice.status) && 
-           invoice.dueDate < now;
+    return ['sent', 'viewed', 'outstanding'].includes(invoice.status) && invoice.dueDate < now;
   }
 
   getDaysOverdue(invoice: JobInvoice): number {
@@ -452,11 +414,15 @@ export class BillingDashboardComponent implements OnInit, OnDestroy, AfterViewIn
           <div class="customer-info">
             <h3>Bill To:</h3>
             <p><strong>${invoice.customerName}</strong></p>
-            ${invoice.billingAddress ? `
+            ${
+              invoice.billingAddress
+                ? `
               <p>${invoice.billingAddress.address}<br>
                  ${invoice.billingAddress.city} ${invoice.billingAddress.postcode}<br>
                  ${invoice.billingAddress.country}</p>
-            ` : ''}
+            `
+                : ''
+            }
           </div>
 
           <table class="invoice-table">
@@ -469,7 +435,9 @@ export class BillingDashboardComponent implements OnInit, OnDestroy, AfterViewIn
               </tr>
             </thead>
             <tbody>
-              ${invoice.items.map(item => `
+              ${invoice.items
+                .map(
+                  (item) => `
                 <tr>
                   <td>
                     <div><strong>${item.description}</strong></div>
@@ -479,7 +447,9 @@ export class BillingDashboardComponent implements OnInit, OnDestroy, AfterViewIn
                   <td>${this.formatCurrency(item.unitPrice)}</td>
                   <td>${this.formatCurrency(item.amount * item.quantity)}</td>
                 </tr>
-              `).join('')}
+              `
+                )
+                .join('')}
             </tbody>
             <tfoot>
               <tr>

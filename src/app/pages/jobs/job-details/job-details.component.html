@@ -15,13 +15,30 @@
         <mat-icon>refresh</mat-icon>
         Refresh
       </button>
-      <button mat-stroked-button (click)="printJob()" class="export-button">
-        <mat-icon>print</mat-icon>
-        Print
-      </button>
       <button mat-flat-button color="primary" (click)="editJob()" *ngIf="canEditJobs" class="create-button">
         <mat-icon>edit</mat-icon>
         Edit Job
+      </button>
+      <button *ngIf="job.status === 'delivered'" mat-flat-button class="create-button success-button" (click)="setJobToCompleted()">
+        <mat-icon>check_circle</mat-icon>
+        Set to Complete
+      </button>
+      <!-- Completed status actions -->
+      <button *ngIf="job.status === 'completed'" mat-flat-button class="create-button reopen-button" (click)="reopenJob()">
+        <mat-icon>undo</mat-icon>
+        Reopen Job
+      </button>
+      <button *ngIf="job.status === 'completed'" mat-stroked-button class="create-button archive-button" (click)="archiveJob()">
+        <mat-icon>archive</mat-icon>
+        Archive
+      </button>
+      <button *ngIf="job.status === 'completed'" mat-stroked-button class="create-button delete-button" (click)="deleteJob()">
+        <mat-icon>delete</mat-icon>
+        Delete
+      </button>
+      <button mat-stroked-button class="create-button add-note-button" (click)="openAddNoteDialog()">
+        <mat-icon>note_add</mat-icon>
+        Add Note
       </button>
     </div>
   </div>
@@ -46,9 +63,11 @@
       <mat-card-content>
         <div class="status-header">
           <div class="status-info">
-            <div class="status-badge" [ngClass]="'status-' + getStatusColor(job.status)">
-              <mat-icon>{{ getStatusIcon(job.status) }}</mat-icon>
-              <span>{{ job.status | titlecase }}</span>
+            <div class="status-badge-group">
+              <div class="status-badge" [ngClass]="'status-' + getStatusColor(job.status)">
+                <mat-icon>{{ getStatusIcon(job.status) }}</mat-icon>
+                <span>{{ job.status | titlecase }}</span>
+              </div>
             </div>
             <div class="customer-info" *ngIf="job.customerName">
               <mat-icon>business</mat-icon>
@@ -75,70 +94,46 @@
           <div class="progress-text">{{ getStatusProgress() | number : '1.0-0' }}% Complete</div>
         </div>
 
-        <!-- Report Generation Buttons -->
+        <!-- Report Generation Buttons (tidy, conditional) -->
         <div class="report-actions" *ngIf="canViewReports">
-          <!-- Collection Report -->
+          <!-- POC Report: Only show if job.status is 'collected' or later -->
           <button
             mat-raised-button
             color="accent"
             class="report-button"
-            *ngIf="canGenerateCollectionReport()"
+            *ngIf="job?.status === 'collected' || job?.status === 'in-transit' || job?.status === 'delivered' || job?.status === 'completed'"
             (click)="generateCollectionReport()"
             [disabled]="generatingReport">
             <mat-icon>description</mat-icon>
             POC Report
           </button>
 
-          <!-- Secondary Collection Report (for split journeys) -->
+          <!-- POD Report: Only show if job.status is 'delivered' or 'completed' -->
           <button
             mat-raised-button
             color="accent"
             class="report-button"
-            *ngIf="canGenerateSecondaryCollectionReport()"
-            (click)="generateSecondaryCollectionReport()"
-            [disabled]="generatingReport">
-            <mat-icon>description</mat-icon>
-            Secondary POC
-          </button>
-
-          <!-- First Delivery Report (for split journeys) -->
-          <button
-            mat-raised-button
-            color="accent"
-            class="report-button"
-            *ngIf="canGenerateFirstDeliveryReport()"
-            (click)="generateFirstDeliveryReport()"
-            [disabled]="generatingReport">
-            <mat-icon>description</mat-icon>
-            First POD
-          </button>
-
-          <!-- Final Delivery Report -->
-          <button
-            mat-raised-button
-            color="accent"
-            class="report-button"
-            *ngIf="canGenerateDeliveryReport()"
+            *ngIf="job?.status === 'delivered' || job?.status === 'completed'"
             (click)="generateDeliveryReport()"
             [disabled]="generatingReport">
             <mat-icon>description</mat-icon>
             POD Report
           </button>
         </div>
+
+        <!-- Report Generation Progress -->
+        <mat-card *ngIf="generatingReport" class="report-progress-card">
+          <mat-card-content>
+            <div class="report-progress">
+              <mat-spinner diameter="24"></mat-spinner>
+              <span>Generating {{ currentReportType }} report...</span>
+            </div>
+          </mat-card-content>
+        </mat-card>
       </mat-card-content>
     </mat-card>
 
-    <!-- Report Generation Progress -->
-    <mat-card *ngIf="generatingReport" class="report-progress-card">
-      <mat-card-content>
-        <div class="report-progress">
-          <mat-spinner diameter="24"></mat-spinner>
-          <span>Generating {{ currentReportType }} report...</span>
-        </div>
-      </mat-card-content>
-    </mat-card>
-
-    <!-- Main Content Tabs -->
+    <!-- Main Content Tabs Card (move this outside the status-overview-card) -->
     <mat-card class="main-content-card">
       <mat-tab-group [(selectedIndex)]="selectedTabIndex" (selectedTabChange)="onTabChange($event.index)" class="job-tabs">
         <!-- Overview Tab -->
@@ -202,7 +197,7 @@
                   </div>
                   <div class="info-item">
                     <span class="label">Created By</span>
-                    <span class="value">{{ job.createdBy || 'System' }}</span>
+                    <span class="value">{{ job.createdBy }}</span>
                   </div>
                   <div class="info-item" *ngIf="job.driverId">
                     <span class="label">Assigned Driver</span>
@@ -686,117 +681,131 @@
         <!-- Notes Tab -->
         <mat-tab label="Notes">
           <div class="tab-content">
-            <div class="notes-section">
+            <!-- Collection Notes Section -->
+            <div class="notes-section" *ngIf="job.collectionNotes?.length">
+              <div class="notes-header">
+                <mat-icon>note</mat-icon>
+                <h3>Collection Notes</h3>
+              </div>
+              <div class="notes-list">
+                <div class="note-item" *ngFor="let note of job.collectionNotes">
+                  <ng-container *ngIf="isNoteObject(note)">
+                    <div class="note-content">{{ note.content }}</div>
+                    <div class="note-meta-row">
+                      <span class="note-author">{{ note.authorName }}</span>
+                      <span class="note-date">{{ formatNoteDate(note.createdAt) }}</span>
+                    </div>
+                  </ng-container>
+                </div>
+              </div>
+            </div>
+
+            <!-- 1st Delivery Notes (Final Delivery for non-split) -->
+            <div class="notes-section" *ngIf="!isSplitJourney && job.deliveryNotes?.length">
+              <div class="notes-header">
+                <mat-icon>flag</mat-icon>
+                <h3>Final Delivery Notes</h3>
+              </div>
+              <div class="notes-list">
+                <div class="note-item" *ngFor="let note of job.deliveryNotes">
+                  <ng-container *ngIf="isNoteObject(note)">
+                    <div class="note-content">{{ note.content }}</div>
+                    <div class="note-meta-row">
+                      <span class="note-author">{{ note.authorName }}</span>
+                      <span class="note-date">{{ formatNoteDate(note.createdAt) }}</span>
+                    </div>
+                  </ng-container>
+                </div>
+              </div>
+            </div>
+
+            <!-- Split Journey Notes Sections -->
+            <div *ngIf="isSplitJourney">
+              <!-- First Delivery Notes -->
+              <div class="notes-section" *ngIf="job.firstDeliveryNotes?.length">
+                <div class="notes-header">
+                  <mat-icon>flag</mat-icon>
+                  <h3>First Delivery Notes</h3>
+                </div>
+                <div class="notes-list">
+                  <div class="note-item" *ngFor="let note of job.firstDeliveryNotes">
+                    <ng-container *ngIf="isNoteObject(note)">
+                      <div class="note-content">{{ note.content }}</div>
+                      <div class="note-meta-row">
+                        <span class="note-author">{{ note.authorName }}</span>
+                        <span class="note-date">{{ formatNoteDate(note.createdAt) }}</span>
+                      </div>
+                    </ng-container>
+                  </div>
+                </div>
+              </div>
+              <!-- Second Collection Notes -->
+              <div class="notes-section" *ngIf="job.secondaryCollectionNotes?.length">
+                <div class="notes-header">
+                  <mat-icon>location_on</mat-icon>
+                  <h3>Second Collection Notes</h3>
+                </div>
+                <div class="notes-list">
+                  <div class="note-item" *ngFor="let note of job.secondaryCollectionNotes">
+                    <ng-container *ngIf="isNoteObject(note)">
+                      <div class="note-content">{{ note.content }}</div>
+                      <div class="note-meta-row">
+                        <span class="note-author">{{ note.authorName }}</span>
+                        <span class="note-date">{{ formatNoteDate(note.createdAt) }}</span>
+                      </div>
+                    </ng-container>
+                  </div>
+                </div>
+              </div>
+              <!-- Final Delivery Notes -->
+              <div class="notes-section" *ngIf="job['finalDeliveryNotes']?.length">
+                <div class="notes-header">
+                  <mat-icon>flag</mat-icon>
+                  <h3>Final Delivery Notes</h3>
+                </div>
+                <div class="notes-list">
+                  <div class="note-item" *ngFor="let note of job['finalDeliveryNotes']">
+                    <ng-container *ngIf="isNoteObject(note)">
+                      <div class="note-content">{{ note.content }}</div>
+                      <div class="note-meta-row">
+                        <span class="note-author">{{ note.authorName }}</span>
+                        <span class="note-date">{{ formatNoteDate(note.createdAt) }}</span>
+                      </div>
+                    </ng-container>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- General Notes Section -->
+            <div class="notes-section" *ngIf="job.generalNotes?.length">
               <div class="notes-header">
                 <mat-icon>notes</mat-icon>
-                <h3>Job Notes</h3>
+                <h3>General Notes</h3>
               </div>
-
-              <div class="notes-content">
-                <!-- General Notes -->
-                <div class="note-category" *ngIf="getFormattedNotes(job.generalNotes).length > 0">
-                  <h4>General Notes</h4>
-                  <div class="note-item" *ngFor="let note of getFormattedNotes(job.generalNotes)">
-                    <div class="note-header">
-                      <div class="note-author">
-                        <mat-icon>person</mat-icon>
-                        <span>{{ note.authorName || 'System' }}</span>
-                      </div>
-                      <div class="note-date">{{ formatDateTime(note.createdAt) }}</div>
-                    </div>
+              <div class="notes-list">
+                <div class="note-item" *ngFor="let note of job.generalNotes">
+                  <ng-container *ngIf="isNoteObject(note)">
                     <div class="note-content">{{ note.content }}</div>
-                  </div>
-                </div>
-
-                <!-- Process Notes -->
-                <div class="note-category" *ngIf="jobProcessData?.collection?.notes || jobProcessData?.delivery?.notes">
-                  <h4>Process Notes</h4>
-
-                  <div class="process-note-item" *ngIf="jobProcessData?.collection?.notes">
-                    <div class="process-note-header">
-                      <mat-icon>location_on</mat-icon>
-                      <span>Collection Notes</span>
+                    <div class="note-meta-row">
+                      <span class="note-author">{{ note.authorName }}</span>
+                      <span class="note-date">{{ formatNoteDate(note.createdAt) }}</span>
                     </div>
-                    <div class="process-note-content">{{ jobProcessData?.collection?.notes }}</div>
-                  </div>
-
-                  <div class="process-note-item" *ngIf="jobProcessData?.delivery?.notes">
-                    <div class="process-note-header">
-                      <mat-icon>flag</mat-icon>
-                      <span>Delivery Notes</span>
-                    </div>
-                    <div class="process-note-content">{{ jobProcessData?.delivery?.notes }}</div>
-                  </div>
-
-                  <!-- Split Journey Process Notes -->
-                  <div class="process-note-item" *ngIf="jobProcessData?.secondaryCollection?.notes">
-                    <div class="process-note-header">
-                      <mat-icon>location_on</mat-icon>
-                      <span>Secondary Collection Notes</span>
-                    </div>
-                    <div class="process-note-content">{{ jobProcessData?.secondaryCollection?.notes }}</div>
-                  </div>
-
-                  <div class="process-note-item" *ngIf="jobProcessData?.firstDelivery?.notes">
-                    <div class="process-note-header">
-                      <mat-icon>flag</mat-icon>
-                      <span>First Delivery Notes</span>
-                    </div>
-                    <div class="process-note-content">{{ jobProcessData?.firstDelivery?.notes }}</div>
-                  </div>
-                </div>
-
-                <!-- Original Job Notes -->
-                <div class="note-category" *ngIf="job.collectionNotes || job.deliveryNotes">
-                  <h4>Original Job Instructions</h4>
-
-                  <div class="instruction-note" *ngIf="job.collectionNotes">
-                    <div class="instruction-header">
-                      <mat-icon>input</mat-icon>
-                      <span>Collection Instructions</span>
-                    </div>
-                    <div class="instruction-content">{{ job.collectionNotes }}</div>
-                  </div>
-
-                  <div class="instruction-note" *ngIf="job.deliveryNotes">
-                    <div class="instruction-header">
-                      <mat-icon>output</mat-icon>
-                      <span>Delivery Instructions</span>
-                    </div>
-                    <div class="instruction-content">{{ job.deliveryNotes }}</div>
-                  </div>
-
-                  <!-- Split Journey Instructions -->
-                  <div class="instruction-note" *ngIf="job.secondaryCollectionNotes">
-                    <div class="instruction-header">
-                      <mat-icon>input</mat-icon>
-                      <span>Secondary Collection Instructions</span>
-                    </div>
-                    <div class="instruction-content">{{ job.secondaryCollectionNotes }}</div>
-                  </div>
-
-                  <div class="instruction-note" *ngIf="job.firstDeliveryNotes">
-                    <div class="instruction-header">
-                      <mat-icon>output</mat-icon>
-                      <span>First Delivery Instructions</span>
-                    </div>
-                    <div class="instruction-content">{{ job.firstDeliveryNotes }}</div>
-                  </div>
-                </div>
-
-                <div
-                  class="notes-empty"
-                  *ngIf="
-                    getFormattedNotes(job.generalNotes).length === 0 &&
-                    !jobProcessData?.collection?.notes &&
-                    !jobProcessData?.delivery?.notes &&
-                    !job.collectionNotes &&
-                    !job.deliveryNotes
-                  ">
-                  <mat-icon>note_add</mat-icon>
-                  <p>No notes added to this job yet</p>
+                  </ng-container>
                 </div>
               </div>
+            </div>
+
+            <div
+              class="notes-empty"
+              *ngIf="
+                job.collectionNotes?.length === 0 &&
+                job.deliveryNotes?.length === 0 &&
+                (isSplitJourney ? job.secondaryCollectionNotes?.length === 0 && job.firstDeliveryNotes?.length === 0 : true) &&
+                job['finalDeliveryNotes']?.length === 0
+              ">
+              <mat-icon>note_add</mat-icon>
+              <p>No notes added to this job yet</p>
             </div>
           </div>
         </mat-tab>
@@ -805,6 +814,35 @@
         <mat-tab label="Documents">
           <div class="tab-content">
             <div class="documents-section">
+              <!-- Admin Uploaded Documents Section -->
+              <div class="admin-documents-section">
+                <div class="admin-documents-header">
+                  <mat-icon>upload_file</mat-icon>
+                  <h3>Admin Uploaded Documents</h3>
+                </div>
+                <div class="admin-upload-row">
+                  <input type="file" (change)="onAdminFileSelected($event)" [disabled]="adminUploading" />
+                  <button mat-stroked-button color="primary" (click)="uploadAdminDocument()" [disabled]="!adminSelectedFile || adminUploading">
+                    <mat-icon>cloud_upload</mat-icon>
+                    Upload
+                  </button>
+                  <mat-progress-spinner *ngIf="adminUploading" diameter="24" mode="indeterminate"></mat-progress-spinner>
+                </div>
+                <div class="admin-documents-list" *ngIf="adminDocuments.length > 0">
+                  <div class="admin-document-item" *ngFor="let doc of adminDocuments">
+                    <mat-icon>description</mat-icon>
+                    <span class="doc-name">{{ doc.fileName }}</span>
+                    <span class="doc-meta">{{ formatFileSize(doc.size) }} • {{ formatDateTime(doc.uploadedAt) }}</span>
+                    <button mat-icon-button (click)="viewDocument(doc)" matTooltip="View"><mat-icon>visibility</mat-icon></button>
+                    <button mat-icon-button (click)="downloadDocument(doc)" matTooltip="Download"><mat-icon>download</mat-icon></button>
+                  </div>
+                </div>
+                <div *ngIf="!adminDocuments.length" class="admin-documents-empty">
+                  <mat-icon>info</mat-icon>
+                  <span>No admin documents uploaded yet.</span>
+                </div>
+                <mat-divider style="margin: 24px 0"></mat-divider>
+              </div>
               <div class="documents-header">
                 <mat-icon>folder</mat-icon>
                 <h3>Job Documents</h3>

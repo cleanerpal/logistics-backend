@@ -1,36 +1,31 @@
 // src/app/services/job-billing.service.ts
 
 import { Injectable } from '@angular/core';
-import { 
-  Firestore, 
-  collection, 
-  doc, 
-  getDocs, 
+import {
+  Firestore,
+  collection,
+  doc,
+  getDocs,
   getDoc,
-  addDoc, 
-  updateDoc, 
-  deleteDoc, 
-  query, 
-  where, 
-  orderBy, 
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  query,
+  where,
+  orderBy,
   serverTimestamp,
   writeBatch,
-  limit
+  limit,
 } from '@angular/fire/firestore';
 import { BehaviorSubject, Observable, from, of, throwError, combineLatest } from 'rxjs';
 import { map, catchError, tap, switchMap } from 'rxjs/operators';
-import { 
-  JobBillingItem, 
-  JobInvoice, 
-  BillingSettings, 
-  BillingDashboardStats 
-} from '../interfaces/job-billing.interface';
+import { JobBillingItem, JobInvoice, BillingSettings, BillingDashboardStats } from '../interfaces/job-billing.interface';
 import { AuthService } from './auth.service';
 import { EmailService } from './email.service';
 import { NotificationService } from './notification.service';
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class JobBillingService {
   private loadingSubject = new BehaviorSubject<boolean>(false);
@@ -45,45 +40,39 @@ export class JobBillingService {
 
   private currentUserId: string | null = null;
 
-  constructor(
-    private firestore: Firestore,
-    private authService: AuthService,
-    private emailService: EmailService,
-    private notificationService: NotificationService
-  ) {
-    this.authService.getUserProfile().subscribe(profile => {
+  constructor(private firestore: Firestore, private authService: AuthService, private emailService: EmailService, private notificationService: NotificationService) {
+    this.authService.getUserProfile().subscribe((profile) => {
       this.currentUserId = profile?.id || null;
     });
-    
+
     this.loadBillingSettings();
   }
 
   // Billing Items Management
   getJobBillingItems(jobId: string): Observable<JobBillingItem[]> {
     this.loadingSubject.next(true);
-    
+
     const itemsRef = collection(this.firestore, 'jobBillingItems');
-    const q = query(
-      itemsRef, 
-      where('jobId', '==', jobId),
-      orderBy('date', 'desc')
-    );
+    const q = query(itemsRef, where('jobId', '==', jobId), orderBy('date', 'desc'));
 
     return from(getDocs(q)).pipe(
-      map(snapshot => {
-        const items = snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data(),
-          date: doc.data()['date']?.toDate() || new Date(),
-          createdAt: doc.data()['createdAt']?.toDate() || new Date(),
-          updatedAt: doc.data()['updatedAt']?.toDate() || new Date()
-        } as JobBillingItem));
-        
+      map((snapshot) => {
+        const items = snapshot.docs.map(
+          (doc) =>
+            ({
+              id: doc.id,
+              ...doc.data(),
+              date: doc.data()['date']?.toDate() || new Date(),
+              createdAt: doc.data()['createdAt']?.toDate() || new Date(),
+              updatedAt: doc.data()['updatedAt']?.toDate() || new Date(),
+            } as JobBillingItem)
+        );
+
         this.billingItemsSubject.next(items);
         return items;
       }),
       tap(() => this.loadingSubject.next(false)),
-      catchError(error => {
+      catchError((error) => {
         console.error('Error fetching job billing items:', error);
         this.loadingSubject.next(false);
         return of([]);
@@ -101,19 +90,19 @@ export class JobBillingService {
       ...item,
       createdBy: this.currentUserId,
       createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp()
+      updatedAt: serverTimestamp(),
     };
 
     return from(addDoc(itemsRef, newItem)).pipe(
-      map(docRef => docRef.id),
-      tap(itemId => {
+      map((docRef) => docRef.id),
+      tap((itemId) => {
         this.notificationService.addNotification({
           type: 'success',
           title: 'Billing Item Added',
-          message: `${item.description} has been added to job billing.`
+          message: `${item.description} has been added to job billing.`,
         });
       }),
-      catchError(error => {
+      catchError((error) => {
         console.error('Error adding billing item:', error);
         return throwError(() => error);
       })
@@ -124,7 +113,7 @@ export class JobBillingService {
     const itemRef = doc(this.firestore, 'jobBillingItems', itemId);
     const updateData = {
       ...updates,
-      updatedAt: serverTimestamp()
+      updatedAt: serverTimestamp(),
     };
 
     return from(updateDoc(itemRef, updateData)).pipe(
@@ -132,10 +121,10 @@ export class JobBillingService {
         this.notificationService.addNotification({
           type: 'success',
           title: 'Billing Item Updated',
-          message: 'Billing item has been updated successfully.'
+          message: 'Billing item has been updated successfully.',
         });
       }),
-      catchError(error => {
+      catchError((error) => {
         console.error('Error updating billing item:', error);
         return throwError(() => error);
       })
@@ -144,16 +133,16 @@ export class JobBillingService {
 
   deleteBillingItem(itemId: string): Observable<void> {
     const itemRef = doc(this.firestore, 'jobBillingItems', itemId);
-    
+
     return from(deleteDoc(itemRef)).pipe(
       tap(() => {
         this.notificationService.addNotification({
           type: 'success',
           title: 'Billing Item Deleted',
-          message: 'Billing item has been removed.'
+          message: 'Billing item has been removed.',
         });
       }),
-      catchError(error => {
+      catchError((error) => {
         console.error('Error deleting billing item:', error);
         return throwError(() => error);
       })
@@ -166,17 +155,14 @@ export class JobBillingService {
       return throwError(() => new Error('User not authenticated'));
     }
 
-    return combineLatest([
-      this.getJobBillingItems(jobId),
-      this.getBillingSettings()
-    ]).pipe(
+    return combineLatest([this.getJobBillingItems(jobId), this.getBillingSettings()]).pipe(
       switchMap(([items, settings]) => {
         if (!settings) {
           return throwError(() => new Error('Billing settings not configured'));
         }
 
-        const chargeableItems = items.filter(item => item.isChargeable);
-        const subtotal = chargeableItems.reduce((sum, item) => sum + (item.amount * item.quantity), 0);
+        const chargeableItems = items.filter((item) => item.isChargeable);
+        const subtotal = chargeableItems.reduce((sum, item) => sum + item.amount * item.quantity, 0);
         const vatAmount = subtotal * (settings.vatRate / 100);
         const total = subtotal + vatAmount;
 
@@ -195,27 +181,29 @@ export class JobBillingService {
           total,
           status: 'draft',
           issueDate: new Date(),
-          dueDate: new Date(Date.now() + (settings.paymentTermsDays * 24 * 60 * 60 * 1000)),
-          createdBy: this.currentUserId,
+          dueDate: new Date(Date.now() + settings.paymentTermsDays * 24 * 60 * 60 * 1000),
+          createdBy: this.currentUserId || '',
           createdAt: new Date(),
-          updatedAt: new Date()
+          updatedAt: new Date(),
         };
 
         const invoicesRef = collection(this.firestore, 'jobInvoices');
-        return from(addDoc(invoicesRef, {
-          ...invoice,
-          issueDate: serverTimestamp(),
-          dueDate: serverTimestamp(),
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp()
-        })).pipe(
-          map(docRef => docRef.id),
+        return from(
+          addDoc(invoicesRef, {
+            ...invoice,
+            issueDate: serverTimestamp(),
+            dueDate: serverTimestamp(),
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
+          })
+        ).pipe(
+          map((docRef) => docRef.id),
           tap(() => {
             this.updateInvoiceCounter(settings.nextInvoiceNumber + 1);
           })
         );
       }),
-      catchError(error => {
+      catchError((error) => {
         console.error('Error creating invoice:', error);
         return throwError(() => error);
       })
@@ -224,26 +212,25 @@ export class JobBillingService {
 
   getJobInvoices(jobId: string): Observable<JobInvoice[]> {
     const invoicesRef = collection(this.firestore, 'jobInvoices');
-    const q = query(
-      invoicesRef,
-      where('jobId', '==', jobId),
-      orderBy('createdAt', 'desc')
-    );
+    const q = query(invoicesRef, where('jobId', '==', jobId), orderBy('createdAt', 'desc'));
 
     return from(getDocs(q)).pipe(
-      map(snapshot => {
-        return snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data(),
-          issueDate: doc.data()['issueDate']?.toDate() || new Date(),
-          dueDate: doc.data()['dueDate']?.toDate() || new Date(),
-          sentDate: doc.data()['sentDate']?.toDate(),
-          paidDate: doc.data()['paidDate']?.toDate(),
-          createdAt: doc.data()['createdAt']?.toDate() || new Date(),
-          updatedAt: doc.data()['updatedAt']?.toDate() || new Date()
-        } as JobInvoice));
+      map((snapshot) => {
+        return snapshot.docs.map(
+          (doc) =>
+            ({
+              id: doc.id,
+              ...doc.data(),
+              issueDate: doc.data()['issueDate']?.toDate() || new Date(),
+              dueDate: doc.data()['dueDate']?.toDate() || new Date(),
+              sentDate: doc.data()['sentDate']?.toDate(),
+              paidDate: doc.data()['paidDate']?.toDate(),
+              createdAt: doc.data()['createdAt']?.toDate() || new Date(),
+              updatedAt: doc.data()['updatedAt']?.toDate() || new Date(),
+            } as JobInvoice)
+        );
       }),
-      catchError(error => {
+      catchError((error) => {
         console.error('Error fetching job invoices:', error);
         return of([]);
       })
@@ -253,28 +240,31 @@ export class JobBillingService {
   getAllInvoices(limitCount?: number): Observable<JobInvoice[]> {
     const invoicesRef = collection(this.firestore, 'jobInvoices');
     let q = query(invoicesRef, orderBy('createdAt', 'desc'));
-    
+
     if (limitCount) {
       q = query(invoicesRef, orderBy('createdAt', 'desc'), limit(limitCount));
     }
 
     return from(getDocs(q)).pipe(
-      map(snapshot => {
-        const invoices = snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data(),
-          issueDate: doc.data()['issueDate']?.toDate() || new Date(),
-          dueDate: doc.data()['dueDate']?.toDate() || new Date(),
-          sentDate: doc.data()['sentDate']?.toDate(),
-          paidDate: doc.data()['paidDate']?.toDate(),
-          createdAt: doc.data()['createdAt']?.toDate() || new Date(),
-          updatedAt: doc.data()['updatedAt']?.toDate() || new Date()
-        } as JobInvoice));
-        
+      map((snapshot) => {
+        const invoices = snapshot.docs.map(
+          (doc) =>
+            ({
+              id: doc.id,
+              ...doc.data(),
+              issueDate: doc.data()['issueDate']?.toDate() || new Date(),
+              dueDate: doc.data()['dueDate']?.toDate() || new Date(),
+              sentDate: doc.data()['sentDate']?.toDate(),
+              paidDate: doc.data()['paidDate']?.toDate(),
+              createdAt: doc.data()['createdAt']?.toDate() || new Date(),
+              updatedAt: doc.data()['updatedAt']?.toDate() || new Date(),
+            } as JobInvoice)
+        );
+
         this.invoicesSubject.next(invoices);
         return invoices;
       }),
-      catchError(error => {
+      catchError((error) => {
         console.error('Error fetching invoices:', error);
         return of([]);
       })
@@ -286,7 +276,7 @@ export class JobBillingService {
     const updateData: any = {
       status,
       updatedAt: serverTimestamp(),
-      ...additionalData
+      ...additionalData,
     };
 
     if (status === 'sent' && !additionalData?.sentDate) {
@@ -302,10 +292,10 @@ export class JobBillingService {
         this.notificationService.addNotification({
           type: 'success',
           title: 'Invoice Updated',
-          message: `Invoice status updated to ${status}.`
+          message: `Invoice status updated to ${status}.`,
         });
       }),
-      catchError(error => {
+      catchError((error) => {
         console.error('Error updating invoice status:', error);
         return throwError(() => error);
       })
@@ -315,16 +305,14 @@ export class JobBillingService {
   // Email Invoice
   emailInvoice(invoiceId: string): Observable<void> {
     return this.getInvoiceById(invoiceId).pipe(
-      switchMap(invoice => {
+      switchMap((invoice) => {
         if (!invoice || !invoice.customerEmail) {
           return throwError(() => new Error('Invoice not found or customer email missing'));
         }
 
-        return this.emailService.sendInvoice(invoice).pipe(
-          switchMap(() => this.updateInvoiceStatus(invoiceId, 'sent'))
-        );
+        return this.emailService.sendInvoice(invoice).pipe(switchMap(() => this.updateInvoiceStatus(invoiceId, 'sent')));
       }),
-      catchError(error => {
+      catchError((error) => {
         console.error('Error emailing invoice:', error);
         return throwError(() => error);
       })
@@ -334,18 +322,20 @@ export class JobBillingService {
   // Settings Management
   private loadBillingSettings(): void {
     const settingsRef = doc(this.firestore, 'settings', 'billing');
-    
-    from(getDoc(settingsRef)).pipe(
-      map(docSnap => {
-        if (docSnap.exists()) {
-          return docSnap.data() as BillingSettings;
-        }
-        return this.getDefaultBillingSettings();
-      }),
-      catchError(() => of(this.getDefaultBillingSettings()))
-    ).subscribe(settings => {
-      this.settingsSubject.next(settings);
-    });
+
+    from(getDoc(settingsRef))
+      .pipe(
+        map((docSnap) => {
+          if (docSnap.exists()) {
+            return docSnap.data() as BillingSettings;
+          }
+          return this.getDefaultBillingSettings();
+        }),
+        catchError(() => of(this.getDefaultBillingSettings()))
+      )
+      .subscribe((settings) => {
+        this.settingsSubject.next(settings);
+      });
   }
 
   getBillingSettings(): Observable<BillingSettings | null> {
@@ -354,17 +344,17 @@ export class JobBillingService {
 
   updateBillingSettings(settings: Partial<BillingSettings>): Observable<void> {
     const settingsRef = doc(this.firestore, 'settings', 'billing');
-    
+
     return from(updateDoc(settingsRef, settings)).pipe(
       tap(() => {
         this.loadBillingSettings();
         this.notificationService.addNotification({
           type: 'success',
           title: 'Settings Updated',
-          message: 'Billing settings have been updated successfully.'
+          message: 'Billing settings have been updated successfully.',
         });
       }),
-      catchError(error => {
+      catchError((error) => {
         console.error('Error updating billing settings:', error);
         return throwError(() => error);
       })
@@ -374,43 +364,31 @@ export class JobBillingService {
   // Dashboard Stats
   getBillingDashboardStats(): Observable<BillingDashboardStats> {
     return this.getAllInvoices().pipe(
-      map(invoices => {
+      map((invoices) => {
         const now = new Date();
         const currentMonth = now.getMonth();
         const currentYear = now.getFullYear();
 
-        const totalOutstanding = invoices
-          .filter(inv => ['sent', 'viewed', 'outstanding', 'overdue'].includes(inv.status))
-          .reduce((sum, inv) => sum + inv.total, 0);
+        const totalOutstanding = invoices.filter((inv) => ['sent', 'viewed', 'outstanding', 'overdue'].includes(inv.status)).reduce((sum, inv) => sum + inv.total, 0);
 
-        const totalPaid = invoices
-          .filter(inv => inv.status === 'paid')
-          .reduce((sum, inv) => sum + inv.total, 0);
+        const totalPaid = invoices.filter((inv) => inv.status === 'paid').reduce((sum, inv) => sum + inv.total, 0);
 
-        const overdueInvoices = invoices.filter(inv => 
-          ['sent', 'viewed', 'outstanding'].includes(inv.status) && 
-          inv.dueDate < now
+        const overdueInvoices = invoices.filter((inv) => ['sent', 'viewed', 'outstanding'].includes(inv.status) && inv.dueDate < now);
+
+        const thisMonthInvoices = invoices.filter((inv) => inv.issueDate.getMonth() === currentMonth && inv.issueDate.getFullYear() === currentYear);
+
+        const thisMonthPaidInvoices = invoices.filter(
+          (inv) => inv.status === 'paid' && inv.paidDate && inv.paidDate.getMonth() === currentMonth && inv.paidDate.getFullYear() === currentYear
         );
 
-        const thisMonthInvoices = invoices.filter(inv => 
-          inv.issueDate.getMonth() === currentMonth && 
-          inv.issueDate.getFullYear() === currentYear
-        );
-
-        const thisMonthPaidInvoices = invoices.filter(inv => 
-          inv.status === 'paid' && 
-          inv.paidDate && 
-          inv.paidDate.getMonth() === currentMonth && 
-          inv.paidDate.getFullYear() === currentYear
-        );
-
-        const paidInvoices = invoices.filter(inv => inv.status === 'paid' && inv.paidDate);
-        const averagePaymentDays = paidInvoices.length > 0 
-          ? paidInvoices.reduce((sum, inv) => {
-              const days = Math.ceil((inv.paidDate!.getTime() - inv.issueDate.getTime()) / (1000 * 60 * 60 * 24));
-              return sum + days;
-            }, 0) / paidInvoices.length
-          : 0;
+        const paidInvoices = invoices.filter((inv) => inv.status === 'paid' && inv.paidDate);
+        const averagePaymentDays =
+          paidInvoices.length > 0
+            ? paidInvoices.reduce((sum, inv) => {
+                const days = Math.ceil((inv.paidDate!.getTime() - inv.issueDate.getTime()) / (1000 * 60 * 60 * 24));
+                return sum + days;
+              }, 0) / paidInvoices.length
+            : 0;
 
         return {
           totalOutstanding,
@@ -419,10 +397,10 @@ export class JobBillingService {
           overdueAmount: overdueInvoices.reduce((sum, inv) => sum + inv.total, 0),
           thisMonthInvoiced: thisMonthInvoices.reduce((sum, inv) => sum + inv.total, 0),
           thisMonthPaid: thisMonthPaidInvoices.reduce((sum, inv) => sum + inv.total, 0),
-          averagePaymentDays: Math.round(averagePaymentDays)
+          averagePaymentDays: Math.round(averagePaymentDays),
         };
       }),
-      catchError(error => {
+      catchError((error) => {
         console.error('Error calculating dashboard stats:', error);
         return of({
           totalOutstanding: 0,
@@ -431,7 +409,7 @@ export class JobBillingService {
           overdueAmount: 0,
           thisMonthInvoiced: 0,
           thisMonthPaid: 0,
-          averagePaymentDays: 0
+          averagePaymentDays: 0,
         });
       })
     );
@@ -440,9 +418,9 @@ export class JobBillingService {
   // Helper Methods
   private getInvoiceById(invoiceId: string): Observable<JobInvoice | null> {
     const invoiceRef = doc(this.firestore, 'jobInvoices', invoiceId);
-    
+
     return from(getDoc(invoiceRef)).pipe(
-      map(docSnap => {
+      map((docSnap) => {
         if (docSnap.exists()) {
           return {
             id: docSnap.id,
@@ -452,7 +430,7 @@ export class JobBillingService {
             sentDate: docSnap.data()['sentDate']?.toDate(),
             paidDate: docSnap.data()['paidDate']?.toDate(),
             createdAt: docSnap.data()['createdAt']?.toDate() || new Date(),
-            updatedAt: docSnap.data()['updatedAt']?.toDate() || new Date()
+            updatedAt: docSnap.data()['updatedAt']?.toDate() || new Date(),
           } as JobInvoice;
         }
         return null;
@@ -483,20 +461,22 @@ export class JobBillingService {
         country: 'Northern Ireland',
         companyNumber: 'NI684159',
         email: 'info@nivehiclelogistics.com',
-        phone: '+44 28 9024 4747'
+        phone: '+44 28 9024 4747',
       },
       bankDetails: {
         bankName: 'Example Bank',
         accountName: 'NI VEHICLE LOGISTICS LTD',
         sortCode: '00-00-00',
-        accountNumber: '12345678'
+        accountNumber: '12345678',
       },
       emailTemplates: {
         invoiceSubject: 'Invoice {{invoiceNumber}} from {{companyName}}',
-        invoiceBody: 'Dear {{customerName}},\n\nPlease find attached invoice {{invoiceNumber}} for £{{total}}.\n\nPayment is due by {{dueDate}}.\n\nThank you for your business.',
+        invoiceBody:
+          'Dear {{customerName}},\n\nPlease find attached invoice {{invoiceNumber}} for £{{total}}.\n\nPayment is due by {{dueDate}}.\n\nThank you for your business.',
         reminderSubject: 'Payment Reminder - Invoice {{invoiceNumber}}',
-        reminderBody: 'Dear {{customerName}},\n\nThis is a friendly reminder that invoice {{invoiceNumber}} for £{{total}} is now overdue.\n\nPlease arrange payment at your earliest convenience.'
-      }
+        reminderBody:
+          'Dear {{customerName}},\n\nThis is a friendly reminder that invoice {{invoiceNumber}} for £{{total}} is now overdue.\n\nPlease arrange payment at your earliest convenience.',
+      },
     };
   }
 }

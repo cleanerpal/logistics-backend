@@ -70,16 +70,16 @@
             </mat-form-field>
 
             <mat-form-field appearance="outline">
-              <mat-label>Color</mat-label>
+              <mat-label>Colour</mat-label>
               <mat-select formControlName="color" required>
                 <mat-option *ngFor="let color of colors" [value]="color">
-                  <div class="color-option">
-                    <span class="color-swatch" [ngStyle]="{ 'background-color': getColorHex(color) }"></span>
+                  <div class="colour-option">
+                    <span class="colour-swatch" [ngStyle]="{ 'background-color': getColorHex(color) }"></span>
                     {{ color }}
                   </div>
                 </mat-option>
               </mat-select>
-              <mat-error *ngIf="vehicleForm.get('color')?.hasError('required')"> Color is required </mat-error>
+              <mat-error *ngIf="vehicleForm.get('color')?.hasError('required')"> Colour is required </mat-error>
             </mat-form-field>
 
             <mat-form-field appearance="outline">

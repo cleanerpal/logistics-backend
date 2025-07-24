@@ -28,6 +28,7 @@ import { Job } from '../interfaces/job.interface';
 import { UserPermissionKey } from '../interfaces/user-profile.interface';
 import { AuthService } from './auth.service';
 import { NotificationService } from './notification.service';
+import { JobBillingService } from './job-billing.service';
 
 @Injectable({
   providedIn: 'root',
@@ -37,6 +38,7 @@ export class JobService implements OnDestroy {
   private auth = inject(Auth);
   private authService = inject(AuthService);
   private notificationService = inject(NotificationService);
+  private jobBillingService = inject(JobBillingService);
 
   private jobsSubject = new BehaviorSubject<Job[]>([]);
   public jobs$ = this.jobsSubject.asObservable();
@@ -554,6 +556,25 @@ export class JobService implements OnDestroy {
           title: 'Job Created',
           message: `Job ${jobId} has been created successfully.`,
           actionUrl: `/jobs/${jobId}`,
+        });
+        // Immediately create an invoice for the new job
+        const customerDetails = {
+          id: jobData.customerId || '',
+          name: jobData.customerName || '',
+          email: jobData.customerContact || '',
+          phone: jobData.customerContactPhone || '',
+          billingAddress: {
+            address: jobData.collectionAddress || '',
+            city: jobData.collectionCity || '',
+            postcode: jobData.collectionPostcode || '',
+            country: '',
+          },
+        };
+        this.jobBillingService.createInvoiceFromJob(jobId, customerDetails).subscribe({
+          next: () => {},
+          error: (err) => {
+            console.error('Failed to create invoice for job:', err);
+          },
         });
       }),
       catchError((error) => {
