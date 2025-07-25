@@ -1,5 +1,3 @@
-// src/app/services/job-billing.service.ts
-
 import { Injectable } from '@angular/core';
 import {
   Firestore,
@@ -48,7 +46,6 @@ export class JobBillingService {
     this.loadBillingSettings();
   }
 
-  // Billing Items Management
   getJobBillingItems(jobId: string): Observable<JobBillingItem[]> {
     this.loadingSubject.next(true);
 
@@ -149,7 +146,6 @@ export class JobBillingService {
     );
   }
 
-  // Job Invoice Management
   createInvoiceFromJob(jobId: string, customerDetails: any): Observable<string> {
     if (!this.currentUserId) {
       return throwError(() => new Error('User not authenticated'));
@@ -302,7 +298,6 @@ export class JobBillingService {
     );
   }
 
-  // Email Invoice
   emailInvoice(invoiceId: string): Observable<void> {
     return this.getInvoiceById(invoiceId).pipe(
       switchMap((invoice) => {
@@ -319,7 +314,6 @@ export class JobBillingService {
     );
   }
 
-  // Settings Management
   private loadBillingSettings(): void {
     const settingsRef = doc(this.firestore, 'settings', 'billing');
 
@@ -361,7 +355,6 @@ export class JobBillingService {
     );
   }
 
-  // Dashboard Stats
   getBillingDashboardStats(): Observable<BillingDashboardStats> {
     return this.getAllInvoices().pipe(
       map((invoices) => {
@@ -415,7 +408,6 @@ export class JobBillingService {
     );
   }
 
-  // Helper Methods
   private getInvoiceById(invoiceId: string): Observable<JobInvoice | null> {
     const invoiceRef = doc(this.firestore, 'jobInvoices', invoiceId);
 

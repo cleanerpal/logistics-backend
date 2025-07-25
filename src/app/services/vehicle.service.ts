@@ -22,6 +22,7 @@ import { Observable, BehaviorSubject, from, of, throwError } from 'rxjs';
 import { catchError, map, tap, switchMap } from 'rxjs/operators';
 import { BaseFirebaseService } from './base-firebase.service';
 import { NotificationService } from './notification.service';
+import { NgZone, inject } from '@angular/core';
 
 export interface VehicleMake {
   id: string;
@@ -100,6 +101,9 @@ export class VehicleService extends BaseFirebaseService {
   public vehicles$ = this.vehiclesSubject.asObservable();
   public loading$ = this.loadingSubject.asObservable();
 
+  private ngZone = inject(NgZone);
+  private firestoreInjected = inject(Firestore);
+
   constructor(protected override firestore: Firestore, protected override auth: Auth, private notificationService: NotificationService) {
     super();
   }
@@ -107,7 +111,7 @@ export class VehicleService extends BaseFirebaseService {
   getVehicles(): Observable<Vehicle[]> {
     this.loadingSubject.next(true);
 
-    const vehiclesRef = collection(this.firestore, 'vehicles');
+    const vehiclesRef = collection(this.firestoreInjected, 'vehicles');
     const q = query(vehiclesRef, orderBy('lastProcessedDate', 'desc'));
 
     return from(getDocs(q)).pipe(
@@ -136,7 +140,7 @@ export class VehicleService extends BaseFirebaseService {
       return of(null);
     }
 
-    const vehicleRef = doc(this.firestore, `vehicles/${vehicleId}`);
+    const vehicleRef = doc(this.firestoreInjected, `vehicles/${vehicleId}`);
 
     return from(getDoc(vehicleRef)).pipe(
       map((docSnap) => {
@@ -181,7 +185,7 @@ export class VehicleService extends BaseFirebaseService {
       return throwError(() => new Error('Registration number is required'));
     }
 
-    const vehicleRef = doc(this.firestore, `vehicles/${docId}`);
+    const vehicleRef = doc(this.firestoreInjected, `vehicles/${docId}`);
 
     return from(setDoc(vehicleRef, newVehicleData)).pipe(
       map(() => {
@@ -214,7 +218,7 @@ export class VehicleService extends BaseFirebaseService {
       return throwError(() => new Error('User not authenticated'));
     }
 
-    const vehicleRef = doc(this.firestore, `vehicles/${vehicleId}`);
+    const vehicleRef = doc(this.firestoreInjected, `vehicles/${vehicleId}`);
 
     const vehicleUpdateData = {
       ...data,
@@ -253,7 +257,7 @@ export class VehicleService extends BaseFirebaseService {
       return throwError(() => new Error('User not authenticated'));
     }
 
-    const vehicleRef = doc(this.firestore, `vehicles/${vehicleId}`);
+    const vehicleRef = doc(this.firestoreInjected, `vehicles/${vehicleId}`);
 
     return from(getDoc(vehicleRef)).pipe(
       switchMap((docSnap) => {
@@ -302,7 +306,7 @@ export class VehicleService extends BaseFirebaseService {
       return throwError(() => new Error('User not authenticated'));
     }
 
-    const vehicleRef = doc(this.firestore, `vehicles/${vehicleId}`);
+    const vehicleRef = doc(this.firestoreInjected, `vehicles/${vehicleId}`);
 
     return from(getDoc(vehicleRef)).pipe(
       switchMap((docSnap) => {
@@ -356,7 +360,7 @@ export class VehicleService extends BaseFirebaseService {
       return throwError(() => new Error('User not authenticated'));
     }
 
-    const vehicleRef = doc(this.firestore, `vehicles/${vehicleId}`);
+    const vehicleRef = doc(this.firestoreInjected, `vehicles/${vehicleId}`);
 
     return from(getDoc(vehicleRef)).pipe(
       switchMap((docSnap) => {
@@ -392,7 +396,7 @@ export class VehicleService extends BaseFirebaseService {
   }
 
   getVehicleMakes(): Observable<VehicleMake[]> {
-    const makesRef = collection(this.firestore, 'vehicleMakes');
+    const makesRef = collection(this.firestoreInjected, 'vehicleMakes');
     const q = query(makesRef, orderBy('displayName'));
 
     return from(getDocs(q)).pipe(
@@ -403,6 +407,9 @@ export class VehicleService extends BaseFirebaseService {
             ...doc.data(),
           } as VehicleMake;
         });
+      }),
+      tap((makes) => {
+        this.ngZone.run(() => {}); // Ensure emission in Angular zone
       }),
       catchError((error) => {
         console.error('Error fetching vehicle makes:', error);
@@ -417,14 +424,14 @@ export class VehicleService extends BaseFirebaseService {
       return throwError(() => new Error('User not authenticated'));
     }
 
-    const makesRef = collection(this.firestore, 'vehicleMakes');
+    const makesRef = collection(this.firestoreInjected, 'vehicleMakes');
 
     const docId = makeData.name?.toLowerCase();
     if (!docId) {
       return throwError(() => new Error('Make name is required'));
     }
 
-    const makeRef = doc(this.firestore, `vehicleMakes/${docId}`);
+    const makeRef = doc(this.firestoreInjected, `vehicleMakes/${docId}`);
 
     const newMakeData = {
       ...makeData,
@@ -451,7 +458,7 @@ export class VehicleService extends BaseFirebaseService {
       return throwError(() => new Error('User not authenticated'));
     }
 
-    const makeRef = doc(this.firestore, `vehicleMakes/${makeId}`);
+    const makeRef = doc(this.firestoreInjected, `vehicleMakes/${makeId}`);
 
     const { id, ...updateData } = data;
 
@@ -471,7 +478,7 @@ export class VehicleService extends BaseFirebaseService {
   }
 
   getVehicleModels(): Observable<VehicleModel[]> {
-    const modelsRef = collection(this.firestore, 'vehicleModels');
+    const modelsRef = collection(this.firestoreInjected, 'vehicleModels');
     const q = query(modelsRef, orderBy('name'));
 
     return from(getDocs(q)).pipe(
@@ -482,6 +489,9 @@ export class VehicleService extends BaseFirebaseService {
             ...doc.data(),
           } as VehicleModel;
         });
+      }),
+      tap((models) => {
+        this.ngZone.run(() => {}); // Ensure emission in Angular zone
       }),
       catchError((error) => {
         console.error('Error fetching vehicle models:', error);
@@ -496,7 +506,7 @@ export class VehicleService extends BaseFirebaseService {
       return throwError(() => new Error('User not authenticated'));
     }
 
-    const modelsRef = collection(this.firestore, 'vehicleModels');
+    const modelsRef = collection(this.firestoreInjected, 'vehicleModels');
 
     const makeId = modelData.makeId;
     const modelName = modelData.name;
@@ -506,7 +516,7 @@ export class VehicleService extends BaseFirebaseService {
     }
 
     const docId = `${makeId}_${modelName.toLowerCase().replace(/\s+/g, '_')}`;
-    const modelRef = doc(this.firestore, `vehicleModels/${docId}`);
+    const modelRef = doc(this.firestoreInjected, `vehicleModels/${docId}`);
 
     const newModelData = {
       ...modelData,
@@ -532,7 +542,7 @@ export class VehicleService extends BaseFirebaseService {
       return throwError(() => new Error('User not authenticated'));
     }
 
-    const modelRef = doc(this.firestore, `vehicleModels/${modelId}`);
+    const modelRef = doc(this.firestoreInjected, `vehicleModels/${modelId}`);
 
     const { id, ...updateData } = data;
 
@@ -556,7 +566,7 @@ export class VehicleService extends BaseFirebaseService {
       return of([]);
     }
 
-    const modelsRef = collection(this.firestore, 'vehicleModels');
+    const modelsRef = collection(this.firestoreInjected, 'vehicleModels');
     const q = query(modelsRef, where('makeId', '==', makeId), where('isActive', '==', true), orderBy('name'));
 
     return from(getDocs(q)).pipe(
@@ -580,7 +590,7 @@ export class VehicleService extends BaseFirebaseService {
       return of([]);
     }
 
-    const vehiclesRef = collection(this.firestore, 'vehicles');
+    const vehiclesRef = collection(this.firestoreInjected, 'vehicles');
 
     const q = query(vehiclesRef, limit(100)); // Limit to avoid large result sets
 

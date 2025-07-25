@@ -1,5 +1,4 @@
 <div class="job-create-container">
-  <!-- Header Section -->
   <div class="page-header">
     <div class="header-content">
       <div class="title-section">
@@ -19,15 +18,12 @@
     </div>
   </div>
 
-  <!-- Loading State -->
   <div *ngIf="loading" class="loading-container">
     <mat-spinner></mat-spinner>
     <p>Loading form data...</p>
   </div>
 
-  <!-- Job Creation Form -->
   <form [formGroup]="jobForm" (ngSubmit)="onSubmit()" *ngIf="!loading" class="job-form">
-    <!-- Job Type Section -->
     <mat-card class="form-section">
       <mat-card-header>
         <mat-card-title>
@@ -49,7 +45,6 @@
       </mat-card-content>
     </mat-card>
 
-    <!-- Vehicle Information Section -->
     <mat-card class="form-section" formGroupName="vehicleInfo">
       <mat-card-header>
         <mat-card-title>
@@ -95,20 +90,27 @@
 
           <mat-form-field appearance="outline">
             <mat-label>Make</mat-label>
-            <mat-select formControlName="vehicleMake">
-              <mat-option *ngFor="let make of makes" [value]="make.id">
-                {{ make.displayName || make.name }}
+            <mat-select formControlName="vehicleMake" required (selectionChange)="onMakeChange()">
+              <mat-option *ngFor="let make of filteredMakes" [value]="make['docId']">
+                <img
+                  *ngIf="make['icon']"
+                  [src]="'/assets/images/car-logos/' + make['icon']"
+                  alt="{{ make.displayName }} logo"
+                  style="width: 24px; height: 24px; object-fit: contain; margin-right: 8px; vertical-align: middle" />
+                {{ make.displayName }}
               </mat-option>
             </mat-select>
+            <mat-error *ngIf="vehicleInfoForm.get('vehicleMake')?.hasError('required')"> Make is required </mat-error>
           </mat-form-field>
 
           <mat-form-field appearance="outline">
             <mat-label>Model</mat-label>
-            <mat-select formControlName="vehicleModel">
-              <mat-option *ngFor="let model of models" [value]="model.id">
-                {{ model.displayName || model.name }}
+            <mat-select formControlName="vehicleModel" required (selectionChange)="onModelChange()">
+              <mat-option *ngFor="let model of filteredModels" [value]="model.id">
+                {{ model.displayName }}
               </mat-option>
             </mat-select>
+            <mat-error *ngIf="vehicleInfoForm.get('vehicleModel')?.hasError('required')"> Model is required </mat-error>
           </mat-form-field>
 
           <mat-form-field appearance="outline">
@@ -138,7 +140,6 @@
       </mat-card-content>
     </mat-card>
 
-    <!-- Customer Information Section -->
     <mat-card class="form-section" formGroupName="customerInfo">
       <mat-card-header>
         <mat-card-title>
@@ -177,7 +178,6 @@
       </mat-card-content>
     </mat-card>
 
-    <!-- Collection Details Section -->
     <mat-card class="form-section" formGroupName="collectionDetails">
       <mat-card-header>
         <mat-card-title>
@@ -254,7 +254,6 @@
       </mat-card-content>
     </mat-card>
 
-    <!-- Split Journey Toggle -->
     <mat-card class="form-section">
       <mat-card-content>
         <div class="split-journey-toggle">
@@ -269,7 +268,6 @@
       </mat-card-content>
     </mat-card>
 
-    <!-- First Drop-off Details (Split Journey) -->
     <mat-card class="form-section split-section" formGroupName="firstDropoffDetails" *ngIf="isSplitJourney">
       <mat-card-header>
         <mat-card-title>
@@ -347,7 +345,6 @@
       </mat-card-content>
     </mat-card>
 
-    <!-- Second Collection Details (Split Journey) -->
     <mat-card class="form-section split-section" formGroupName="secondCollectionDetails" *ngIf="isSplitJourney">
       <mat-card-header>
         <mat-card-title>
@@ -419,7 +416,6 @@
       </mat-card-content>
     </mat-card>
 
-    <!-- Final Delivery Details Section -->
     <mat-card class="form-section" formGroupName="deliveryDetails">
       <mat-card-header>
         <mat-card-title>
@@ -495,7 +491,6 @@
       </mat-card-content>
     </mat-card>
 
-    <!-- General Notes Section -->
     <mat-card class="form-section">
       <mat-card-header>
         <mat-card-title>
@@ -517,7 +512,6 @@
       </mat-card-content>
     </mat-card>
 
-    <!-- Form Actions -->
     <div class="form-actions">
       <button type="button" mat-stroked-button (click)="onCancel()" class="cancel-button">
         <mat-icon>close</mat-icon>

@@ -1,40 +1,35 @@
-// src/app/services/make-model.service.ts
-
 import { Injectable, NgZone } from '@angular/core';
 import { Auth } from '@angular/fire/auth';
 import {
+  DocumentData,
   Firestore,
-  collection,
-  doc,
+  Unsubscribe,
   addDoc,
-  updateDoc,
+  collection,
   deleteDoc,
+  doc,
   getDoc,
   getDocs,
-  query,
-  where,
-  orderBy,
   limit,
-  startAfter,
-  QueryDocumentSnapshot,
-  DocumentData,
-  writeBatch,
   onSnapshot,
-  Unsubscribe,
+  orderBy,
+  query,
+  updateDoc,
+  where,
+  writeBatch,
 } from '@angular/fire/firestore';
 import { Timestamp } from 'firebase/firestore';
-import { BehaviorSubject, Observable, from, throwError, combineLatest } from 'rxjs';
-import { map, catchError, shareReplay, tap, switchMap } from 'rxjs/operators';
+import { BehaviorSubject, Observable, combineLatest, from, throwError } from 'rxjs';
+import { catchError, map, shareReplay, switchMap, tap } from 'rxjs/operators';
 
 import {
-  MakeModel,
-  Make,
-  Model,
-  CreateMakeModelRequest,
-  UpdateMakeModelRequest,
-  MakeModelQueryOptions,
   BulkMakeModelOperation,
+  CreateMakeModelRequest,
+  Make,
+  MakeModelQueryOptions,
   MakeModelSearchResult,
+  Model,
+  UpdateMakeModelRequest,
 } from '../interfaces/make-model.interface';
 import { AuthService } from './auth.service';
 @Injectable({
@@ -44,20 +39,16 @@ export class MakeModelService {
   private readonly MAKES_COLLECTION = 'vehicleMakes';
   private readonly MODELS_COLLECTION = 'vehicleModels';
 
-  // Cache subjects for performance
   private makesSubject = new BehaviorSubject<Make[]>([]);
   private modelsSubject = new BehaviorSubject<Model[]>([]);
   private loadingSubject = new BehaviorSubject<boolean>(false);
 
-  // Public observables
   public makes$ = this.makesSubject.asObservable();
   public models$ = this.modelsSubject.asObservable();
   public loading$ = this.loadingSubject.asObservable();
 
-  // Active listeners
   private activeListeners: Unsubscribe[] = [];
 
-  // Cached data
   private makesCache = new Map<string, Make>();
   private modelsCache = new Map<string, Model>();
   private cacheExpiry = 5 * 60 * 1000; // 5 minutes
@@ -77,7 +68,6 @@ export class MakeModelService {
   }
 
   private initializeRealtimeListeners(): void {
-    // Listen to makes changes
     const makesQuery = query(collection(this.firestore, this.MAKES_COLLECTION), where('isActive', '==', true), orderBy('name', 'asc'));
 
     const makesUnsubscribe = onSnapshot(
@@ -87,7 +77,6 @@ export class MakeModelService {
           const makes = snapshot.docs.map((doc) => this.convertToMake(doc.id, doc.data()));
           this.makesSubject.next(makes);
 
-          // Update cache
           makes.forEach((make) => this.makesCache.set(make.id, make));
           this.lastCacheUpdate = Date.now();
         });
@@ -97,7 +86,6 @@ export class MakeModelService {
       }
     );
 
-    // Listen to models changes
     const modelsQuery = query(collection(this.firestore, this.MODELS_COLLECTION), where('isActive', '==', true), orderBy('name', 'asc'));
 
     const modelsUnsubscribe = onSnapshot(
@@ -107,7 +95,6 @@ export class MakeModelService {
           const models = snapshot.docs.map((doc) => this.convertToModel(doc.id, doc.data()));
           this.modelsSubject.next(models);
 
-          // Update cache
           models.forEach((model) => this.modelsCache.set(model.id, model));
           this.lastCacheUpdate = Date.now();
         });
@@ -120,11 +107,6 @@ export class MakeModelService {
     this.activeListeners.push(makesUnsubscribe, modelsUnsubscribe);
   }
 
-  // GET OPERATIONS
-
-  /**
-   * Get all makes
-   */
   getAllMakes(options?: MakeModelQueryOptions): Observable<Make[]> {
     if (this.isCacheValid() && !options) {
       return this.makes$;
@@ -134,21 +116,18 @@ export class MakeModelService {
 
     let makesQuery = query(collection(this.firestore, this.MAKES_COLLECTION));
 
-    // Apply filters
     if (options?.vehicleType) {
-      makesQuery = query(makesQuery, where('vehicleType', '==', options.vehicleType));
+      makesQuery = query(makesQuery, where('vehicleTypes', 'array-contains', options.vehicleType));
     }
 
     if (!options?.includeInactive) {
       makesQuery = query(makesQuery, where('isActive', '==', true));
     }
 
-    // Apply ordering
     const orderField = options?.orderBy || 'name';
     const orderDir = options?.orderDirection || 'asc';
     makesQuery = query(makesQuery, orderBy(orderField, orderDir));
 
-    // Apply limit
     if (options?.limit) {
       makesQuery = query(makesQuery, limit(options.limit));
     }
@@ -165,16 +144,10 @@ export class MakeModelService {
     );
   }
 
-  /**
-   * Get makes by vehicle type
-   */
   getMakesByType(vehicleType: string): Observable<Make[]> {
     return this.getAllMakes({ vehicleType, isActive: true });
   }
 
-  /**
-   * Get all models
-   */
   getAllModels(options?: MakeModelQueryOptions): Observable<Model[]> {
     if (this.isCacheValid() && !options) {
       return this.models$;
@@ -184,7 +157,6 @@ export class MakeModelService {
 
     let modelsQuery = query(collection(this.firestore, this.MODELS_COLLECTION));
 
-    // Apply filters
     if (options?.makeId) {
       modelsQuery = query(modelsQuery, where('makeId', '==', options.makeId));
     }
@@ -193,12 +165,10 @@ export class MakeModelService {
       modelsQuery = query(modelsQuery, where('isActive', '==', true));
     }
 
-    // Apply ordering
     const orderField = options?.orderBy || 'name';
     const orderDir = options?.orderDirection || 'asc';
     modelsQuery = query(modelsQuery, orderBy(orderField, orderDir));
 
-    // Apply limit
     if (options?.limit) {
       modelsQuery = query(modelsQuery, limit(options.limit));
     }
@@ -215,18 +185,11 @@ export class MakeModelService {
     );
   }
 
-  /**
-   * Get models by make ID
-   */
   getModelsByMake(makeId: string): Observable<Model[]> {
     return this.getAllModels({ makeId, isActive: true });
   }
 
-  /**
-   * Get a specific make by ID
-   */
   getMakeById(makeId: string): Observable<Make | null> {
-    // Check cache first
     if (this.makesCache.has(makeId)) {
       return new BehaviorSubject(this.makesCache.get(makeId)!).asObservable();
     }
@@ -246,11 +209,7 @@ export class MakeModelService {
     );
   }
 
-  /**
-   * Get a specific model by ID
-   */
   getModelById(modelId: string): Observable<Model | null> {
-    // Check cache first
     if (this.modelsCache.has(modelId)) {
       return new BehaviorSubject(this.modelsCache.get(modelId)!).asObservable();
     }
@@ -270,9 +229,6 @@ export class MakeModelService {
     );
   }
 
-  /**
-   * Search makes and models
-   */
   search(searchTerm: string, options?: MakeModelQueryOptions): Observable<MakeModelSearchResult> {
     const searchLower = searchTerm.toLowerCase();
 
@@ -301,11 +257,6 @@ export class MakeModelService {
     );
   }
 
-  // CREATE OPERATIONS
-
-  /**
-   * Create a new make
-   */
   createMake(data: CreateMakeModelRequest): Observable<string> {
     return from(this.getCurrentUserId()).pipe(
       switchMap((userId) => {
@@ -335,9 +286,6 @@ export class MakeModelService {
     );
   }
 
-  /**
-   * Create a new model
-   */
   createModel(data: CreateMakeModelRequest): Observable<string> {
     if (!data.makeId) {
       return throwError(() => new Error('Make ID is required for creating models'));
@@ -371,11 +319,6 @@ export class MakeModelService {
     );
   }
 
-  // UPDATE OPERATIONS
-
-  /**
-   * Update a make
-   */
   updateMake(makeId: string, data: UpdateMakeModelRequest): Observable<void> {
     return from(this.getCurrentUserId()).pipe(
       switchMap((userId) => {
@@ -393,7 +336,6 @@ export class MakeModelService {
         return from(updateDoc(makeRef, updateData));
       }),
       tap(() => {
-        // Remove from cache to force refresh
         this.makesCache.delete(makeId);
       }),
       catchError((error) => {
@@ -403,9 +345,6 @@ export class MakeModelService {
     );
   }
 
-  /**
-   * Update a model
-   */
   updateModel(modelId: string, data: UpdateMakeModelRequest): Observable<void> {
     return from(this.getCurrentUserId()).pipe(
       switchMap((userId) => {
@@ -423,7 +362,6 @@ export class MakeModelService {
         return from(updateDoc(modelRef, updateData));
       }),
       tap(() => {
-        // Remove from cache to force refresh
         this.modelsCache.delete(modelId);
       }),
       catchError((error) => {
@@ -433,25 +371,14 @@ export class MakeModelService {
     );
   }
 
-  // DELETE OPERATIONS
-
-  /**
-   * Soft delete a make (set isActive to false)
-   */
   deleteMake(makeId: string): Observable<void> {
     return this.updateMake(makeId, { isActive: false });
   }
 
-  /**
-   * Soft delete a model (set isActive to false)
-   */
   deleteModel(modelId: string): Observable<void> {
     return this.updateModel(modelId, { isActive: false });
   }
 
-  /**
-   * Hard delete a make (permanent deletion)
-   */
   hardDeleteMake(makeId: string): Observable<void> {
     const makeRef = doc(this.firestore, this.MAKES_COLLECTION, makeId);
     return from(deleteDoc(makeRef)).pipe(
@@ -465,9 +392,6 @@ export class MakeModelService {
     );
   }
 
-  /**
-   * Hard delete a model (permanent deletion)
-   */
   hardDeleteModel(modelId: string): Observable<void> {
     const modelRef = doc(this.firestore, this.MODELS_COLLECTION, modelId);
     return from(deleteDoc(modelRef)).pipe(
@@ -481,11 +405,6 @@ export class MakeModelService {
     );
   }
 
-  // BULK OPERATIONS
-
-  /**
-   * Perform bulk operations on makes/models
-   */
   bulkOperation(operation: BulkMakeModelOperation): Observable<void> {
     return from(this.getCurrentUserId()).pipe(
       switchMap((userId) => {
@@ -513,7 +432,7 @@ export class MakeModelService {
             });
           } else if (operation.action === 'update') {
             const updateItem = item as UpdateMakeModelRequest & { id: string };
-            // Determine collection based on item properties
+
             const collection_name = 'makeId' in updateItem ? this.MODELS_COLLECTION : this.MAKES_COLLECTION;
             const docRef = doc(this.firestore, collection_name, updateItem.id);
 
@@ -524,15 +443,12 @@ export class MakeModelService {
             });
           } else if (operation.action === 'delete') {
             const deleteItem = item as { id: string };
-            // Would need additional logic to determine collection
-            // For now, assume it's provided in the item
           }
         });
 
         return from(batch.commit());
       }),
       tap(() => {
-        // Clear cache after bulk operations
         this.clearCache();
       }),
       catchError((error) => {
@@ -542,34 +458,24 @@ export class MakeModelService {
     );
   }
 
-  // UTILITY METHODS
-
-  /**
-   * Clear the cache
-   */
   clearCache(): void {
     this.makesCache.clear();
     this.modelsCache.clear();
     this.lastCacheUpdate = 0;
   }
 
-  /**
-   * Check if cache is valid
-   */
   private isCacheValid(): boolean {
     return Date.now() - this.lastCacheUpdate < this.cacheExpiry;
   }
 
-  /**
-   * Convert Firestore document to Make object
-   */
   private convertToMake(id: string, data: DocumentData): Make {
     return {
-      id,
+      id: data['id'] || id,
+      docId: id,
       name: data['name'] || '',
       displayName: data['displayName'] || data['name'] || '',
-      type: 'make',
-      vehicleType: data['vehicleType'] || null,
+      type: data['type'] || 'make',
+      vehicleTypes: data['vehicleTypes'] || [],
       isActive: data['isActive'] ?? true,
       createdAt: data['createdAt'] || Timestamp.now(),
       updatedAt: data['updatedAt'] || Timestamp.now(),
@@ -578,12 +484,10 @@ export class MakeModelService {
       logoUrl: data['logoUrl'] || null,
       popularity: data['popularity'] || 0,
       aliases: data['aliases'] || [],
-    };
+      icon: data['icon'] || null,
+    } as Make;
   }
 
-  /**
-   * Convert Firestore document to Model object
-   */
   private convertToModel(id: string, data: DocumentData): Model {
     return {
       id,
@@ -602,9 +506,6 @@ export class MakeModelService {
     };
   }
 
-  /**
-   * Get current user ID
-   */
   private async getCurrentUserId(): Promise<string | null> {
     return new Promise((resolve) => {
       this.authService.getCurrentUser().subscribe((user) => {

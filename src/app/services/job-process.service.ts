@@ -1,4 +1,3 @@
-// src/app/services/job-process.service.ts
 import { Injectable } from '@angular/core';
 import { Observable, of, combineLatest } from 'rxjs';
 import { map, catchError } from 'rxjs/operators';
@@ -75,9 +74,6 @@ export interface JobProcessData {
 export class JobProcessService {
   constructor(private firestore: Firestore) {}
 
-  /**
-   * Get complete job process data including all steps and documents
-   */
   getJobProcessData(jobId: string): Observable<JobProcessData> {
     if (!jobId) {
       return of(this.createEmptyProcessData());
@@ -92,9 +88,6 @@ export class JobProcessService {
     );
   }
 
-  /**
-   * Get collection process data
-   */
   getCollectionData(jobId: string): Observable<JobProcessStepData | null> {
     return this.getJobDocument(jobId).pipe(
       map((job) => job?.collectionData || null),
@@ -102,9 +95,6 @@ export class JobProcessService {
     );
   }
 
-  /**
-   * Get delivery process data
-   */
   getDeliveryData(jobId: string): Observable<JobProcessStepData | null> {
     return this.getJobDocument(jobId).pipe(
       map((job) => job?.deliveryData || null),
@@ -112,9 +102,6 @@ export class JobProcessService {
     );
   }
 
-  /**
-   * Get all process photos for a job
-   */
   getProcessPhotos(jobId: string): Observable<ProcessPhoto[]> {
     return this.getJobDocument(jobId).pipe(
       map((job) => this.extractPhotosFromJob(job, jobId)),
@@ -122,9 +109,6 @@ export class JobProcessService {
     );
   }
 
-  /**
-   * Get all process signatures for a job
-   */
   getProcessSignatures(jobId: string): Observable<ProcessSignature[]> {
     return this.getJobDocument(jobId).pipe(
       map((job) => this.extractSignaturesFromJob(job, jobId)),
@@ -132,9 +116,6 @@ export class JobProcessService {
     );
   }
 
-  /**
-   * Get damage reports for a job
-   */
   getDamageReports(jobId: string): Observable<{ collection: boolean; delivery: boolean; overall: boolean }> {
     return this.getJobDocument(jobId).pipe(
       map((job) => ({
@@ -146,9 +127,6 @@ export class JobProcessService {
     );
   }
 
-  /**
-   * Get vehicle condition data
-   */
   getVehicleConditionData(jobId: string): Observable<{
     collection: { mileage?: number; fuelLevel?: number; energyType?: string };
     delivery: { mileage?: number; fuelLevel?: number; energyType?: string };
@@ -175,9 +153,6 @@ export class JobProcessService {
     );
   }
 
-  /**
-   * Get contact information from processes
-   */
   getProcessContacts(jobId: string): Observable<{
     collection?: { name: string; position?: string; phone?: string; email?: string };
     delivery?: { name: string; position?: string; phone?: string; email?: string };
@@ -209,8 +184,6 @@ export class JobProcessService {
       catchError(() => of({}))
     );
   }
-
-  // Private helper methods
 
   private getJobDocument(jobId: string): Observable<any> {
     const jobRef = doc(this.firestore, `jobs/${jobId}`);
@@ -258,22 +231,18 @@ export class JobProcessService {
 
     const photos: ProcessPhoto[] = [];
 
-    // Collection photos
     if (job.collectionData?.photoUrls) {
       photos.push(...this.extractPhotosFromProcessData(job.collectionData, 'collection', jobId));
     }
 
-    // Delivery photos
     if (job.deliveryData?.photoUrls) {
       photos.push(...this.extractPhotosFromProcessData(job.deliveryData, 'delivery', jobId));
     }
 
-    // Secondary collection photos
     if (job.secondaryCollectionData?.photoUrls) {
       photos.push(...this.extractPhotosFromProcessData(job.secondaryCollectionData, 'collection', jobId));
     }
 
-    // First delivery photos
     if (job.firstDeliveryData?.photoUrls) {
       photos.push(...this.extractPhotosFromProcessData(job.firstDeliveryData, 'delivery', jobId));
     }
@@ -286,19 +255,15 @@ export class JobProcessService {
 
     const signatures: ProcessSignature[] = [];
 
-    // Collection signature
     const collectionSig = this.extractSignatureFromProcessData(job.collectionData, 'collection', jobId);
     if (collectionSig) signatures.push(collectionSig);
 
-    // Delivery signature
     const deliverySig = this.extractSignatureFromProcessData(job.deliveryData, 'delivery', jobId);
     if (deliverySig) signatures.push(deliverySig);
 
-    // Secondary collection signature
     const secondaryCollectionSig = this.extractSignatureFromProcessData(job.secondaryCollectionData, 'collection', jobId);
     if (secondaryCollectionSig) signatures.push(secondaryCollectionSig);
 
-    // First delivery signature
     const firstDeliverySig = this.extractSignatureFromProcessData(job.firstDeliveryData, 'delivery', jobId);
     if (firstDeliverySig) signatures.push(firstDeliverySig);
 
@@ -336,7 +301,6 @@ export class JobProcessService {
   }
 
   private getPhotoFileName(url: string, type: string, index: number): string {
-    // Try to extract filename from URL
     const urlParts = url.split('/');
     const fileName = urlParts[urlParts.length - 1];
 
@@ -344,7 +308,6 @@ export class JobProcessService {
       return fileName.split('?')[0]; // Remove query parameters
     }
 
-    // Fallback to descriptive name
     const photoTypes = ['front', 'rear', 'left', 'right'];
     const photoType = photoTypes[index] || `photo_${index + 1}`;
     return `${type}_${photoType}.jpg`;

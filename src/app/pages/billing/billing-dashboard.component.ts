@@ -1,5 +1,3 @@
-// src/app/pages/billing/billing-dashboard.component.ts
-
 import { Component, OnInit, OnDestroy, ViewChild, AfterViewInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { MatTableDataSource } from '@angular/material/table';
@@ -121,19 +119,16 @@ export class BillingDashboardComponent implements OnInit, OnDestroy, AfterViewIn
   applyFilters(): void {
     let filteredInvoices = [...this.allInvoices];
 
-    // Job ID filter
     if (this.jobIdFilter && this.jobIdFilter.trim() !== '') {
       filteredInvoices = filteredInvoices.filter((invoice) => invoice.jobId && invoice.jobId.toLowerCase().includes(this.jobIdFilter.trim().toLowerCase()));
     }
 
-    // Customer Name filter
     if (this.customerNameFilter && this.customerNameFilter.trim() !== '') {
       filteredInvoices = filteredInvoices.filter(
         (invoice) => invoice.customerName && invoice.customerName.toLowerCase().includes(this.customerNameFilter.trim().toLowerCase())
       );
     }
 
-    // Status filter
     if (this.statusFilter !== 'all') {
       if (this.statusFilter === 'overdue') {
         const now = new Date();
@@ -143,7 +138,6 @@ export class BillingDashboardComponent implements OnInit, OnDestroy, AfterViewIn
       }
     }
 
-    // Search filter
     if (this.searchTerm && this.searchTerm.trim() !== '') {
       const search = this.searchTerm.trim().toLowerCase();
       filteredInvoices = filteredInvoices.filter((invoice) =>
@@ -179,7 +173,6 @@ export class BillingDashboardComponent implements OnInit, OnDestroy, AfterViewIn
   }
 
   viewInvoice(invoice: JobInvoice): void {
-    // Navigate to invoice detail or open dialog
     this.router.navigate(['/billing/invoice', invoice.id]);
   }
 

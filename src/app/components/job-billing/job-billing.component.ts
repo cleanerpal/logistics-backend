@@ -1,5 +1,3 @@
-// src/app/components/job-billing/job-billing.component.ts
-
 import { Component, Input, OnInit, OnDestroy, ViewChild, TemplateRef } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
@@ -18,7 +16,7 @@ import { ConfirmationDialogComponent } from '../../dialogs/confirmation-dialog.c
   selector: 'app-job-billing',
   templateUrl: './job-billing.component.html',
   styleUrls: ['./job-billing.component.scss'],
-  standalone: false
+  standalone: false,
 })
 export class JobBillingComponent implements OnInit, OnDestroy {
   @Input() job!: Job;
@@ -29,10 +27,10 @@ export class JobBillingComponent implements OnInit, OnDestroy {
 
   billingItems: JobBillingItem[] = [];
   invoices: JobInvoice[] = [];
-  
+
   billingItemsDataSource = new MatTableDataSource<JobBillingItem>([]);
   invoicesDataSource = new MatTableDataSource<JobInvoice>([]);
-  
+
   displayedColumns: string[] = ['date', 'type', 'description', 'quantity', 'unitPrice', 'amount', 'isChargeable', 'actions'];
   invoiceColumns: string[] = ['invoiceNumber', 'issueDate', 'dueDate', 'total', 'status', 'actions'];
 
@@ -50,20 +48,10 @@ export class JobBillingComponent implements OnInit, OnDestroy {
     { value: 'expense', label: 'Expense' },
     { value: 'charge', label: 'Service Charge' },
     { value: 'initial_cost', label: 'Initial Cost' },
-    { value: 'additional_fee', label: 'Additional Fee' }
+    { value: 'additional_fee', label: 'Additional Fee' },
   ];
 
-  categories = [
-    'Transport',
-    'Fuel',
-    'Tolls',
-    'Storage',
-    'Handling',
-    'Documentation',
-    'Insurance',
-    'Customs',
-    'Other'
-  ];
+  categories = ['Transport', 'Fuel', 'Tolls', 'Storage', 'Handling', 'Documentation', 'Insurance', 'Customs', 'Other'];
 
   constructor(
     private fb: FormBuilder,
@@ -96,7 +84,7 @@ export class JobBillingComponent implements OnInit, OnDestroy {
       isChargeable: [true],
       date: [new Date(), Validators.required],
       notes: [''],
-      receiptUrl: ['']
+      receiptUrl: [''],
     });
   }
 
@@ -105,42 +93,34 @@ export class JobBillingComponent implements OnInit, OnDestroy {
 
     forkJoin({
       billingItems: this.jobBillingService.getJobBillingItems(this.job.id),
-      invoices: this.jobBillingService.getJobInvoices(this.job.id)
-    }).pipe(
-      takeUntil(this.destroy$)
-    ).subscribe({
-      next: ({ billingItems, invoices }) => {
-        this.billingItems = billingItems;
-        this.invoices = invoices;
-        this.billingItemsDataSource.data = billingItems;
-        this.invoicesDataSource.data = invoices;
-        this.calculateTotals();
-        this.isLoading = false;
-      },
-      error: (error) => {
-        console.error('Error loading billing data:', error);
-        this.snackBar.open('Error loading billing data', 'Close', { duration: 3000 });
-        this.isLoading = false;
-      }
-    });
+      invoices: this.jobBillingService.getJobInvoices(this.job.id),
+    })
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: ({ billingItems, invoices }) => {
+          this.billingItems = billingItems;
+          this.invoices = invoices;
+          this.billingItemsDataSource.data = billingItems;
+          this.invoicesDataSource.data = invoices;
+          this.calculateTotals();
+          this.isLoading = false;
+        },
+        error: (error) => {
+          console.error('Error loading billing data:', error);
+          this.snackBar.open('Error loading billing data', 'Close', { duration: 3000 });
+          this.isLoading = false;
+        },
+      });
   }
 
   private calculateTotals(): void {
-    this.totalBillable = this.billingItems
-      .filter(item => item.isChargeable)
-      .reduce((sum, item) => sum + (item.amount * item.quantity), 0);
+    this.totalBillable = this.billingItems.filter((item) => item.isChargeable).reduce((sum, item) => sum + item.amount * item.quantity, 0);
 
-    this.totalNonBillable = this.billingItems
-      .filter(item => !item.isChargeable)
-      .reduce((sum, item) => sum + (item.amount * item.quantity), 0);
+    this.totalNonBillable = this.billingItems.filter((item) => !item.isChargeable).reduce((sum, item) => sum + item.amount * item.quantity, 0);
 
-    this.totalOutstanding = this.invoices
-      .filter(inv => ['sent', 'viewed', 'outstanding', 'overdue'].includes(inv.status))
-      .reduce((sum, inv) => sum + inv.total, 0);
+    this.totalOutstanding = this.invoices.filter((inv) => ['sent', 'viewed', 'outstanding', 'overdue'].includes(inv.status)).reduce((sum, inv) => sum + inv.total, 0);
 
-    this.totalPaid = this.invoices
-      .filter(inv => inv.status === 'paid')
-      .reduce((sum, inv) => sum + inv.total, 0);
+    this.totalPaid = this.invoices.filter((inv) => inv.status === 'paid').reduce((sum, inv) => sum + inv.total, 0);
   }
 
   onQuantityChange(): void {
@@ -168,12 +148,12 @@ export class JobBillingComponent implements OnInit, OnDestroy {
       quantity: 1,
       isChargeable: true,
       date: new Date(),
-      category: 'Transport'
+      category: 'Transport',
     });
 
     this.dialog.open(this.addItemDialog, {
       width: '600px',
-      disableClose: true
+      disableClose: true,
     });
   }
 
@@ -197,28 +177,28 @@ export class JobBillingComponent implements OnInit, OnDestroy {
       date: formValue.date,
       notes: formValue.notes,
       receiptUrl: formValue.receiptUrl,
-      createdBy: '' // Will be set by service
+      createdBy: '', // Will be set by service
     };
 
-    this.jobBillingService.addBillingItem(newItem).pipe(
-      takeUntil(this.destroy$)
-    ).subscribe({
-      next: () => {
-        this.dialog.closeAll();
-        this.loadBillingData();
-        this.snackBar.open('Billing item added successfully', 'Close', { duration: 3000 });
-        this.isAddingItem = false;
-      },
-      error: (error) => {
-        console.error('Error adding billing item:', error);
-        this.snackBar.open('Error adding billing item', 'Close', { duration: 3000 });
-        this.isAddingItem = false;
-      }
-    });
+    this.jobBillingService
+      .addBillingItem(newItem)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: () => {
+          this.dialog.closeAll();
+          this.loadBillingData();
+          this.snackBar.open('Billing item added successfully', 'Close', { duration: 3000 });
+          this.isAddingItem = false;
+        },
+        error: (error) => {
+          console.error('Error adding billing item:', error);
+          this.snackBar.open('Error adding billing item', 'Close', { duration: 3000 });
+          this.isAddingItem = false;
+        },
+      });
   }
 
   editBillingItem(item: JobBillingItem): void {
-    // Pre-populate form with existing item data
     this.addItemForm.patchValue({
       type: item.type,
       description: item.description,
@@ -229,15 +209,14 @@ export class JobBillingComponent implements OnInit, OnDestroy {
       isChargeable: item.isChargeable,
       date: item.date,
       notes: item.notes,
-      receiptUrl: item.receiptUrl
+      receiptUrl: item.receiptUrl,
     });
 
     const dialogRef = this.dialog.open(this.addItemDialog, {
       width: '600px',
-      disableClose: true
+      disableClose: true,
     });
 
-    // Override the add method to update instead
     const originalAddMethod = this.addBillingItem;
     this.addBillingItem = () => {
       if (this.addItemForm.invalid) return;
@@ -245,34 +224,35 @@ export class JobBillingComponent implements OnInit, OnDestroy {
       this.isAddingItem = true;
       const formValue = this.addItemForm.value;
 
-      this.jobBillingService.updateBillingItem(item.id, {
-        type: formValue.type,
-        description: formValue.description,
-        amount: formValue.amount,
-        quantity: formValue.quantity,
-        unitPrice: formValue.unitPrice,
-        category: formValue.category,
-        isChargeable: formValue.isChargeable,
-        date: formValue.date,
-        notes: formValue.notes,
-        receiptUrl: formValue.receiptUrl
-      }).pipe(
-        takeUntil(this.destroy$)
-      ).subscribe({
-        next: () => {
-          this.dialog.closeAll();
-          this.loadBillingData();
-          this.snackBar.open('Billing item updated successfully', 'Close', { duration: 3000 });
-          this.isAddingItem = false;
-          this.addBillingItem = originalAddMethod; // Restore original method
-        },
-        error: (error) => {
-          console.error('Error updating billing item:', error);
-          this.snackBar.open('Error updating billing item', 'Close', { duration: 3000 });
-          this.isAddingItem = false;
-          this.addBillingItem = originalAddMethod; // Restore original method
-        }
-      });
+      this.jobBillingService
+        .updateBillingItem(item.id, {
+          type: formValue.type,
+          description: formValue.description,
+          amount: formValue.amount,
+          quantity: formValue.quantity,
+          unitPrice: formValue.unitPrice,
+          category: formValue.category,
+          isChargeable: formValue.isChargeable,
+          date: formValue.date,
+          notes: formValue.notes,
+          receiptUrl: formValue.receiptUrl,
+        })
+        .pipe(takeUntil(this.destroy$))
+        .subscribe({
+          next: () => {
+            this.dialog.closeAll();
+            this.loadBillingData();
+            this.snackBar.open('Billing item updated successfully', 'Close', { duration: 3000 });
+            this.isAddingItem = false;
+            this.addBillingItem = originalAddMethod; // Restore original method
+          },
+          error: (error) => {
+            console.error('Error updating billing item:', error);
+            this.snackBar.open('Error updating billing item', 'Close', { duration: 3000 });
+            this.isAddingItem = false;
+            this.addBillingItem = originalAddMethod; // Restore original method
+          },
+        });
     };
   }
 
@@ -282,24 +262,25 @@ export class JobBillingComponent implements OnInit, OnDestroy {
         title: 'Delete Billing Item',
         message: `Are you sure you want to delete "${item.description}"?`,
         confirmText: 'Delete',
-        cancelText: 'Cancel'
-      }
+        cancelText: 'Cancel',
+      },
     });
 
-    dialogRef.afterClosed().subscribe(result => {
+    dialogRef.afterClosed().subscribe((result) => {
       if (result) {
-        this.jobBillingService.deleteBillingItem(item.id).pipe(
-          takeUntil(this.destroy$)
-        ).subscribe({
-          next: () => {
-            this.loadBillingData();
-            this.snackBar.open('Billing item deleted successfully', 'Close', { duration: 3000 });
-          },
-          error: (error) => {
-            console.error('Error deleting billing item:', error);
-            this.snackBar.open('Error deleting billing item', 'Close', { duration: 3000 });
-          }
-        });
+        this.jobBillingService
+          .deleteBillingItem(item.id)
+          .pipe(takeUntil(this.destroy$))
+          .subscribe({
+            next: () => {
+              this.loadBillingData();
+              this.snackBar.open('Billing item deleted successfully', 'Close', { duration: 3000 });
+            },
+            error: (error) => {
+              console.error('Error deleting billing item:', error);
+              this.snackBar.open('Error deleting billing item', 'Close', { duration: 3000 });
+            },
+          });
       }
     });
   }
@@ -310,34 +291,35 @@ export class JobBillingComponent implements OnInit, OnDestroy {
       return;
     }
 
-    // Get customer details and create invoice
-    this.customerService.getCustomerById(this.job.customerId).pipe(
-      takeUntil(this.destroy$)
-    ).subscribe({
-      next: (customer) => {
-        if (!customer) {
-          this.snackBar.open('Customer not found', 'Close', { duration: 3000 });
-          return;
-        }
-
-        this.jobBillingService.createInvoiceFromJob(this.job.id, customer).pipe(
-          takeUntil(this.destroy$)
-        ).subscribe({
-          next: (invoiceId) => {
-            this.loadBillingData();
-            this.snackBar.open('Invoice created successfully', 'Close', { duration: 3000 });
-          },
-          error: (error) => {
-            console.error('Error creating invoice:', error);
-            this.snackBar.open('Error creating invoice', 'Close', { duration: 3000 });
+    this.customerService
+      .getCustomerById(this.job.customerId)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (customer) => {
+          if (!customer) {
+            this.snackBar.open('Customer not found', 'Close', { duration: 3000 });
+            return;
           }
-        });
-      },
-      error: (error) => {
-        console.error('Error fetching customer:', error);
-        this.snackBar.open('Error fetching customer details', 'Close', { duration: 3000 });
-      }
-    });
+
+          this.jobBillingService
+            .createInvoiceFromJob(this.job.id, customer)
+            .pipe(takeUntil(this.destroy$))
+            .subscribe({
+              next: (invoiceId) => {
+                this.loadBillingData();
+                this.snackBar.open('Invoice created successfully', 'Close', { duration: 3000 });
+              },
+              error: (error) => {
+                console.error('Error creating invoice:', error);
+                this.snackBar.open('Error creating invoice', 'Close', { duration: 3000 });
+              },
+            });
+        },
+        error: (error) => {
+          console.error('Error fetching customer:', error);
+          this.snackBar.open('Error fetching customer details', 'Close', { duration: 3000 });
+        },
+      });
   }
 
   viewInvoice(invoice: JobInvoice): void {
@@ -345,7 +327,7 @@ export class JobBillingComponent implements OnInit, OnDestroy {
     this.dialog.open(this.invoiceDialog, {
       width: '90%',
       maxWidth: '1200px',
-      height: '90%'
+      height: '90%',
     });
   }
 
@@ -355,24 +337,24 @@ export class JobBillingComponent implements OnInit, OnDestroy {
       return;
     }
 
-    this.jobBillingService.emailInvoice(invoice.id).pipe(
-      takeUntil(this.destroy$)
-    ).subscribe({
-      next: () => {
-        this.loadBillingData();
-        this.snackBar.open('Invoice emailed successfully', 'Close', { duration: 3000 });
-      },
-      error: (error) => {
-        console.error('Error emailing invoice:', error);
-        this.snackBar.open('Error emailing invoice', 'Close', { duration: 3000 });
-      }
-    });
+    this.jobBillingService
+      .emailInvoice(invoice.id)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: () => {
+          this.loadBillingData();
+          this.snackBar.open('Invoice emailed successfully', 'Close', { duration: 3000 });
+        },
+        error: (error) => {
+          console.error('Error emailing invoice:', error);
+          this.snackBar.open('Error emailing invoice', 'Close', { duration: 3000 });
+        },
+      });
   }
 
   printInvoice(invoice: JobInvoice): void {
     this.selectedInvoice = invoice;
-    
-    // Open in new window for printing
+
     setTimeout(() => {
       const printWindow = window.open('', '_blank');
       if (printWindow) {
@@ -386,39 +368,40 @@ export class JobBillingComponent implements OnInit, OnDestroy {
   }
 
   markInvoiceAsPaid(invoice: JobInvoice): void {
-    this.jobBillingService.updateInvoiceStatus(invoice.id, 'paid', {
-      paidAmount: invoice.total,
-      paymentReference: `Payment-${invoice.invoiceNumber}`,
-      paidDate: new Date()
-    }).pipe(
-      takeUntil(this.destroy$)
-    ).subscribe({
-      next: () => {
-        this.loadBillingData();
-        this.snackBar.open('Invoice marked as paid', 'Close', { duration: 3000 });
-      },
-      error: (error) => {
-        console.error('Error updating invoice status:', error);
-        this.snackBar.open('Error updating invoice status', 'Close', { duration: 3000 });
-      }
-    });
+    this.jobBillingService
+      .updateInvoiceStatus(invoice.id, 'paid', {
+        paidAmount: invoice.total,
+        paymentReference: `Payment-${invoice.invoiceNumber}`,
+        paidDate: new Date(),
+      })
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: () => {
+          this.loadBillingData();
+          this.snackBar.open('Invoice marked as paid', 'Close', { duration: 3000 });
+        },
+        error: (error) => {
+          console.error('Error updating invoice status:', error);
+          this.snackBar.open('Error updating invoice status', 'Close', { duration: 3000 });
+        },
+      });
   }
 
   formatCurrency(amount: number): string {
     return new Intl.NumberFormat('en-GB', {
       style: 'currency',
-      currency: 'GBP'
+      currency: 'GBP',
     }).format(amount);
   }
 
   getStatusColor(status: string): string {
     const colors: { [key: string]: string } = {
-      'draft': 'gray',
-      'sent': 'blue',
-      'viewed': 'orange',
-      'outstanding': 'orange',
-      'paid': 'green',
-      'overdue': 'red'
+      draft: 'gray',
+      sent: 'blue',
+      viewed: 'orange',
+      outstanding: 'orange',
+      paid: 'green',
+      overdue: 'red',
     };
     return colors[status] || 'gray';
   }
@@ -506,11 +489,15 @@ export class JobBillingComponent implements OnInit, OnDestroy {
           <div class="customer-info">
             <h3>Bill To:</h3>
             <p><strong>${invoice.customerName}</strong></p>
-            ${invoice.billingAddress ? `
+            ${
+              invoice.billingAddress
+                ? `
               <p>${invoice.billingAddress.address}<br>
                  ${invoice.billingAddress.city} ${invoice.billingAddress.postcode}<br>
                  ${invoice.billingAddress.country}</p>
-            ` : ''}
+            `
+                : ''
+            }
           </div>
 
           <table class="invoice-table">
@@ -523,7 +510,9 @@ export class JobBillingComponent implements OnInit, OnDestroy {
               </tr>
             </thead>
             <tbody>
-              ${invoice.items.map(item => `
+              ${invoice.items
+                .map(
+                  (item) => `
                 <tr>
                   <td>
                     <div><strong>${item.description}</strong></div>
@@ -533,7 +522,9 @@ export class JobBillingComponent implements OnInit, OnDestroy {
                   <td>${this.formatCurrency(item.unitPrice)}</td>
                   <td>${this.formatCurrency(item.amount * item.quantity)}</td>
                 </tr>
-              `).join('')}
+              `
+                )
+                .join('')}
             </tbody>
             <tfoot>
               <tr>

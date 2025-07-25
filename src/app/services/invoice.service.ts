@@ -24,9 +24,6 @@ export class InvoiceService {
     this.loadInvoices();
   }
 
-  /**
-   * Load all invoices
-   */
   private async loadInvoices(): Promise<void> {
     try {
       const invoicesRef = collection(this.firestore, this.INVOICES_COLLECTION);
@@ -53,44 +50,26 @@ export class InvoiceService {
     }
   }
 
-  /**
-   * Get all invoices
-   */
   getInvoices(): Observable<Invoice[]> {
     return this.invoices$;
   }
 
-  /**
-   * Get invoice by ID
-   */
   getInvoiceById(id: string): Observable<Invoice | null> {
     return this.invoices$.pipe(map((invoices) => invoices.find((invoice) => invoice.id === id) || null));
   }
 
-  /**
-   * Get invoices by job ID
-   */
   getInvoicesByJob(jobId: string): Observable<Invoice[]> {
     return this.invoices$.pipe(map((invoices) => invoices.filter((invoice) => invoice.jobId === jobId)));
   }
 
-  /**
-   * Get invoices by status
-   */
   getInvoicesByStatus(status: InvoiceStatus): Observable<Invoice[]> {
     return this.invoices$.pipe(map((invoices) => invoices.filter((invoice) => invoice.status === status)));
   }
 
-  /**
-   * Get invoices by payment status
-   */
   getInvoicesByPaymentStatus(paymentStatus: PaymentStatus): Observable<Invoice[]> {
     return this.invoices$.pipe(map((invoices) => invoices.filter((invoice) => invoice.paymentStatus === paymentStatus)));
   }
 
-  /**
-   * Generate invoice number
-   */
   private generateInvoiceNumber(): string {
     const now = new Date();
     const year = now.getFullYear();
@@ -100,9 +79,6 @@ export class InvoiceService {
     return `INV-${year}${month}${day}-${time}`;
   }
 
-  /**
-   * Create invoice from job expenses
-   */
   async createInvoiceFromJob(
     jobId: string,
     expenses: Expense[],
@@ -120,7 +96,6 @@ export class InvoiceService {
         throw new Error('User not authenticated');
       }
 
-      // Create invoice items from expenses
       const expenseItems: InvoiceItem[] = expenses.map((expense) => ({
         id: this.generateItemId(),
         description: expense.description,
@@ -132,7 +107,6 @@ export class InvoiceService {
         notes: expense.notes,
       }));
 
-      // Add additional items
       const additionalInvoiceItems: InvoiceItem[] = additionalItems.map((item) => ({
         id: this.generateItemId(),
         description: item.description || '',
@@ -173,7 +147,6 @@ export class InvoiceService {
         updatedAt: now,
       };
 
-      // Save to Firestore
       const invoicesRef = collection(this.firestore, this.INVOICES_COLLECTION);
       const docRef = await addDoc(invoicesRef, {
         ...invoiceData,
@@ -188,11 +161,9 @@ export class InvoiceService {
         ...invoiceData,
       };
 
-      // Update local state
       const currentInvoices = this.invoicesSubject.value;
       this.invoicesSubject.next([newInvoice, ...currentInvoices]);
 
-      // Add notification
       this.notificationService.addNotification({
         type: 'success',
         title: 'Invoice Created',
@@ -207,9 +178,6 @@ export class InvoiceService {
     }
   }
 
-  /**
-   * Update invoice status
-   */
   async updateInvoiceStatus(invoiceId: string, status: InvoiceStatus): Promise<void> {
     try {
       const currentUser = this.authService.getCurrentUser();
@@ -230,10 +198,8 @@ export class InvoiceService {
 
       await updateDoc(invoiceRef, updateData);
 
-      // Update local state
       this.updateLocalInvoice(invoiceId, updateData);
 
-      // Add notification
       this.notificationService.addNotification({
         type: 'info',
         title: 'Invoice Updated',
@@ -246,9 +212,6 @@ export class InvoiceService {
     }
   }
 
-  /**
-   * Update payment status
-   */
   async updatePaymentStatus(invoiceId: string, paymentStatus: PaymentStatus, paidDate?: Date): Promise<void> {
     try {
       const invoiceRef = doc(this.firestore, this.INVOICES_COLLECTION, invoiceId);
@@ -263,10 +226,8 @@ export class InvoiceService {
 
       await updateDoc(invoiceRef, updateData);
 
-      // Update local state
       this.updateLocalInvoice(invoiceId, updateData);
 
-      // Add notification
       this.notificationService.addNotification({
         type: 'success',
         title: 'Payment Status Updated',
@@ -279,9 +240,6 @@ export class InvoiceService {
     }
   }
 
-  /**
-   * Mark invoice as emailed
-   */
   async markAsEmailed(invoiceId: string, emailedTo: string[]): Promise<void> {
     try {
       const currentUser = this.authService.getCurrentUser();
@@ -299,7 +257,6 @@ export class InvoiceService {
 
       await updateDoc(invoiceRef, updateData);
 
-      // Update local state
       this.updateLocalInvoice(invoiceId, updateData);
     } catch (error) {
       console.error('Error marking invoice as emailed:', error);
@@ -307,9 +264,6 @@ export class InvoiceService {
     }
   }
 
-  /**
-   * Mark invoice as printed
-   */
   async markAsPrinted(invoiceId: string): Promise<void> {
     try {
       const currentUser = this.authService.getCurrentUser();
@@ -326,7 +280,6 @@ export class InvoiceService {
 
       await updateDoc(invoiceRef, updateData);
 
-      // Update local state
       this.updateLocalInvoice(invoiceId, updateData);
     } catch (error) {
       console.error('Error marking invoice as printed:', error);
@@ -334,20 +287,15 @@ export class InvoiceService {
     }
   }
 
-  /**
-   * Delete invoice
-   */
   async deleteInvoice(invoiceId: string): Promise<void> {
     try {
       const invoiceRef = doc(this.firestore, this.INVOICES_COLLECTION, invoiceId);
       await deleteDoc(invoiceRef);
 
-      // Update local state
       const currentInvoices = this.invoicesSubject.value;
       const updatedInvoices = currentInvoices.filter((invoice) => invoice.id !== invoiceId);
       this.invoicesSubject.next(updatedInvoices);
 
-      // Add notification
       this.notificationService.addNotification({
         type: 'warning',
         title: 'Invoice Deleted',
@@ -360,15 +308,10 @@ export class InvoiceService {
     }
   }
 
-  /**
-   * Get job billing information
-   */
   async getJobBilling(jobId: string): Promise<JobBilling> {
     try {
-      // Get job invoices
       const invoices = (await this.getInvoicesByJob(jobId).toPromise()) || [];
 
-      // Get job expenses
       const expensesRef = collection(this.firestore, this.EXPENSES_COLLECTION);
       const expensesQuery = query(expensesRef, where('jobId', '==', jobId));
       const expensesSnapshot = await getDocs(expensesQuery);
@@ -411,7 +354,6 @@ export class InvoiceService {
     }
   }
 
-  // Helper methods
   private generateItemId(): string {
     return Date.now().toString() + Math.random().toString(36).substr(2, 9);
   }

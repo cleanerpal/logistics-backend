@@ -13,7 +13,6 @@ export class ExpenseService {
   constructor(private firestore: Firestore, private notificationService: NotificationService) {}
 
   getExpenses(): Observable<Expense[]> {
-    // Fetch all invoice items of type 'expense' from all jobInvoices
     const invoicesRef = collection(this.firestore, 'jobInvoices');
     return from(getDocs(invoicesRef)).pipe(
       map((snapshot) => {

@@ -1,5 +1,3 @@
-// src/app/services/email.service.ts
-
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable, throwError, of } from 'rxjs';
@@ -34,9 +32,6 @@ export class EmailService {
 
   constructor(private http: HttpClient) {}
 
-  /**
-   * Send invoice email to customer
-   */
   sendInvoice(invoice: JobInvoice, settings?: BillingSettings): Observable<void> {
     if (!invoice.customerEmail) {
       return throwError(() => new Error('Customer email is required'));
@@ -62,9 +57,6 @@ export class EmailService {
     return this.sendEmail(emailRequest);
   }
 
-  /**
-   * Send payment reminder email
-   */
   sendPaymentReminder(invoice: JobInvoice, settings?: BillingSettings): Observable<void> {
     if (!invoice.customerEmail) {
       return throwError(() => new Error('Customer email is required'));
@@ -82,9 +74,6 @@ export class EmailService {
     return this.sendEmail(emailRequest);
   }
 
-  /**
-   * Send bulk reminder emails for overdue invoices
-   */
   sendBulkReminders(overdueInvoices: JobInvoice[], settings?: BillingSettings): Observable<{ success: number; failed: number }> {
     const emailPromises = overdueInvoices.map((invoice) =>
       this.sendPaymentReminder(invoice, settings).pipe(
@@ -107,9 +96,6 @@ export class EmailService {
     });
   }
 
-  /**
-   * Test email configuration
-   */
   testEmailConfiguration(): Observable<boolean> {
     const testEmail: EmailRequest = {
       to: 'test@example.com',
@@ -124,9 +110,6 @@ export class EmailService {
     );
   }
 
-  /**
-   * Send generic email
-   */
   private sendEmail(emailRequest: EmailRequest): Observable<void> {
     const headers = new HttpHeaders({
       'Content-Type': 'application/json',
@@ -140,9 +123,6 @@ export class EmailService {
     );
   }
 
-  /**
-   * Build invoice email template with variable substitution
-   */
   private buildInvoiceEmailTemplate(invoice: JobInvoice, settings?: BillingSettings): EmailTemplate {
     const defaultSubject = 'Invoice {{invoiceNumber}} from {{companyName}}';
     const defaultBody = `Dear {{customerName}},
@@ -166,9 +146,6 @@ Best regards,
     };
   }
 
-  /**
-   * Build reminder email template
-   */
   private buildReminderEmailTemplate(invoice: JobInvoice, settings?: BillingSettings): EmailTemplate {
     const defaultSubject = 'Payment Reminder - Invoice {{invoiceNumber}}';
     const defaultBody = `Dear {{customerName}},
@@ -196,9 +173,6 @@ Best regards,
     };
   }
 
-  /**
-   * Substitute template variables
-   */
   private substituteVariables(template: string, invoice: JobInvoice, settings?: BillingSettings, extraVars?: { [key: string]: any }): string {
     const variables = {
       invoiceNumber: invoice.invoiceNumber,
@@ -225,9 +199,6 @@ Best regards,
     return result;
   }
 
-  /**
-   * Generate HTML email template
-   */
   private generateEmailHtml(textContent: string, additionalContent?: string): string {
     return `
       <!DOCTYPE html>
@@ -296,9 +267,6 @@ Best regards,
     `;
   }
 
-  /**
-   * Generate invoice-specific email HTML
-   */
   private generateInvoiceEmailHtml(invoice: JobInvoice, settings?: BillingSettings): string {
     const itemsHtml = invoice.items
       .map(
@@ -347,9 +315,6 @@ Best regards,
     `;
   }
 
-  /**
-   * Generate invoice HTML for attachments
-   */
   private generateInvoiceHtml(invoice: JobInvoice, settings?: BillingSettings): string {
     return `
       <div style="max-width: 800px; margin: 0 auto; padding: 40px; font-family: Arial, sans-serif;">
@@ -386,19 +351,10 @@ Best regards,
     `;
   }
 
-  /**
-   * Generate PDF content for invoice (placeholder)
-   */
   private generateInvoicePdf(invoice: JobInvoice, settings?: BillingSettings): string {
-    // In a real implementation, you would use a PDF generation library
-    // like jsPDF or call a backend service to generate the PDF
-    // For now, returning base64 encoded placeholder
     return btoa(this.generateInvoiceHtml(invoice, settings));
   }
 
-  /**
-   * Format currency values
-   */
   private formatCurrency(amount: number): string {
     return new Intl.NumberFormat('en-GB', {
       style: 'currency',

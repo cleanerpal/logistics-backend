@@ -1,5 +1,3 @@
-// src/app/pages/settings/billing-settings/billing-settings.component.ts
-
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MatSnackBar } from '@angular/material/snack-bar';
@@ -12,7 +10,7 @@ import { EmailService } from '../../../services/email.service';
   selector: 'app-billing-settings',
   templateUrl: './billing-settings.component.html',
   styleUrls: ['./billing-settings.component.scss'],
-  standalone: false
+  standalone: false,
 })
 export class BillingSettingsComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
@@ -22,12 +20,7 @@ export class BillingSettingsComponent implements OnInit, OnDestroy {
   isSaving = false;
   isTestingEmail = false;
 
-  constructor(
-    private fb: FormBuilder,
-    private jobBillingService: JobBillingService,
-    private emailService: EmailService,
-    private snackBar: MatSnackBar
-  ) {
+  constructor(private fb: FormBuilder, private jobBillingService: JobBillingService, private emailService: EmailService, private snackBar: MatSnackBar) {
     this.settingsForm = this.createSettingsForm();
   }
 
@@ -42,13 +35,11 @@ export class BillingSettingsComponent implements OnInit, OnDestroy {
 
   private createSettingsForm(): FormGroup {
     return this.fb.group({
-      // Basic Settings
       vatRate: [20, [Validators.required, Validators.min(0), Validators.max(100)]],
       paymentTermsDays: [30, [Validators.required, Validators.min(1), Validators.max(365)]],
       invoicePrefix: ['INV-', Validators.required],
       nextInvoiceNumber: [1, [Validators.required, Validators.min(1)]],
 
-      // Company Details
       companyDetails: this.fb.group({
         name: ['NI VEHICLE LOGISTICS LTD', Validators.required],
         address: ['55-59 Adelaide Street', Validators.required],
@@ -59,18 +50,16 @@ export class BillingSettingsComponent implements OnInit, OnDestroy {
         vatNumber: [''],
         email: ['info@nivehiclelogistics.com', [Validators.required, Validators.email]],
         phone: ['+44 28 9024 4747', Validators.required],
-        website: ['https://www.nivehiclelogistics.com']
+        website: ['https://www.nivehiclelogistics.com'],
       }),
 
-      // Bank Details
       bankDetails: this.fb.group({
         bankName: ['Example Bank', Validators.required],
         accountName: ['NI VEHICLE LOGISTICS LTD', Validators.required],
         sortCode: ['00-00-00', [Validators.required, Validators.pattern(/^\d{2}-\d{2}-\d{2}$/)]],
-        accountNumber: ['12345678', [Validators.required, Validators.pattern(/^\d{8}$/)]]
+        accountNumber: ['12345678', [Validators.required, Validators.pattern(/^\d{8}$/)]],
       }),
 
-      // Email Templates
       emailTemplates: this.fb.group({
         invoiceSubject: ['Invoice {{invoiceNumber}} from {{companyName}}', Validators.required],
         invoiceBody: [
@@ -84,7 +73,7 @@ Thank you for your business.
 
 Best regards,
 {{companyName}}`,
-          Validators.required
+          Validators.required,
         ],
         reminderSubject: ['Payment Reminder - Invoice {{invoiceNumber}}', Validators.required],
         reminderBody: [
@@ -96,30 +85,31 @@ Please arrange payment at your earliest convenience.
 
 Best regards,
 {{companyName}}`,
-          Validators.required
-        ]
-      })
+          Validators.required,
+        ],
+      }),
     });
   }
 
   private loadSettings(): void {
     this.isLoading = true;
 
-    this.jobBillingService.getBillingSettings().pipe(
-      takeUntil(this.destroy$)
-    ).subscribe({
-      next: (settings) => {
-        if (settings) {
-          this.settingsForm.patchValue(settings);
-        }
-        this.isLoading = false;
-      },
-      error: (error) => {
-        console.error('Error loading billing settings:', error);
-        this.snackBar.open('Error loading settings', 'Close', { duration: 3000 });
-        this.isLoading = false;
-      }
-    });
+    this.jobBillingService
+      .getBillingSettings()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (settings) => {
+          if (settings) {
+            this.settingsForm.patchValue(settings);
+          }
+          this.isLoading = false;
+        },
+        error: (error) => {
+          console.error('Error loading billing settings:', error);
+          this.snackBar.open('Error loading settings', 'Close', { duration: 3000 });
+          this.isLoading = false;
+        },
+      });
   }
 
   saveSettings(): void {
@@ -131,44 +121,45 @@ Best regards,
     this.isSaving = true;
     const settings = this.settingsForm.value as BillingSettings;
 
-    this.jobBillingService.updateBillingSettings(settings).pipe(
-      takeUntil(this.destroy$)
-    ).subscribe({
-      next: () => {
-        this.snackBar.open('Settings saved successfully', 'Close', { duration: 3000 });
-        this.isSaving = false;
-      },
-      error: (error) => {
-        console.error('Error saving settings:', error);
-        this.snackBar.open('Error saving settings', 'Close', { duration: 3000 });
-        this.isSaving = false;
-      }
-    });
+    this.jobBillingService
+      .updateBillingSettings(settings)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: () => {
+          this.snackBar.open('Settings saved successfully', 'Close', { duration: 3000 });
+          this.isSaving = false;
+        },
+        error: (error) => {
+          console.error('Error saving settings:', error);
+          this.snackBar.open('Error saving settings', 'Close', { duration: 3000 });
+          this.isSaving = false;
+        },
+      });
   }
 
   testEmailConfiguration(): void {
     this.isTestingEmail = true;
 
-    this.emailService.testEmailConfiguration().pipe(
-      takeUntil(this.destroy$)
-    ).subscribe({
-      next: () => {
-        this.snackBar.open('Email configuration test successful', 'Close', { duration: 3000 });
-        this.isTestingEmail = false;
-      },
-      error: (error) => {
-        console.error('Email test failed:', error);
-        this.snackBar.open('Email configuration test failed', 'Close', { duration: 3000 });
-        this.isTestingEmail = false;
-      }
-    });
+    this.emailService
+      .testEmailConfiguration()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: () => {
+          this.snackBar.open('Email configuration test successful', 'Close', { duration: 3000 });
+          this.isTestingEmail = false;
+        },
+        error: (error) => {
+          console.error('Email test failed:', error);
+          this.snackBar.open('Email configuration test failed', 'Close', { duration: 3000 });
+          this.isTestingEmail = false;
+        },
+      });
   }
 
   previewInvoiceTemplate(): void {
     const settings = this.settingsForm.value as BillingSettings;
     const sampleInvoice = this.createSampleInvoice();
-    
-    // Open preview in new window
+
     const previewWindow = window.open('', '_blank', 'width=800,height=600');
     if (previewWindow) {
       previewWindow.document.write(this.generateInvoicePreviewHtml(sampleInvoice, settings));
@@ -179,18 +170,10 @@ Best regards,
   previewEmailTemplate(): void {
     const settings = this.settingsForm.value as BillingSettings;
     const sampleInvoice = this.createSampleInvoice();
-    
-    const subject = this.substituteTemplateVariables(
-      settings.emailTemplates.invoiceSubject,
-      sampleInvoice,
-      settings
-    );
-    
-    const body = this.substituteTemplateVariables(
-      settings.emailTemplates.invoiceBody,
-      sampleInvoice,
-      settings
-    );
+
+    const subject = this.substituteTemplateVariables(settings.emailTemplates.invoiceSubject, sampleInvoice, settings);
+
+    const body = this.substituteTemplateVariables(settings.emailTemplates.invoiceBody, sampleInvoice, settings);
 
     const previewWindow = window.open('', '_blank', 'width=600,height=400');
     if (previewWindow) {
@@ -243,7 +226,7 @@ Best regards,
   }
 
   private markFormGroupTouched(formGroup: FormGroup): void {
-    Object.keys(formGroup.controls).forEach(field => {
+    Object.keys(formGroup.controls).forEach((field) => {
       const control = formGroup.get(field);
       if (control instanceof FormGroup) {
         this.markFormGroupTouched(control);
@@ -257,12 +240,12 @@ Best regards,
     return {
       invoiceNumber: 'INV-000123',
       customerName: 'Sample Customer Ltd',
-      total: 1250.00,
+      total: 1250.0,
       subtotal: 1041.67,
       vatAmount: 208.33,
       issueDate: new Date(),
       dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-      jobId: 'JOB-001'
+      jobId: 'JOB-001',
     };
   }
 
@@ -276,7 +259,7 @@ Best regards,
       issueDate: invoice.issueDate.toLocaleDateString('en-GB'),
       dueDate: invoice.dueDate.toLocaleDateString('en-GB'),
       jobId: invoice.jobId,
-      companyName: settings.companyDetails.name
+      companyName: settings.companyDetails.name,
     };
 
     let result = template;
@@ -364,7 +347,7 @@ Best regards,
   private formatCurrency(amount: number): string {
     return new Intl.NumberFormat('en-GB', {
       style: 'currency',
-      currency: 'GBP'
+      currency: 'GBP',
     }).format(amount);
   }
 
@@ -383,13 +366,13 @@ Best regards,
         companyNumber: 'NI684159',
         email: 'info@nivehiclelogistics.com',
         phone: '+44 28 9024 4747',
-        website: 'https://www.nivehiclelogistics.com'
+        website: 'https://www.nivehiclelogistics.com',
       },
       bankDetails: {
         bankName: 'Example Bank',
         accountName: 'NI VEHICLE LOGISTICS LTD',
         sortCode: '00-00-00',
-        accountNumber: '12345678'
+        accountNumber: '12345678',
       },
       emailTemplates: {
         invoiceSubject: 'Invoice {{invoiceNumber}} from {{companyName}}',
@@ -411,8 +394,8 @@ This is a friendly reminder that invoice {{invoiceNumber}} for {{total}} is now 
 Please arrange payment at your earliest convenience.
 
 Best regards,
-{{companyName}}`
-      }
+{{companyName}}`,
+      },
     };
   }
 }

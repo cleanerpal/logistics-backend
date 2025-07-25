@@ -12,7 +12,6 @@ export class SentenceCasePipe implements PipeTransform {
 
     const strValue = String(value); // Ensure it's treated as a string
 
-    // Convert the first character to uppercase and the rest to lowercase
     return strValue.charAt(0).toUpperCase() + strValue.slice(1).toLowerCase();
   }
 }

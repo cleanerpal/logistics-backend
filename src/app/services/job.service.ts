@@ -557,7 +557,7 @@ export class JobService implements OnDestroy {
           message: `Job ${jobId} has been created successfully.`,
           actionUrl: `/jobs/${jobId}`,
         });
-        // Immediately create an invoice for the new job
+
         const customerDetails = {
           id: jobData.customerId || '',
           name: jobData.customerName || '',

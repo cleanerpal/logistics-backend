@@ -17,7 +17,6 @@ import { Customer } from '../../../interfaces/customer.interface';
 import { MakeModel } from '../../../interfaces/make-model.interface';
 import { UserProfile } from '../../../interfaces/user-profile.interface';
 
-// DVLA Response Interface
 export interface DvlaVehicleInfo {
   registrationNumber: string;
   make?: string;
@@ -36,7 +35,6 @@ export interface DvlaVehicleInfo {
   taxDueDate?: string;
 }
 
-// Address Interface
 export interface SavedAddress {
   id: string;
   name: string;
@@ -62,24 +60,22 @@ export class JobCreateComponent implements OnInit, OnDestroy {
   submitting = false;
   currentUser: UserProfile | null = null;
 
-  // Data sources
   customers: Customer[] = [];
   savedAddresses: SavedAddress[] = [];
   vehicleTypes: string[] = ['Car', 'Van', 'Truck', 'Motorbike', 'Bus', 'Other'];
   makes: MakeModel[] = [];
   models: MakeModel[] = [];
   fuelTypes: string[] = ['Petrol', 'Diesel', 'Electric', 'Hybrid', 'Other'];
+  filteredMakes: MakeModel[] = [];
+  filteredModels: MakeModel[] = [];
 
-  // Helper properties
   currentYear = new Date().getFullYear();
   maxYear = this.currentYear + 1;
 
-  // DVLA lookup state
   isLoadingDvla = false;
   dvlaLookupCompleted = false;
   autoFilledFields = new Set<string>();
 
-  // Form validation flags
   isVehicleFormValid = false;
   isCollectionFormValid = false;
   isDeliveryFormValid = false;
@@ -114,22 +110,19 @@ export class JobCreateComponent implements OnInit, OnDestroy {
 
   private createForm(): void {
     this.jobForm = this.fb.group({
-      // Job basic info - restore jobType, remove priority
       jobType: ['standard', Validators.required],
 
-      // Vehicle information
       vehicleInfo: this.fb.group({
         vehicleRegistration: ['', [Validators.required, this.registrationValidator]],
         vehicleType: ['', Validators.required],
-        vehicleMake: [''],
-        vehicleModel: [''],
+        vehicleMake: [{ value: '', disabled: true }],
+        vehicleModel: [{ value: '', disabled: true }],
         vehicleColor: [''],
         vehicleYear: ['', [Validators.min(1900), Validators.max(this.maxYear)]],
         chassisNumber: [''],
         vehicleFuelType: [''],
       }),
 
-      // Customer information
       customerInfo: this.fb.group({
         customerId: [''],
         customerName: ['', Validators.required],
@@ -137,7 +130,6 @@ export class JobCreateComponent implements OnInit, OnDestroy {
         shippingReference: [''],
       }),
 
-      // Collection details
       collectionDetails: this.fb.group({
         savedAddressId: [''], // For selecting saved addresses
         collectionAddress: ['', Validators.required],
@@ -150,7 +142,6 @@ export class JobCreateComponent implements OnInit, OnDestroy {
         collectionNotes: [''],
       }),
 
-      // Delivery details
       deliveryDetails: this.fb.group({
         savedAddressId: [''], // For selecting saved addresses
         deliveryAddress: ['', Validators.required],
@@ -163,7 +154,6 @@ export class JobCreateComponent implements OnInit, OnDestroy {
         deliveryNotes: [''],
       }),
 
-      // Split journey (optional)
       isSplitJourney: [false],
       firstDropoffDetails: this.fb.group({
         savedAddressId: [''],
@@ -177,7 +167,6 @@ export class JobCreateComponent implements OnInit, OnDestroy {
         firstDropoffNotes: [''],
       }),
 
-      // Second collection (for split journey)
       secondCollectionDetails: this.fb.group({
         savedAddressId: [''],
         secondCollectionAddress: [''],
@@ -190,7 +179,6 @@ export class JobCreateComponent implements OnInit, OnDestroy {
         secondCollectionNotes: [''],
       }),
 
-      // General notes
       generalNotes: [''],
     });
   }
@@ -198,7 +186,6 @@ export class JobCreateComponent implements OnInit, OnDestroy {
   private loadInitialData(): void {
     this.loading = true;
 
-    // Load current user
     this.authService
       .getCurrentUser()
       .pipe(takeUntil(this.destroy$))
@@ -206,7 +193,6 @@ export class JobCreateComponent implements OnInit, OnDestroy {
         this.currentUser = user;
       });
 
-    // Load customers
     this.customerService
       .getAllCustomers()
       .pipe(takeUntil(this.destroy$))
@@ -220,7 +206,6 @@ export class JobCreateComponent implements OnInit, OnDestroy {
         },
       });
 
-    // Load makes
     this.makeModelService
       .getAllMakes()
       .pipe(takeUntil(this.destroy$))
@@ -234,15 +219,12 @@ export class JobCreateComponent implements OnInit, OnDestroy {
         },
       });
 
-    // Load saved addresses
     this.loadSavedAddresses();
 
     this.loading = false;
   }
 
   private loadSavedAddresses(): void {
-    // TODO: Replace with actual service call to load saved addresses
-    // For now, using mock data - replace with actual service
     this.savedAddresses = [
       {
         id: '1',
@@ -271,7 +253,6 @@ export class JobCreateComponent implements OnInit, OnDestroy {
   }
 
   private setupFormValidation(): void {
-    // Monitor form sections validity
     this.jobForm
       .get('vehicleInfo')
       ?.statusChanges.pipe(takeUntil(this.destroy$))
@@ -295,82 +276,72 @@ export class JobCreateComponent implements OnInit, OnDestroy {
   }
 
   private setupVehicleTypeChange(): void {
-    this.jobForm
-      .get('vehicleInfo.vehicleType')
-      ?.valueChanges.pipe(takeUntil(this.destroy$), debounceTime(300))
-      .subscribe((vehicleType) => {
+    this.vehicleInfoForm
+      .get('vehicleType')
+      ?.valueChanges.pipe(takeUntil(this.destroy$))
+      .subscribe((vehicleType: string) => {
+        this.filteredMakes = [];
+        this.filteredModels = [];
+        this.vehicleInfoForm.get('vehicleMake')?.reset();
+        this.vehicleInfoForm.get('vehicleModel')?.reset();
+        this.vehicleInfoForm.get('vehicleMake')?.disable();
+        this.vehicleInfoForm.get('vehicleModel')?.disable();
         if (vehicleType) {
+          this.vehicleInfoForm.get('vehicleMake')?.enable();
           this.loadMakesByType(vehicleType);
         }
       });
   }
 
   private setupMakeChange(): void {
-    this.jobForm
-      .get('vehicleInfo.vehicleMake')
-      ?.valueChanges.pipe(takeUntil(this.destroy$), debounceTime(300))
-      .subscribe((makeId) => {
+    this.vehicleInfoForm
+      .get('vehicleMake')
+      ?.valueChanges.pipe(takeUntil(this.destroy$))
+      .subscribe((makeId: string) => {
+        this.filteredModels = [];
+        this.vehicleInfoForm.get('vehicleModel')?.reset();
+        this.vehicleInfoForm.get('vehicleModel')?.disable();
         if (makeId) {
+          this.vehicleInfoForm.get('vehicleModel')?.enable();
           this.loadModelsByMake(makeId);
         }
       });
   }
 
+  onMakeChange(): void {
+    const makeId = this.vehicleInfoForm.get('vehicleMake')?.value;
+    const makeObj = this.filteredMakes.find((m) => m.id === makeId);
+  }
+
+  onModelChange(): void {}
+
   private loadMakesByType(vehicleType: string): void {
-    this.makeModelService
-      .getMakesByType(vehicleType)
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: (makes) => {
-          this.makes = makes;
-          // Reset make and model if current selection is not available
-          const currentMake = this.jobForm.get('vehicleInfo.vehicleMake')?.value;
-          if (currentMake && !makes.some((m) => m.id === currentMake)) {
-            this.jobForm.patchValue({
-              vehicleInfo: {
-                vehicleMake: '',
-                vehicleModel: '',
-              },
-            });
-            this.models = [];
-          }
-        },
-        error: (error) => {
-          console.error('Error loading makes:', error);
-          this.showError('Failed to load vehicle makes for selected type');
-        },
-      });
+    this.makeModelService.getMakesByType(vehicleType).subscribe({
+      next: (makes) => {
+        this.filteredMakes = makes;
+      },
+      error: (err) => {
+        this.filteredMakes = [];
+        this.showError('Failed to load makes for selected type');
+      },
+    });
   }
 
   private loadModelsByMake(makeId: string): void {
-    this.makeModelService
-      .getModelsByMake(makeId)
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: (models) => {
-          this.models = models;
-          // Reset model if current selection is not available
-          const currentModel = this.jobForm.get('vehicleInfo.vehicleModel')?.value;
-          if (currentModel && !models.some((m) => m.id === currentModel)) {
-            this.jobForm.patchValue({
-              vehicleInfo: {
-                vehicleModel: '',
-              },
-            });
-          }
-        },
-        error: (error) => {
-          console.error('Error loading models:', error);
-          this.showError('Failed to load vehicle models for selected make');
-        },
-      });
+    this.makeModelService.getModelsByMake(makeId).subscribe({
+      next: (models) => {
+        this.filteredModels = models;
+      },
+      error: (err) => {
+        this.filteredModels = [];
+        this.showError('Failed to load models for selected make');
+      },
+    });
   }
 
-  // Form validators
   private registrationValidator(control: AbstractControl): ValidationErrors | null {
     if (!control.value) return null;
 
-    // UK registration format validation
     const ukRegex = /^[A-Z]{2}[0-9]{2}\s?[A-Z]{3}$|^[A-Z][0-9]{1,3}\s?[A-Z]{3}$|^[A-Z]{3}\s?[0-9]{1,3}[A-Z]$/;
 
     if (!ukRegex.test(control.value.toUpperCase().replace(/\s/g, ''))) {
@@ -383,7 +354,6 @@ export class JobCreateComponent implements OnInit, OnDestroy {
   private phoneValidator(control: AbstractControl): ValidationErrors | null {
     if (!control.value) return null;
 
-    // UK phone number validation
     const phoneRegex = /^(?:(?:\+44\s?|0)(?:1|2|3|7|8)(?:\d\s?){8,9})$/;
 
     if (!phoneRegex.test(control.value.replace(/\s/g, ''))) {
@@ -393,7 +363,6 @@ export class JobCreateComponent implements OnInit, OnDestroy {
     return null;
   }
 
-  // DVLA Vehicle Lookup - Manual Button Trigger
   onDvlaLookupClick(): void {
     const registration = this.jobForm.get('vehicleInfo.vehicleRegistration')?.value;
 
@@ -426,19 +395,16 @@ export class JobCreateComponent implements OnInit, OnDestroy {
           this.dvlaLookupCompleted = false;
           console.error('DVLA lookup error:', error);
 
-          // Use the error message from your service
           this.showError(error.message || 'Could not auto-fill vehicle details. Please enter manually.');
         },
       });
   }
 
-  // Check if DVLA lookup button should be enabled
   get canPerformDvlaLookup(): boolean {
     const registration = this.jobForm.get('vehicleInfo.vehicleRegistration')?.value;
     return !!(registration && registration.length >= 7 && !this.isLoadingDvla);
   }
 
-  // Get button text based on state
   get dvlaButtonText(): string {
     if (this.isLoadingDvla) return 'Searching...';
     if (this.dvlaLookupCompleted) return 'Search Again';
@@ -449,9 +415,7 @@ export class JobCreateComponent implements OnInit, OnDestroy {
     const updateData: any = {};
     let autoFilledCount = 0;
 
-    // Map DVLA data to form fields
     if (dvlaData.make) {
-      // Try to find matching make in our database
       const matchingMake = this.makes.find((m) => m.name.toLowerCase() === dvlaData.make?.toLowerCase());
       if (matchingMake) {
         updateData.vehicleMake = matchingMake.id;
@@ -473,7 +437,6 @@ export class JobCreateComponent implements OnInit, OnDestroy {
     }
 
     if (dvlaData.fuelType) {
-      // Map DVLA fuel types to our fuel types
       const fuelTypeMapping: { [key: string]: string } = {
         PETROL: 'Petrol',
         DIESEL: 'Diesel',
@@ -488,7 +451,6 @@ export class JobCreateComponent implements OnInit, OnDestroy {
       }
     }
 
-    // Determine vehicle type from DVLA data
     if (dvlaData.typeApproval) {
       const vehicleType = this.determineVehicleType(dvlaData);
       if (this.vehicleTypes.includes(vehicleType)) {
@@ -498,7 +460,6 @@ export class JobCreateComponent implements OnInit, OnDestroy {
       }
     }
 
-    // Update the form
     this.jobForm.patchValue(
       {
         vehicleInfo: updateData,
@@ -506,12 +467,10 @@ export class JobCreateComponent implements OnInit, OnDestroy {
       { emitEvent: false }
     );
 
-    // Load models if make was auto-filled
     if (updateData.vehicleMake) {
       this.loadModelsByMake(updateData.vehicleMake);
     }
 
-    // Show success message
     if (autoFilledCount > 0) {
       this.showSuccess(`Auto-filled ${autoFilledCount} vehicle details from DVLA`);
     }
@@ -534,9 +493,7 @@ export class JobCreateComponent implements OnInit, OnDestroy {
     return 'Other';
   }
 
-  // Address Selection
   private setupAddressSelectors(): void {
-    // Collection address selector
     this.jobForm
       .get('collectionDetails.savedAddressId')
       ?.valueChanges.pipe(takeUntil(this.destroy$))
@@ -546,7 +503,6 @@ export class JobCreateComponent implements OnInit, OnDestroy {
         }
       });
 
-    // Delivery address selector
     this.jobForm
       .get('deliveryDetails.savedAddressId')
       ?.valueChanges.pipe(takeUntil(this.destroy$))
@@ -556,7 +512,6 @@ export class JobCreateComponent implements OnInit, OnDestroy {
         }
       });
 
-    // Secondary collection address selector
     this.jobForm
       .get('secondaryCollectionDetails.savedAddressId')
       ?.valueChanges.pipe(takeUntil(this.destroy$))
@@ -566,7 +521,6 @@ export class JobCreateComponent implements OnInit, OnDestroy {
         }
       });
 
-    // First delivery address selector
     this.jobForm
       .get('firstDeliveryDetails.savedAddressId')
       ?.valueChanges.pipe(takeUntil(this.destroy$))
@@ -630,7 +584,6 @@ export class JobCreateComponent implements OnInit, OnDestroy {
     this.showSuccess(`Address populated from saved location: ${savedAddress.name}`);
   }
 
-  // Get filtered addresses for dropdowns
   getFilteredAddresses(type: 'collection' | 'delivery' | 'both'): SavedAddress[] {
     return this.savedAddresses.filter((addr) => addr.isActive && (addr.type === type || addr.type === 'both'));
   }
@@ -650,10 +603,8 @@ export class JobCreateComponent implements OnInit, OnDestroy {
     const isSplit = this.jobForm.get('isSplitJourney')?.value;
 
     if (isSplit) {
-      // Add validators for split journey fields
       this.addSplitJourneyValidators();
     } else {
-      // Remove validators and clear values
       this.removeSplitJourneyValidators();
       this.jobForm.patchValue({
         secondaryCollectionDetails: this.getEmptyContactForm(),
@@ -666,21 +617,18 @@ export class JobCreateComponent implements OnInit, OnDestroy {
     const firstDropoff = this.jobForm.get('firstDropoffDetails');
     const secondCollection = this.jobForm.get('secondCollectionDetails');
 
-    // Add required validators for first dropoff
     firstDropoff?.get('firstDropoffAddress')?.setValidators([Validators.required]);
     firstDropoff?.get('firstDropoffCity')?.setValidators([Validators.required]);
     firstDropoff?.get('firstDropoffPostcode')?.setValidators([Validators.required]);
     firstDropoff?.get('firstDropoffContactName')?.setValidators([Validators.required]);
     firstDropoff?.get('firstDropoffContactPhone')?.setValidators([Validators.required, this.phoneValidator]);
 
-    // Add required validators for second collection
     secondCollection?.get('secondCollectionAddress')?.setValidators([Validators.required]);
     secondCollection?.get('secondCollectionCity')?.setValidators([Validators.required]);
     secondCollection?.get('secondCollectionPostcode')?.setValidators([Validators.required]);
     secondCollection?.get('secondCollectionContactName')?.setValidators([Validators.required]);
     secondCollection?.get('secondCollectionContactPhone')?.setValidators([Validators.required, this.phoneValidator]);
 
-    // Update validity
     firstDropoff?.updateValueAndValidity();
     secondCollection?.updateValueAndValidity();
   }
@@ -689,7 +637,6 @@ export class JobCreateComponent implements OnInit, OnDestroy {
     const firstDropoff = this.jobForm.get('firstDropoffDetails') as FormGroup;
     const secondCollection = this.jobForm.get('secondCollectionDetails') as FormGroup;
 
-    // Remove all validators
     if (firstDropoff) {
       Object.keys(firstDropoff.controls).forEach((key) => {
         firstDropoff.get(key)?.clearValidators();
@@ -718,7 +665,6 @@ export class JobCreateComponent implements OnInit, OnDestroy {
     };
   }
 
-  // Form submission
   async onSubmit(): Promise<void> {
     if (this.jobForm.invalid) {
       this.markFormGroupTouched(this.jobForm);
@@ -737,14 +683,12 @@ export class JobCreateComponent implements OnInit, OnDestroy {
       const formValue = this.jobForm.value;
       const jobData = this.transformFormDataToJob(formValue);
 
-      // Handle both Observable and Promise returns from createJob
       const jobIdResult = this.jobService.createJob(jobData);
 
       let jobId: string;
       if (jobIdResult instanceof Promise) {
         jobId = await jobIdResult;
       } else {
-        // If it's an Observable, convert to Promise using firstValueFrom
         jobId = await firstValueFrom(jobIdResult);
       }
 
@@ -762,13 +706,11 @@ export class JobCreateComponent implements OnInit, OnDestroy {
     const now = Timestamp.now();
 
     return {
-      // Basic info
       isSplitJourney: formValue.isSplitJourney || false,
       status: 'unallocated',
       stage: null,
       jobType: formValue.jobType || 'standard', // Restore jobType field
 
-      // Vehicle info
       vehicleRegistration: formValue.vehicleInfo.vehicleRegistration?.toUpperCase(),
       vehicleType: formValue.vehicleInfo.vehicleType,
       vehicleMake: formValue.vehicleInfo.vehicleMake,
@@ -778,13 +720,11 @@ export class JobCreateComponent implements OnInit, OnDestroy {
       chassisNumber: formValue.vehicleInfo.chassisNumber,
       vehicleFuelType: formValue.vehicleInfo.vehicleFuelType,
 
-      // Customer info
       customerId: formValue.customerInfo.customerId || null,
       customerName: formValue.customerInfo.customerName,
       customerJobNumber: formValue.customerInfo.customerJobNumber || null,
       shippingReference: formValue.customerInfo.shippingReference || null,
 
-      // Collection details
       collectionAddress: formValue.collectionDetails.collectionAddress,
       collectionCity: formValue.collectionDetails.collectionCity,
       collectionPostcode: formValue.collectionDetails.collectionPostcode,
@@ -796,7 +736,6 @@ export class JobCreateComponent implements OnInit, OnDestroy {
         : null,
       collectionNotes: formValue.collectionDetails.collectionNotes || null,
 
-      // Delivery details
       deliveryAddress: formValue.deliveryDetails.deliveryAddress,
       deliveryCity: formValue.deliveryDetails.deliveryCity,
       deliveryPostcode: formValue.deliveryDetails.deliveryPostcode,
@@ -806,7 +745,6 @@ export class JobCreateComponent implements OnInit, OnDestroy {
       deliveryScheduledTime: formValue.deliveryDetails.deliveryScheduledTime ? Timestamp.fromDate(new Date(formValue.deliveryDetails.deliveryScheduledTime)) : null,
       deliveryNotes: formValue.deliveryDetails.deliveryNotes || null,
 
-      // Split journey details
       firstDropoffAddress: formValue.isSplitJourney ? formValue.firstDropoffDetails.firstDropoffAddress : null,
       firstDropoffCity: formValue.isSplitJourney ? formValue.firstDropoffDetails.firstDropoffCity : null,
       firstDropoffPostcode: formValue.isSplitJourney ? formValue.firstDropoffDetails.firstDropoffPostcode : null,
@@ -831,7 +769,6 @@ export class JobCreateComponent implements OnInit, OnDestroy {
           : null,
       secondCollectionNotes: formValue.isSplitJourney ? formValue.secondCollectionDetails.secondCollectionNotes : null,
 
-      // General
       generalNotes: formValue.generalNotes
         ? [
             {
@@ -845,7 +782,6 @@ export class JobCreateComponent implements OnInit, OnDestroy {
         : null,
       hasDamageCommitted: false,
 
-      // Metadata
       createdBy: this.currentUser?.id || 'system',
       createdAt: now,
       updatedAt: now,
@@ -862,12 +798,10 @@ export class JobCreateComponent implements OnInit, OnDestroy {
     });
   }
 
-  // Navigation
   onCancel(): void {
     this.router.navigate(['/jobs']);
   }
 
-  // Utility methods
   private showSuccess(message: string): void {
     this.snackBar.open(message, 'Close', {
       duration: 5000,
@@ -882,7 +816,6 @@ export class JobCreateComponent implements OnInit, OnDestroy {
     });
   }
 
-  // Getters for template
   get vehicleInfoForm(): FormGroup {
     return this.jobForm.get('vehicleInfo') as FormGroup;
   }

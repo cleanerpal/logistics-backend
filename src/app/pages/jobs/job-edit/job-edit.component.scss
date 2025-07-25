@@ -11,13 +11,11 @@
     padding-top: 80px; // Adjust for smaller screens
   }
 
-  // If you have a specific top bar height, adjust accordingly
   &.with-topbar {
     padding-top: calc(var(--topbar-height, 64px) + 24px);
   }
 }
 
-// Header Section
 .page-header {
   margin-bottom: 32px;
 
@@ -104,7 +102,6 @@
     }
   }
 
-  // Unsaved Changes Warning
   .unsaved-changes-warning {
     display: flex;
     align-items: center;
@@ -136,7 +133,6 @@
   }
 }
 
-// Loading State
 .loading-container {
   display: flex;
   flex-direction: column;
@@ -156,14 +152,12 @@
   }
 }
 
-// Job Form
 .job-form {
   display: flex;
   flex-direction: column;
   gap: 24px;
 }
 
-// Form Section Cards
 .form-section {
   border-radius: 12px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
@@ -241,7 +235,6 @@
   }
 }
 
-// Status Controls
 .status-controls {
   display: flex;
   align-items: center;
@@ -316,7 +309,6 @@
   }
 }
 
-// Form Grid Layout
 .form-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -333,7 +325,6 @@
   }
 }
 
-// Form Field Styling
 .mat-mdc-form-field {
   width: 100%;
 
@@ -384,7 +375,6 @@
     }
   }
 
-  // Dirty/touched field highlighting
   &.ng-dirty:not(.mat-form-field-invalid) {
     .mat-mdc-form-field-outline {
       .mat-mdc-form-field-outline-start,
@@ -396,7 +386,6 @@
   }
 }
 
-// Split Journey Toggle
 .split-journey-toggle {
   .mat-mdc-slide-toggle {
     .mdc-switch__track {
@@ -430,7 +419,6 @@
   }
 }
 
-// Form Actions
 .form-actions {
   display: flex;
   justify-content: flex-end;
@@ -489,7 +477,6 @@
   }
 }
 
-// Input Styling Enhancements
 input[type='datetime-local'] {
   font-family: inherit;
 }
@@ -501,7 +488,6 @@ textarea {
   line-height: 1.5;
 }
 
-// Select and Option Styling
 .mat-mdc-select-trigger {
   display: flex;
   align-items: center;
@@ -518,7 +504,6 @@ textarea {
   }
 }
 
-// Error States
 .mat-mdc-form-field.mat-form-field-invalid {
   animation: shake 0.3s ease-in-out;
 }
@@ -536,7 +521,6 @@ textarea {
   }
 }
 
-// Success States for Modified Fields
 .form-section.has-changes {
   border-left: 4px solid #10b981;
   background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
@@ -546,7 +530,6 @@ textarea {
   }
 }
 
-// Field Change Indicators
 .mat-mdc-form-field.field-changed {
   position: relative;
 
@@ -563,7 +546,6 @@ textarea {
   }
 }
 
-// Disabled Field Styling
 .mat-mdc-form-field.mat-form-field-disabled {
   opacity: 0.6;
 
@@ -576,7 +558,6 @@ textarea {
   }
 }
 
-// Responsive Design
 @media (max-width: 1024px) {
   .job-edit-container {
     max-width: 100%;
@@ -635,7 +616,6 @@ textarea {
   }
 }
 
-// Dark Theme Support
 :host-context(.dark-theme) {
   .job-edit-container {
     background-color: #0f172a;
@@ -735,7 +715,6 @@ textarea {
   }
 }
 
-// Print Styles
 @media print {
   .job-edit-container {
     background: white;
@@ -760,7 +739,6 @@ textarea {
   }
 }
 
-// Focus Management
 .mat-mdc-form-field:focus-within {
   .mat-mdc-form-field-outline-thick {
     .mat-mdc-form-field-outline-start,
@@ -771,7 +749,6 @@ textarea {
   }
 }
 
-// Loading State for Form Fields
 .mat-mdc-form-field.loading {
   position: relative;
 

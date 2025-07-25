@@ -1,7 +1,4 @@
-<!-- src/app/pages/settings/billing-settings/billing-settings.component.html -->
-
 <div class="billing-settings-container">
-  <!-- Page Header -->
   <div class="page-header">
     <h1>
       <mat-icon>settings</mat-icon>
@@ -10,16 +7,12 @@
     <p class="page-subtitle">Configure billing preferences, company details, and email templates</p>
   </div>
 
-  <!-- Loading State -->
   <div *ngIf="isLoading" class="loading-container">
     <mat-spinner diameter="40"></mat-spinner>
     <p>Loading settings...</p>
   </div>
 
-  <!-- Settings Form -->
   <form *ngIf="!isLoading" [formGroup]="settingsForm" (ngSubmit)="saveSettings()" class="settings-form">
-    
-    <!-- Basic Settings Section -->
     <mat-card class="settings-section">
       <mat-card-header>
         <mat-card-title>
@@ -33,64 +26,36 @@
         <div class="form-grid">
           <mat-form-field appearance="outline">
             <mat-label>VAT Rate (%)</mat-label>
-            <input 
-              matInput 
-              type="number" 
-              formControlName="vatRate" 
-              min="0" 
-              max="100" 
-              step="0.1">
-            <mat-error *ngIf="settingsForm.get('vatRate')?.hasError('required')">
-              VAT rate is required
-            </mat-error>
-            <mat-error *ngIf="settingsForm.get('vatRate')?.hasError('min')">
-              VAT rate must be 0 or greater
-            </mat-error>
-            <mat-error *ngIf="settingsForm.get('vatRate')?.hasError('max')">
-              VAT rate cannot exceed 100%
-            </mat-error>
+            <input matInput type="number" formControlName="vatRate" min="0" max="100" step="0.1" />
+            <mat-error *ngIf="settingsForm.get('vatRate')?.hasError('required')"> VAT rate is required </mat-error>
+            <mat-error *ngIf="settingsForm.get('vatRate')?.hasError('min')"> VAT rate must be 0 or greater </mat-error>
+            <mat-error *ngIf="settingsForm.get('vatRate')?.hasError('max')"> VAT rate cannot exceed 100% </mat-error>
           </mat-form-field>
 
           <mat-form-field appearance="outline">
             <mat-label>Payment Terms (Days)</mat-label>
-            <input 
-              matInput 
-              type="number" 
-              formControlName="paymentTermsDays" 
-              min="1" 
-              max="365">
+            <input matInput type="number" formControlName="paymentTermsDays" min="1" max="365" />
             <mat-hint>Number of days customers have to pay invoices</mat-hint>
-            <mat-error *ngIf="settingsForm.get('paymentTermsDays')?.hasError('required')">
-              Payment terms are required
-            </mat-error>
+            <mat-error *ngIf="settingsForm.get('paymentTermsDays')?.hasError('required')"> Payment terms are required </mat-error>
           </mat-form-field>
 
           <mat-form-field appearance="outline">
             <mat-label>Invoice Prefix</mat-label>
-            <input matInput formControlName="invoicePrefix">
+            <input matInput formControlName="invoicePrefix" />
             <mat-hint>Prefix for invoice numbers (e.g., INV-, BILL-)</mat-hint>
-            <mat-error *ngIf="settingsForm.get('invoicePrefix')?.hasError('required')">
-              Invoice prefix is required
-            </mat-error>
+            <mat-error *ngIf="settingsForm.get('invoicePrefix')?.hasError('required')"> Invoice prefix is required </mat-error>
           </mat-form-field>
 
           <mat-form-field appearance="outline">
             <mat-label>Next Invoice Number</mat-label>
-            <input 
-              matInput 
-              type="number" 
-              formControlName="nextInvoiceNumber" 
-              min="1">
+            <input matInput type="number" formControlName="nextInvoiceNumber" min="1" />
             <mat-hint>The next invoice number to be generated</mat-hint>
-            <mat-error *ngIf="settingsForm.get('nextInvoiceNumber')?.hasError('required')">
-              Next invoice number is required
-            </mat-error>
+            <mat-error *ngIf="settingsForm.get('nextInvoiceNumber')?.hasError('required')"> Next invoice number is required </mat-error>
           </mat-form-field>
         </div>
       </mat-card-content>
     </mat-card>
 
-    <!-- Company Details Section -->
     <mat-card class="settings-section">
       <mat-card-header>
         <mat-card-title>
@@ -105,77 +70,61 @@
           <div class="form-grid">
             <mat-form-field appearance="outline" class="full-width">
               <mat-label>Company Name</mat-label>
-              <input matInput formControlName="name">
-              <mat-error *ngIf="settingsForm.get('companyDetails.name')?.hasError('required')">
-                Company name is required
-              </mat-error>
+              <input matInput formControlName="name" />
+              <mat-error *ngIf="settingsForm.get('companyDetails.name')?.hasError('required')"> Company name is required </mat-error>
             </mat-form-field>
 
             <mat-form-field appearance="outline" class="full-width">
               <mat-label>Address</mat-label>
-              <input matInput formControlName="address">
-              <mat-error *ngIf="settingsForm.get('companyDetails.address')?.hasError('required')">
-                Address is required
-              </mat-error>
+              <input matInput formControlName="address" />
+              <mat-error *ngIf="settingsForm.get('companyDetails.address')?.hasError('required')"> Address is required </mat-error>
             </mat-form-field>
 
             <mat-form-field appearance="outline">
               <mat-label>City</mat-label>
-              <input matInput formControlName="city">
-              <mat-error *ngIf="settingsForm.get('companyDetails.city')?.hasError('required')">
-                City is required
-              </mat-error>
+              <input matInput formControlName="city" />
+              <mat-error *ngIf="settingsForm.get('companyDetails.city')?.hasError('required')"> City is required </mat-error>
             </mat-form-field>
 
             <mat-form-field appearance="outline">
               <mat-label>Postcode</mat-label>
-              <input matInput formControlName="postcode">
-              <mat-error *ngIf="settingsForm.get('companyDetails.postcode')?.hasError('required')">
-                Postcode is required
-              </mat-error>
+              <input matInput formControlName="postcode" />
+              <mat-error *ngIf="settingsForm.get('companyDetails.postcode')?.hasError('required')"> Postcode is required </mat-error>
             </mat-form-field>
 
             <mat-form-field appearance="outline">
               <mat-label>Country</mat-label>
-              <input matInput formControlName="country">
-              <mat-error *ngIf="settingsForm.get('companyDetails.country')?.hasError('required')">
-                Country is required
-              </mat-error>
+              <input matInput formControlName="country" />
+              <mat-error *ngIf="settingsForm.get('companyDetails.country')?.hasError('required')"> Country is required </mat-error>
             </mat-form-field>
 
             <mat-form-field appearance="outline">
               <mat-label>Company Number</mat-label>
-              <input matInput formControlName="companyNumber">
+              <input matInput formControlName="companyNumber" />
             </mat-form-field>
 
             <mat-form-field appearance="outline">
               <mat-label>VAT Number</mat-label>
-              <input matInput formControlName="vatNumber">
+              <input matInput formControlName="vatNumber" />
               <mat-hint>Optional - only required if VAT registered</mat-hint>
             </mat-form-field>
 
             <mat-form-field appearance="outline">
               <mat-label>Email</mat-label>
-              <input matInput type="email" formControlName="email">
-              <mat-error *ngIf="settingsForm.get('companyDetails.email')?.hasError('required')">
-                Email is required
-              </mat-error>
-              <mat-error *ngIf="settingsForm.get('companyDetails.email')?.hasError('email')">
-                Please enter a valid email address
-              </mat-error>
+              <input matInput type="email" formControlName="email" />
+              <mat-error *ngIf="settingsForm.get('companyDetails.email')?.hasError('required')"> Email is required </mat-error>
+              <mat-error *ngIf="settingsForm.get('companyDetails.email')?.hasError('email')"> Please enter a valid email address </mat-error>
             </mat-form-field>
 
             <mat-form-field appearance="outline">
               <mat-label>Phone</mat-label>
-              <input matInput formControlName="phone">
-              <mat-error *ngIf="settingsForm.get('companyDetails.phone')?.hasError('required')">
-                Phone number is required
-              </mat-error>
+              <input matInput formControlName="phone" />
+              <mat-error *ngIf="settingsForm.get('companyDetails.phone')?.hasError('required')"> Phone number is required </mat-error>
             </mat-form-field>
 
             <mat-form-field appearance="outline">
               <mat-label>Website</mat-label>
-              <input matInput formControlName="website">
+              <input matInput formControlName="website" />
               <mat-hint>Optional - company website URL</mat-hint>
             </mat-form-field>
           </div>
@@ -183,7 +132,6 @@
       </mat-card-content>
     </mat-card>
 
-    <!-- Bank Details Section -->
     <mat-card class="settings-section">
       <mat-card-header>
         <mat-card-title>
@@ -198,57 +146,36 @@
           <div class="form-grid">
             <mat-form-field appearance="outline" class="full-width">
               <mat-label>Bank Name</mat-label>
-              <input matInput formControlName="bankName">
-              <mat-error *ngIf="settingsForm.get('bankDetails.bankName')?.hasError('required')">
-                Bank name is required
-              </mat-error>
+              <input matInput formControlName="bankName" />
+              <mat-error *ngIf="settingsForm.get('bankDetails.bankName')?.hasError('required')"> Bank name is required </mat-error>
             </mat-form-field>
 
             <mat-form-field appearance="outline" class="full-width">
               <mat-label>Account Name</mat-label>
-              <input matInput formControlName="accountName">
-              <mat-error *ngIf="settingsForm.get('bankDetails.accountName')?.hasError('required')">
-                Account name is required
-              </mat-error>
+              <input matInput formControlName="accountName" />
+              <mat-error *ngIf="settingsForm.get('bankDetails.accountName')?.hasError('required')"> Account name is required </mat-error>
             </mat-form-field>
 
             <mat-form-field appearance="outline">
               <mat-label>Sort Code</mat-label>
-              <input 
-                matInput 
-                formControlName="sortCode" 
-                placeholder="00-00-00"
-                (input)="formatSortCode()">
+              <input matInput formControlName="sortCode" placeholder="00-00-00" (input)="formatSortCode()" />
               <mat-hint>Format: 00-00-00</mat-hint>
-              <mat-error *ngIf="settingsForm.get('bankDetails.sortCode')?.hasError('required')">
-                Sort code is required
-              </mat-error>
-              <mat-error *ngIf="settingsForm.get('bankDetails.sortCode')?.hasError('pattern')">
-                Sort code must be in format 00-00-00
-              </mat-error>
+              <mat-error *ngIf="settingsForm.get('bankDetails.sortCode')?.hasError('required')"> Sort code is required </mat-error>
+              <mat-error *ngIf="settingsForm.get('bankDetails.sortCode')?.hasError('pattern')"> Sort code must be in format 00-00-00 </mat-error>
             </mat-form-field>
 
             <mat-form-field appearance="outline">
               <mat-label>Account Number</mat-label>
-              <input 
-                matInput 
-                formControlName="accountNumber" 
-                placeholder="12345678"
-                (input)="formatAccountNumber()">
+              <input matInput formControlName="accountNumber" placeholder="12345678" (input)="formatAccountNumber()" />
               <mat-hint>8 digit account number</mat-hint>
-              <mat-error *ngIf="settingsForm.get('bankDetails.accountNumber')?.hasError('required')">
-                Account number is required
-              </mat-error>
-              <mat-error *ngIf="settingsForm.get('bankDetails.accountNumber')?.hasError('pattern')">
-                Account number must be 8 digits
-              </mat-error>
+              <mat-error *ngIf="settingsForm.get('bankDetails.accountNumber')?.hasError('required')"> Account number is required </mat-error>
+              <mat-error *ngIf="settingsForm.get('bankDetails.accountNumber')?.hasError('pattern')"> Account number must be 8 digits </mat-error>
             </mat-form-field>
           </div>
         </div>
       </mat-card-content>
     </mat-card>
 
-    <!-- Email Templates Section -->
     <mat-card class="settings-section">
       <mat-card-header>
         <mat-card-title>
@@ -262,12 +189,7 @@
               <mat-icon>visibility</mat-icon>
               Preview
             </button>
-            <button 
-              type="button" 
-              mat-button 
-              color="accent" 
-              (click)="testEmailConfiguration()"
-              [disabled]="isTestingEmail">
+            <button type="button" mat-button color="accent" (click)="testEmailConfiguration()" [disabled]="isTestingEmail">
               <mat-spinner *ngIf="isTestingEmail" diameter="16"></mat-spinner>
               <mat-icon *ngIf="!isTestingEmail">send</mat-icon>
               Test Email
@@ -278,7 +200,6 @@
 
       <mat-card-content>
         <div formGroupName="emailTemplates">
-          <!-- Template Variables Info -->
           <mat-expansion-panel class="template-variables">
             <mat-expansion-panel-header>
               <mat-panel-title>
@@ -288,113 +209,78 @@
             </mat-expansion-panel-header>
             <div class="variables-grid">
               <div class="variable-item">
-                <code>{{"{{"}}invoiceNumber{{"}}"}}</code>
+                <code>{{ '{{' }}invoiceNumber{{"}}"}}</code>
                 <span>Invoice number</span>
               </div>
               <div class="variable-item">
-                <code>{{"{{"}}customerName{{"}}"}}</code>
+                <code>{{ '{{' }}customerName{{"}}"}}</code>
                 <span>Customer name</span>
               </div>
               <div class="variable-item">
-                <code>{{"{{"}}total{{"}}"}}</code>
+                <code>{{ '{{' }}total{{"}}"}}</code>
                 <span>Total amount</span>
               </div>
               <div class="variable-item">
-                <code>{{"{{"}}dueDate{{"}}"}}</code>
+                <code>{{ '{{' }}dueDate{{"}}"}}</code>
                 <span>Due date</span>
               </div>
               <div class="variable-item">
-                <code>{{"{{"}}companyName{{"}}"}}</code>
+                <code>{{ '{{' }}companyName{{"}}"}}</code>
                 <span>Company name</span>
               </div>
               <div class="variable-item">
-                <code>{{"{{"}}jobId{{"}}"}}</code>
+                <code>{{ '{{' }}jobId{{"}}"}}</code>
                 <span>Job ID</span>
               </div>
             </div>
           </mat-expansion-panel>
 
-          <!-- Invoice Email Template -->
           <div class="template-section">
             <h4>Invoice Email Template</h4>
             <mat-form-field appearance="outline" class="full-width">
               <mat-label>Subject Line</mat-label>
-              <input matInput formControlName="invoiceSubject">
-              <mat-error *ngIf="settingsForm.get('emailTemplates.invoiceSubject')?.hasError('required')">
-                Subject is required
-              </mat-error>
+              <input matInput formControlName="invoiceSubject" />
+              <mat-error *ngIf="settingsForm.get('emailTemplates.invoiceSubject')?.hasError('required')"> Subject is required </mat-error>
             </mat-form-field>
 
             <mat-form-field appearance="outline" class="full-width">
               <mat-label>Email Body</mat-label>
-              <textarea 
-                matInput 
-                formControlName="invoiceBody" 
-                rows="8"
-                class="template-textarea">
-              </textarea>
-              <mat-error *ngIf="settingsForm.get('emailTemplates.invoiceBody')?.hasError('required')">
-                Email body is required
-              </mat-error>
+              <textarea matInput formControlName="invoiceBody" rows="8" class="template-textarea"> </textarea>
+              <mat-error *ngIf="settingsForm.get('emailTemplates.invoiceBody')?.hasError('required')"> Email body is required </mat-error>
             </mat-form-field>
           </div>
 
-          <!-- Reminder Email Template -->
           <div class="template-section">
             <h4>Payment Reminder Template</h4>
             <mat-form-field appearance="outline" class="full-width">
               <mat-label>Subject Line</mat-label>
-              <input matInput formControlName="reminderSubject">
-              <mat-error *ngIf="settingsForm.get('emailTemplates.reminderSubject')?.hasError('required')">
-                Subject is required
-              </mat-error>
+              <input matInput formControlName="reminderSubject" />
+              <mat-error *ngIf="settingsForm.get('emailTemplates.reminderSubject')?.hasError('required')"> Subject is required </mat-error>
             </mat-form-field>
 
             <mat-form-field appearance="outline" class="full-width">
               <mat-label>Email Body</mat-label>
-              <textarea 
-                matInput 
-                formControlName="reminderBody" 
-                rows="8"
-                class="template-textarea">
-              </textarea>
-              <mat-error *ngIf="settingsForm.get('emailTemplates.reminderBody')?.hasError('required')">
-                Email body is required
-              </mat-error>
+              <textarea matInput formControlName="reminderBody" rows="8" class="template-textarea"> </textarea>
+              <mat-error *ngIf="settingsForm.get('emailTemplates.reminderBody')?.hasError('required')"> Email body is required </mat-error>
             </mat-form-field>
           </div>
         </div>
       </mat-card-content>
     </mat-card>
 
-    <!-- Action Buttons -->
     <div class="action-buttons">
-      <button 
-        type="button" 
-        mat-button 
-        color="warn" 
-        (click)="resetToDefaults()"
-        class="reset-button">
+      <button type="button" mat-button color="warn" (click)="resetToDefaults()" class="reset-button">
         <mat-icon>restore</mat-icon>
         Reset to Defaults
       </button>
 
       <div class="primary-actions">
-        <button 
-          type="button" 
-          mat-stroked-button 
-          (click)="previewInvoiceTemplate()"
-          class="preview-button">
+        <button type="button" mat-stroked-button (click)="previewInvoiceTemplate()" class="preview-button">
           <mat-icon>visibility</mat-icon>
           Preview Invoice
         </button>
 
-        <button 
-          type="submit" 
-          mat-raised-button 
-          color="primary"
-          [disabled]="settingsForm.invalid || isSaving"
-          class="save-button">
+        <button type="submit" mat-raised-button color="primary" [disabled]="settingsForm.invalid || isSaving" class="save-button">
           <mat-spinner *ngIf="isSaving" diameter="20"></mat-spinner>
           <mat-icon *ngIf="!isSaving">save</mat-icon>
           <span *ngIf="!isSaving">Save Settings</span>

@@ -1,5 +1,4 @@
 <div class="job-edit-container">
-  <!-- Header Section -->
   <div class="page-header">
     <div class="header-content">
       <div class="title-section">
@@ -24,22 +23,18 @@
       </div>
     </div>
 
-    <!-- Unsaved Changes Warning -->
     <div class="unsaved-changes-warning" *ngIf="hasUnsavedChanges">
       <mat-icon>warning</mat-icon>
       <span>You have unsaved changes</span>
     </div>
   </div>
 
-  <!-- Loading State -->
   <div *ngIf="loading" class="loading-container">
     <mat-spinner></mat-spinner>
     <p>Loading job data...</p>
   </div>
 
-  <!-- Job Edit Form -->
   <form [formGroup]="jobForm" (ngSubmit)="onSubmit()" *ngIf="!loading && originalJob" class="job-form">
-    <!-- Status Section (if user has permission) -->
     <mat-card class="form-section status-section" *ngIf="canEditStatus">
       <mat-card-header>
         <mat-card-title>
@@ -69,7 +64,6 @@
       </mat-card-content>
     </mat-card>
 
-    <!-- Vehicle Information Section -->
     <mat-card class="form-section" formGroupName="vehicleInfo">
       <mat-card-header>
         <mat-card-title>
@@ -144,7 +138,6 @@
       </mat-card-content>
     </mat-card>
 
-    <!-- Customer Information Section -->
     <mat-card class="form-section" formGroupName="customerInfo">
       <mat-card-header>
         <mat-card-title>
@@ -183,7 +176,6 @@
       </mat-card-content>
     </mat-card>
 
-    <!-- Collection Details Section -->
     <mat-card class="form-section" formGroupName="collectionDetails">
       <mat-card-header>
         <mat-card-title>
@@ -247,7 +239,6 @@
       </mat-card-content>
     </mat-card>
 
-    <!-- Split Journey Toggle -->
     <mat-card class="form-section">
       <mat-card-content>
         <div class="split-journey-toggle">
@@ -262,7 +253,6 @@
       </mat-card-content>
     </mat-card>
 
-    <!-- Secondary Collection Details (Split Journey) -->
     <mat-card class="form-section split-section" formGroupName="secondaryCollectionDetails" *ngIf="isSplitJourney">
       <mat-card-header>
         <mat-card-title>
@@ -322,7 +312,6 @@
       </mat-card-content>
     </mat-card>
 
-    <!-- First Delivery Details (Split Journey) -->
     <mat-card class="form-section split-section" formGroupName="firstDeliveryDetails" *ngIf="isSplitJourney">
       <mat-card-header>
         <mat-card-title>
@@ -382,7 +371,6 @@
       </mat-card-content>
     </mat-card>
 
-    <!-- Final Delivery Details Section -->
     <mat-card class="form-section" formGroupName="deliveryDetails">
       <mat-card-header>
         <mat-card-title>
@@ -445,7 +433,6 @@
       </mat-card-content>
     </mat-card>
 
-    <!-- General Notes Section -->
     <mat-card class="form-section">
       <mat-card-header>
         <mat-card-title>
@@ -463,7 +450,6 @@
       </mat-card-content>
     </mat-card>
 
-    <!-- Form Actions -->
     <div class="form-actions">
       <button type="button" mat-stroked-button (click)="onCancel()" class="cancel-button">
         <mat-icon>close</mat-icon>

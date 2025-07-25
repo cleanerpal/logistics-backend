@@ -10,15 +10,12 @@ export interface JobBilling {
   subtotal: number;
   totalAmount: number;
 
-  // Additional costs
   additionalCosts: BillingCost[];
 
-  // Invoice details
   invoiceNumber?: string;
   invoiceDate?: Timestamp;
   invoiceStatus: 'draft' | 'sent' | 'paid' | 'overdue' | 'cancelled';
 
-  // Timestamps
   createdAt: Timestamp;
   updatedAt: Timestamp;
   createdBy: string;

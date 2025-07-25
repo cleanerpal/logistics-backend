@@ -1,4 +1,3 @@
-<!-- src/app/pages/jobs/job-details/job-details.component.html -->
 <mat-card class="mat-elevation-z3 job-details-card">
   <div class="header-wrapper">
     <div class="header-title">
@@ -23,7 +22,7 @@
         <mat-icon>check_circle</mat-icon>
         Set to Complete
       </button>
-      <!-- Completed status actions -->
+
       <button *ngIf="job.status === 'completed'" mat-flat-button class="create-button reopen-button" (click)="reopenJob()">
         <mat-icon>undo</mat-icon>
         Reopen Job
@@ -58,7 +57,6 @@
   </div>
 
   <div *ngIf="job && !loading && !error" class="job-content">
-    <!-- Status Overview Card -->
     <mat-card class="status-overview-card">
       <mat-card-content>
         <div class="status-header">
@@ -87,16 +85,13 @@
           </div>
         </div>
 
-        <!-- Progress Bar -->
         <div class="progress-section">
           <div class="progress-label">Job Progress</div>
           <mat-progress-bar mode="determinate" [value]="getStatusProgress()" [color]="getStatusColor(job.status)"> </mat-progress-bar>
           <div class="progress-text">{{ getStatusProgress() | number : '1.0-0' }}% Complete</div>
         </div>
 
-        <!-- Report Generation Buttons (tidy, conditional) -->
         <div class="report-actions" *ngIf="canViewReports">
-          <!-- POC Report: Only show if job.status is 'collected' or later -->
           <button
             mat-raised-button
             color="accent"
@@ -108,7 +103,6 @@
             POC Report
           </button>
 
-          <!-- POD Report: Only show if job.status is 'delivered' or 'completed' -->
           <button
             mat-raised-button
             color="accent"
@@ -121,7 +115,6 @@
           </button>
         </div>
 
-        <!-- Report Generation Progress -->
         <mat-card *ngIf="generatingReport" class="report-progress-card">
           <mat-card-content>
             <div class="report-progress">
@@ -133,14 +126,11 @@
       </mat-card-content>
     </mat-card>
 
-    <!-- Main Content Tabs Card (move this outside the status-overview-card) -->
     <mat-card class="main-content-card">
       <mat-tab-group [(selectedIndex)]="selectedTabIndex" (selectedTabChange)="onTabChange($event.index)" class="job-tabs">
-        <!-- Overview Tab -->
         <mat-tab label="Overview">
           <div class="tab-content">
             <div class="content-grid">
-              <!-- Vehicle Information -->
               <div class="info-section">
                 <div class="section-header">
                   <mat-icon>directions_car</mat-icon>
@@ -158,7 +148,6 @@
                 </div>
               </div>
 
-              <!-- Customer Information -->
               <div class="info-section">
                 <div class="section-header">
                   <mat-icon>business</mat-icon>
@@ -180,7 +169,6 @@
                 </div>
               </div>
 
-              <!-- Job Information -->
               <div class="info-section">
                 <div class="section-header">
                   <mat-icon>info</mat-icon>
@@ -206,7 +194,6 @@
                 </div>
               </div>
 
-              <!-- Driver Information -->
               <div class="info-section" *ngIf="job.driverId">
                 <div class="section-header">
                   <mat-icon>person</mat-icon>
@@ -224,14 +211,12 @@
                 </div>
               </div>
 
-              <!-- Vehicle Condition Summary -->
               <div class="info-section" *ngIf="vehicleCondition?.collection || vehicleCondition?.delivery">
                 <div class="section-header">
                   <mat-icon>assessment</mat-icon>
                   <h3>Vehicle Condition Summary</h3>
                 </div>
                 <div class="condition-grid">
-                  <!-- Collection Condition -->
                   <div class="condition-section" *ngIf="vehicleCondition?.collection">
                     <h4>Collection</h4>
                     <div class="condition-items">
@@ -250,7 +235,6 @@
                     </div>
                   </div>
 
-                  <!-- Delivery Condition -->
                   <div class="condition-section" *ngIf="vehicleCondition?.delivery">
                     <h4>Delivery</h4>
                     <div class="condition-items">
@@ -269,7 +253,6 @@
                     </div>
                   </div>
 
-                  <!-- Journey Summary -->
                   <div class="journey-summary" *ngIf="getMileageDifference() !== null || getEnergyUsed() !== null">
                     <h4>Journey Summary</h4>
                     <div class="summary-items">
@@ -286,7 +269,6 @@
                 </div>
               </div>
 
-              <!-- Damage Reports -->
               <div class="info-section" *ngIf="damageReports_old?.overall || damageReports_old?.collection || damageReports_old?.delivery">
                 <div class="section-header">
                   <mat-icon [class.warning-icon]="damageReports_old.overall">warning</mat-icon>
@@ -308,7 +290,6 @@
                 </div>
               </div>
 
-              <!-- Process Contacts -->
               <div class="info-section" *ngIf="processContacts?.collection || processContacts?.delivery">
                 <div class="section-header">
                   <mat-icon>contacts</mat-icon>
@@ -364,13 +345,10 @@
           </div>
         </mat-tab>
 
-        <!-- Journey Details Tab -->
         <mat-tab label="Journey Details">
           <div class="tab-content">
-            <!-- Standard Journey -->
             <div class="journey-section" *ngIf="isStandardJourney">
               <div class="journey-flow">
-                <!-- Collection -->
                 <div class="journey-step">
                   <div class="step-header">
                     <mat-icon class="step-icon collection">location_on</mat-icon>
@@ -412,12 +390,10 @@
                   </div>
                 </div>
 
-                <!-- Arrow -->
                 <div class="journey-arrow">
                   <mat-icon>arrow_downward</mat-icon>
                 </div>
 
-                <!-- Delivery -->
                 <div class="journey-step">
                   <div class="step-header">
                     <mat-icon class="step-icon delivery">flag</mat-icon>
@@ -461,10 +437,8 @@
               </div>
             </div>
 
-            <!-- Split Journey -->
             <div class="journey-section" *ngIf="isSplitJourney">
               <div class="split-journey-flow">
-                <!-- Primary Collection -->
                 <div class="journey-step">
                   <div class="step-header">
                     <mat-icon class="step-icon collection">location_on</mat-icon>
@@ -510,7 +484,6 @@
                   <mat-icon>arrow_downward</mat-icon>
                 </div>
 
-                <!-- Secondary Collection -->
                 <div class="journey-step" *ngIf="job.secondaryCollectionAddress">
                   <div class="step-header">
                     <mat-icon class="step-icon secondary">add_location</mat-icon>
@@ -556,7 +529,6 @@
                   <mat-icon>arrow_downward</mat-icon>
                 </div>
 
-                <!-- First Delivery -->
                 <div class="journey-step" *ngIf="job.firstDeliveryAddress">
                   <div class="step-header">
                     <mat-icon class="step-icon first-delivery">flag</mat-icon>
@@ -602,7 +574,6 @@
                   <mat-icon>arrow_downward</mat-icon>
                 </div>
 
-                <!-- Final Delivery -->
                 <div class="journey-step">
                   <div class="step-header">
                     <mat-icon class="step-icon final-delivery">outlined_flag</mat-icon>
@@ -648,7 +619,6 @@
           </div>
         </mat-tab>
 
-        <!-- Timeline Tab -->
         <mat-tab label="Timeline">
           <div class="tab-content">
             <div class="timeline-section">
@@ -678,10 +648,8 @@
           </div>
         </mat-tab>
 
-        <!-- Notes Tab -->
         <mat-tab label="Notes">
           <div class="tab-content">
-            <!-- Collection Notes Section -->
             <div class="notes-section" *ngIf="job.collectionNotes?.length">
               <div class="notes-header">
                 <mat-icon>note</mat-icon>
@@ -700,7 +668,6 @@
               </div>
             </div>
 
-            <!-- 1st Delivery Notes (Final Delivery for non-split) -->
             <div class="notes-section" *ngIf="!isSplitJourney && job.deliveryNotes?.length">
               <div class="notes-header">
                 <mat-icon>flag</mat-icon>
@@ -719,9 +686,7 @@
               </div>
             </div>
 
-            <!-- Split Journey Notes Sections -->
             <div *ngIf="isSplitJourney">
-              <!-- First Delivery Notes -->
               <div class="notes-section" *ngIf="job.firstDeliveryNotes?.length">
                 <div class="notes-header">
                   <mat-icon>flag</mat-icon>
@@ -739,7 +704,7 @@
                   </div>
                 </div>
               </div>
-              <!-- Second Collection Notes -->
+
               <div class="notes-section" *ngIf="job.secondaryCollectionNotes?.length">
                 <div class="notes-header">
                   <mat-icon>location_on</mat-icon>
@@ -757,7 +722,7 @@
                   </div>
                 </div>
               </div>
-              <!-- Final Delivery Notes -->
+
               <div class="notes-section" *ngIf="job['finalDeliveryNotes']?.length">
                 <div class="notes-header">
                   <mat-icon>flag</mat-icon>
@@ -777,7 +742,6 @@
               </div>
             </div>
 
-            <!-- General Notes Section -->
             <div class="notes-section" *ngIf="job.generalNotes?.length">
               <div class="notes-header">
                 <mat-icon>notes</mat-icon>
@@ -810,11 +774,9 @@
           </div>
         </mat-tab>
 
-        <!-- Enhanced Documents Tab -->
         <mat-tab label="Documents">
           <div class="tab-content">
             <div class="documents-section">
-              <!-- Admin Uploaded Documents Section -->
               <div class="admin-documents-section">
                 <div class="admin-documents-header">
                   <mat-icon>upload_file</mat-icon>
@@ -862,13 +824,11 @@
                 </div>
               </div>
 
-              <!-- Loading State -->
               <div *ngIf="documentsLoading" class="documents-loading">
                 <mat-spinner></mat-spinner>
                 <p>Loading documents...</p>
               </div>
 
-              <!-- Error State -->
               <div *ngIf="documentsError" class="documents-error">
                 <mat-icon>error</mat-icon>
                 <p>{{ documentsError }}</p>
@@ -878,16 +838,13 @@
                 </button>
               </div>
 
-              <!-- Documents Content -->
               <div class="documents-content" *ngIf="hasAnyDocuments() && !documentsLoading && !documentsError">
-                <!-- Collection Documents -->
                 <div class="document-category" *ngIf="hasCollectionDocuments()">
                   <h4>
                     <mat-icon>location_on</mat-icon>
                     Collection Documents ({{ collectionPhotos.length + collectionSignatures.length }})
                   </h4>
 
-                  <!-- Collection Photos -->
                   <div class="photo-group" *ngIf="collectionPhotos.length > 0">
                     <h5>Collection Photos ({{ collectionPhotos.length }})</h5>
                     <div class="photos-grid">
@@ -916,7 +873,6 @@
                     </div>
                   </div>
 
-                  <!-- Collection Signatures -->
                   <div class="signature-group" *ngIf="collectionSignatures.length > 0">
                     <h5>Collection Signatures ({{ collectionSignatures.length }})</h5>
                     <div class="signatures-grid">
@@ -946,14 +902,12 @@
                   </div>
                 </div>
 
-                <!-- Delivery Documents -->
                 <div class="document-category" *ngIf="hasDeliveryDocuments()">
                   <h4>
                     <mat-icon>flag</mat-icon>
                     Delivery Documents ({{ deliveryPhotos.length + deliverySignatures.length }})
                   </h4>
 
-                  <!-- Delivery Photos -->
                   <div class="photo-group" *ngIf="deliveryPhotos.length > 0">
                     <h5>Delivery Photos ({{ deliveryPhotos.length }})</h5>
                     <div class="photos-grid">
@@ -982,7 +936,6 @@
                     </div>
                   </div>
 
-                  <!-- Delivery Signatures -->
                   <div class="signature-group" *ngIf="deliverySignatures.length > 0">
                     <h5>Delivery Signatures ({{ deliverySignatures.length }})</h5>
                     <div class="signatures-grid">
@@ -1012,14 +965,12 @@
                   </div>
                 </div>
 
-                <!-- Secondary Collection Documents (Split Journey) -->
                 <div class="document-category" *ngIf="isSplitJourney && (secondaryCollectionPhotos.length > 0 || secondaryCollectionSignatures.length > 0)">
                   <h4>
                     <mat-icon>add_location</mat-icon>
                     Secondary Collection Documents ({{ secondaryCollectionPhotos.length + secondaryCollectionSignatures.length }})
                   </h4>
 
-                  <!-- Secondary Collection Photos -->
                   <div class="photo-group" *ngIf="secondaryCollectionPhotos.length > 0">
                     <h5>Secondary Collection Photos ({{ secondaryCollectionPhotos.length }})</h5>
                     <div class="photos-grid">
@@ -1048,7 +999,6 @@
                     </div>
                   </div>
 
-                  <!-- Secondary Collection Signatures -->
                   <div class="signature-group" *ngIf="secondaryCollectionSignatures.length > 0">
                     <h5>Secondary Collection Signatures ({{ secondaryCollectionSignatures.length }})</h5>
                     <div class="signatures-grid">
@@ -1078,14 +1028,12 @@
                   </div>
                 </div>
 
-                <!-- First Delivery Documents (Split Journey) -->
                 <div class="document-category" *ngIf="isSplitJourney && (firstDeliveryPhotos.length > 0 || firstDeliverySignatures.length > 0)">
                   <h4>
                     <mat-icon>flag_outlined</mat-icon>
                     First Delivery Documents ({{ firstDeliveryPhotos.length + firstDeliverySignatures.length }})
                   </h4>
 
-                  <!-- First Delivery Photos -->
                   <div class="photo-group" *ngIf="firstDeliveryPhotos.length > 0">
                     <h5>First Delivery Photos ({{ firstDeliveryPhotos.length }})</h5>
                     <div class="photos-grid">
@@ -1114,7 +1062,6 @@
                     </div>
                   </div>
 
-                  <!-- First Delivery Signatures -->
                   <div class="signature-group" *ngIf="firstDeliverySignatures.length > 0">
                     <h5>First Delivery Signatures ({{ firstDeliverySignatures.length }})</h5>
                     <div class="signatures-grid">
@@ -1144,14 +1091,12 @@
                   </div>
                 </div>
 
-                <!-- Damage Reports and Documents -->
                 <div class="document-category" *ngIf="hasDamageDocuments() || damageReports.length > 0">
                   <h4>
                     <mat-icon>warning</mat-icon>
                     Damage Reports & Documentation ({{ getDamageDocumentCount() + damageReports.length }})
                   </h4>
 
-                  <!-- Damage Reports Summary -->
                   <div class="damage-reports" *ngIf="damageReports.length > 0">
                     <h5>Damage Reports ({{ damageReports.length }})</h5>
                     <div class="damage-reports-list">
@@ -1196,7 +1141,6 @@
                     </div>
                   </div>
 
-                  <!-- Damage Photos -->
                   <div class="photo-group" *ngIf="damagePhotos.length > 0">
                     <h5>Damage Photos ({{ damagePhotos.length }})</h5>
                     <div class="photos-grid">
@@ -1225,7 +1169,6 @@
                     </div>
                   </div>
 
-                  <!-- Damage Diagrams -->
                   <div class="diagram-group" *ngIf="damageDiagrams.length > 0">
                     <h5>Damage Diagrams ({{ damageDiagrams.length }})</h5>
                     <div class="diagrams-grid">
@@ -1256,7 +1199,6 @@
                 </div>
               </div>
 
-              <!-- No Documents State -->
               <div *ngIf="!hasAnyDocuments() && !documentsLoading && !documentsError" class="documents-empty">
                 <mat-icon>description</mat-icon>
                 <p>No documents available for this job</p>
@@ -1266,11 +1208,9 @@
           </div>
         </mat-tab>
 
-        <!-- Enhanced Billing Tab -->
         <mat-tab label="Billing" *ngIf="canManageBilling">
           <div class="tab-content">
             <div class="billing-section" *ngIf="!isLoadingBilling && jobBilling">
-              <!-- Billing Header -->
               <div class="billing-header">
                 <div class="billing-title">
                   <mat-icon>receipt_long</mat-icon>
@@ -1285,7 +1225,6 @@
                 </div>
               </div>
 
-              <!-- Enhanced Billing Summary Cards -->
               <div class="billing-summary-grid">
                 <mat-card class="summary-card">
                   <mat-card-header>
@@ -1340,7 +1279,6 @@
                 </mat-card>
               </div>
 
-              <!-- Base Price Section -->
               <mat-card class="billing-card">
                 <mat-card-header>
                   <mat-card-title>
@@ -1360,7 +1298,6 @@
                 </mat-card-content>
               </mat-card>
 
-              <!-- Additional Items Section -->
               <mat-card class="billing-card">
                 <mat-card-header>
                   <mat-card-title>
@@ -1369,7 +1306,6 @@
                   </mat-card-title>
                 </mat-card-header>
                 <mat-card-content>
-                  <!-- Quick Add Standard Services -->
                   <div class="quick-add-services">
                     <h4>Quick Add Standard Services:</h4>
                     <div class="service-chips">
@@ -1396,7 +1332,6 @@
                     </div>
                   </div>
 
-                  <!-- Add New Item Form -->
                   <div class="add-item-form">
                     <h4>Add Custom Service/Item:</h4>
                     <div class="item-form-grid">
@@ -1428,7 +1363,6 @@
                     </div>
                   </div>
 
-                  <!-- Items List -->
                   <div class="items-list" *ngIf="jobBilling.additionalItems.length > 0">
                     <h4>Added Items</h4>
                     <div class="items-table">
@@ -1457,7 +1391,6 @@
                 </mat-card-content>
               </mat-card>
 
-              <!-- Enhanced Expenses Section -->
               <mat-card class="billing-card">
                 <mat-card-header>
                   <mat-card-title>
@@ -1466,7 +1399,6 @@
                   </mat-card-title>
                 </mat-card-header>
                 <mat-card-content>
-                  <!-- Add Expense Form -->
                   <div class="add-expense-form">
                     <h4>Add New Expense:</h4>
                     <div class="expense-form-grid">
@@ -1519,11 +1451,9 @@
                     </button>
                   </div>
 
-                  <!-- Expenses List -->
                   <div class="expenses-list" *ngIf="jobBilling.expenses.length > 0">
                     <h4>Recorded Expenses:</h4>
 
-                    <!-- Enhanced Expense Stats -->
                     <div class="expense-stats">
                       <div class="stat-item approved">
                         <span class="label">Approved</span>
@@ -1602,7 +1532,6 @@
                 </mat-card-content>
               </mat-card>
 
-              <!-- Invoice Notes -->
               <mat-card class="billing-card">
                 <mat-card-header>
                   <mat-card-title>
@@ -1619,13 +1548,11 @@
               </mat-card>
             </div>
 
-            <!-- Billing Loading State -->
             <div *ngIf="isLoadingBilling" class="billing-loading">
               <mat-spinner></mat-spinner>
               <p>Loading billing information...</p>
             </div>
 
-            <!-- No Billing Access -->
             <div *ngIf="!canManageBilling" class="no-billing-access">
               <mat-icon>lock</mat-icon>
               <h3>Access Restricted</h3>

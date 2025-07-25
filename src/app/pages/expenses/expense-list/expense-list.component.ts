@@ -123,7 +123,6 @@ export class ExpenseListComponent implements OnInit, AfterViewInit {
   private loadCompanies(expenses: ExtendedExpense[]): void {
     const companySet = new Set<string>();
     expenses.forEach((exp) => {
-      // customerName comes from the invoice document
       const e: any = exp;
       if (e.customerName) companySet.add(e.customerName);
     });

@@ -7,41 +7,33 @@ export interface Invoice {
   customerEmail?: string;
   customerAddress?: string;
 
-  // Invoice items
   items: InvoiceItem[];
 
-  // Financial details
   subtotal: number;
   vatRate: number;
   vatAmount: number;
   total: number;
 
-  // Status tracking
   status: InvoiceStatus;
   paymentStatus: PaymentStatus;
 
-  // Dates
   invoiceDate: Date;
   dueDate: Date;
   paidDate?: Date;
 
-  // References
   createdBy: string;
   createdAt: Date;
   updatedAt: Date;
   approvedBy?: string;
   approvedAt?: Date;
 
-  // Notes and references
   notes?: string;
   paymentReference?: string;
   customerReference?: string;
 
-  // Email tracking
   emailedTo?: string[];
   emailedAt?: Date;
 
-  // Print tracking
   printedAt?: Date;
   printedBy?: string;
 }
@@ -84,7 +76,6 @@ export enum InvoiceItemCategory {
   OTHER = 'other',
 }
 
-// Extended job interface for billing
 export interface JobBilling {
   jobId: string;
   hasInvoice: boolean;

@@ -146,7 +146,6 @@ export class ExpenseCreateComponent implements OnInit {
   }
 
   onSubmit(): void {
-    // Expense creation is now managed via the job/invoice system.
     this.showErrorMessage('Expenses must be added via the job details page or invoice system.');
   }
 

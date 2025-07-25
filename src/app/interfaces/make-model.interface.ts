@@ -1,5 +1,3 @@
-// src/app/interfaces/make-model.interface.ts
-
 import { Timestamp } from 'firebase/firestore';
 
 export interface MakeModel {
@@ -15,12 +13,10 @@ export interface MakeModel {
   createdBy: string;
   updatedBy?: string;
 
-  // Additional metadata
   logoUrl?: string; // For makes
   popularity?: number; // For sorting
   aliases?: string[]; // Alternative names
 
-  // For compatibility with existing systems
   [key: string]: any;
 }
 
@@ -36,7 +32,6 @@ export interface Model extends MakeModel {
   makeName?: string; // Populated in certain queries
 }
 
-// Request/Response interfaces for the service
 export interface CreateMakeModelRequest {
   name: string;
   displayName?: string;
@@ -65,7 +60,6 @@ export interface MakeModelQueryOptions {
   limit?: number;
 }
 
-// For bulk operations
 export interface BulkMakeModelOperation {
   action: 'create' | 'update' | 'delete';
   items: (CreateMakeModelRequest | (UpdateMakeModelRequest & { id: string }))[];

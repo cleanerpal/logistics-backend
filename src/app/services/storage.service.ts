@@ -1,4 +1,3 @@
-// src/app/services/storage.service.ts
 import { Injectable } from '@angular/core';
 import { Observable, from, throwError, of, forkJoin } from 'rxjs';
 import { map, catchError, switchMap, tap } from 'rxjs/operators';
@@ -32,9 +31,6 @@ export class StorageService {
   private injector = inject(EnvironmentInjector);
   constructor(private storage: Storage) {}
 
-  /**
-   * Upload a file to Firebase Storage
-   */
   uploadFile(path: string, file: File, metadata?: any): Observable<UploadResult> {
     if (!file) {
       return throwError(() => new Error('No file provided'));
@@ -71,9 +67,6 @@ export class StorageService {
     );
   }
 
-  /**
-   * Upload a signature (base64 string) to Firebase Storage
-   */
   uploadSignature(path: string, base64Data: string, metadata?: any): Observable<string> {
     if (!base64Data) {
       return throwError(() => new Error('No signature data provided'));
@@ -81,7 +74,6 @@ export class StorageService {
 
     const storageRef = ref(this.storage, path);
 
-    // Remove data URL prefix if present
     const cleanBase64 = base64Data.replace(/^data:image\/[a-z]+;base64,/, '');
 
     const uploadMetadata = {
@@ -102,9 +94,6 @@ export class StorageService {
     );
   }
 
-  /**
-   * Upload blob data (for PDFs, etc.)
-   */
   uploadBlob(path: string, blob: Blob, contentType: string, metadata?: any): Observable<UploadResult> {
     if (!blob) {
       return throwError(() => new Error('No blob data provided'));
@@ -140,9 +129,6 @@ export class StorageService {
     );
   }
 
-  /**
-   * Get download URL for a file
-   */
   getDownloadUrl(path: string): Observable<string> {
     const storageRef = ref(this.storage, path);
     return from(this.injector.runInContext(() => getDownloadURL(storageRef))).pipe(
@@ -153,9 +139,6 @@ export class StorageService {
     );
   }
 
-  /**
-   * Delete a file from storage
-   */
   deleteFile(path: string): Observable<void> {
     const storageRef = ref(this.storage, path);
     return from(this.injector.runInContext(() => deleteObject(storageRef))).pipe(
@@ -166,9 +149,6 @@ export class StorageService {
     );
   }
 
-  /**
-   * Get file metadata
-   */
   getFileMetadata(path: string): Observable<FileMetadata> {
     const storageRef = ref(this.storage, path);
     return from(this.injector.runInContext(() => getMetadata(storageRef))).pipe(
@@ -184,7 +164,6 @@ export class StorageService {
             downloadUrl,
           })),
           catchError(() =>
-            // If getting download URL fails, return metadata without it
             of({
               name: metadata.name,
               fullPath: metadata.fullPath,
@@ -203,9 +182,6 @@ export class StorageService {
     );
   }
 
-  /**
-   * List all files in a directory
-   */
   listFiles(path: string): Observable<FileMetadata[]> {
     const storageRef = ref(this.storage, path);
 
@@ -241,7 +217,7 @@ export class StorageService {
             ),
             catchError((metadataError) => {
               console.warn(`[StorageService] Skipping file due to metadata error for ${filePath}:`, metadataError);
-              return of(null); // Exclude this file
+              return of(null);
             })
           );
         });
@@ -255,9 +231,6 @@ export class StorageService {
     );
   }
 
-  /**
-   * Update file metadata
-   */
   updateFileMetadata(path: string, metadata: any): Observable<any> {
     const storageRef = ref(this.storage, path);
     return from(this.injector.runInContext(() => updateMetadata(storageRef, metadata))).pipe(
@@ -268,9 +241,6 @@ export class StorageService {
     );
   }
 
-  /**
-   * Get all photos for a job
-   */
   getJobPhotos(jobId: string): Observable<FileMetadata[]> {
     const photoPaths = [
       `jobs/${jobId}/collection_photos`,
@@ -287,9 +257,6 @@ export class StorageService {
     );
   }
 
-  /**
-   * Get all signatures for a job
-   */
   getJobSignatures(jobId: string): Observable<FileMetadata[]> {
     const signaturePaths = [
       `jobs/${jobId}/collection_signatures`,
@@ -306,9 +273,6 @@ export class StorageService {
     );
   }
 
-  /**
-   * Get all documents for a job (photos + signatures + reports)
-   */
   getAllJobDocuments(jobId: string): Observable<{
     photos: FileMetadata[];
     signatures: FileMetadata[];
@@ -329,9 +293,6 @@ export class StorageService {
     );
   }
 
-  /**
-   * Delete all job documents
-   */
   deleteJobDocuments(jobId: string): Observable<void> {
     const basePath = `jobs/${jobId}`;
     return this.listFiles(basePath).pipe(
@@ -358,9 +319,6 @@ export class StorageService {
     );
   }
 
-  /**
-   * Generate a unique filename with timestamp
-   */
   generateUniqueFileName(originalName: string, prefix?: string): string {
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
     const extension = originalName.split('.').pop();
@@ -369,9 +327,6 @@ export class StorageService {
     return prefix ? `${prefix}_${baseName}_${timestamp}.${extension}` : `${baseName}_${timestamp}.${extension}`;
   }
 
-  /**
-   * Get file size in human readable format
-   */
   formatFileSize(bytes: number): string {
     if (bytes === 0) return '0 Bytes';
 
@@ -382,9 +337,6 @@ export class StorageService {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   }
 
-  /**
-   * Validate file type
-   */
   isValidFileType(file: File, allowedTypes: string[]): boolean {
     return allowedTypes.some((type) => {
       if (type.endsWith('/*')) {
@@ -394,9 +346,6 @@ export class StorageService {
     });
   }
 
-  /**
-   * Validate file size
-   */
   isValidFileSize(file: File, maxSizeInMB: number): boolean {
     const maxSizeInBytes = maxSizeInMB * 1024 * 1024;
     return file.size <= maxSizeInBytes;

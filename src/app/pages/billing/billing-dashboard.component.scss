@@ -1,5 +1,3 @@
-// src/app/pages/billing/billing-dashboard.component.scss
-
 .card-wrapper {
   max-width: 1400px;
   margin: 0 auto;
@@ -18,7 +16,6 @@
   min-height: 100vh;
 }
 
-// Page Header
 .page-header {
   display: flex;
   justify-content: space-between;
@@ -59,7 +56,6 @@
   }
 }
 
-// Loading State
 .loading-container {
   display: flex;
   flex-direction: column;
@@ -74,13 +70,11 @@
   }
 }
 
-// Dashboard Content
 .dashboard-content {
   margin: 0;
   max-width: none;
 }
 
-// Statistics Grid
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -144,7 +138,6 @@
       }
     }
 
-    // Specific card colors
     &.outstanding {
       border-left: 4px solid #ff5722;
 
@@ -207,7 +200,6 @@
   }
 }
 
-// Filters Card
 .filters-card {
   margin-bottom: 24px;
   border-radius: 12px;
@@ -234,7 +226,6 @@
   }
 }
 
-// Invoices Table Card
 .invoices-table-card {
   border-radius: 12px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
@@ -272,7 +263,6 @@
   }
 }
 
-// Table Styles
 .table-container {
   overflow-x: auto;
   max-height: 800px;
@@ -307,7 +297,6 @@
       }
     }
 
-    // Column-specific styles
     .invoice-number {
       display: flex;
       align-items: center;
@@ -354,7 +343,6 @@
       color: #333;
     }
 
-    // Status chips
     .mat-chip {
       font-size: 0.75rem;
       font-weight: 500;
@@ -417,7 +405,6 @@
   }
 }
 
-// Responsive Design
 @media (max-width: 1200px) {
   .stats-grid {
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
@@ -528,7 +515,6 @@
   }
 }
 
-// Print Styles
 @media print {
   .billing-dashboard-container {
     background: white;

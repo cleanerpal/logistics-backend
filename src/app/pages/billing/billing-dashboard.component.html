@@ -1,7 +1,4 @@
-<!-- src/app/pages/billing/billing-dashboard.component.html -->
-
 <div class="billing-dashboard-container">
-  <!-- Page Header -->
   <div class="page-header">
     <div class="header-content">
       <h1>
@@ -22,13 +19,11 @@
     </div>
   </div>
 
-  <!-- Loading State -->
   <div *ngIf="isLoading" class="loading-container">
     <mat-spinner diameter="40"></mat-spinner>
     <p>Loading billing data...</p>
   </div>
 
-  <!-- Dashboard Content -->
   <div *ngIf="!isLoading" class="dashboard-content">
     <div class="card-wrapper">
       <mat-card class="mat-elevation-z3">
@@ -38,7 +33,7 @@
             <p class="subtitle">{{ dataSource.filteredData?.length || 0 }} total invoices</p>
           </div>
         </div>
-        <!-- Add filter UI above the invoice table -->
+
         <div class="billing-filters" style="display: flex; gap: 16px; align-items: center; margin-bottom: 24px; flex-wrap: wrap">
           <mat-form-field appearance="outline" style="min-width: 180px">
             <mat-label>Job ID</mat-label>
@@ -69,7 +64,6 @@
         </div>
         <div class="table-container">
           <table mat-table [dataSource]="dataSource" matSort class="invoices-table">
-            <!-- Invoice Number Column -->
             <ng-container matColumnDef="invoiceNumber">
               <th mat-header-cell *matHeaderCellDef mat-sort-header>Invoice #</th>
               <td mat-cell *matCellDef="let invoice">
@@ -80,7 +74,6 @@
               </td>
             </ng-container>
 
-            <!-- Job ID Column -->
             <ng-container matColumnDef="jobId">
               <th mat-header-cell *matHeaderCellDef mat-sort-header>Job ID</th>
               <td mat-cell *matCellDef="let invoice">
@@ -90,7 +83,6 @@
               </td>
             </ng-container>
 
-            <!-- Customer Name Column -->
             <ng-container matColumnDef="customerName">
               <th mat-header-cell *matHeaderCellDef mat-sort-header>Customer</th>
               <td mat-cell *matCellDef="let invoice">
@@ -103,7 +95,6 @@
               </td>
             </ng-container>
 
-            <!-- Issue Date Column -->
             <ng-container matColumnDef="issueDate">
               <th mat-header-cell *matHeaderCellDef mat-sort-header>Issue Date</th>
               <td mat-cell *matCellDef="let invoice">
@@ -111,7 +102,6 @@
               </td>
             </ng-container>
 
-            <!-- Due Date Column -->
             <ng-container matColumnDef="dueDate">
               <th mat-header-cell *matHeaderCellDef mat-sort-header>Due Date</th>
               <td mat-cell *matCellDef="let invoice">
@@ -122,7 +112,6 @@
               </td>
             </ng-container>
 
-            <!-- Total Column -->
             <ng-container matColumnDef="total">
               <th mat-header-cell *matHeaderCellDef mat-sort-header>Total</th>
               <td mat-cell *matCellDef="let invoice">
@@ -130,7 +119,6 @@
               </td>
             </ng-container>
 
-            <!-- Status Column -->
             <ng-container matColumnDef="status">
               <th mat-header-cell *matHeaderCellDef mat-sort-header>Status</th>
               <td mat-cell *matCellDef="let invoice">
@@ -140,7 +128,6 @@
               </td>
             </ng-container>
 
-            <!-- Actions Column -->
             <ng-container matColumnDef="actions">
               <th mat-header-cell *matHeaderCellDef>Actions</th>
               <td mat-cell *matCellDef="let invoice">

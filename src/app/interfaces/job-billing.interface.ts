@@ -1,5 +1,3 @@
-// src/app/interfaces/job-billing.interface.ts
-
 export interface JobBillingItem {
   id: string;
   jobId: string;

@@ -1,5 +1,3 @@
-// job-details.component.ts
-
 import { Component, OnInit, OnDestroy, ChangeDetectorRef, ViewChild, ElementRef, Inject } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
@@ -22,7 +20,6 @@ import { ReportGenerationService } from '../../../services/report-generation.ser
 import { CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import { JobBillingService } from '../../../services/job-billing.service';
 
-// Enhanced interfaces for documents
 export interface JobDocument {
   id: string;
   type: 'photo' | 'signature' | 'damage_diagram';
@@ -50,7 +47,6 @@ export interface DamageReport {
   repairCompletedAt?: Timestamp;
 }
 
-// Enhanced expense interface matching mobile app
 export interface JobExpense {
   id: string;
   type: 'fuel' | 'tolls' | 'parking' | 'car_wash' | 'other';
@@ -110,11 +106,9 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
   canManageJobs = false;
   canManageBilling = false;
 
-  // Document loading states
   documentsLoading = false;
   documentsError: string | null = null;
 
-  // Enhanced document management
   allDocuments: JobDocument[] = [];
   collectionPhotos: JobDocument[] = [];
   deliveryPhotos: JobDocument[] = [];
@@ -127,19 +121,15 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
   damagePhotos: JobDocument[] = [];
   damageDiagrams: JobDocument[] = [];
 
-  // Damage reports
   damageReports: DamageReport[] = [];
   hasDamageReported = false;
 
-  // Billing data
   jobBilling: JobBilling | null = null;
   isLoadingBilling = false;
 
-  // Report generation
   generatingReport = false;
   currentReportType: string = '';
 
-  // Add expense form data
   newExpense = {
     type: 'fuel' as const,
     description: '',
@@ -150,7 +140,6 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
     notes: '',
   };
 
-  // Add pricing item form data
   newPricingItem = {
     name: '',
     description: '',
@@ -158,7 +147,6 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
     quantity: 1,
   };
 
-  // Enhanced expense types matching mobile app
   expenseTypes = [
     { value: 'fuel', label: 'Fuel', icon: 'local_gas_station', requiresLiters: true },
     { value: 'tolls', label: 'Tolls', icon: 'toll', requiresLiters: false },
@@ -171,7 +159,6 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
     { value: 'other', label: 'Other', icon: 'receipt', requiresLiters: false },
   ];
 
-  // Standard pricing items for quick addition
   standardPricingItems = [
     { name: 'Collection Service', description: 'Vehicle collection service', price: 50.0 },
     { name: 'Delivery Service', description: 'Vehicle delivery service', price: 50.0 },
@@ -186,16 +173,13 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
   selectedTabIndex = 0;
   private destroy$ = new Subject<void>();
 
-  // Process data
   jobProcessData: JobProcessData | null = null;
   damageReports_old = { collection: false, delivery: false, overall: false };
   processContacts: any = {};
   vehicleCondition: any = {};
 
-  // Timeline data
   timelineEvents: any[] = [];
 
-  // Notes data
   formattedNotes: any[] = [];
 
   canViewReports = false;
@@ -306,7 +290,6 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
 
     this.loading = true;
 
-    // Load job data and process data in parallel
     combineLatest([
       this.jobService.getJobById(jobId),
       this.jobProcessService.getJobProcessData(jobId),
@@ -334,7 +317,6 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
             this.loadDamageReports(jobId);
             this.loadAdminDocuments(); // <-- Add this line
 
-            // Load billing if user has permission
             if (this.canManageBilling) {
               this.loadBillingData();
             }
@@ -350,7 +332,6 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
       });
   }
 
-  // Enhanced document loading from Firebase Storage
   loadJobDocuments(jobId: string): void {
     this.documentsLoading = true;
     this.documentsError = null;
@@ -409,9 +390,7 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
       });
   }
 
-  // Load damage reports from job data
   private loadDamageReports(jobId: string): void {
-    // Extract damage reports from job data
     if (this.job?.collectionData?.damageReportedThisStep || this.job?.deliveryData?.damageReportedThisStep || this.job?.hasDamageCommitted) {
       const reports: DamageReport[] = [];
 
@@ -449,7 +428,6 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
     }
   }
 
-  // Categorize documents by type and category
   private categorizeDocuments(): void {
     this.collectionPhotos = this.allDocuments.filter((doc) => doc.category === 'collection' && doc.type === 'photo');
     this.deliveryPhotos = this.allDocuments.filter((doc) => doc.category === 'delivery' && doc.type === 'photo');
@@ -465,28 +443,23 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
     this.damageDiagrams = this.allDocuments.filter((doc) => doc.category === 'damage' && doc.type === 'damage_diagram');
   }
 
-  // Sync all loaded document URLs into jobProcessData for report generation
   private syncDocumentsToProcessData(): void {
     if (!this.jobProcessData) return;
 
-    // Sync collection photos
     this.jobProcessData.collection = this.jobProcessData.collection || {};
     this.jobProcessData.collection.photoUrls = this.collectionPhotos.map((doc) => doc.url);
 
-    // Sync delivery photos
     this.jobProcessData.delivery = this.jobProcessData.delivery || {};
     this.jobProcessData.delivery.photoUrls = this.deliveryPhotos.map((doc) => doc.url);
 
-    // Sync secondary collection photos
     if (this.jobProcessData.secondaryCollection) {
       this.jobProcessData.secondaryCollection.photoUrls = this.secondaryCollectionPhotos.map((doc) => doc.url);
     }
-    // Sync first delivery photos
+
     if (this.jobProcessData.firstDelivery) {
       this.jobProcessData.firstDelivery.photoUrls = this.firstDeliveryPhotos.map((doc) => doc.url);
     }
 
-    // Sync signatures (first one per category)
     const collectionSignature = this.collectionSignatures[0];
     if (collectionSignature) {
       this.jobProcessData.collection.signatureUrl = collectionSignature.url;
@@ -501,13 +474,8 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
     if (this.jobProcessData.firstDelivery && this.firstDeliverySignatures[0]) {
       this.jobProcessData.firstDelivery.signatureUrl = this.firstDeliverySignatures[0].url;
     }
-
-    // Optionally, sync damage images if your report generator supports them
-    // e.g., this.jobProcessData.collection.damagePhotoUrls = this.damagePhotos.map(doc => doc.url);
-    //       this.jobProcessData.collection.damageDiagramUrls = this.damageDiagrams.map(doc => doc.url);
   }
 
-  // Generate document description based on filename and category
   private getDocumentDescription(fileName: string, category: string, type: string): string {
     const cleanName = fileName.replace(/\.(jpg|jpeg|png|pdf|gif)$/i, '');
 
@@ -519,7 +487,6 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
       return `Damage diagram - ${cleanName}`;
     }
 
-    // For photos, try to extract meaningful description
     if (cleanName.includes('front')) return `${category} - Front view`;
     if (cleanName.includes('rear')) return `${category} - Rear view`;
     if (cleanName.includes('left')) return `${category} - Left side`;
@@ -530,16 +497,13 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
     return `${category.replace('_', ' ')} photo`;
   }
 
-  // Tab selection
   onTabChange(index: number): void {
     this.selectedTabIndex = index;
     if (index === 5 && !this.jobBilling) {
-      // Billing tab index (adjust if needed)
       this.loadBillingData();
     }
   }
 
-  // Notes methods
   getFormattedNotes(notes?: JobNote[] | null | undefined): Array<{ content: string; authorName: string; createdAt: Date }> {
     if (!notes) return [];
     if (Array.isArray(notes)) {
@@ -552,7 +516,6 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
     return [];
   }
 
-  // Enhanced document viewing methods
   viewDocument(document: JobDocument): void {
     if (document.url) {
       window.open(document.url, '_blank');
@@ -569,7 +532,6 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
     }
   }
 
-  // Get document counts for display
   getTotalDocumentCount(): number {
     return this.allDocuments.length;
   }
@@ -586,7 +548,6 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
     return this.damagePhotos.length + this.damageDiagrams.length;
   }
 
-  // Check if documents exist
   hasAnyDocuments(): boolean {
     return this.allDocuments.length > 0;
   }
@@ -603,7 +564,6 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
     return this.damagePhotos.length > 0 || this.damageDiagrams.length > 0;
   }
 
-  // Get damage severity color
   getDamageSeverityColor(severity: string): string {
     switch (severity) {
       case 'minor':
@@ -617,7 +577,6 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
     }
   }
 
-  // Get damage severity icon
   getDamageSeverityIcon(severity: string): string {
     switch (severity) {
       case 'minor':
@@ -631,7 +590,6 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
     }
   }
 
-  // Format file size
   formatFileSize(bytes?: number): string {
     if (!bytes) return 'Unknown size';
 
@@ -641,13 +599,11 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
     return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`;
   }
 
-  // Billing Data Management
   private loadBillingData(): void {
     if (!this.job) return;
 
     this.isLoadingBilling = true;
 
-    // Fetch the invoice for this job
     this.jobBillingService.getJobInvoices(this.job.id).subscribe({
       next: (invoices: any[]) => {
         if (invoices && invoices.length > 0) {
@@ -690,7 +646,6 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
             customerChargeableTotal: invoice.subtotal,
           };
         } else {
-          // No invoice found, show blank
           this.jobBilling = {
             basePrice: 0,
             additionalItems: [],
@@ -726,7 +681,6 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
     });
   }
 
-  // Update base price
   updateBasePrice(): void {
     if (!this.jobBilling) return;
     this.calculateTotals();
@@ -734,7 +688,6 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
     this.showSuccess('Base price updated');
   }
 
-  // Add Expense
   addExpense(): void {
     if (!this.job || !this.currentUser || !this.newExpense.description || this.newExpense.amount <= 0) {
       this.showError('Please fill in all required fields with valid values');
@@ -764,7 +717,6 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
     this.calculateTotals();
     this.saveBillingData();
 
-    // Reset form
     this.newExpense = {
       type: 'fuel',
       description: '',
@@ -778,7 +730,6 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
     this.showSuccess('Expense added successfully');
   }
 
-  // Remove Expense
   removeExpense(expenseId: string): void {
     if (!this.jobBilling) return;
 
@@ -802,7 +753,6 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
     });
   }
 
-  // Add Standard Pricing Item
   addStandardPricingItem(item: any): void {
     const pricingItem: PricingItem = {
       id: `item_${Date.now()}`,
@@ -824,7 +774,6 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
     this.showSuccess(`${item.name} added to billing`);
   }
 
-  // Add Pricing Item (matches existing method name)
   addPricingItem(): void {
     if (!this.newPricingItem.name || this.newPricingItem.price <= 0 || this.newPricingItem.quantity <= 0) {
       this.showError('Please fill in all required fields with valid values');
@@ -849,7 +798,6 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
     this.calculateTotals();
     this.saveBillingData();
 
-    // Reset form
     this.newPricingItem = {
       name: '',
       description: '',
@@ -860,7 +808,6 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
     this.showSuccess('Custom item added to billing');
   }
 
-  // Remove Pricing Item
   removePricingItem(itemId: string): void {
     if (!this.jobBilling) return;
 
@@ -870,27 +817,21 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
     this.showSuccess('Item removed from billing');
   }
 
-  // Calculate Totals
   private calculateTotals(): void {
     if (!this.jobBilling) return;
 
-    // Calculate subtotal from base price and additional items
     const additionalItemsTotal = this.jobBilling.additionalItems.reduce((sum, item) => sum + item.total, 0);
     const chargeableExpensesTotal = this.jobBilling.expenses.filter((exp) => exp.isApproved && exp.isChargeable).reduce((sum, exp) => sum + exp.amount, 0);
 
     this.jobBilling.subtotal = this.jobBilling.basePrice + additionalItemsTotal + chargeableExpensesTotal;
 
-    // Calculate customer chargeable total (excluding non-chargeable expenses)
     this.jobBilling.customerChargeableTotal = this.jobBilling.basePrice + additionalItemsTotal + chargeableExpensesTotal;
 
-    // Calculate VAT
     this.jobBilling.vatAmount = this.jobBilling.subtotal * this.jobBilling.vatRate;
 
-    // Calculate total
     this.jobBilling.totalAmount = this.jobBilling.subtotal + this.jobBilling.vatAmount;
   }
 
-  // Initialize Default Billing
   private initializeDefaultBilling(): void {
     this.jobBilling = {
       basePrice: 150.0,
@@ -905,15 +846,10 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
     };
   }
 
-  // Save Billing Data
   private saveBillingData(): void {
     if (!this.job || !this.jobBilling) return;
-
-    // TODO: Implement actual save to Firebase
-    console.log('Saving billing data:', this.jobBilling);
   }
 
-  // Approve Expense
   approveExpense(expenseId: string): void {
     if (!this.jobBilling || !this.currentUser || !this.canManageBilling) return;
 
@@ -928,21 +864,18 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
     }
   }
 
-  // Open receipt URL in new window
   openReceipt(receiptUrl: string): void {
     if (receiptUrl) {
       window.open(receiptUrl, '_blank');
     }
   }
 
-  // Generate PDF Invoice
   generatePDFInvoice(): void {
     if (!this.job || !this.jobBilling) {
       this.showError('No billing data available to generate invoice');
       return;
     }
 
-    // Generate invoice number if not exists
     if (!this.jobBilling.invoiceNumber) {
       this.jobBilling.invoiceNumber = `INV-${this.job.id.substring(0, 8).toUpperCase()}-${Date.now().toString().slice(-6)}`;
       this.jobBilling.invoiceDate = Timestamp.now();
@@ -953,7 +886,6 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
     this.createPDFInvoice();
   }
 
-  // Create PDF Invoice
   private createPDFInvoice(): void {
     const invoiceHTML = this.generateInvoiceHTML();
     const printWindow = window.open('', '_blank');
@@ -967,7 +899,6 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
     }
   }
 
-  // Generate Invoice HTML
   private generateInvoiceHTML(): string {
     if (!this.job || !this.jobBilling) return '';
 
@@ -1121,7 +1052,6 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
     `;
   }
 
-  // Report generation methods
   canGenerateCollectionReport(): boolean {
     return this.job?.collectionData != null && this.job?.collectionData?.completedAt != null;
   }
@@ -1138,7 +1068,6 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
     return this.job?.deliveryData != null && this.job?.deliveryData?.completedAt != null;
   }
 
-  // Utility to convert DOM image to data URL (base64)
   private async toDataURLFromDOM(img: HTMLImageElement): Promise<string> {
     return new Promise((resolve, reject) => {
       if (img.complete && img.naturalWidth !== 0) {
@@ -1170,9 +1099,7 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
     });
   }
 
-  // Generate PDF from HTML report template, ensuring images are embedded as data URLs using DOM
   async generateHtmlPdfReport() {
-    // Show loading spinner
     this.generatingReport = true;
     this.currentReportType = 'HTML PDF Report';
 
@@ -1183,7 +1110,6 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
         throw new Error('No job found');
       }
 
-      // List all images from different folders
       const photoPaths = [
         `jobs/${this.job.id}/collection_photos`,
         `jobs/${this.job.id}/delivery_photos`,
@@ -1199,7 +1125,6 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
 
       let allImages: any[] = [];
 
-      // Get all images from all paths
       for (const path of photoPaths) {
         try {
           const files = await this.storageService.listFiles(path).toPromise();
@@ -1213,7 +1138,6 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
         throw new Error('No images found for this job');
       }
 
-      // Download and add each image to PDF
       let yPosition = 20;
       const pageHeight = pdf.internal.pageSize.height;
       const margin = 20;
@@ -1221,14 +1145,12 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
       for (let i = 0; i < allImages.length; i++) {
         const image = allImages[i];
 
-        // Check if we need a new page
         if (yPosition > pageHeight - 50) {
           pdf.addPage();
           yPosition = margin;
         }
 
         try {
-          // Download image from Firebase as blob
           const response = await fetch(image.downloadUrl);
           if (!response.ok) {
             console.warn(`Failed to fetch image ${image.name}: ${response.statusText}`);
@@ -1237,7 +1159,6 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
 
           const blob = await response.blob();
 
-          // Convert blob to data URL
           const dataUrl = await new Promise<string>((resolve, reject) => {
             const reader = new FileReader();
             reader.onload = () => resolve(reader.result as string);
@@ -1245,10 +1166,8 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
             reader.readAsDataURL(blob);
           });
 
-          // Add image to PDF
           pdf.addImage(dataUrl, 'PNG', margin, yPosition, 40, 30);
 
-          // Add image name below
           pdf.setFontSize(8);
           pdf.text(image.name, margin, yPosition + 35);
 
@@ -1264,29 +1183,23 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
       console.error('Error generating PDF:', error);
       this.showError('Failed to generate PDF: ' + (error instanceof Error ? error.message : 'Unknown error'));
     } finally {
-      // Hide loading spinner
       this.generatingReport = false;
       this.currentReportType = '';
     }
   }
 
-  // For normal report generation, before passing image URLs to the report service, convert them to data URLs using the DOM if available
   private async convertAllDocumentImagesToDataUrls(): Promise<void> {
-    // This will update allDocuments' url fields to data URLs if possible
     const tempDiv = document.createElement('div');
     document.body.appendChild(tempDiv);
     try {
       for (const doc of this.allDocuments) {
         if (doc.url && !doc.url.startsWith('data:')) {
-          // Create a temporary img element
           const img = document.createElement('img');
           img.src = doc.url;
           tempDiv.appendChild(img);
           try {
             doc.url = await this.toDataURLFromDOM(img);
-          } catch (e) {
-            // fallback: leave as is
-          }
+          } catch (e) {}
           tempDiv.removeChild(img);
         }
       }
@@ -1295,7 +1208,6 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
     }
   }
 
-  // Patch the report generation triggers to use data URLs for images
   async generateCollectionReport() {
     if (!this.job || !this.canGenerateCollectionReport()) return;
     await this.convertAllDocumentImagesToDataUrls();
@@ -1364,7 +1276,6 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
     }
   }
 
-  // Utility methods
   getExpenseTypeLabel(type: string): string {
     const expenseType = this.expenseTypes.find((et) => et.value === type);
     return expenseType?.label || type;
@@ -1427,9 +1338,6 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
       panelClass: ['error-snackbar'],
     });
   }
-
-  ///////////
-  // Add these utility methods to your JobDetailsComponent class:
 
   getFullAddress(address?: string | null, city?: string | null, postcode?: string | null): string {
     const parts = [address, city, postcode].filter((part) => part && part.trim());
@@ -1572,9 +1480,6 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
 
   private extractProcessDocuments(processData: JobProcessData): void {
     if (!processData?.documents) return;
-
-    // This method is now primarily handled by loadJobDocuments
-    // Keep for backward compatibility with existing data structure
   }
 
   private generateTimelineEvents(): void {
@@ -1582,7 +1487,6 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
 
     this.timelineEvents = [];
 
-    // Job created
     if (this.job.createdAt) {
       this.timelineEvents.push({
         type: 'created',
@@ -1594,7 +1498,6 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
       });
     }
 
-    // Driver allocated
     if (this.job.allocatedAt && this.job.driverId) {
       this.timelineEvents.push({
         type: 'allocated',
@@ -1606,7 +1509,6 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
       });
     }
 
-    // Collection process
     if (this.job.collectionActualStartTime) {
       this.timelineEvents.push({
         type: 'collection_started',
@@ -1629,7 +1531,6 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
       });
     }
 
-    // Split journey events
     if (this.job.isSplitJourney) {
       if (this.job.secondaryCollectionActualStartTime) {
         this.timelineEvents.push({
@@ -1676,7 +1577,6 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
       }
     }
 
-    // Final delivery
     if (this.job.deliveryActualStartTime) {
       this.timelineEvents.push({
         type: 'delivery_started',
@@ -1699,7 +1599,6 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
       });
     }
 
-    // Sort events by date
     this.timelineEvents.sort((a, b) => {
       const dateA = a.date instanceof Timestamp ? a.date.toDate() : new Date(a.date);
       const dateB = b.date instanceof Timestamp ? b.date.toDate() : new Date(b.date);
@@ -1761,7 +1660,6 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
     return null;
   }
 
-  // Legacy methods for backward compatibility
   viewPhoto(photo: ProcessPhoto | JobDocument): void {
     if ('url' in photo) {
       this.viewDocument(photo as JobDocument);
@@ -1797,10 +1695,8 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
     this.jobService.updateJob(this.job.id, { status: 'completed' }).subscribe({
       next: () => {
         this.job!.status = 'completed';
-        // Optionally show a notification/snackbar here
       },
       error: (err) => {
-        // Optionally show an error notification/snackbar here
         console.error('Failed to set job to completed:', err);
       },
     });
@@ -1838,9 +1734,7 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
     if (!this.job?.id) return;
     if (confirm('Are you sure you want to permanently delete this job? This action cannot be undone!')) {
       this.jobService.deleteJob(this.job.id).subscribe({
-        next: () => {
-          /* Optionally navigate away or show a message */
-        },
+        next: () => {},
         error: (err) => {
           console.error('Failed to delete job:', err);
         },
@@ -1886,9 +1780,7 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
       update.generalNotes = [...normalizeNotes(Array.isArray(this.job.generalNotes) ? this.job.generalNotes : []), newNote];
     }
     this.jobService.updateJob(this.job.id, update).subscribe({
-      next: () => {
-        // Optionally update local job object or refresh
-      },
+      next: () => {},
       error: (err) => {
         console.error('Failed to add note:', err);
       },
@@ -1908,7 +1800,6 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
   }
 }
 
-// Basic AddNoteDialogComponent (inline, to be expanded)
 import { MatDialogRef, MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';

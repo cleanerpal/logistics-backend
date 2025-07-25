@@ -1,4 +1,3 @@
-// src/app/services/pdf-report.service.ts - Fixed TypeScript issues
 import { Injectable } from '@angular/core';
 import { Observable, from } from 'rxjs';
 import { map, switchMap } from 'rxjs/operators';
@@ -33,9 +32,6 @@ export interface GeneratedReport {
 export class PdfReportService {
   constructor(private storageService: StorageService) {}
 
-  /**
-   * Generate comprehensive POD/POC report
-   */
   generateJobReport(
     job: Job,
     processData: JobProcessData,
@@ -61,9 +57,6 @@ export class PdfReportService {
     );
   }
 
-  /**
-   * Create the PDF document
-   */
   private async createPDFReport(job: Job, processData: JobProcessData, options: PDFReportOptions): Promise<Blob> {
     const pdf = new jsPDF('p', 'mm', 'a4');
     const pageWidth = pdf.internal.pageSize.getWidth();
@@ -71,58 +64,44 @@ export class PdfReportService {
     const margin = 20;
     let yPosition = margin;
 
-    // Add header
     yPosition = await this.addReportHeader(pdf, job, options.reportType, yPosition, pageWidth);
 
-    // Add job summary
     yPosition = this.addJobSummary(pdf, job, yPosition, pageWidth, margin);
 
-    // Add vehicle information
     yPosition = this.addVehicleInformation(pdf, job, yPosition, pageWidth, margin);
 
-    // Add collection information if POC or COMBINED
     if (options.reportType === 'POC' || options.reportType === 'COMBINED') {
       yPosition = await this.addCollectionSection(pdf, job, processData, options, yPosition, pageWidth, margin, pageHeight);
     }
 
-    // Add delivery information if POD or COMBINED
     if (options.reportType === 'POD' || options.reportType === 'COMBINED') {
       yPosition = await this.addDeliverySection(pdf, job, processData, options, yPosition, pageWidth, margin, pageHeight);
     }
 
-    // Add damage reports
     if (options.includeDamageReport && this.hasDamageReports(processData)) {
       yPosition = this.addDamageReports(pdf, job, processData, yPosition, pageWidth, margin, pageHeight);
     }
 
-    // Add notes section
     if (options.includeNotes) {
       yPosition = this.addNotesSection(pdf, job, processData, yPosition, pageWidth, margin, pageHeight);
     }
 
-    // Add footer
     this.addReportFooter(pdf, job, pageHeight);
 
     return pdf.output('blob');
   }
 
-  /**
-   * Add report header with company branding
-   */
   private async addReportHeader(pdf: jsPDF, job: Job, reportType: string, yPosition: number, pageWidth: number): Promise<number> {
     const margin = 20;
 
-    // Add company logo area (placeholder)
     pdf.setFillColor(59, 130, 246);
     pdf.rect(margin, yPosition, 40, 15, 'F');
 
-    // Company name
     pdf.setTextColor(255, 255, 255);
     pdf.setFont('helvetica', 'bold');
     pdf.setFontSize(12);
     pdf.text('CleanerPal', margin + 2, yPosition + 10);
 
-    // Report title
     pdf.setTextColor(0, 0, 0);
     pdf.setFontSize(24);
     pdf.setFont('helvetica', 'bold');
@@ -130,14 +109,12 @@ export class PdfReportService {
     const titleWidth = pdf.getTextWidth(title);
     pdf.text(title, pageWidth - margin - titleWidth, yPosition + 15);
 
-    // Job ID and date
     pdf.setFontSize(10);
     pdf.setFont('helvetica', 'normal');
     const jobInfo = `Job ID: ${job.id.substring(0, 8)}... | Generated: ${new Date().toLocaleDateString('en-GB')}`;
     const jobInfoWidth = pdf.getTextWidth(jobInfo);
     pdf.text(jobInfo, pageWidth - margin - jobInfoWidth, yPosition + 25);
 
-    // Separator line
     yPosition += 35;
     pdf.setLineWidth(0.5);
     pdf.setDrawColor(200, 200, 200);
@@ -146,9 +123,6 @@ export class PdfReportService {
     return yPosition + 10;
   }
 
-  /**
-   * Add job summary section
-   */
   private addJobSummary(pdf: jsPDF, job: Job, yPosition: number, pageWidth: number, margin: number): number {
     pdf.setFont('helvetica', 'bold');
     pdf.setFontSize(14);
@@ -181,9 +155,6 @@ export class PdfReportService {
     return yPosition + 10;
   }
 
-  /**
-   * Add vehicle information section
-   */
   private addVehicleInformation(pdf: jsPDF, job: Job, yPosition: number, pageWidth: number, margin: number): number {
     pdf.setFont('helvetica', 'bold');
     pdf.setFontSize(14);
@@ -216,9 +187,6 @@ export class PdfReportService {
     return yPosition + 10;
   }
 
-  /**
-   * Add collection section
-   */
   private async addCollectionSection(
     pdf: jsPDF,
     job: Job,
@@ -229,7 +197,6 @@ export class PdfReportService {
     margin: number,
     pageHeight: number
   ): Promise<number> {
-    // Check if we need a new page
     if (yPosition > pageHeight - 100) {
       pdf.addPage();
       yPosition = margin;
@@ -240,7 +207,6 @@ export class PdfReportService {
     pdf.text('COLLECTION DETAILS', margin, yPosition);
     yPosition += 15;
 
-    // Collection address and contact
     yPosition = this.addAddressSection(
       pdf,
       'Collection Address',
@@ -256,7 +222,6 @@ export class PdfReportService {
       margin
     );
 
-    // Collection times
     if (job.collectionActualStartTime || job.collectionActualCompleteTime) {
       pdf.setFont('helvetica', 'bold');
       pdf.setFontSize(12);
@@ -278,22 +243,18 @@ export class PdfReportService {
       yPosition += 5;
     }
 
-    // Collection process data
     if (processData.collection) {
       yPosition = this.addProcessData(pdf, 'Collection Process Data', processData.collection as JobProcessStepData, yPosition, margin);
     }
 
-    // Collection photos
     if (options.includePhotos && processData.documents.collectionPhotos.length > 0) {
       yPosition = await this.addPhotosSection(pdf, 'Collection Photos', processData.documents.collectionPhotos, yPosition, pageWidth, margin, pageHeight);
     }
 
-    // Collection signature
     if (options.includeSignatures && processData.documents.collectionSignature) {
       yPosition = await this.addSignatureSection(pdf, 'Collection Signature', processData.documents.collectionSignature, yPosition, pageWidth, margin, pageHeight);
     }
 
-    // Collection notes
     if (job.collectionNotes) {
       yPosition = this.addNotesSubSection(pdf, 'Collection Instructions', job.collectionNotes, yPosition, pageWidth, margin, pageHeight);
     }
@@ -305,9 +266,6 @@ export class PdfReportService {
     return yPosition + 10;
   }
 
-  /**
-   * Add delivery section
-   */
   private async addDeliverySection(
     pdf: jsPDF,
     job: Job,
@@ -318,7 +276,6 @@ export class PdfReportService {
     margin: number,
     pageHeight: number
   ): Promise<number> {
-    // Check if we need a new page
     if (yPosition > pageHeight - 100) {
       pdf.addPage();
       yPosition = margin;
@@ -329,7 +286,6 @@ export class PdfReportService {
     pdf.text('DELIVERY DETAILS', margin, yPosition);
     yPosition += 15;
 
-    // Delivery address and contact
     yPosition = this.addAddressSection(
       pdf,
       'Delivery Address',
@@ -345,7 +301,6 @@ export class PdfReportService {
       margin
     );
 
-    // Delivery times
     if (job.deliveryActualStartTime || job.deliveryActualCompleteTime) {
       pdf.setFont('helvetica', 'bold');
       pdf.setFontSize(12);
@@ -367,22 +322,18 @@ export class PdfReportService {
       yPosition += 5;
     }
 
-    // Delivery process data
     if (processData.delivery) {
       yPosition = this.addProcessData(pdf, 'Delivery Process Data', processData.delivery as JobProcessStepData, yPosition, margin);
     }
 
-    // Delivery photos
     if (options.includePhotos && processData.documents.deliveryPhotos.length > 0) {
       yPosition = await this.addPhotosSection(pdf, 'Delivery Photos', processData.documents.deliveryPhotos, yPosition, pageWidth, margin, pageHeight);
     }
 
-    // Delivery signature
     if (options.includeSignatures && processData.documents.deliverySignature) {
       yPosition = await this.addSignatureSection(pdf, 'Delivery Signature', processData.documents.deliverySignature, yPosition, pageWidth, margin, pageHeight);
     }
 
-    // Delivery notes
     if (job.deliveryNotes) {
       yPosition = this.addNotesSubSection(pdf, 'Delivery Instructions', job.deliveryNotes, yPosition, pageWidth, margin, pageHeight);
     }
@@ -394,9 +345,6 @@ export class PdfReportService {
     return yPosition + 10;
   }
 
-  /**
-   * Add address section helper
-   */
   private addAddressSection(pdf: jsPDF, title: string, addressData: any, yPosition: number, margin: number): number {
     pdf.setFont('helvetica', 'bold');
     pdf.setFontSize(12);
@@ -435,9 +383,6 @@ export class PdfReportService {
     return yPosition + 5;
   }
 
-  /**
-   * Add process data section
-   */
   private addProcessData(pdf: jsPDF, title: string, processData: JobProcessStepData, yPosition: number, margin: number): number {
     pdf.setFont('helvetica', 'bold');
     pdf.setFontSize(12);
@@ -490,7 +435,6 @@ export class PdfReportService {
       yPosition += 6;
     });
 
-    // Add checklist items if present
     if (processData.checklistItems && processData.checklistItems.length > 0) {
       yPosition += 5;
       pdf.setFont('helvetica', 'bold');
@@ -517,9 +461,6 @@ export class PdfReportService {
     return yPosition + 10;
   }
 
-  /**
-   * Add photos section
-   */
   private async addPhotosSection(
     pdf: jsPDF,
     title: string,
@@ -531,7 +472,6 @@ export class PdfReportService {
   ): Promise<number> {
     if (photos.length === 0) return yPosition;
 
-    // Check if we need a new page
     if (yPosition > pageHeight - 150) {
       pdf.addPage();
       yPosition = margin;
@@ -555,11 +495,10 @@ export class PdfReportService {
       const x = margin + col * (imageWidth + spacing);
       const y = yPosition + row * (imageHeight + spacing + 15);
 
-      // Check if we need a new page
       if (y + imageHeight > pageHeight - margin) {
         pdf.addPage();
         yPosition = margin;
-        // Recalculate positions for new page
+
         const newRow = Math.floor(i / imagesPerRow) - Math.floor(i / imagesPerRow);
         const newY = yPosition + newRow * (imageHeight + spacing + 15);
 
@@ -569,7 +508,7 @@ export class PdfReportService {
           pdf.text(photo.description || 'Photo', x, newY + imageHeight + 5);
         } catch (error) {
           console.warn('Failed to add image to PDF:', error);
-          // Add placeholder rectangle
+
           pdf.setDrawColor(200, 200, 200);
           pdf.rect(x, newY, imageWidth, imageHeight);
           pdf.text('Image unavailable', x + 5, newY + imageHeight / 2);
@@ -581,7 +520,7 @@ export class PdfReportService {
           pdf.text(photo.description || 'Photo', x, y + imageHeight + 5);
         } catch (error) {
           console.warn('Failed to add image to PDF:', error);
-          // Add placeholder rectangle
+
           pdf.setDrawColor(200, 200, 200);
           pdf.rect(x, y, imageWidth, imageHeight);
           pdf.text('Image unavailable', x + 5, y + imageHeight / 2);
@@ -589,16 +528,12 @@ export class PdfReportService {
       }
     }
 
-    // Calculate final y position
     const totalRows = Math.ceil(photos.length / imagesPerRow);
     yPosition += totalRows * (imageHeight + spacing + 15) + 10;
 
     return yPosition;
   }
 
-  /**
-   * Add signature section
-   */
   private async addSignatureSection(
     pdf: jsPDF,
     title: string,
@@ -608,7 +543,6 @@ export class PdfReportService {
     margin: number,
     pageHeight: number
   ): Promise<number> {
-    // Check if we need a new page
     if (yPosition > pageHeight - 100) {
       pdf.addPage();
       yPosition = margin;
@@ -623,7 +557,7 @@ export class PdfReportService {
       await this.addImageToPdf(pdf, signature.url, margin, yPosition, 80, 40);
     } catch (error) {
       console.warn('Failed to add signature to PDF:', error);
-      // Add placeholder rectangle
+
       pdf.setDrawColor(200, 200, 200);
       pdf.rect(margin, yPosition, 80, 40);
       pdf.text('Signature unavailable', margin + 5, yPosition + 20);
@@ -646,11 +580,7 @@ export class PdfReportService {
     return yPosition + 10;
   }
 
-  /**
-   * Add damage reports section
-   */
   private addDamageReports(pdf: jsPDF, job: Job, processData: JobProcessData, yPosition: number, pageWidth: number, margin: number, pageHeight: number): number {
-    // Check if we need a new page
     if (yPosition > pageHeight - 100) {
       pdf.addPage();
       yPosition = margin;
@@ -692,11 +622,7 @@ export class PdfReportService {
     return yPosition + 10;
   }
 
-  /**
-   * Add notes section
-   */
   private addNotesSection(pdf: jsPDF, job: Job, processData: JobProcessData, yPosition: number, pageWidth: number, margin: number, pageHeight: number): number {
-    // Check if we need a new page
     if (yPosition > pageHeight - 80) {
       pdf.addPage();
       yPosition = margin;
@@ -707,7 +633,6 @@ export class PdfReportService {
     pdf.text('ADDITIONAL NOTES', margin, yPosition);
     yPosition += 15;
 
-    // General notes - Fixed TypeScript error
     if (job.generalNotes && Array.isArray(job.generalNotes) && job.generalNotes.length > 0) {
       const notesContent = this.extractNotesContent(job.generalNotes);
       if (notesContent) {
@@ -718,9 +643,6 @@ export class PdfReportService {
     return yPosition;
   }
 
-  /**
-   * Extract notes content with proper type handling
-   */
   private extractNotesContent(notes: (JobNote | string)[]): string {
     return notes
       .map((note) => {
@@ -735,9 +657,6 @@ export class PdfReportService {
       .join('\n');
   }
 
-  /**
-   * Add notes subsection helper
-   */
   private addNotesSubSection(pdf: jsPDF, title: string, content: string, yPosition: number, pageWidth: number, margin: number, pageHeight: number): number {
     if (!content || content.trim().length === 0) return yPosition;
 
@@ -749,7 +668,6 @@ export class PdfReportService {
     pdf.setFont('helvetica', 'normal');
     pdf.setFontSize(10);
 
-    // Split long text into multiple lines
     const maxWidth = pageWidth - 2 * margin;
     const lines = pdf.splitTextToSize(content, maxWidth);
 
@@ -765,19 +683,14 @@ export class PdfReportService {
     return yPosition + 5;
   }
 
-  /**
-   * Add image to PDF helper
-   */
   private async addImageToPdf(pdf: jsPDF, imageUrl: string, x: number, y: number, width: number, height: number): Promise<void> {
     try {
-      // Create a temporary image element
       const img = new Image();
       img.crossOrigin = 'anonymous';
 
       return new Promise((resolve, reject) => {
         img.onload = () => {
           try {
-            // Create canvas to convert image
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
 
@@ -803,9 +716,6 @@ export class PdfReportService {
     }
   }
 
-  /**
-   * Add report footer
-   */
   private addReportFooter(pdf: jsPDF, job: Job, pageHeight: number): void {
     const margin = 20;
     const footerY = pageHeight - 15;
@@ -813,18 +723,13 @@ export class PdfReportService {
     pdf.setFontSize(8);
     pdf.setTextColor(100, 100, 100);
 
-    // Left side - company info
     pdf.text('CleanerPal Logistics | Belfast, Northern Ireland', margin, footerY);
 
-    // Right side - page info
     const pageInfo = `Job ID: ${job.id.substring(0, 8)}... | Page ${pdf.getCurrentPageInfo().pageNumber}`;
     const pageInfoWidth = pdf.getTextWidth(pageInfo);
     pdf.text(pageInfo, pdf.internal.pageSize.getWidth() - margin - pageInfoWidth, footerY);
   }
 
-  /**
-   * Upload report to Firebase Storage
-   */
   private uploadReportToStorage(jobId: string, pdfBlob: Blob, reportType: string): Observable<{ fileName: string; downloadUrl: string; fileSize: number }> {
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
     const fileName = `${reportType}_Report_${jobId.substring(0, 8)}_${timestamp}.pdf`;
@@ -841,9 +746,6 @@ export class PdfReportService {
     );
   }
 
-  /**
-   * Format timestamp helper
-   */
   private formatTimestamp(timestamp: any): string {
     if (!timestamp) return 'N/A';
 
@@ -858,9 +760,6 @@ export class PdfReportService {
     return new Date(timestamp).toLocaleString('en-GB');
   }
 
-  /**
-   * Helper methods
-   */
   private getReportTitle(reportType: string): string {
     switch (reportType) {
       case 'POC':

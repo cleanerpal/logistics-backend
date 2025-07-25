@@ -43,7 +43,6 @@ export class JobListComponent implements OnInit, OnDestroy {
   canEditJobs = false;
   canManageJobs = false;
 
-  // Filters
   searchControl = new FormControl('');
   statusFilter = new FormControl('all');
   dateRangeFilter = new FormControl('all');
@@ -102,7 +101,6 @@ export class JobListComponent implements OnInit, OnDestroy {
   }
 
   private setupFilters(): void {
-    // Combine all filter controls
     combineLatest([
       this.searchControl.valueChanges.pipe(startWith('')),
       this.statusFilter.valueChanges.pipe(startWith('all')),
@@ -171,7 +169,6 @@ export class JobListComponent implements OnInit, OnDestroy {
     const driverFilter = this.driverFilter.value || 'all';
 
     this.dataSource.filterPredicate = (data: Job) => {
-      // Search filter
       const matchesSearch =
         !searchTerm ||
         data.vehicleRegistration?.toLowerCase().includes(searchTerm) ||
@@ -182,13 +179,10 @@ export class JobListComponent implements OnInit, OnDestroy {
         data.deliveryAddress?.toLowerCase().includes(searchTerm) ||
         data.id.toLowerCase().includes(searchTerm);
 
-      // Status filter
       const matchesStatus = statusFilter === 'all' || data.status === statusFilter;
 
-      // Driver filter
       const matchesDriver = driverFilter === 'all' || (driverFilter === 'unassigned' && !data.driverId) || data.driverId === driverFilter;
 
-      // Date filter
       const matchesDate = this.matchesDateFilter(data, dateFilter);
 
       return matchesSearch && matchesStatus && matchesDriver && matchesDate;
@@ -231,7 +225,6 @@ export class JobListComponent implements OnInit, OnDestroy {
     }
   }
 
-  // Actions
   createJob(): void {
     if (this.canCreateJobs) {
       this.router.navigate(['/jobs/new']);
@@ -259,10 +252,7 @@ export class JobListComponent implements OnInit, OnDestroy {
     this.driverFilter.setValue('all');
   }
 
-  exportJobs(): void {
-    // TODO: Implement export functionality
-    console.log('Export jobs functionality to be implemented');
-  }
+  exportJobs(): void {}
 
   getStatusColor(status: string): string {
     const statusColors: { [key: string]: string } = {

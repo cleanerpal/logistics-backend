@@ -37,11 +37,9 @@ export class DvlaService {
 
     return new Observable((observer) => {
       const cleanedRegistration = registrationNumber.toUpperCase().replace(/\s/g, '');
-      console.log('Service calling function with:', { registrationNumber: cleanedRegistration });
 
       callable({ registrationNumber: cleanedRegistration })
         .then((result) => {
-          console.log('Service received result:', result);
           const data = result.data as DvlaApiResponse;
 
           if (data.success && data.data) {

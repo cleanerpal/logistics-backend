@@ -1,11 +1,8 @@
-// src/app/modules/billing.module.ts
-
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { RouterModule, Routes } from '@angular/router';
 
-// Angular Material Modules
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -27,16 +24,13 @@ import { MatExpansionModule } from '@angular/material/expansion';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatTooltipModule } from '@angular/material/tooltip';
 
-// Components
 import { JobBillingComponent } from '../components/job-billing/job-billing.component';
 import { BillingDashboardComponent } from '../pages/billing/billing-dashboard.component';
 import { BillingSettingsComponent } from '../pages/settings/billing-settings/billing-settings.component';
 
-// Services
 import { JobBillingService } from '../services/job-billing.service';
 import { EmailService } from '../services/email.service';
 
-// Guards
 import { AuthGuard } from '../guards/auth.guard';
 
 const routes: Routes = [
@@ -44,35 +38,30 @@ const routes: Routes = [
     path: '',
     component: BillingDashboardComponent,
     canActivate: [AuthGuard],
-    data: { title: 'Billing Dashboard' }
+    data: { title: 'Billing Dashboard' },
   },
   {
     path: 'dashboard',
     component: BillingDashboardComponent,
     canActivate: [AuthGuard],
-    data: { title: 'Billing Dashboard' }
+    data: { title: 'Billing Dashboard' },
   },
   {
     path: 'settings',
     component: BillingSettingsComponent,
     canActivate: [AuthGuard],
-    data: { title: 'Billing Settings' }
-  }
+    data: { title: 'Billing Settings' },
+  },
 ];
 
 @NgModule({
-  declarations: [
-    JobBillingComponent,
-    BillingDashboardComponent,
-    BillingSettingsComponent
-  ],
+  declarations: [JobBillingComponent, BillingDashboardComponent, BillingSettingsComponent],
   imports: [
     CommonModule,
     FormsModule,
     ReactiveFormsModule,
     RouterModule.forChild(routes),
-    
-    // Angular Material Modules
+
     MatCardModule,
     MatButtonModule,
     MatIconModule,
@@ -92,16 +81,9 @@ const routes: Routes = [
     MatChipsModule,
     MatExpansionModule,
     MatTabsModule,
-    MatTooltipModule
+    MatTooltipModule,
   ],
-  providers: [
-    JobBillingService,
-    EmailService
-  ],
-  exports: [
-    JobBillingComponent,
-    BillingDashboardComponent,
-    BillingSettingsComponent
-  ]
+  providers: [JobBillingService, EmailService],
+  exports: [JobBillingComponent, BillingDashboardComponent, BillingSettingsComponent],
 })
-export class BillingModule { }
+export class BillingModule {}

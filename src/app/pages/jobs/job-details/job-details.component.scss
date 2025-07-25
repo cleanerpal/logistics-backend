@@ -1,5 +1,3 @@
-/* job-details.component.scss - Complete Enhanced File with All New Features */
-
 .job-details-container {
   padding: 24px;
   padding-top: 88px; // Account for top navigation bar
@@ -18,7 +16,6 @@
   }
 }
 
-// ========== HEADER SECTION ==========
 .page-header {
   margin-bottom: 32px;
 
@@ -141,7 +138,6 @@
   }
 }
 
-// ========== LOADING AND ERROR STATES ==========
 .loading-container,
 .error-container {
   display: flex;
@@ -182,14 +178,12 @@
   }
 }
 
-// ========== JOB CONTENT ==========
 .job-content {
   display: flex;
   flex-direction: column;
   gap: 24px;
 }
 
-// ========== STATUS OVERVIEW CARD ==========
 .status-overview-card {
   border-radius: 12px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
@@ -329,7 +323,6 @@
     }
   }
 
-  // Report Actions
   .report-actions {
     display: flex;
     flex-wrap: wrap;
@@ -376,7 +369,6 @@
   }
 }
 
-// ========== REPORT PROGRESS CARD ==========
 .report-progress-card {
   background: var(--ion-color-light);
   border: 1px solid #e3f2fd;
@@ -400,7 +392,6 @@
   }
 }
 
-// ========== MAIN CONTENT CARD ==========
 .main-content-card {
   border-radius: 12px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
@@ -436,7 +427,6 @@
   }
 }
 
-// ========== TAB CONTENT ==========
 .tab-content {
   padding: 32px;
 
@@ -445,7 +435,6 @@
   }
 }
 
-// ========== CONTENT GRID (OVERVIEW TAB) ==========
 .content-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -457,7 +446,6 @@
   }
 }
 
-// ========== INFO SECTIONS ==========
 .info-section {
   background: #fafbfc;
   border: 1px solid #e5e7eb;
@@ -536,7 +524,6 @@
   }
 }
 
-// ========== VEHICLE CONDITION STYLES ==========
 .condition-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
@@ -638,7 +625,6 @@
   }
 }
 
-// ========== DAMAGE REPORTS STYLES ==========
 .damage-grid {
   display: flex;
   flex-direction: column;
@@ -690,7 +676,6 @@
   color: #f57c00 !important;
 }
 
-// ========== PROCESS CONTACTS STYLES ==========
 .contacts-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -736,7 +721,6 @@
   }
 }
 
-// ========== JOURNEY DETAILS STYLES ==========
 .journey-section {
   .journey-flow,
   .split-journey-flow {
@@ -907,7 +891,6 @@
   }
 }
 
-// ========== TIMELINE STYLES ==========
 .timeline-section {
   .timeline-header {
     display: flex;
@@ -1042,7 +1025,6 @@
   }
 }
 
-// ========== NOTES STYLES ==========
 .notes-section {
   .notes-header {
     display: flex;
@@ -1102,7 +1084,7 @@
     display: flex;
     flex-direction: column;
     position: relative;
-    // Remove left border and icon
+
     border-left: none;
 
     &:hover {
@@ -1220,7 +1202,6 @@
   }
 }
 
-// ========== DOCUMENTS STYLES ==========
 .documents-section {
   .documents-header {
     display: flex;
@@ -1622,7 +1603,6 @@
     }
   }
 
-  // Damage document specific styles
   .damage-reports {
     margin-bottom: 24px;
 
@@ -1859,7 +1839,6 @@
   }
 }
 
-// ========== BILLING SECTION STYLES ==========
 .billing-section {
   .billing-header {
     display: flex;
@@ -1902,7 +1881,6 @@
     }
   }
 
-  // Enhanced Billing Summary Cards
   .billing-summary-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
@@ -2079,7 +2057,6 @@
     }
   }
 
-  // Enhanced Quick Add Services
   .quick-add-services {
     margin-bottom: 24px;
     padding-bottom: 16px;
@@ -2159,7 +2136,6 @@
       }
     }
 
-    // Enhanced expense options
     .expense-options {
       margin-top: 20px;
       margin-bottom: 16px;
@@ -2367,7 +2343,6 @@
     }
   }
 
-  // Enhanced expense stats
   .expense-stats {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
@@ -2462,7 +2437,6 @@
   }
 }
 
-// ========== RESPONSIVE DESIGN ==========
 @media (max-width: 768px) {
   .content-grid {
     grid-template-columns: 1fr;
@@ -2533,7 +2507,6 @@
     }
   }
 
-  // Mobile responsiveness for enhanced billing
   .billing-section {
     .billing-summary-grid {
       grid-template-columns: 1fr;
@@ -2630,7 +2603,6 @@
   }
 }
 
-// ========== DARK THEME SUPPORT ==========
 :host-context(.dark-theme) {
   .job-details-container {
     background-color: #0f172a;
@@ -3134,7 +3106,6 @@
   }
 }
 
-// ========== PRINT STYLES ==========
 @media print {
   .job-details-container {
     padding: 0;
