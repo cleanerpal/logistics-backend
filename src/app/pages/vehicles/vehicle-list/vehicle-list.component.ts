@@ -218,7 +218,7 @@ export class VehicleListComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   getColorHex(colorName: string): string {
-    return this.colorMap[colorName] || '#CCCCCC'; // Default gray if not found
+    return this.colorMap[colorName] || '#CCCCCC'; // Default grey if not found
   }
 
   showSnackbar(message: string): void {

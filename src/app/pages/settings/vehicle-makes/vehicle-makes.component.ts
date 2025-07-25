@@ -3,9 +3,9 @@ import { MatDialog } from '@angular/material/dialog';
 import { MatPaginator } from '@angular/material/paginator';
 import { MatSort } from '@angular/material/sort';
 import { MatTableDataSource } from '@angular/material/table';
+import { MatSlideToggleChange } from '@angular/material/slide-toggle';
 import { VehicleMakeDialogComponent } from './vehicle-make-dialog/vehicle-make-dialog.component';
 import { VehicleMake, VehicleService } from '../../../services/vehicle.service';
-import { ConfirmationDialogComponent } from '../../../dialogs/confirmation-dialog.component';
 import { NotificationService } from '../../../services/notification.service';
 import { finalize } from 'rxjs/operators';
 
@@ -141,45 +141,29 @@ export class VehicleMakesComponent implements OnInit {
     });
   }
 
-  toggleVehicleMakeStatus(make: VehicleMake): void {
-    const newStatus = !make.isActive;
-    const action = newStatus ? 'activate' : 'deactivate';
+  toggleVehicleMakeStatus(make: VehicleMake, event: MatSlideToggleChange): void {
+    const newStatus = event.checked;
+    const action = newStatus ? 'activated' : 'deactivated';
 
-    const dialogRef = this.dialog.open(ConfirmationDialogComponent, {
-      width: '400px',
-      data: {
-        title: `${newStatus ? 'Activate' : 'Deactivate'} Vehicle Make`,
-        message: `Are you sure you want to ${action} the vehicle make "${make.displayName}"?`,
-        confirmText: 'Yes',
-        cancelText: 'No',
+    this.vehicleService.updateVehicleMake(make.id, { isActive: newStatus }).subscribe({
+      next: () => {
+        this.notificationService.addNotification({
+          type: 'success',
+          title: 'Status Updated',
+          message: `${make.displayName} ${action} successfully`,
+        });
+        this.loadVehicleMakes();
       },
-    });
-
-    dialogRef.afterClosed().subscribe((confirmed) => {
-      if (confirmed) {
-        this.isLoading = true;
-        this.vehicleService
-          .updateVehicleMake(make.id, { isActive: newStatus })
-          .pipe(finalize(() => (this.isLoading = false)))
-          .subscribe({
-            next: () => {
-              this.notificationService.addNotification({
-                type: 'success',
-                title: 'Success',
-                message: `Vehicle make "${make.displayName}" ${newStatus ? 'activated' : 'deactivated'} successfully`,
-              });
-              this.loadVehicleMakes();
-            },
-            error: (error) => {
-              console.error(`Error ${action}ing vehicle make:`, error);
-              this.notificationService.addNotification({
-                type: 'error',
-                title: 'Error',
-                message: `Failed to ${action} vehicle make`,
-              });
-            },
-          });
-      }
+      error: (error) => {
+        console.error(`Error updating vehicle make status:`, error);
+        this.notificationService.addNotification({
+          type: 'error',
+          title: 'Error',
+          message: `Failed to update vehicle make status`,
+        });
+        // Revert the toggle state
+        event.source.checked = !newStatus;
+      },
     });
   }
 

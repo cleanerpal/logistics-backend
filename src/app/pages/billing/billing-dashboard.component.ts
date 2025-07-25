@@ -301,14 +301,14 @@ export class BillingDashboardComponent implements OnInit, OnDestroy, AfterViewIn
 
   getStatusColor(status: string): string {
     const colors: { [key: string]: string } = {
-      draft: 'gray',
+      draft: 'grey',
       sent: 'blue',
       viewed: 'orange',
       outstanding: 'orange',
       paid: 'green',
       overdue: 'red',
     };
-    return colors[status] || 'gray';
+    return colors[status] || 'grey';
   }
 
   isOverdue(invoice: JobInvoice): boolean {

@@ -137,23 +137,23 @@
       <mat-card class="form-card">
         <mat-card-header>
           <mat-icon mat-card-avatar>badge</mat-icon>
-          <mat-card-title>License Information</mat-card-title>
-          <mat-card-subtitle>Driver's license and qualifications</mat-card-subtitle>
+          <mat-card-title>Licence Information</mat-card-title>
+          <mat-card-subtitle>Driver's licence and qualifications</mat-card-subtitle>
         </mat-card-header>
 
         <mat-card-content>
           <form [formGroup]="driverForm" class="form-content">
             <div class="form-row">
               <mat-form-field appearance="outline">
-                <mat-label>License Number</mat-label>
-                <input matInput formControlName="licenseNumber" placeholder="Driver's license number" />
+                <mat-label>Licence Number</mat-label>
+                <input matInput formControlName="licenseNumber" placeholder="Driver's licence number" />
                 <mat-icon matSuffix>credit_card</mat-icon>
               </mat-form-field>
 
               <mat-form-field appearance="outline">
-                <mat-label>License Expiry Date</mat-label>
-                <input matInput [matDatepicker]="picker" formControlName="licenseExpiry" placeholder="License expiry date" />
-                <mat-hint>MM/DD/YYYY</mat-hint>
+                <mat-label>Licence Expiry Date</mat-label>
+                <input matInput [matDatepicker]="picker" formControlName="licenseExpiry" placeholder="Licence expiry date" />
+                <mat-hint>DD/MM/YYYY</mat-hint>
                 <mat-datepicker-toggle matIconSuffix [for]="picker"></mat-datepicker-toggle>
                 <mat-datepicker #picker></mat-datepicker>
               </mat-form-field>

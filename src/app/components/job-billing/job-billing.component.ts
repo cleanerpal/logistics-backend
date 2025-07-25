@@ -396,14 +396,14 @@ export class JobBillingComponent implements OnInit, OnDestroy {
 
   getStatusColor(status: string): string {
     const colors: { [key: string]: string } = {
-      draft: 'gray',
+      draft: 'grey',
       sent: 'blue',
       viewed: 'orange',
       outstanding: 'orange',
       paid: 'green',
       overdue: 'red',
     };
-    return colors[status] || 'gray';
+    return colors[status] || 'grey';
   }
 
   private generateInvoiceHtml(invoice: JobInvoice): string {

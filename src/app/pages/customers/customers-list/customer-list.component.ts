@@ -3,13 +3,12 @@ import { Router } from '@angular/router';
 import { MatTableDataSource } from '@angular/material/table';
 import { MatSort } from '@angular/material/sort';
 import { MatPaginator } from '@angular/material/paginator';
-import { MatDialog } from '@angular/material/dialog';
-import { SelectionModel } from '@angular/cdk/collections';
+
+import { MatSlideToggleChange } from '@angular/material/slide-toggle';
 import { Subscription } from 'rxjs';
-import { Customer, CustomerStatus, CustomerSize } from '../../../interfaces/customer.interface';
+import { Customer, CustomerStatus, CustomerContact } from '../../../interfaces/customer.interface';
 import { CustomerService } from '../../../services/customer.service';
 import { NotificationService } from '../../../services/notification.service';
-import { ConfirmationDialogComponent } from '../../../dialogs/confirmation-dialog.component';
 import { AuthService } from '../../../services/auth.service';
 import { saveAs } from 'file-saver';
 
@@ -20,38 +19,25 @@ import { saveAs } from 'file-saver';
   standalone: false,
 })
 export class CustomerListComponent implements OnInit, AfterViewInit, OnDestroy {
-  displayedColumns: string[] = ['select', 'id', 'name', 'category', 'size', 'location', 'primaryContact', 'status', 'lastContact', 'actions'];
+  displayedColumns: string[] = ['name', 'address', 'primaryContact', 'status'];
 
   isLoading = false;
   dataSource = new MatTableDataSource<Customer>([]);
-  selection = new SelectionModel<Customer>(true, []);
   hasEditPermission = false;
 
   @ViewChild(MatSort) sort!: MatSort;
   @ViewChild(MatPaginator) paginator!: MatPaginator;
 
-  categoryFilter = 'All';
-  sizeFilter = 'All';
   statusFilter = 'All';
-
-  categories: string[] = [];
-  sizeOptions = ['All', 'Small (1-50)', 'Medium (51-250)', 'Large (251-1000)', 'Enterprise (1000+)'];
   statusOptions = ['All', 'Active', 'Inactive', 'Pending'];
 
   private subscriptions: Subscription[] = [];
 
-  constructor(
-    private router: Router,
-    private customerService: CustomerService,
-    private notificationService: NotificationService,
-    private authService: AuthService,
-    private dialog: MatDialog
-  ) {}
+  constructor(private router: Router, private customerService: CustomerService, private notificationService: NotificationService, private authService: AuthService) {}
 
   ngOnInit(): void {
     this.isLoading = true;
     this.loadCustomers();
-    this.loadCategories();
     this.checkPermissions();
   }
 
@@ -77,19 +63,11 @@ export class CustomerListComponent implements OnInit, AfterViewInit, OnDestroy {
       const searchText = filter.toLowerCase();
       const shouldInclude = (value: string | undefined) => (value ? value.toLowerCase().includes(searchText) : false);
 
-      if (this.categoryFilter !== 'All' && data.category !== this.categoryFilter) {
-        return false;
-      }
-
-      if (this.sizeFilter !== 'All' && data.size !== this.sizeFilter) {
-        return false;
-      }
-
       if (this.statusFilter !== 'All' && data.status !== this.statusFilter) {
         return false;
       }
 
-      return shouldInclude(data.name) || shouldInclude(data.category) || shouldInclude(data.city) || this.searchInContacts(data, searchText);
+      return shouldInclude(data.name) || shouldInclude(data.address) || this.searchInContacts(data, searchText);
     };
   }
 
@@ -139,42 +117,36 @@ export class CustomerListComponent implements OnInit, AfterViewInit, OnDestroy {
     this.subscriptions.push(customersSub);
   }
 
-  loadCategories(): void {
-    const categoriesSub = this.customerService.getCategories().subscribe({
-      next: (categories) => {
-        this.categories = ['All', ...categories];
-      },
-      error: (error) => {
-        console.error('Error loading categories:', error);
-      },
-    });
-
-    this.subscriptions.push(categoriesSub);
-  }
-
-  getPrimaryContact(customer: Customer): string {
+  getPrimaryContact(customer: Customer): CustomerContact | null {
     const primaryContact = customer.contacts?.find((contact) => contact.isPrimary);
     if (primaryContact) {
-      return primaryContact.email;
+      return primaryContact;
     }
 
-    return customer.contacts?.length > 0 ? customer.contacts[0].email : 'N/A';
+    return customer.contacts?.length > 0 ? customer.contacts[0] : null;
   }
 
-  getContactsCount(customer: Customer): number {
-    return customer.contacts?.length || 0;
-  }
+  getFormattedAddress(customer: Customer): string {
+    if (!customer.address) {
+      return 'No address provided';
+    }
 
-  getSizeClass(size: CustomerSize | undefined): string {
-    if (!size) return 'size-default';
+    if (typeof customer.address === 'string') {
+      return customer.address;
+    }
 
-    const sizeMap: Record<string, string> = {
-      [CustomerSize.SMALL]: 'size-small',
-      [CustomerSize.MEDIUM]: 'size-medium',
-      [CustomerSize.LARGE]: 'size-large',
-      [CustomerSize.ENTERPRISE]: 'size-enterprise',
-    };
-    return sizeMap[size] || 'size-default';
+    // Handle structured address
+    const structuredAddress = customer.address as any;
+    const addressParts = [
+      structuredAddress.street,
+      structuredAddress.street2,
+      structuredAddress.city,
+      structuredAddress.county,
+      structuredAddress.postcode,
+      structuredAddress.country,
+    ].filter((part) => part && part.trim() !== '');
+
+    return addressParts.length > 0 ? addressParts.join(', ') : 'No address provided';
   }
 
   getStatusClass(status: CustomerStatus): string {
@@ -186,86 +158,47 @@ export class CustomerListComponent implements OnInit, AfterViewInit, OnDestroy {
     return statusMap[status] || 'status-default';
   }
 
-  isAllSelected(): boolean {
-    const numSelected = this.selection.selected.length;
-    const numRows = this.dataSource.data.length;
-    return numSelected === numRows;
-  }
+  toggleCustomerStatus(customer: Customer, event: MatSlideToggleChange): void {
+    const newStatus = event.checked ? CustomerStatus.ACTIVE : CustomerStatus.INACTIVE;
 
-  toggleAllRows(): void {
-    if (this.isAllSelected()) {
-      this.selection.clear();
-      return;
+    if (customer.status === newStatus) {
+      return; // No change needed
     }
-    this.selection.select(...this.dataSource.data);
-  }
 
-  checkboxLabel(row?: Customer): string {
-    if (!row) {
-      return `${this.isAllSelected() ? 'deselect' : 'select'} all`;
-    }
-    return `${this.selection.isSelected(row) ? 'deselect' : 'select'} row ${row.id}`;
+    this.isLoading = true;
+
+    const updateSub = this.customerService.updateCustomer(customer.id, { status: newStatus }).subscribe({
+      next: () => {
+        customer.status = newStatus; // Update local data
+        this.notificationService.addNotification({
+          type: 'success',
+          title: 'Status Updated',
+          message: `${customer.name} is now ${newStatus.toLowerCase()}`,
+        });
+        this.isLoading = false;
+      },
+      error: (error) => {
+        console.error('Error updating customer status:', error);
+        this.notificationService.addNotification({
+          type: 'error',
+          title: 'Error',
+          message: `Failed to update customer status: ${error.message}`,
+        });
+        // Revert the toggle
+        event.source.checked = customer.status === CustomerStatus.ACTIVE;
+        this.isLoading = false;
+      },
+    });
+
+    this.subscriptions.push(updateSub);
   }
 
   createNewCustomer(): void {
     this.router.navigate(['/customers/new']);
   }
 
-  editCustomer(customer: Customer, event?: Event): void {
-    if (event) {
-      event.stopPropagation(); // Prevent row click event
-    }
-    this.router.navigate(['/customers', customer.id, 'edit']);
-  }
-
   viewCustomerDetails(customer: Customer): void {
     this.router.navigate(['/customers', customer.id]);
-  }
-
-  deleteCustomer(customer: Customer, event?: Event): void {
-    if (event) {
-      event.stopPropagation(); // Prevent row click event
-    }
-
-    const dialogRef = this.dialog.open(ConfirmationDialogComponent, {
-      data: {
-        title: 'Delete Customer',
-        message: `Are you sure you want to delete ${customer.name}? This action cannot be undone.`,
-        confirmText: 'Delete',
-        cancelText: 'Cancel',
-        confirmColor: 'warn',
-      },
-      width: '400px',
-    });
-
-    dialogRef.afterClosed().subscribe((result) => {
-      if (result) {
-        this.isLoading = true;
-
-        const deleteSub = this.customerService.deleteCustomer(customer.id).subscribe({
-          next: () => {
-            this.notificationService.addNotification({
-              type: 'success',
-              title: 'Customer Deleted',
-              message: `${customer.name} has been deleted successfully`,
-            });
-            this.selection.deselect(customer);
-            this.loadCustomers();
-          },
-          error: (error) => {
-            console.error('Error deleting customer:', error);
-            this.notificationService.addNotification({
-              type: 'error',
-              title: 'Error',
-              message: `Failed to delete customer: ${error.message}`,
-            });
-            this.isLoading = false;
-          },
-        });
-
-        this.subscriptions.push(deleteSub);
-      }
-    });
   }
 
   exportAllCustomers(): void {
@@ -273,58 +206,13 @@ export class CustomerListComponent implements OnInit, AfterViewInit, OnDestroy {
     this.downloadCustomersCsv(allCustomers);
   }
 
-  exportSelectedCustomers(): void {
-    const selectedCustomers = this.selection.selected;
-    if (selectedCustomers.length === 0) {
-      this.notificationService.addNotification({
-        type: 'warning',
-        title: 'No Customers Selected',
-        message: 'Please select at least one customer to export',
-      });
-      return;
-    }
-    this.downloadCustomersCsv(selectedCustomers);
-  }
-
   private downloadCustomersCsv(customers: Customer[]): void {
-    const headers = [
-      'ID',
-      'Name',
-      'Category',
-      'Size',
-      'Status',
-      'Address',
-      'City',
-      'Postcode',
-      'Country',
-      'Primary Contact Name',
-      'Primary Contact Email',
-      'Primary Contact Phone',
-      'Website',
-      'Created Date',
-      'Last Contact',
-    ];
+    const headers = ['Name', 'Address', 'Status', 'Primary Contact Name', 'Primary Contact Email', 'Primary Contact Phone'];
 
     const rows = customers.map((customer) => {
-      const primaryContact = customer.contacts?.find((contact) => contact.isPrimary) || customer.contacts?.[0] || {};
+      const primaryContact = this.getPrimaryContact(customer);
 
-      return [
-        customer.id,
-        customer.name,
-        customer.category || '',
-        customer.size || '',
-        customer.status,
-        customer.address || '',
-        customer.city || '',
-        customer.postcode || '',
-        customer.country || '',
-        primaryContact.name || '',
-        primaryContact.email || '',
-        primaryContact.phone || '',
-        customer.website || '',
-        customer.createdAt ? new Date(customer.createdAt).toLocaleDateString() : '',
-        customer.lastContact ? new Date(customer.lastContact).toLocaleDateString() : '',
-      ];
+      return [customer.name, this.getFormattedAddress(customer), customer.status, primaryContact?.name || '', primaryContact?.email || '', primaryContact?.phone || ''];
     });
 
     const csvContent = [

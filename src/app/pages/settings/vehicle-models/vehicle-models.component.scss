@@ -187,6 +187,35 @@
   }
 }
 
+.status-cell {
+  .status-toggle-container {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .status-toggle {
+    transform: scale(0.8);
+  }
+
+  .status-label {
+    font-size: 12px;
+    font-weight: 500;
+    padding: 4px 8px;
+    border-radius: 4px;
+
+    &.status-active {
+      background-color: rgba(76, 175, 80, 0.1);
+      color: #4caf50;
+    }
+
+    &.status-inactive {
+      background-color: rgba(244, 67, 54, 0.1);
+      color: #f44336;
+    }
+  }
+}
+
 @media screen and (max-width: 992px) {
   .stats-cards {
     grid-template-columns: repeat(2, 1fr);

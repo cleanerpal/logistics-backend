@@ -16,6 +16,7 @@ import { AuthService } from '../../services/auth.service';
 
 import { NotificationService } from '../../services/notification.service';
 import { VehicleService } from '../../services/vehicle.service';
+import { GoogleCalendarService } from '../../services/google-calendar.service';
 
 import { Job } from '../../interfaces/job-new.interface';
 import { UserProfile } from '../../interfaces/user-profile.interface';
@@ -88,6 +89,7 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
   jobsDataSource = new MatTableDataSource<Job>([]);
   isLoading = true;
   isLoadingDrivers = true;
+  isSyncingCalendar = false;
   curve = shape.curveLinear;
   jobs: Job[] = [];
   vehicles: Vehicle[] = [];
@@ -170,7 +172,8 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
     private authService: AuthService,
     private vehicleService: VehicleService,
     private notificationService: NotificationService,
-    private dialog: MatDialog
+    private dialog: MatDialog,
+    private googleCalendarService: GoogleCalendarService
   ) {
     this.jobsDataSource = new MatTableDataSource<Job>([]);
   }
@@ -469,35 +472,51 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private loadDriversWithJobs(): void {
+    console.log('🔍 Starting to load drivers...');
+
     const driversSub = this.authService
       .getDrivers()
       .pipe(
         timeout(8000),
         takeUntil(this.destroy$),
         switchMap((drivers) => {
+          console.log('📊 Raw drivers from authService.getDrivers():', drivers);
+          console.log('📊 Number of drivers found:', drivers.length);
+
           if (drivers.length === 0) {
+            console.log('⚠️ No drivers found, returning empty array');
             return of([]);
           }
 
-          const enhancedDrivers = drivers.map((driver) => this.createEnhancedDriverInfo(driver, []));
+          const enhancedDrivers = drivers.map((driver) => {
+            console.log('👤 Processing driver:', driver);
+            const enhanced = this.createEnhancedDriverInfo(driver, []);
+            console.log('✨ Enhanced driver result:', enhanced);
+            return enhanced;
+          });
 
+          console.log('🎯 Final enhanced drivers array:', enhancedDrivers);
           return of(enhancedDrivers);
         }),
         catchError((error) => {
-          console.error('Error loading drivers with jobs:', error);
+          console.error('❌ Error loading drivers with jobs:', error);
           return of([]);
         }),
         finalize(() => {
+          console.log('🏁 Driver loading finalized');
           this.driversLoaded$.next(true);
         })
       )
       .subscribe({
         next: (enhancedDrivers: EnhancedDriverInfo[]) => {
+          console.log('✅ Received enhanced drivers in subscription:', enhancedDrivers);
           this.allDrivers = enhancedDrivers;
+          console.log('📝 Set this.allDrivers to:', this.allDrivers);
           this.filterDrivers();
+          console.log('🔽 After filtering, this.filteredDrivers:', this.filteredDrivers);
         },
         error: (error: any) => {
-          console.error('Drivers subscription error:', error);
+          console.error('❌ Drivers subscription error:', error);
           this.driversLoaded$.next(true);
         },
       });
@@ -527,22 +546,35 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private createEnhancedDriverInfo(driver: UserProfile, jobs: Job[]): EnhancedDriverInfo {
+    console.log(`🔧 Creating enhanced info for driver: ${driver.name}`);
+    console.log(`🔧 Driver data:`, driver);
+    console.log(`🔧 Jobs for this driver:`, jobs);
+
     const activeJobs = jobs.filter((job) => ['allocated', 'collected', 'in-transit'].includes(job.status));
+    console.log(`🔧 Active jobs filtered:`, activeJobs);
 
     const driverIsActive = Boolean(driver.isActive);
+    console.log(`🔧 Driver isActive: ${driver.isActive} -> ${driverIsActive}`);
+
     const hasNoActiveJobs = activeJobs.length === 0;
+    console.log(`🔧 Has no active jobs: ${hasNoActiveJobs}`);
+
     const isAvailable = hasNoActiveJobs && driverIsActive;
+    console.log(`🔧 Is available: ${isAvailable}`);
 
     let status: DriverStatus;
     if (!driverIsActive) {
       status = DriverStatus.OFFLINE;
+      console.log(`🔧 Status set to OFFLINE (not active)`);
     } else if (activeJobs.length > 0) {
       status = DriverStatus.BUSY;
+      console.log(`🔧 Status set to BUSY (has ${activeJobs.length} active jobs)`);
     } else {
       status = DriverStatus.AVAILABLE;
+      console.log(`🔧 Status set to AVAILABLE (active but no jobs)`);
     }
 
-    return {
+    const result = {
       profile: driver,
       status,
       currentJobs: activeJobs.length,
@@ -550,6 +582,9 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
       isAvailable, // Now guaranteed to be boolean
       lastActivity: this.calculateLastActivity(jobs),
     };
+
+    console.log(`🔧 Enhanced driver info result:`, result);
+    return result;
   }
 
   private calculateLastActivity(jobs: Job[]): Date | undefined {
@@ -654,10 +689,18 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   filterDrivers(): void {
+    console.log('🔍 Filtering drivers with selectedDriverStatus:', this.selectedDriverStatus);
+    console.log('📋 All drivers before filtering:', this.allDrivers);
+
     if (this.selectedDriverStatus === 'All') {
       this.filteredDrivers = this.allDrivers;
+      console.log('📂 Selected "All", filteredDrivers set to allDrivers:', this.filteredDrivers);
     } else {
-      this.filteredDrivers = this.allDrivers.filter((driver) => driver.status === this.selectedDriverStatus);
+      this.filteredDrivers = this.allDrivers.filter((driver) => {
+        console.log(`🔎 Checking driver ${driver.profile.name} - status: "${driver.status}" vs selected: "${this.selectedDriverStatus}"`);
+        return driver.status === this.selectedDriverStatus;
+      });
+      console.log('🎯 Filtered drivers result:', this.filteredDrivers);
     }
   }
 
@@ -903,5 +946,200 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
     }
 
     return (nameParts[0].charAt(0) + nameParts[nameParts.length - 1].charAt(0)).toUpperCase();
+  }
+
+  getDriverCountByStatus(status: string): number {
+    return this.allDrivers.filter((driver) => driver.status === status).length;
+  }
+
+  syncToGoogleCalendar(): void {
+    this.isSyncingCalendar = true;
+
+    // Get calendar settings from localStorage
+    const calendarSettings = this.getCalendarSettings();
+    const calendarName = calendarSettings?.customCalendarName || 'Google Calendar';
+
+    this.notificationService.addNotification({
+      type: 'info',
+      title: 'Calendar Sync Started',
+      message: `Syncing jobs to ${calendarName}...`,
+    });
+
+    // Get all jobs for calendar sync
+    const syncSub = this.jobService.getRecentJobs(1000).subscribe({
+      next: (allJobs: Job[]) => {
+        this.processCalendarSync(allJobs, calendarName);
+      },
+      error: (error: any) => {
+        console.error('Error fetching jobs for calendar sync:', error);
+        this.notificationService.addNotification({
+          type: 'error',
+          title: 'Sync Failed',
+          message: 'Failed to fetch jobs for calendar sync.',
+        });
+        this.isSyncingCalendar = false;
+      },
+    });
+
+    this.subscriptions.push(syncSub);
+  }
+
+  private async processCalendarSync(jobs: Job[], calendarName: string): Promise<void> {
+    const calendarEvents = jobs.map((job) => this.convertJobToCalendarEvent(job));
+
+    try {
+      const syncedCount = await this.syncEventsToGoogleCalendar(calendarEvents);
+
+      this.notificationService.addNotification({
+        type: 'success',
+        title: 'Calendar Sync Complete',
+        message: `Successfully synced ${syncedCount} jobs to ${calendarName}.`,
+      });
+    } catch (error: any) {
+      console.error('Calendar sync failed:', error);
+      this.notificationService.addNotification({
+        type: 'error',
+        title: 'Calendar Sync Failed',
+        message: error?.message || 'Failed to sync jobs to Google Calendar.',
+      });
+    } finally {
+      this.isSyncingCalendar = false;
+    }
+  }
+
+  private convertJobToCalendarEvent(job: Job): any {
+    // Convert job data to Google Calendar event format
+    const startTime = job['collectionDate'] || job.createdAt;
+    const endTime = job['deliveryDate'] || this.addHours(startTime, 2); // Default 2-hour duration
+
+    const driverName = this.getDriverName(job.driverId || null);
+    const summary = `${job.vehicleType || 'Vehicle'} Transport - ${job.customerName || 'Customer'}`;
+    const description = this.buildJobDescription(job, driverName);
+
+    return {
+      id: job.id,
+      summary,
+      description,
+      start: {
+        dateTime: startTime,
+        timeZone: 'Europe/London',
+      },
+      end: {
+        dateTime: endTime,
+        timeZone: 'Europe/London',
+      },
+      location: job.collectionAddress || '',
+      status: job.status,
+      extendedProperties: {
+        private: {
+          jobId: job.id,
+          driverId: job.driverId || '',
+          vehicleRegistration: job['registration'] || '',
+          customerName: job.customerName || '',
+        },
+      },
+    };
+  }
+
+  private buildJobDescription(job: Job, driverName: string): string {
+    const details = [
+      `Job ID: ${job.id}`,
+      `Status: ${job.status}`,
+      `Vehicle: ${job.vehicleType || 'N/A'} (${job['registration'] || 'No reg'})`,
+      `Driver: ${driverName}`,
+      `Customer: ${job.customerName || 'N/A'}`,
+      '',
+      `Collection: ${job.collectionAddress || 'N/A'}`,
+      `Delivery: ${job.deliveryAddress || 'N/A'}`,
+    ];
+
+    if (job['notes']) {
+      details.push('', `Notes: ${job['notes']}`);
+    }
+
+    return details.join('\n');
+  }
+
+  private async syncEventsToGoogleCalendar(events: any[]): Promise<number> {
+    try {
+      // Check if OAuth credentials are configured
+      if (!this.googleCalendarService.hasOAuthCredentials()) {
+        throw new Error('OAuth 2.0 Client ID not configured. Please set up OAuth credentials in Settings > Calendar Settings.');
+      }
+
+      // Initialize Google Calendar API
+      await this.googleCalendarService.initialize();
+      const isSignedIn = await this.googleCalendarService.signIn();
+
+      if (!isSignedIn) {
+        throw new Error('Google Calendar authentication failed');
+      }
+
+      // Get calendar settings
+      const calendarSettings = this.getCalendarSettings();
+      const calendarId = calendarSettings?.selectedCalendarType === 'custom' ? calendarSettings.customCalendarId : 'primary';
+
+      // Get existing events
+      const existingEvents = await this.googleCalendarService.listEvents(calendarId, 'Logistics Job');
+      const existingEventsMap = new Map();
+
+      if (existingEvents.result && existingEvents.result.items) {
+        existingEvents.result.items.forEach((event: any) => {
+          const jobId = event.extendedProperties?.private?.jobId;
+          if (jobId) {
+            existingEventsMap.set(jobId, event);
+          }
+        });
+      }
+
+      let created = 0;
+      let updated = 0;
+
+      // Process each job
+      for (const event of events) {
+        const jobId = event.extendedProperties?.private?.jobId;
+        const existingEvent = existingEventsMap.get(jobId);
+
+        try {
+          if (existingEvent) {
+            // Update existing event
+            await this.googleCalendarService.updateEvent(calendarId, existingEvent.id, event);
+            updated++;
+          } else {
+            // Create new event
+            await this.googleCalendarService.createEvent(calendarId, event);
+            created++;
+          }
+        } catch (eventError) {
+          console.error(`Error syncing job ${jobId}:`, eventError);
+        }
+      }
+
+      console.log(`Calendar sync complete: ${created} created, ${updated} updated`);
+      return created + updated;
+    } catch (error) {
+      console.error('Google Calendar sync error:', error);
+      throw error;
+    }
+  }
+
+  private addHours(date: any, hours: number): any {
+    if (!date) return new Date();
+
+    const dateObj = date instanceof Date ? date : date.toDate ? date.toDate() : new Date(date);
+
+    return new Date(dateObj.getTime() + hours * 60 * 60 * 1000);
+  }
+
+  private getCalendarSettings(): any {
+    const savedSettings = localStorage.getItem('calendarSettings');
+    if (savedSettings) {
+      try {
+        return JSON.parse(savedSettings);
+      } catch (error) {
+        console.error('Error parsing saved calendar settings:', error);
+      }
+    }
+    return null;
   }
 }

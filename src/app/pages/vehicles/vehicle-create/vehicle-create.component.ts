@@ -321,7 +321,7 @@ export class VehicleCreateComponent implements OnInit, OnDestroy {
   }
 
   getColorHex(colorName: string): string {
-    return this.colorMap[colorName] || '#CCCCCC'; // Default gray if not found
+    return this.colorMap[colorName] || '#CCCCCC'; // Default grey if not found
   }
 
   showSnackbar(message: string): void {

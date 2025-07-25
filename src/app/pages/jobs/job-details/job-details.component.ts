@@ -1370,7 +1370,7 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
     if (this.job.vehicleMake) specs.push({ label: 'Make', value: this.job.vehicleMake });
     if (this.job.vehicleModel) specs.push({ label: 'Model', value: this.job.vehicleModel });
     if (this.job.vehicleYear) specs.push({ label: 'Year', value: this.job.vehicleYear.toString() });
-    if (this.job.vehicleColor) specs.push({ label: 'Color', value: this.job.vehicleColor });
+    if (this.job.vehicleColor) specs.push({ label: 'Colour', value: this.job.vehicleColor });
 
     return specs;
   }

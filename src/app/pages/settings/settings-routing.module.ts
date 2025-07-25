@@ -1,6 +1,7 @@
 import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
 import { SettingsComponent } from './settings.component';
+import { CalendarSettingsComponent } from './calendar-settings/calendar-settings.component';
 import { VehicleMakesComponent } from './vehicle-makes/vehicle-makes.component';
 import { VehicleModelsComponent } from './vehicle-models/vehicle-models.component';
 import { UserRolesComponent } from './user-roles/user-roles.component';
@@ -16,8 +17,12 @@ const routes: Routes = [
     children: [
       {
         path: '',
-        redirectTo: 'vehicle-makes',
+        redirectTo: 'calendar-settings',
         pathMatch: 'full',
+      },
+      {
+        path: 'calendar-settings',
+        component: CalendarSettingsComponent,
       },
       {
         path: 'vehicle-makes',

@@ -1,0 +1,243 @@
+<div class="calendar-settings-container">
+  <div class="page-header">
+    <h1>Calendar Settings</h1>
+    <p class="page-description">Configure Google Calendar integration for job synchronization</p>
+  </div>
+
+  <div class="settings-content">
+    <!-- Current Calendar Status -->
+    <mat-card class="setting-section">
+      <mat-card-header>
+        <mat-card-title>
+          <mat-icon>event</mat-icon>
+          Current Calendar Configuration
+        </mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="current-calendar-display" *ngIf="selectedCalendar">
+          <div class="calendar-info-card">
+            <div class="calendar-color" [style.background-color]="selectedCalendar.backgroundColor"></div>
+            <div class="calendar-details">
+              <h3>{{ selectedCalendar.summary }}</h3>
+              <p>{{ selectedCalendar.description }}</p>
+              <div class="calendar-id">
+                <span class="label">Calendar ID:</span>
+                <code>{{ selectedCalendar.id }}</code>
+              </div>
+            </div>
+            <div class="calendar-status">
+              <mat-chip [color]="calendarConnected ? 'primary' : 'warn'">
+                <mat-icon>{{ calendarConnected ? 'check_circle' : 'error' }}</mat-icon>
+                {{ calendarConnected ? 'Connected' : 'Not Connected' }}
+              </mat-chip>
+            </div>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Calendar Selection -->
+    <mat-card class="setting-section">
+      <mat-card-header>
+        <mat-card-title>
+          <mat-icon>calendar_view_month</mat-icon>
+          Select Calendar
+        </mat-card-title>
+        <mat-card-subtitle>Choose which Google Calendar to sync jobs to</mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="calendar-selection">
+          <div class="calendar-options">
+            <mat-radio-group [(ngModel)]="selectedCalendarType" (change)="onCalendarTypeChange()">
+              <!-- Primary Calendar Option -->
+              <div class="calendar-option">
+                <mat-radio-button value="primary">
+                  <div class="option-content">
+                    <div class="option-header">
+                      <h4>Primary Calendar</h4>
+                      <mat-chip color="primary">Recommended</mat-chip>
+                    </div>
+                    <p>Use your default Google Calendar ({{ currentUserEmail || 'your account email' }})</p>
+                    <div class="option-benefits">
+                      <mat-icon>check</mat-icon>
+                      <span>Automatic access with your Google account</span>
+                    </div>
+                  </div>
+                </mat-radio-button>
+              </div>
+
+              <!-- Custom Calendar Option -->
+              <div class="calendar-option">
+                <mat-radio-button value="custom">
+                  <div class="option-content">
+                    <div class="option-header">
+                      <h4>Custom Calendar</h4>
+                      <mat-chip color="accent">Advanced</mat-chip>
+                    </div>
+                    <p>Use a specific Google Calendar by ID (shared calendars, company calendars, etc.)</p>
+                    <div class="option-benefits">
+                      <mat-icon>check</mat-icon>
+                      <span>Share with team members</span>
+                    </div>
+                  </div>
+                </mat-radio-button>
+              </div>
+            </mat-radio-group>
+          </div>
+
+          <!-- Custom Calendar Input -->
+          <div class="custom-calendar-input" *ngIf="selectedCalendarType === 'custom'">
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Calendar ID</mat-label>
+              <input
+                matInput
+                [(ngModel)]="customCalendarId"
+                placeholder="e.g., logistics@yourcompany.com or abc123@group.calendar.google.com"
+                (blur)="validateCalendarId()" />
+              <mat-hint>Enter the full calendar ID from Google Calendar settings</mat-hint>
+              <mat-error *ngIf="calendarIdError">{{ calendarIdError }}</mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Calendar Display Name</mat-label>
+              <input matInput [(ngModel)]="customCalendarName" placeholder="e.g., Company Logistics Calendar" />
+              <mat-hint>Friendly name to display in the app</mat-hint>
+            </mat-form-field>
+
+            <button mat-raised-button color="primary" (click)="testCalendarConnection()" [disabled]="!customCalendarId || isTestingConnection">
+              <mat-spinner diameter="20" *ngIf="isTestingConnection"></mat-spinner>
+              <mat-icon *ngIf="!isTestingConnection">wifi_protected_setup</mat-icon>
+              {{ isTestingConnection ? 'Testing...' : 'Test Connection' }}
+            </button>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Sync Options -->
+    <mat-card class="setting-section">
+      <mat-card-header>
+        <mat-card-title>
+          <mat-icon>sync</mat-icon>
+          Sync Options
+        </mat-card-title>
+        <mat-card-subtitle>Configure what and how jobs are synchronized</mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="sync-options">
+          <!-- Auto Sync Toggle -->
+          <div class="option-row">
+            <div class="option-info">
+              <h4>Automatic Sync</h4>
+              <p>Automatically sync jobs when they are created or updated</p>
+            </div>
+            <mat-slide-toggle [(ngModel)]="autoSyncEnabled" color="primary"> </mat-slide-toggle>
+          </div>
+
+          <!-- Sync Job Details -->
+          <div class="option-row">
+            <div class="option-info">
+              <h4>Include Job Details</h4>
+              <p>Include driver, vehicle, and address information in calendar events</p>
+            </div>
+            <mat-slide-toggle [(ngModel)]="includeJobDetails" color="primary"> </mat-slide-toggle>
+          </div>
+
+          <!-- Sync Status Updates -->
+          <div class="option-row">
+            <div class="option-info">
+              <h4>Update Event Status</h4>
+              <p>Update calendar events when job status changes (completed, cancelled, etc.)</p>
+            </div>
+            <mat-slide-toggle [(ngModel)]="updateEventStatus" color="primary"> </mat-slide-toggle>
+          </div>
+
+          <!-- Delete Completed Jobs -->
+          <div class="option-row">
+            <div class="option-info">
+              <h4>Remove Completed Jobs</h4>
+              <p>Automatically remove calendar events for completed jobs after 7 days</p>
+            </div>
+            <mat-slide-toggle [(ngModel)]="removeCompletedJobs" color="primary"> </mat-slide-toggle>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Google Calendar Setup Guide -->
+    <mat-card class="setting-section">
+      <mat-card-header>
+        <mat-card-title>
+          <mat-icon>help</mat-icon>
+          How to Find Your Calendar ID
+        </mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="setup-guide">
+          <div class="guide-steps">
+            <div class="step">
+              <div class="step-number">1</div>
+              <div class="step-content">
+                <h4>Open Google Calendar</h4>
+                <p>Go to <a href="https://calendar.google.com" target="_blank">calendar.google.com</a></p>
+              </div>
+            </div>
+
+            <div class="step">
+              <div class="step-number">2</div>
+              <div class="step-content">
+                <h4>Access Calendar Settings</h4>
+                <p>Click the gear icon → Settings → Select your calendar from the left sidebar</p>
+              </div>
+            </div>
+
+            <div class="step">
+              <div class="step-number">3</div>
+              <div class="step-content">
+                <h4>Find Calendar ID</h4>
+                <p>Scroll down to "Integrate calendar" section and copy the Calendar ID</p>
+              </div>
+            </div>
+
+            <div class="step">
+              <div class="step-number">4</div>
+              <div class="step-content">
+                <h4>Share Calendar (Optional)</h4>
+                <p>For company calendars, go to "Share with specific people" and add team members</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="calendar-id-examples">
+            <h4>Calendar ID Examples:</h4>
+            <div class="examples">
+              <div class="example"><strong>Personal:</strong> <code>your-email&#64;gmail.com</code></div>
+              <div class="example"><strong>Company:</strong> <code>logistics&#64;yourcompany.com</code></div>
+              <div class="example"><strong>Shared:</strong> <code>abc123def456&#64;group.calendar.google.com</code></div>
+            </div>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Action Buttons -->
+    <div class="action-buttons">
+      <button mat-raised-button color="primary" (click)="saveCalendarSettings()" [disabled]="isSaving">
+        <mat-spinner diameter="20" *ngIf="isSaving"></mat-spinner>
+        <mat-icon *ngIf="!isSaving">save</mat-icon>
+        {{ isSaving ? 'Saving...' : 'Save Settings' }}
+      </button>
+
+      <button mat-stroked-button color="primary" (click)="syncNow()" [disabled]="!calendarConnected || isSyncing">
+        <mat-spinner diameter="20" *ngIf="isSyncing"></mat-spinner>
+        <mat-icon *ngIf="!isSyncing">sync</mat-icon>
+        {{ isSyncing ? 'Syncing...' : 'Sync Now' }}
+      </button>
+
+      <button mat-button (click)="resetToDefaults()">
+        <mat-icon>restore</mat-icon>
+        Reset to Defaults
+      </button>
+    </div>
+  </div>
+</div>

@@ -3,10 +3,7 @@
     <div class="header-wrapper">
       <div class="header-title">
         <h1>Customers</h1>
-        <p class="subtitle">
-          {{ dataSource.filteredData.length }} total customers
-          <ng-container *ngIf="selection.hasValue()"> ({{ selection.selected.length }} selected) </ng-container>
-        </p>
+        <p class="subtitle">{{ dataSource.filteredData.length }} total customers</p>
       </div>
     </div>
 
@@ -14,29 +11,11 @@
       <div class="filters-section">
         <mat-form-field appearance="outline" class="search-field">
           <mat-label>Search customers</mat-label>
-          <input matInput (keyup)="applyFilter($event)" placeholder="Search by name, category, location, or contacts" />
+          <input matInput (keyup)="applyFilter($event)" placeholder="Search by name, address, or contact" />
           <mat-icon matSuffix>search</mat-icon>
         </mat-form-field>
 
         <div class="filters-group">
-          <mat-form-field appearance="outline">
-            <mat-label>Category</mat-label>
-            <mat-select [(value)]="categoryFilter" (selectionChange)="onFilterChange()">
-              <mat-option *ngFor="let category of categories" [value]="category">
-                {{ category }}
-              </mat-option>
-            </mat-select>
-          </mat-form-field>
-
-          <mat-form-field appearance="outline">
-            <mat-label>Size</mat-label>
-            <mat-select [(value)]="sizeFilter" (selectionChange)="onFilterChange()">
-              <mat-option *ngFor="let size of sizeOptions" [value]="size">
-                {{ size }}
-              </mat-option>
-            </mat-select>
-          </mat-form-field>
-
           <mat-form-field appearance="outline">
             <mat-label>Status</mat-label>
             <mat-select [(value)]="statusFilter" (selectionChange)="onFilterChange()">
@@ -49,9 +28,9 @@
       </div>
 
       <div class="actions-group">
-        <button mat-stroked-button [matMenuTriggerFor]="exportMenu" class="export-button" matTooltip="Export customers data">
+        <button mat-stroked-button (click)="exportAllCustomers()" class="export-button" matTooltip="Export all customers">
           <mat-icon>download</mat-icon>
-          Export
+          Export All
         </button>
         <button mat-flat-button color="primary" (click)="createNewCustomer()" class="create-button" [disabled]="!hasEditPermission" matTooltip="Add a new customer">
           <mat-icon>add</mat-icon>
@@ -60,17 +39,6 @@
       </div>
     </div>
 
-    <mat-menu #exportMenu="matMenu">
-      <button mat-menu-item (click)="exportAllCustomers()">
-        <mat-icon>file_download</mat-icon>
-        <span>Export All</span>
-      </button>
-      <button mat-menu-item [disabled]="selection.selected.length === 0" (click)="exportSelectedCustomers()">
-        <mat-icon>checklist</mat-icon>
-        <span>Export Selected ({{ selection.selected.length }})</span>
-      </button>
-    </mat-menu>
-
     <div class="table-container">
       <div class="loading-overlay" *ngIf="isLoading">
         <mat-spinner diameter="40"></mat-spinner>
@@ -78,114 +46,55 @@
       </div>
 
       <table mat-table [dataSource]="dataSource" matSort [class.loading]="isLoading">
-        <ng-container matColumnDef="select">
-          <th mat-header-cell *matHeaderCellDef>
-            <mat-checkbox
-              (change)="$event ? toggleAllRows() : null"
-              [checked]="selection.hasValue() && isAllSelected()"
-              [indeterminate]="selection.hasValue() && !isAllSelected()"
-              [aria-label]="checkboxLabel()">
-            </mat-checkbox>
-          </th>
-          <td mat-cell *matCellDef="let row">
-            <mat-checkbox
-              (click)="$event.stopPropagation()"
-              (change)="$event ? selection.toggle(row) : null"
-              [checked]="selection.isSelected(row)"
-              [aria-label]="checkboxLabel(row)">
-            </mat-checkbox>
-          </td>
-        </ng-container>
-
-        <ng-container matColumnDef="id">
-          <th mat-header-cell *matHeaderCellDef mat-sort-header>ID</th>
-          <td mat-cell *matCellDef="let customer">{{ customer.id }}</td>
-        </ng-container>
-
         <ng-container matColumnDef="name">
-          <th mat-header-cell *matHeaderCellDef mat-sort-header>Name</th>
-          <td mat-cell *matCellDef="let customer">{{ customer.name }}</td>
-        </ng-container>
-
-        <ng-container matColumnDef="category">
-          <th mat-header-cell *matHeaderCellDef mat-sort-header>Category</th>
-          <td mat-cell *matCellDef="let customer">{{ customer.category || 'N/A' }}</td>
-        </ng-container>
-
-        <ng-container matColumnDef="size">
-          <th mat-header-cell *matHeaderCellDef mat-sort-header>Size</th>
-          <td mat-cell *matCellDef="let customer">
-            <span class="size-chip" *ngIf="customer.size" [ngClass]="getSizeClass(customer.size)">
-              {{ customer.size }}
-            </span>
-            <span *ngIf="!customer.size">N/A</span>
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Customer Name</th>
+          <td mat-cell *matCellDef="let customer" class="name-cell">
+            <div class="customer-name">{{ customer.name }}</div>
           </td>
         </ng-container>
 
-        <ng-container matColumnDef="location">
-          <th mat-header-cell *matHeaderCellDef mat-sort-header>Location</th>
-          <td mat-cell *matCellDef="let customer">
-            {{ customer.city ? customer.city + ', ' : '' }}
-            {{ customer.country || 'N/A' }}
+        <ng-container matColumnDef="address">
+          <th mat-header-cell *matHeaderCellDef>Address</th>
+          <td mat-cell *matCellDef="let customer" class="address-cell">
+            <div class="address-content">
+              {{ getFormattedAddress(customer) }}
+            </div>
           </td>
         </ng-container>
 
         <ng-container matColumnDef="primaryContact">
           <th mat-header-cell *matHeaderCellDef>Primary Contact</th>
-          <td mat-cell *matCellDef="let customer" class="contacts-cell">
-            <div class="primary-contact">
-              {{ getPrimaryContact(customer) }}
+          <td mat-cell *matCellDef="let customer" class="contact-cell">
+            <div class="contact-info" *ngIf="getPrimaryContact(customer); let contact">
+              <div class="contact-name">{{ contact.name }}</div>
+              <div class="contact-details">
+                <div class="contact-email">{{ contact.email }}</div>
+                <div class="contact-phone" *ngIf="contact.phone">{{ contact.phone }}</div>
+              </div>
             </div>
-            <div class="contacts-count" *ngIf="getContactsCount(customer) > 1">+{{ getContactsCount(customer) - 1 }} more</div>
+            <div class="no-contact" *ngIf="!getPrimaryContact(customer)">No contact information</div>
           </td>
         </ng-container>
 
         <ng-container matColumnDef="status">
           <th mat-header-cell *matHeaderCellDef mat-sort-header>Status</th>
-          <td mat-cell *matCellDef="let customer">
-            <span class="status-chip" [ngClass]="getStatusClass(customer.status)">
+          <td mat-cell *matCellDef="let customer" class="status-cell">
+            <mat-slide-toggle
+              [checked]="customer.status === 'Active'"
+              (change)="toggleCustomerStatus(customer, $event)"
+              (click)="$event.stopPropagation()"
+              [disabled]="!hasEditPermission"
+              color="primary"
+              class="status-toggle">
+            </mat-slide-toggle>
+            <span class="status-label" [ngClass]="getStatusClass(customer.status)">
               {{ customer.status }}
             </span>
           </td>
         </ng-container>
 
-        <ng-container matColumnDef="lastContact">
-          <th mat-header-cell *matHeaderCellDef mat-sort-header>Last Contact</th>
-          <td mat-cell *matCellDef="let customer">
-            {{ customer.lastContact | date }}
-          </td>
-        </ng-container>
-
-        <ng-container matColumnDef="actions">
-          <th mat-header-cell *matHeaderCellDef></th>
-          <td mat-cell *matCellDef="let customer">
-            <button mat-icon-button [matMenuTriggerFor]="menu" (click)="$event.stopPropagation()">
-              <mat-icon>more_vert</mat-icon>
-            </button>
-            <mat-menu #menu="matMenu" xPosition="before">
-              <button mat-menu-item (click)="viewCustomerDetails(customer)">
-                <mat-icon>visibility</mat-icon>
-                <span>View Details</span>
-              </button>
-              <button mat-menu-item (click)="editCustomer(customer, $event)" [disabled]="!hasEditPermission">
-                <mat-icon>edit</mat-icon>
-                <span>Edit</span>
-              </button>
-              <button mat-menu-item (click)="deleteCustomer(customer, $event)" class="delete-action" [disabled]="!hasEditPermission">
-                <mat-icon>delete</mat-icon>
-                <span>Delete</span>
-              </button>
-            </mat-menu>
-          </td>
-        </ng-container>
-
         <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
-        <tr
-          mat-row
-          *matRowDef="let row; columns: displayedColumns"
-          (click)="viewCustomerDetails(row)"
-          [class.selected]="selection.isSelected(row)"
-          class="customer-row"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns" (click)="viewCustomerDetails(row)" class="customer-row"></tr>
       </table>
 
       <div class="empty-state" *ngIf="!isLoading && dataSource.filteredData.length === 0">

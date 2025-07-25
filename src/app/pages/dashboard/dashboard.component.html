@@ -1,10 +1,17 @@
 <div class="dashboard-container">
   <div class="dashboard-header">
     <h1 class="dashboard-title">Dashboard Overview</h1>
-    <button mat-raised-button color="primary" (click)="refreshDashboardData()">
-      <mat-icon>refresh</mat-icon>
-      Refresh Data
-    </button>
+    <div class="header-actions">
+      <button mat-stroked-button color="primary" (click)="syncToGoogleCalendar()" [disabled]="isSyncingCalendar">
+        <mat-spinner diameter="16" *ngIf="isSyncingCalendar"></mat-spinner>
+        <mat-icon *ngIf="!isSyncingCalendar">event_sync</mat-icon>
+        {{ isSyncingCalendar ? 'Syncing...' : 'Sync to Google Calendar' }}
+      </button>
+      <button mat-raised-button color="primary" (click)="refreshDashboardData()">
+        <mat-icon>refresh</mat-icon>
+        Refresh Data
+      </button>
+    </div>
   </div>
 
   <div *ngIf="isLoading" class="loading-container">
@@ -171,13 +178,17 @@
     <div class="drivers-list-container mat-elevation-z3">
       <div class="header-wrapper">
         <div class="header-title">
-          <h2>Driver Status</h2>
+          <h2>Drivers</h2>
+          <p class="subtitle">{{ allDrivers.length }} total drivers</p>
         </div>
       </div>
 
       <div class="status-filter">
+        <div class="filter-label">Filter by status:</div>
         <span class="status-chip" [class.active]="selectedDriverStatus === status" *ngFor="let status of driverStatusOptions" (click)="setDriverStatusFilter(status)">
           {{ status }}
+          <span class="driver-count" *ngIf="status !== 'All'">({{ getDriverCountByStatus(status) }})</span>
+          <span class="driver-count" *ngIf="status === 'All'">({{ allDrivers.length }})</span>
         </span>
       </div>
 

@@ -9,6 +9,12 @@ export const environment = {
     appId: '1:1043357428512:web:7c4659dc471ee20ba40545',
     measurementId: 'G-M3SC9Z72FM',
   },
+  googleCalendar: {
+    apiKey: 'AIzaSyBUqjn2Zuiv8mGSse4YAmSH1uZDXUzOzKA',
+    clientId: '', // You'll need to add OAuth 2.0 Client ID here
+    scope: 'https://www.googleapis.com/auth/calendar',
+    discoveryDoc: 'https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest',
+  },
   appVersion: '1.0.0',
   apiUrl: 'http://localhost:3000', // <-- Set to your backend API URL
 };

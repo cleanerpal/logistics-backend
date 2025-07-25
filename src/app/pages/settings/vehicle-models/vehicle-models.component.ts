@@ -3,10 +3,10 @@ import { MatDialog } from '@angular/material/dialog';
 import { MatPaginator } from '@angular/material/paginator';
 import { MatSort } from '@angular/material/sort';
 import { MatTableDataSource } from '@angular/material/table';
+import { MatSlideToggleChange } from '@angular/material/slide-toggle';
 import { finalize, Observable, forkJoin, of } from 'rxjs';
 import { VehicleService, VehicleMake, VehicleModel } from '../../../services/vehicle.service';
 import { NotificationService } from '../../../services/notification.service';
-import { ConfirmationDialogComponent } from '../../../dialogs/confirmation-dialog.component';
 import { VehicleModelDialogComponent } from './vehicle-model-dialog/vehicle-model-dialog.component';
 
 interface VehicleModelWithMake extends VehicleModel {
@@ -175,45 +175,29 @@ export class VehicleModelsComponent implements OnInit {
     });
   }
 
-  toggleVehicleModelStatus(model: VehicleModelWithMake): void {
-    const newStatus = !model.isActive;
-    const action = newStatus ? 'activate' : 'deactivate';
+  toggleVehicleModelStatus(model: VehicleModelWithMake, event: MatSlideToggleChange): void {
+    const newStatus = event.checked;
+    const action = newStatus ? 'activated' : 'deactivated';
 
-    const dialogRef = this.dialog.open(ConfirmationDialogComponent, {
-      width: '400px',
-      data: {
-        title: `${newStatus ? 'Activate' : 'Deactivate'} Vehicle Model`,
-        message: `Are you sure you want to ${action} the vehicle model "${model.name}"?`,
-        confirmText: 'Yes',
-        cancelText: 'No',
+    this.vehicleService.updateVehicleModel(model.id, { isActive: newStatus }).subscribe({
+      next: () => {
+        this.notificationService.addNotification({
+          type: 'success',
+          title: 'Status Updated',
+          message: `${model.name} ${action} successfully`,
+        });
+        this.loadData();
       },
-    });
-
-    dialogRef.afterClosed().subscribe((confirmed) => {
-      if (confirmed) {
-        this.isLoading = true;
-        this.vehicleService
-          .updateVehicleModel(model.id, { isActive: newStatus })
-          .pipe(finalize(() => (this.isLoading = false)))
-          .subscribe({
-            next: () => {
-              this.notificationService.addNotification({
-                type: 'success',
-                title: 'Success',
-                message: `Vehicle model "${model.name}" ${newStatus ? 'activated' : 'deactivated'} successfully`,
-              });
-              this.loadData();
-            },
-            error: (error) => {
-              console.error(`Error ${action}ing vehicle model:`, error);
-              this.notificationService.addNotification({
-                type: 'error',
-                title: 'Error',
-                message: `Failed to ${action} vehicle model`,
-              });
-            },
-          });
-      }
+      error: (error) => {
+        console.error(`Error updating vehicle model status:`, error);
+        this.notificationService.addNotification({
+          type: 'error',
+          title: 'Error',
+          message: `Failed to update vehicle model status`,
+        });
+        // Revert the toggle state
+        event.source.checked = !newStatus;
+      },
     });
   }
 }

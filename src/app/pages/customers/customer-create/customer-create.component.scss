@@ -1,257 +1,474 @@
-:host {
-  display: block;
+.customer-create-container {
   padding: 24px;
-  background-color: var(--background-color);
+  padding-top: 88px; // Account for top navigation bar
+  max-width: 1200px;
+  margin: 0 auto;
   min-height: 100vh;
-  margin-left: 250px;
-  padding-top: 88px;
+  background-color: #f5f7fa;
+
+  @media (max-width: 768px) {
+    padding: 16px;
+    padding-top: 80px; // Adjust for smaller screens
+  }
+
+  &.with-topbar {
+    padding-top: calc(var(--topbar-height, 64px) + 24px);
+  }
 }
 
-.mat-mdc-card {
-  margin-bottom: 24px;
-  background-color: white;
-  border-radius: 8px;
+.page-header {
+  margin-bottom: 32px;
+
+  .header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 24px;
+
+    @media (max-width: 768px) {
+      flex-direction: column;
+      gap: 16px;
+    }
+  }
+
+  .title-section {
+    .page-title {
+      display: flex;
+      align-items: center;
+      margin: 0 0 8px 0;
+      font-size: 32px;
+      font-weight: 600;
+      color: #1e293b;
+      gap: 12px;
+
+      mat-icon {
+        font-size: 36px;
+        color: #3b82f6;
+      }
+
+      @media (max-width: 768px) {
+        font-size: 28px;
+
+        mat-icon {
+          font-size: 32px;
+        }
+      }
+    }
+
+    .page-subtitle {
+      margin: 0;
+      color: #64748b;
+      font-size: 16px;
+      font-weight: 400;
+    }
+  }
+
+  .header-actions {
+    .cancel-button {
+      border-color: #d1d5db;
+      color: #6b7280;
+
+      &:hover {
+        background-color: #f9fafb;
+        border-color: #9ca3af;
+      }
+    }
+  }
 }
 
-.loading-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(255, 255, 255, 0.9);
+.loading-container {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
-  gap: 16px;
+  padding: 48px;
+  text-align: center;
+  color: #6b7280;
+
+  mat-spinner {
+    margin-bottom: 16px;
+  }
+
+  p {
+    margin: 0;
+    font-size: 16px;
+  }
 }
 
-.loading-overlay span {
-  color: var(--text-secondary);
-  font-size: 14px;
-}
-
-.header-wrapper {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 24px;
-  border-bottom: 1px solid var(--border-color);
-}
-
-.header-title {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.header-title h1 {
-  margin: 0;
-  font-size: 24px;
-  font-weight: 500;
-  color: var(--primary-color);
-}
-
-.form-container {
-  padding: 24px;
-}
-
-.form-section {
-  margin-bottom: 32px;
-  padding-bottom: 16px;
-  border-bottom: 1px solid var(--border-color);
-}
-
-.form-section:last-child {
-  border-bottom: none;
-  margin-bottom: 0;
-}
-
-.section-title {
-  margin: 0 0 24px 0;
-  font-size: 18px;
-  font-weight: 500;
-  color: var(--primary-color);
-}
-
-.section-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 24px;
-}
-
-.add-contact-btn {
-  height: 36px;
-}
-
-.add-contact-btn .mat-icon {
-  font-size: 18px;
-  margin-right: 8px;
-}
-
-.form-row {
-  display: flex;
-  gap: 16px;
-  flex-wrap: wrap;
-}
-
-.form-row mat-form-field {
-  flex: 1;
-  min-width: 200px;
-}
-
-.full-width {
-  width: 100%;
-}
-
-.contacts-container {
+.customer-form {
   display: flex;
   flex-direction: column;
   gap: 24px;
 }
 
-.contact-item {
-  padding: 16px;
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
-  background-color: #fafafa;
-  position: relative;
+.form-section {
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  border: 1px solid #e5e7eb;
+  transition: all 0.2s ease;
+
+  &:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  }
+
+  .mat-mdc-card-header {
+    background: #f8fafc;
+    padding: 20px 24px;
+    border-bottom: 1px solid #e5e7eb;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    .mat-mdc-card-title {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 0;
+      font-size: 18px;
+      font-weight: 600;
+      color: #1e293b;
+
+      mat-icon {
+        font-size: 22px;
+        color: #3b82f6;
+      }
+    }
+
+    .header-actions {
+      .postcode-lookup-btn {
+        border-color: #3b82f6;
+        color: #3b82f6;
+        height: 36px;
+        padding: 0 16px;
+        font-size: 14px;
+        font-weight: 500;
+        border-radius: 6px;
+        transition: all 0.2s ease;
+
+        &:hover:not(:disabled) {
+          background-color: #dbeafe;
+          transform: translateY(-1px);
+        }
+
+        &:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+          transform: none;
+        }
+
+        mat-icon {
+          font-size: 18px;
+          margin-right: 6px;
+        }
+
+        mat-spinner {
+          margin-right: 6px;
+        }
+      }
+    }
+  }
+
+  .mat-mdc-card-content {
+    padding: 24px;
+  }
 }
 
-.contact-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16px;
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  align-items: start;
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .full-width {
+    grid-column: 1 / -1;
+  }
 }
 
-.contact-header h3 {
-  margin: 0;
-  font-size: 16px;
-  font-weight: 500;
-  color: var(--primary-color);
+.mat-mdc-form-field {
+  width: 100%;
+
+  &.mat-form-field-appearance-outline {
+    .mat-mdc-form-field-outline {
+      border-radius: 8px;
+    }
+
+    .mat-mdc-form-field-outline-thick {
+      .mat-mdc-form-field-outline-start,
+      .mat-mdc-form-field-outline-end,
+      .mat-mdc-form-field-outline-notch {
+        border-color: #3b82f6;
+        border-width: 2px;
+      }
+    }
+  }
+
+  .mat-mdc-form-field-label {
+    color: #374151;
+    font-weight: 500;
+  }
+
+  .mat-mdc-input-element,
+  .mat-mdc-select-trigger {
+    color: #1f2937;
+    font-size: 14px;
+  }
+
+  .mat-mdc-form-field-error {
+    color: #dc2626;
+    font-size: 12px;
+    font-weight: 500;
+  }
+
+  .mat-mdc-form-field-hint {
+    color: #6b7280;
+    font-size: 12px;
+    line-height: 1.4;
+  }
+
+  &.mat-form-field-invalid {
+    .mat-mdc-form-field-outline-thick {
+      .mat-mdc-form-field-outline-start,
+      .mat-mdc-form-field-outline-end,
+      .mat-mdc-form-field-outline-notch {
+        border-color: #dc2626;
+      }
+    }
+  }
 }
 
-.contact-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
+// Address form specific styling
+.form-section[formgroupname='address'] {
+  .form-grid {
+    // Make postcode field appear first in the grid
+    mat-form-field[formcontrolname='postcode'] {
+      order: -1;
+    }
 
-.primary-checkbox {
-  margin-right: 8px;
-}
+    // Emphasize the postcode field
+    mat-form-field[formcontrolname='postcode'] {
+      .mat-mdc-form-field-outline {
+        border-color: #3b82f6;
+        border-width: 2px;
+      }
 
-.primary-checkbox ::ng-deep .mdc-form-field {
-  font-size: 14px;
-}
-
-.remove-btn {
-  color: var(--error-color);
+      .mat-mdc-form-field-label {
+        color: #3b82f6;
+        font-weight: 600;
+      }
+    }
+  }
 }
 
 .form-actions {
   display: flex;
   justify-content: flex-end;
   gap: 16px;
-  margin-top: 24px;
-}
+  padding: 24px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  border: 1px solid #e5e7eb;
+  margin-top: 32px;
+  position: sticky;
+  bottom: 16px;
+  z-index: 10;
 
-.form-actions button {
-  min-width: 120px;
-}
-
-@media screen and (max-width: 1200px) {
-  .form-row {
-    gap: 12px;
-  }
-}
-
-@media screen and (max-width: 960px) {
-  :host {
-    padding: 16px;
-  }
-
-  .header-wrapper {
-    padding: 16px;
-  }
-
-  .form-container {
-    padding: 16px;
-  }
-}
-
-@media screen and (max-width: 768px) {
-  :host {
-    margin-left: 60px;
-    padding-top: 80px;
-  }
-
-  .header-title h1 {
-    font-size: 20px;
-  }
-
-  .section-title {
-    font-size: 16px;
-  }
-
-  .form-row {
+  @media (max-width: 768px) {
     flex-direction: column;
-    gap: 0;
+    gap: 12px;
+    position: static;
+    margin-top: 24px;
+  }
+
+  .cancel-button {
+    border-color: #d1d5db;
+    color: #6b7280;
+    padding: 0 24px;
+
+    &:hover {
+      background-color: #f9fafb;
+      border-color: #9ca3af;
+    }
+  }
+
+  .submit-button {
+    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+    padding: 0 32px;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    min-width: 160px;
+
+    &:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
+    }
+
+    &:disabled {
+      background: #9ca3af;
+      box-shadow: none;
+      cursor: not-allowed;
+    }
+
+    mat-spinner {
+      margin-right: 8px;
+    }
+
+    mat-icon {
+      margin-right: 8px;
+    }
+  }
+
+  button {
+    min-width: 120px;
+  }
+}
+
+textarea {
+  resize: vertical;
+  min-height: 60px;
+  font-family: inherit;
+  line-height: 1.5;
+}
+
+.mat-mdc-option {
+  &:hover {
+    background: #f1f5f9;
+  }
+
+  &.mdc-list-item--selected {
+    background: #dbeafe;
+    color: #1d4ed8;
+  }
+}
+
+.mat-mdc-form-field.mat-form-field-invalid {
+  animation: shake 0.3s ease-in-out;
+}
+
+@keyframes shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-4px);
+  }
+  75% {
+    transform: translateX(4px);
+  }
+}
+
+@media (max-width: 1024px) {
+  .customer-create-container {
+    max-width: 100%;
+  }
+
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .page-header {
+    .header-content {
+      .title-section .page-title {
+        font-size: 24px;
+
+        mat-icon {
+          font-size: 28px;
+        }
+      }
+    }
+  }
+
+  .form-section {
+    .mat-mdc-card-header {
+      padding: 16px 20px;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 12px;
+
+      .mat-mdc-card-title {
+        font-size: 16px;
+
+        mat-icon {
+          font-size: 20px;
+        }
+      }
+
+      .header-actions {
+        width: 100%;
+
+        .postcode-lookup-btn {
+          width: 100%;
+          justify-content: center;
+        }
+      }
+    }
+
+    .mat-mdc-card-content {
+      padding: 20px;
+    }
+  }
+}
+
+:host-context(.dark-theme) {
+  .customer-create-container {
+    background-color: #0f172a;
+  }
+
+  .page-header .title-section .page-title {
+    color: #f1f5f9;
+  }
+
+  .page-header .title-section .page-subtitle {
+    color: #94a3b8;
+  }
+
+  .form-section {
+    background: #1e293b;
+    border-color: #334155;
+
+    .mat-mdc-card-header {
+      background: #0f172a;
+      border-bottom-color: #334155;
+
+      .mat-mdc-card-title {
+        color: #f1f5f9;
+      }
+    }
   }
 
   .form-actions {
-    flex-direction: column-reverse;
-    gap: 8px;
+    background: #1e293b;
+    border-color: #334155;
   }
 
-  .form-actions button {
-    width: 100%;
-  }
-}
-
-@media screen and (max-width: 600px) {
-  :host {
-    padding: 8px;
-  }
-
-  .header-wrapper {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 16px;
-  }
-
-  .section-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 12px;
-  }
-
-  .add-contact-btn {
-    width: 100%;
+  .loading-container {
+    color: #94a3b8;
   }
 }
 
 @media print {
-  :host {
-    padding: 0;
+  .customer-create-container {
     background: white;
-    margin-left: 0;
-    padding-top: 0;
+    box-shadow: none;
+    padding: 0;
   }
 
-  .mat-mdc-card {
-    box-shadow: none !important;
-  }
-
-  .form-actions {
+  .form-actions,
+  .header-actions {
     display: none;
   }
 
-  .contact-actions {
-    display: none;
+  .form-section {
+    break-inside: avoid;
+    margin-bottom: 20px;
   }
 }

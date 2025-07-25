@@ -212,17 +212,29 @@ export class AuthService {
   }
 
   getDrivers(): Observable<UserProfile[]> {
+    console.log('🔍 AuthService.getDrivers() called');
     const usersRef = collection(this.firestore, 'users');
-    const q = query(usersRef, where('role', '==', 'driver'));
+    const q = query(usersRef, where('role', '==', 'Driver'));
+
+    console.log('📋 Query created for role == "Driver"');
 
     return from(getDocs(q)).pipe(
       map((snapshot) => {
-        return snapshot.docs.map((doc) => {
-          return this.convertFirebaseUserToProfile(doc.id, doc.data());
+        console.log('📊 Firestore query snapshot received:', snapshot);
+        console.log('📊 Number of docs in snapshot:', snapshot.docs.length);
+
+        const profiles = snapshot.docs.map((doc) => {
+          console.log('📄 Processing doc:', doc.id, doc.data());
+          const profile = this.convertFirebaseUserToProfile(doc.id, doc.data());
+          console.log('👤 Converted profile:', profile);
+          return profile;
         });
+
+        console.log('🎯 Final drivers array from AuthService:', profiles);
+        return profiles;
       }),
       catchError((error) => {
-        console.error('Error fetching drivers:', error);
+        console.error('❌ Error fetching drivers:', error);
         return of([]);
       })
     );

@@ -18,6 +18,12 @@ interface SettingsNavItem {
 export class SettingsComponent implements OnInit {
   navItems: SettingsNavItem[] = [
     {
+      label: 'Calendar Settings',
+      route: '/settings/calendar-settings',
+      icon: 'event',
+      description: 'Configure Google Calendar integration and sync options',
+    },
+    {
       label: 'Vehicle Makes',
       route: '/settings/vehicle-makes',
       icon: 'directions_car',

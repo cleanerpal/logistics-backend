@@ -228,6 +228,50 @@ table.loading {
   color: #f57f17;
 }
 
+.status-cell {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  .status-toggle {
+    ::ng-deep .mdc-switch {
+      &.mdc-switch--checked .mdc-switch__track {
+        background-color: #4caf50;
+        opacity: 0.54;
+      }
+
+      &.mdc-switch--checked .mdc-switch__thumb {
+        background-color: #4caf50;
+      }
+    }
+  }
+
+  .status-label {
+    font-size: 12px;
+    font-weight: 500;
+    padding: 4px 8px;
+    border-radius: 12px;
+
+    &.status-active,
+    &.status-green {
+      background-color: #e8f5e9;
+      color: #2e7d32;
+    }
+
+    &.status-inactive,
+    &.status-grey {
+      background-color: #f5f5f5;
+      color: #757575;
+    }
+
+    &.status-pending,
+    &.status-orange {
+      background-color: #fff8e1;
+      color: #f57f17;
+    }
+  }
+}
+
 .empty-state {
   position: absolute;
   top: 50%;

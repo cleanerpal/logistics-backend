@@ -3,9 +3,9 @@ import { Router } from '@angular/router';
 import { MatTableDataSource } from '@angular/material/table';
 import { MatSort } from '@angular/material/sort';
 import { MatPaginator } from '@angular/material/paginator';
-import { SelectionModel } from '@angular/cdk/collections';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { MatSlideToggleChange } from '@angular/material/slide-toggle';
 import { Subscription } from 'rxjs';
 import { finalize } from 'rxjs/operators';
 
@@ -22,11 +22,10 @@ import { UserProfile, UserRole } from '../../../interfaces/user-profile.interfac
   standalone: false,
 })
 export class DriverListComponent implements OnInit, AfterViewInit, OnDestroy {
-  displayedColumns: string[] = ['select', 'id', 'name', 'email', 'phone', 'company', 'role', 'type', 'status', 'lastActivity', 'actions'];
+  displayedColumns: string[] = ['name', 'email', 'phone', 'lastActivity', 'status'];
 
   isLoading = false;
   dataSource = new MatTableDataSource<UserProfile>([]);
-  selection = new SelectionModel<UserProfile>(true, []);
   hasEditPermission = false;
 
   error: string | null = null;
@@ -34,13 +33,8 @@ export class DriverListComponent implements OnInit, AfterViewInit, OnDestroy {
   @ViewChild(MatSort) sort!: MatSort;
   @ViewChild(MatPaginator) paginator!: MatPaginator;
 
-  typeFilter = 'All';
-  roleFilter = 'All';
   statusFilter = 'All';
-
-  typeOptions = ['All', 'Customer', 'Supplier', 'Partner'];
-  roleOptions = ['All', ...Object.values(UserRole)];
-  statusOptions = ['All', 'Active', 'Inactive', 'Pending'];
+  statusOptions = ['All', 'Active', 'Inactive'];
 
   private subscriptions: Subscription[] = [];
 
@@ -80,15 +74,8 @@ export class DriverListComponent implements OnInit, AfterViewInit, OnDestroy {
       const searchText = filter.toLowerCase();
       const shouldInclude = (value: string | undefined) => value?.toLowerCase().includes(searchText) || false;
 
-      if (this.typeFilter !== 'All' && data.type?.toLowerCase() !== this.typeFilter.toLowerCase()) {
-        return false;
-      }
-
-      if (this.roleFilter !== 'All' && data.role !== this.roleFilter) {
-        return false;
-      }
-
-      if (this.statusFilter !== 'All' && data.status?.toLowerCase() !== this.statusFilter.toLowerCase()) {
+      const currentStatus = data.status || (data.isActive ? 'Active' : 'Inactive');
+      if (this.statusFilter !== 'All' && currentStatus.toLowerCase() !== this.statusFilter.toLowerCase()) {
         return false;
       }
 
@@ -97,7 +84,6 @@ export class DriverListComponent implements OnInit, AfterViewInit, OnDestroy {
         shouldInclude(data.lastName) ||
         shouldInclude(data.name) ||
         shouldInclude(data.email) ||
-        shouldInclude(data.company) ||
         shouldInclude(data.phoneNumber) ||
         shouldInclude(data.phone)
       );
@@ -141,15 +127,13 @@ export class DriverListComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   clearFilters(): void {
-    this.typeFilter = 'All';
-    this.roleFilter = 'All';
     this.statusFilter = 'All';
     this.dataSource.filter = '';
     this.loadDrivers();
   }
 
   getStatusClass(status: string | undefined): string {
-    if (!status) return 'status-gray';
+    if (!status) return 'status-grey';
 
     switch (status.toLowerCase()) {
       case 'active':
@@ -158,7 +142,7 @@ export class DriverListComponent implements OnInit, AfterViewInit, OnDestroy {
         return 'status-orange';
       case 'inactive':
       default:
-        return 'status-gray';
+        return 'status-grey';
     }
   }
 
@@ -215,33 +199,48 @@ export class DriverListComponent implements OnInit, AfterViewInit, OnDestroy {
     return ((firstName[0] || '') + (lastName[0] || '')).toUpperCase();
   }
 
-  isAllSelected(): boolean {
-    const numSelected = this.selection.selected.length;
-    const numRows = this.dataSource.data.length;
-    return numSelected === numRows;
-  }
-
-  toggleAllRows(): void {
-    if (this.isAllSelected()) {
-      this.selection.clear();
-      return;
-    }
-    this.selection.select(...this.dataSource.data);
-  }
-
-  checkboxLabel(row?: UserProfile): string {
-    if (!row) {
-      return `${this.isAllSelected() ? 'deselect' : 'select'} all`;
-    }
-    return `${this.selection.isSelected(row) ? 'deselect' : 'select'} row ${row.id}`;
-  }
-
   createNewDriver(): void {
     this.router.navigate(['/drivers/new']);
   }
 
-  editDriver(driver: UserProfile): void {
+  viewDriverDetails(driver: UserProfile): void {
     this.router.navigate(['/drivers', driver.id]);
+  }
+
+  toggleDriverStatus(driver: UserProfile, event: MatSlideToggleChange): void {
+    const newStatus = event.checked;
+
+    if (driver.isActive === newStatus) {
+      return; // No change needed
+    }
+
+    this.isLoading = true;
+
+    const updateSub = this.driverService.updateDriver(driver.id, { isActive: newStatus }).subscribe({
+      next: () => {
+        driver.isActive = newStatus; // Update local data
+        driver.status = newStatus ? 'active' : 'inactive'; // Update status display
+        this.notificationService.addNotification({
+          type: 'success',
+          title: 'Status Updated',
+          message: `${driver.firstName} ${driver.lastName} is now ${newStatus ? 'active' : 'inactive'}`,
+        });
+        this.isLoading = false;
+      },
+      error: (error) => {
+        console.error('Error updating driver status:', error);
+        this.notificationService.addNotification({
+          type: 'error',
+          title: 'Error',
+          message: `Failed to update driver status: ${error.message}`,
+        });
+        // Revert the toggle
+        event.source.checked = driver.isActive || false;
+        this.isLoading = false;
+      },
+    });
+
+    this.subscriptions.push(updateSub);
   }
 
   viewDriverJobs(driver: UserProfile, event?: Event): void {
@@ -261,28 +260,14 @@ export class DriverListComponent implements OnInit, AfterViewInit, OnDestroy {
     this.downloadDriversCsv(allDrivers);
   }
 
-  exportSelectedDrivers(): void {
-    const selectedDrivers = this.selection.selected;
-    if (selectedDrivers.length === 0) {
-      this.showSnackbar('No drivers selected');
-      return;
-    }
-    this.downloadDriversCsv(selectedDrivers);
-  }
-
   private downloadDriversCsv(drivers: UserProfile[]): void {
-    const headers = ['ID', 'First Name', 'Last Name', 'Email', 'Phone', 'Company', 'Role', 'Type', 'Status', 'Last Activity'];
+    const headers = ['Name', 'Email', 'Phone', 'Last Activity', 'Status'];
     const rows = drivers.map((driver) => [
-      driver.id,
-      driver.firstName || '',
-      driver.lastName || '',
+      `${driver.firstName || ''} ${driver.lastName || ''}`.trim() || driver.name || '',
       driver.email || '',
       driver.phone || driver.phoneNumber || '',
-      driver.company || '',
-      driver.role || '',
-      driver.type || '',
-      driver.status || (driver.isActive ? 'active' : 'inactive'),
       driver.lastActivity ? new Date(driver.lastActivity).toLocaleDateString() : '',
+      driver.status || (driver.isActive ? 'active' : 'inactive'),
     ]);
 
     const csvContent = [headers.join(','), ...rows.map((row) => row.join(','))].join('\n');

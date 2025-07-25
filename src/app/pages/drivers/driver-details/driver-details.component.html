@@ -1,415 +1,417 @@
-<mat-card class="mat-elevation-z3">
-  <div class="loading-overlay" *ngIf="isLoading">
-    <mat-spinner diameter="40"></mat-spinner>
-    <span>Loading driver details...</span>
-  </div>
-
+<mat-card class="mat-elevation-z3 driver-details-card">
   <div class="header-wrapper">
     <div class="header-title">
-      <button mat-icon-button (click)="goBack()">
+      <button mat-icon-button (click)="goBack()" class="back-button">
         <mat-icon>arrow_back</mat-icon>
       </button>
       <div class="title-content" *ngIf="driver">
         <h1>{{ driver.firstName }} {{ driver.lastName }}</h1>
-        <div class="driver-status">
+        <p class="subtitle">
           <span class="status-chip" [ngClass]="getStatusClass(driver.status)">
             {{ driver.status || (driver.isActive ? 'Active' : 'Inactive') }}
           </span>
           <span class="role-chip" [ngClass]="getRoleClass(driver.role)">
             {{ driver.role }}
           </span>
-        </div>
+        </p>
       </div>
     </div>
-    <div class="header-actions">
-      <button mat-stroked-button color="warn" (click)="deleteDriver()" *ngIf="hasEditPermission">
+    <div class="actions-group" *ngIf="driver">
+      <button mat-stroked-button (click)="deleteDriver()" *ngIf="hasEditPermission" class="delete-button">
         <mat-icon>delete</mat-icon>
         Delete Driver
       </button>
-      <button mat-flat-button color="primary" (click)="editDriver()" *ngIf="hasEditPermission">
+      <button mat-flat-button color="primary" (click)="editDriver()" *ngIf="hasEditPermission" class="create-button">
         <mat-icon>edit</mat-icon>
         Edit Driver
       </button>
     </div>
   </div>
 
-  <div class="tab-navigation">
-    <button [class.active]="activeTab === 'details'" (click)="setActiveTab('details')">Details</button>
-    <button [class.active]="activeTab === 'jobs'" (click)="setActiveTab('jobs')">Jobs</button>
-    <button [class.active]="activeTab === 'permissions'" (click)="setActiveTab('permissions')">Permissions</button>
-    <button [class.active]="activeTab === 'notes'" (click)="setActiveTab('notes')">Notes</button>
+  <div *ngIf="isLoading" class="loading-overlay">
+    <mat-spinner></mat-spinner>
+    <p>Loading driver details...</p>
   </div>
 
-  <mat-card-content class="content-wrapper" *ngIf="driver">
-    <div [ngSwitch]="activeTab">
-      <div *ngSwitchCase="'details'" class="details-tab">
-        <div class="details-grid">
-          <mat-card class="details-section">
-            <h2>Driver Information</h2>
-            <div class="info-grid">
-              <div class="info-item">
-                <label>Driver ID</label>
-                <span>{{ driver.id }}</span>
-              </div>
-              <div class="info-item">
-                <label>Email</label>
-                <a [href]="'mailto:' + driver.email">{{ driver.email }}</a>
-              </div>
-              <div class="info-item">
-                <label>Phone</label>
-                <a [href]="'tel:' + (driver.phone || driver.phoneNumber)">{{ driver.phone || driver.phoneNumber }}</a>
-              </div>
-              <div class="info-item">
-                <label>Company</label>
-                <span>{{ driver.company || 'Not assigned' }}</span>
-              </div>
-              <div class="info-item">
-                <label>Type</label>
-                <span class="status-chip small" [ngClass]="getTypeClass(driver.type)">
-                  {{ driver.type || 'Customer' }}
-                </span>
-              </div>
-              <div class="info-item">
-                <label>Role</label>
-                <span class="role-chip small" [ngClass]="getRoleClass(driver.role)">
-                  {{ driver.role }}
-                </span>
-              </div>
-              <div class="info-item">
-                <label>Status</label>
-                <span class="status-chip small" [ngClass]="getStatusClass(driver.status)">
-                  {{ driver.status || (driver.isActive ? 'Active' : 'Inactive') }}
-                </span>
-              </div>
-              <div class="info-item">
-                <label>Last Activity</label>
-                <span>{{ driver.lastActivity | date }}</span>
-              </div>
-            </div>
-          </mat-card>
+  <div *ngIf="!isLoading && driver" class="driver-content">
+    <div class="tab-navigation">
+      <button [class.active]="activeTab === 'details'" (click)="setActiveTab('details')">Details</button>
+      <button [class.active]="activeTab === 'jobs'" (click)="setActiveTab('jobs')">Jobs</button>
+      <button [class.active]="activeTab === 'permissions'" (click)="setActiveTab('permissions')">Permissions</button>
+      <button [class.active]="activeTab === 'notes'" (click)="setActiveTab('notes')">Notes</button>
+    </div>
 
-          <mat-card class="details-section stats-section">
-            <h2>Activity Overview</h2>
-            <div class="stats-grid">
-              <div class="stat-item">
-                <div class="stat-icon">
-                  <mat-icon>directions_car</mat-icon>
+    <div class="tab-content">
+      <div [ngSwitch]="activeTab">
+        <div *ngSwitchCase="'details'" class="details-tab">
+          <div class="details-grid">
+            <div class="details-section">
+              <h2>Driver Information</h2>
+              <div class="info-grid">
+                <div class="info-item">
+                  <label>Driver ID</label>
+                  <span>{{ driver.id }}</span>
                 </div>
-                <div class="stat-content">
-                  <span class="stat-value">{{ driverStats.totalJobs }}</span>
-                  <span class="stat-label">Total Jobs</span>
+                <div class="info-item">
+                  <label>Email</label>
+                  <a [href]="'mailto:' + driver.email">{{ driver.email }}</a>
                 </div>
-              </div>
-              <div class="stat-item">
-                <div class="stat-icon">
-                  <mat-icon>pending_actions</mat-icon>
+                <div class="info-item">
+                  <label>Phone</label>
+                  <a [href]="'tel:' + (driver.phone || driver.phoneNumber)">{{ driver.phone || driver.phoneNumber }}</a>
                 </div>
-                <div class="stat-content">
-                  <span class="stat-value">{{ driverStats.pendingJobs }}</span>
-                  <span class="stat-label">Pending Jobs</span>
+                <div class="info-item">
+                  <label>Company</label>
+                  <span>{{ driver.company || 'Not assigned' }}</span>
                 </div>
-              </div>
-              <div class="stat-item">
-                <div class="stat-icon">
-                  <mat-icon>check_circle</mat-icon>
+                <div class="info-item">
+                  <label>Type</label>
+                  <span class="status-chip small" [ngClass]="getTypeClass(driver.type)">
+                    {{ driver.type || 'Customer' }}
+                  </span>
                 </div>
-                <div class="stat-content">
-                  <span class="stat-value">{{ driverStats.completedJobs }}</span>
-                  <span class="stat-label">Completed Jobs</span>
+                <div class="info-item">
+                  <label>Role</label>
+                  <span class="role-chip small" [ngClass]="getRoleClass(driver.role)">
+                    {{ driver.role }}
+                  </span>
                 </div>
-              </div>
-              <div class="stat-item">
-                <div class="stat-icon">
-                  <mat-icon>payments</mat-icon>
+                <div class="info-item">
+                  <label>Status</label>
+                  <span class="status-chip small" [ngClass]="getStatusClass(driver.status)">
+                    {{ driver.status || (driver.isActive ? 'Active' : 'Inactive') }}
+                  </span>
                 </div>
-                <div class="stat-content">
-                  <span class="stat-value">{{ driverStats.pendingExpenses }}</span>
-                  <span class="stat-label">Pending Expenses</span>
+                <div class="info-item">
+                  <label>Last Activity</label>
+                  <span>{{ driver.lastActivity | date }}</span>
                 </div>
               </div>
             </div>
-          </mat-card>
+
+            <div class="details-section stats-section">
+              <h2>Activity Overview</h2>
+              <div class="stats-grid">
+                <div class="stat-item">
+                  <div class="stat-icon">
+                    <mat-icon>directions_car</mat-icon>
+                  </div>
+                  <div class="stat-content">
+                    <span class="stat-value">{{ driverStats.totalJobs }}</span>
+                    <span class="stat-label">Total Jobs</span>
+                  </div>
+                </div>
+                <div class="stat-item">
+                  <div class="stat-icon">
+                    <mat-icon>pending_actions</mat-icon>
+                  </div>
+                  <div class="stat-content">
+                    <span class="stat-value">{{ driverStats.pendingJobs }}</span>
+                    <span class="stat-label">Pending Jobs</span>
+                  </div>
+                </div>
+                <div class="stat-item">
+                  <div class="stat-icon">
+                    <mat-icon>check_circle</mat-icon>
+                  </div>
+                  <div class="stat-content">
+                    <span class="stat-value">{{ driverStats.completedJobs }}</span>
+                    <span class="stat-label">Completed Jobs</span>
+                  </div>
+                </div>
+                <div class="stat-item">
+                  <div class="stat-icon">
+                    <mat-icon>payments</mat-icon>
+                  </div>
+                  <div class="stat-content">
+                    <span class="stat-value">{{ driverStats.pendingExpenses }}</span>
+                    <span class="stat-label">Pending Expenses</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="profile-section">
+            <h2>Driver Profile</h2>
+            <div class="profile-content">
+              <div class="profile-header">
+                <div class="profile-avatar">
+                  {{ getDriverInitials(driver) }}
+                </div>
+                <div class="profile-details">
+                  <h3>{{ driver.firstName }} {{ driver.lastName }}</h3>
+                  <p class="profile-company">{{ driver.company || 'Independent Driver' }}</p>
+                  <div class="contact-buttons">
+                    <a mat-stroked-button [href]="'mailto:' + driver.email" class="contact-button">
+                      <mat-icon>email</mat-icon>
+                      Email
+                    </a>
+                    <a mat-stroked-button [href]="'tel:' + (driver.phone || driver.phoneNumber)" class="contact-button">
+                      <mat-icon>phone</mat-icon>
+                      Call
+                    </a>
+                    <button mat-stroked-button class="contact-button" (click)="sendMessage()">
+                      <mat-icon>message</mat-icon>
+                      Message
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <div class="profile-section-divider"></div>
+              <div class="profile-info">
+                <div class="info-row">
+                  <span class="info-label">Licence Number</span>
+                  <span class="info-value">{{ driver.licenseNumber || 'Not provided' }}</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-label">Licence Expiry</span>
+                  <span class="info-value">{{ driver.licenseExpiry | date }}</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-label">Vehicle Type</span>
+                  <span class="info-value">{{ driver.vehicleType || 'Not specified' }}</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-label">Area Coverage</span>
+                  <span class="info-value">{{ driver.areaCoverage || 'No restrictions' }}</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-label">Availability</span>
+                  <span class="info-value">{{ driver.availability || 'Full-time' }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
-        <mat-card class="profile-section">
-          <h2>Driver Profile</h2>
-          <div class="profile-content">
-            <div class="profile-header">
-              <div class="profile-avatar">
-                {{ getDriverInitials(driver) }}
+        <div *ngSwitchCase="'jobs'" class="jobs-tab">
+          <div class="jobs-section">
+            <div class="section-header">
+              <h2>Job History</h2>
+              <button mat-stroked-button color="primary" [routerLink]="['/jobs/new']" [queryParams]="{ driverId: driver.id }">
+                <mat-icon>add</mat-icon>
+                Assign New Job
+              </button>
+            </div>
+
+            <div class="loading-overlay" *ngIf="isJobsLoading">
+              <mat-spinner diameter="30"></mat-spinner>
+              <span>Loading jobs...</span>
+            </div>
+
+            <div class="table-container">
+              <table mat-table [dataSource]="jobsDataSource" class="jobs-table" matSort>
+                <ng-container matColumnDef="id">
+                  <th mat-header-cell *matHeaderCellDef mat-sort-header>Job ID</th>
+                  <td mat-cell *matCellDef="let job">{{ job.id }}</td>
+                </ng-container>
+
+                <ng-container matColumnDef="status">
+                  <th mat-header-cell *matHeaderCellDef mat-sort-header>Status</th>
+                  <td mat-cell *matCellDef="let job">
+                    <span class="status-chip small" [ngClass]="getJobStatusClass(job.status)">
+                      {{ job.status }}
+                    </span>
+                  </td>
+                </ng-container>
+
+                <ng-container matColumnDef="vehicle">
+                  <th mat-header-cell *matHeaderCellDef mat-sort-header>Vehicle</th>
+                  <td mat-cell *matCellDef="let job">
+                    {{ job.registration || 'N/A' }}
+                  </td>
+                </ng-container>
+
+                <ng-container matColumnDef="collection">
+                  <th mat-header-cell *matHeaderCellDef>Collection</th>
+                  <td mat-cell *matCellDef="let job">
+                    {{ job.collectionAddress ? (job.collectionAddress | slice : 0 : 30) + (job.collectionAddress.length > 30 ? '...' : '') : 'N/A' }}
+                  </td>
+                </ng-container>
+
+                <ng-container matColumnDef="delivery">
+                  <th mat-header-cell *matHeaderCellDef>Delivery</th>
+                  <td mat-cell *matCellDef="let job">
+                    {{ job.deliveryAddress ? (job.deliveryAddress | slice : 0 : 30) + (job.deliveryAddress.length > 30 ? '...' : '') : 'N/A' }}
+                  </td>
+                </ng-container>
+
+                <ng-container matColumnDef="date">
+                  <th mat-header-cell *matHeaderCellDef mat-sort-header>Date</th>
+                  <td mat-cell *matCellDef="let job">{{ job.createdAt | date }}</td>
+                </ng-container>
+
+                <ng-container matColumnDef="actions">
+                  <th mat-header-cell *matHeaderCellDef></th>
+                  <td mat-cell *matCellDef="let job">
+                    <button mat-icon-button [matMenuTriggerFor]="menu">
+                      <mat-icon>more_vert</mat-icon>
+                    </button>
+                    <mat-menu #menu="matMenu">
+                      <button mat-menu-item (click)="viewJobDetails(job.id)">
+                        <mat-icon>visibility</mat-icon>
+                        <span>View Details</span>
+                      </button>
+                      <button mat-menu-item (click)="editJob(job.id)" *ngIf="hasEditPermission">
+                        <mat-icon>edit</mat-icon>
+                        <span>Edit Job</span>
+                      </button>
+                      <button mat-menu-item (click)="unassignJob(job)" *ngIf="hasEditPermission && canUnassignJob(job)">
+                        <mat-icon>person_remove</mat-icon>
+                        <span>Unassign Job</span>
+                      </button>
+                    </mat-menu>
+                  </td>
+                </ng-container>
+
+                <tr mat-header-row *matHeaderRowDef="jobColumns"></tr>
+                <tr mat-row *matRowDef="let row; columns: jobColumns" (click)="viewJobDetails(row.id)" class="job-row"></tr>
+              </table>
+
+              <div class="empty-state" *ngIf="!isJobsLoading && jobsDataSource.data.length === 0">
+                <mat-icon>work_off</mat-icon>
+                <h3>No Jobs Found</h3>
+                <p>This driver doesn't have any jobs yet.</p>
+                <button mat-flat-button color="primary" [routerLink]="['/jobs/new']" [queryParams]="{ driverId: driver.id }">
+                  <mat-icon>add</mat-icon>
+                  Assign First Job
+                </button>
               </div>
-              <div class="profile-details">
-                <h3>{{ driver.firstName }} {{ driver.lastName }}</h3>
-                <p class="profile-company">{{ driver.company || 'Independent Driver' }}</p>
-                <div class="contact-buttons">
-                  <a mat-stroked-button [href]="'mailto:' + driver.email" class="contact-button">
-                    <mat-icon>email</mat-icon>
-                    Email
-                  </a>
-                  <a mat-stroked-button [href]="'tel:' + (driver.phone || driver.phoneNumber)" class="contact-button">
-                    <mat-icon>phone</mat-icon>
-                    Call
-                  </a>
-                  <button mat-stroked-button class="contact-button" (click)="sendMessage()">
-                    <mat-icon>message</mat-icon>
-                    Message
-                  </button>
+            </div>
+
+            <mat-paginator [pageSizeOptions]="[5, 10, 25]" [length]="jobsDataSource.data.length" showFirstLastButtons> </mat-paginator>
+          </div>
+        </div>
+
+        <div *ngSwitchCase="'permissions'" class="permissions-tab">
+          <div class="permissions-section">
+            <div class="section-header">
+              <h2>Permissions & Access</h2>
+              <button mat-flat-button color="primary" (click)="editPermissions()" *ngIf="hasEditPermission">
+                <mat-icon>edit</mat-icon>
+                Edit Permissions
+              </button>
+            </div>
+
+            <div class="permissions-content">
+              <div class="role-summary">
+                <h3>Role: {{ driver.role }}</h3>
+                <p class="role-description">
+                  {{ getRoleDescription(driver.role) }}
+                </p>
+              </div>
+
+              <div class="permissions-grid">
+                <div class="permissions-category">
+                  <h3>General Permissions</h3>
+                  <div class="permission-group">
+                    <div class="permission-item" *ngFor="let perm of permissionList | slice : 0 : 4">
+                      <div class="permission-header">
+                        <mat-icon>{{ getPermissionIcon(perm.key) }}</mat-icon>
+                        <span class="permission-name">{{ perm.name }}</span>
+                      </div>
+                      <div class="permission-status" [ngClass]="{ 'permission-granted': hasPermission(perm.key), 'permission-denied': !hasPermission(perm.key) }">
+                        <mat-icon>{{ hasPermission(perm.key) ? 'check_circle' : 'cancel' }}</mat-icon>
+                        <span>{{ hasPermission(perm.key) ? 'Granted' : 'Not Granted' }}</span>
+                      </div>
+                      <p class="permission-description">{{ perm.description }}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="permissions-category">
+                  <h3>Job Management</h3>
+                  <div class="permission-group">
+                    <div class="permission-item" *ngFor="let perm of permissionList | slice : 4 : 8">
+                      <div class="permission-header">
+                        <mat-icon>{{ getPermissionIcon(perm.key) }}</mat-icon>
+                        <span class="permission-name">{{ perm.name }}</span>
+                      </div>
+                      <div class="permission-status" [ngClass]="{ 'permission-granted': hasPermission(perm.key), 'permission-denied': !hasPermission(perm.key) }">
+                        <mat-icon>{{ hasPermission(perm.key) ? 'check_circle' : 'cancel' }}</mat-icon>
+                        <span>{{ hasPermission(perm.key) ? 'Granted' : 'Not Granted' }}</span>
+                      </div>
+                      <p class="permission-description">{{ perm.description }}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="permissions-category">
+                  <h3>Financial & Reports</h3>
+                  <div class="permission-group">
+                    <div class="permission-item" *ngFor="let perm of permissionList | slice : 8 : 13">
+                      <div class="permission-header">
+                        <mat-icon>{{ getPermissionIcon(perm.key) }}</mat-icon>
+                        <span class="permission-name">{{ perm.name }}</span>
+                      </div>
+                      <div class="permission-status" [ngClass]="{ 'permission-granted': hasPermission(perm.key), 'permission-denied': !hasPermission(perm.key) }">
+                        <mat-icon>{{ hasPermission(perm.key) ? 'check_circle' : 'cancel' }}</mat-icon>
+                        <span>{{ hasPermission(perm.key) ? 'Granted' : 'Not Granted' }}</span>
+                      </div>
+                      <p class="permission-description">{{ perm.description }}</p>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
-            <div class="profile-section-divider"></div>
-            <div class="profile-info">
-              <div class="info-row">
-                <span class="info-label">License Number</span>
-                <span class="info-value">{{ driver.licenseNumber || 'Not provided' }}</span>
-              </div>
-              <div class="info-row">
-                <span class="info-label">License Expiry</span>
-                <span class="info-value">{{ driver.licenseExpiry | date }}</span>
-              </div>
-              <div class="info-row">
-                <span class="info-label">Vehicle Type</span>
-                <span class="info-value">{{ driver.vehicleType || 'Not specified' }}</span>
-              </div>
-              <div class="info-row">
-                <span class="info-label">Area Coverage</span>
-                <span class="info-value">{{ driver.areaCoverage || 'No restrictions' }}</span>
-              </div>
-              <div class="info-row">
-                <span class="info-label">Availability</span>
-                <span class="info-value">{{ driver.availability || 'Full-time' }}</span>
-              </div>
+          </div>
+        </div>
+
+        <div *ngSwitchCase="'notes'" class="notes-tab">
+          <div class="notes-section">
+            <div class="section-header">
+              <h2>Driver Notes</h2>
+              <button mat-flat-button color="primary" (click)="addNote()" *ngIf="hasEditPermission">
+                <mat-icon>add</mat-icon>
+                Add Note
+              </button>
             </div>
-          </div>
-        </mat-card>
-      </div>
 
-      <div *ngSwitchCase="'jobs'" class="jobs-tab">
-        <mat-card class="jobs-section">
-          <div class="section-header">
-            <h2>Job History</h2>
-            <button mat-stroked-button color="primary" [routerLink]="['/jobs/new']" [queryParams]="{ driverId: driver.id }">
-              <mat-icon>add</mat-icon>
-              Assign New Job
-            </button>
-          </div>
-
-          <div class="loading-overlay" *ngIf="isJobsLoading">
-            <mat-spinner diameter="30"></mat-spinner>
-            <span>Loading jobs...</span>
-          </div>
-
-          <div class="table-container">
-            <table mat-table [dataSource]="jobsDataSource" class="jobs-table" matSort>
-              <ng-container matColumnDef="id">
-                <th mat-header-cell *matHeaderCellDef mat-sort-header>Job ID</th>
-                <td mat-cell *matCellDef="let job">{{ job.id }}</td>
-              </ng-container>
-
-              <ng-container matColumnDef="status">
-                <th mat-header-cell *matHeaderCellDef mat-sort-header>Status</th>
-                <td mat-cell *matCellDef="let job">
-                  <span class="status-chip small" [ngClass]="getJobStatusClass(job.status)">
-                    {{ job.status }}
-                  </span>
-                </td>
-              </ng-container>
-
-              <ng-container matColumnDef="vehicle">
-                <th mat-header-cell *matHeaderCellDef mat-sort-header>Vehicle</th>
-                <td mat-cell *matCellDef="let job">
-                  {{ job.registration || 'N/A' }}
-                </td>
-              </ng-container>
-
-              <ng-container matColumnDef="collection">
-                <th mat-header-cell *matHeaderCellDef>Collection</th>
-                <td mat-cell *matCellDef="let job">
-                  {{ job.collectionAddress ? (job.collectionAddress | slice : 0 : 30) + (job.collectionAddress.length > 30 ? '...' : '') : 'N/A' }}
-                </td>
-              </ng-container>
-
-              <ng-container matColumnDef="delivery">
-                <th mat-header-cell *matHeaderCellDef>Delivery</th>
-                <td mat-cell *matCellDef="let job">
-                  {{ job.deliveryAddress ? (job.deliveryAddress | slice : 0 : 30) + (job.deliveryAddress.length > 30 ? '...' : '') : 'N/A' }}
-                </td>
-              </ng-container>
-
-              <ng-container matColumnDef="date">
-                <th mat-header-cell *matHeaderCellDef mat-sort-header>Date</th>
-                <td mat-cell *matCellDef="let job">{{ job.createdAt | date }}</td>
-              </ng-container>
-
-              <ng-container matColumnDef="actions">
-                <th mat-header-cell *matHeaderCellDef></th>
-                <td mat-cell *matCellDef="let job">
-                  <button mat-icon-button [matMenuTriggerFor]="menu">
+            <div class="notes-timeline" *ngIf="driverNotes.length > 0">
+              <div class="note-item" *ngFor="let note of driverNotes">
+                <div class="note-header">
+                  <div class="note-author">
+                    <span class="author-avatar">{{ getInitials(note.authorName) }}</span>
+                    <div class="author-details">
+                      <span class="author-name">{{ note.authorName }}</span>
+                      <span class="note-date">{{ note.date | date : 'medium' }}</span>
+                    </div>
+                  </div>
+                  <button mat-icon-button [matMenuTriggerFor]="noteMenu" *ngIf="hasEditPermission">
                     <mat-icon>more_vert</mat-icon>
                   </button>
-                  <mat-menu #menu="matMenu">
-                    <button mat-menu-item (click)="viewJobDetails(job.id)">
-                      <mat-icon>visibility</mat-icon>
-                      <span>View Details</span>
-                    </button>
-                    <button mat-menu-item (click)="editJob(job.id)" *ngIf="hasEditPermission">
+                  <mat-menu #noteMenu="matMenu">
+                    <button mat-menu-item (click)="editNote(note)">
                       <mat-icon>edit</mat-icon>
-                      <span>Edit Job</span>
+                      <span>Edit</span>
                     </button>
-                    <button mat-menu-item (click)="unassignJob(job)" *ngIf="hasEditPermission && canUnassignJob(job)">
-                      <mat-icon>person_remove</mat-icon>
-                      <span>Unassign Job</span>
+                    <button mat-menu-item (click)="deleteNote(note)">
+                      <mat-icon>delete</mat-icon>
+                      <span>Delete</span>
                     </button>
                   </mat-menu>
-                </td>
-              </ng-container>
+                </div>
+                <div class="note-content">
+                  <p>{{ note.content }}</p>
+                </div>
+              </div>
+            </div>
 
-              <tr mat-header-row *matHeaderRowDef="jobColumns"></tr>
-              <tr mat-row *matRowDef="let row; columns: jobColumns" (click)="viewJobDetails(row.id)" class="job-row"></tr>
-            </table>
-
-            <div class="empty-state" *ngIf="!isJobsLoading && jobsDataSource.data.length === 0">
-              <mat-icon>work_off</mat-icon>
-              <h3>No Jobs Found</h3>
-              <p>This driver doesn't have any jobs yet.</p>
-              <button mat-flat-button color="primary" [routerLink]="['/jobs/new']" [queryParams]="{ driverId: driver.id }">
+            <div class="empty-notes" *ngIf="driverNotes.length === 0">
+              <mat-icon>note</mat-icon>
+              <h3>No Notes</h3>
+              <p>There are no notes for this driver yet.</p>
+              <button mat-flat-button color="primary" (click)="addNote()" *ngIf="hasEditPermission">
                 <mat-icon>add</mat-icon>
-                Assign First Job
+                Add First Note
               </button>
             </div>
           </div>
-
-          <mat-paginator [pageSizeOptions]="[5, 10, 25]" [length]="jobsDataSource.data.length" showFirstLastButtons> </mat-paginator>
-        </mat-card>
-      </div>
-
-      <div *ngSwitchCase="'permissions'" class="permissions-tab">
-        <mat-card class="permissions-section">
-          <div class="section-header">
-            <h2>Permissions & Access</h2>
-            <button mat-flat-button color="primary" (click)="editPermissions()" *ngIf="hasEditPermission">
-              <mat-icon>edit</mat-icon>
-              Edit Permissions
-            </button>
-          </div>
-
-          <div class="permissions-content">
-            <div class="role-summary">
-              <h3>Role: {{ driver.role }}</h3>
-              <p class="role-description">
-                {{ getRoleDescription(driver.role) }}
-              </p>
-            </div>
-
-            <div class="permissions-grid">
-              <div class="permissions-category">
-                <h3>General Permissions</h3>
-                <div class="permission-group">
-                  <div class="permission-item" *ngFor="let perm of permissionList | slice : 0 : 4">
-                    <div class="permission-header">
-                      <mat-icon>{{ getPermissionIcon(perm.key) }}</mat-icon>
-                      <span class="permission-name">{{ perm.name }}</span>
-                    </div>
-                    <div class="permission-status" [ngClass]="{ 'permission-granted': hasPermission(perm.key), 'permission-denied': !hasPermission(perm.key) }">
-                      <mat-icon>{{ hasPermission(perm.key) ? 'check_circle' : 'cancel' }}</mat-icon>
-                      <span>{{ hasPermission(perm.key) ? 'Granted' : 'Not Granted' }}</span>
-                    </div>
-                    <p class="permission-description">{{ perm.description }}</p>
-                  </div>
-                </div>
-              </div>
-
-              <div class="permissions-category">
-                <h3>Job Management</h3>
-                <div class="permission-group">
-                  <div class="permission-item" *ngFor="let perm of permissionList | slice : 4 : 8">
-                    <div class="permission-header">
-                      <mat-icon>{{ getPermissionIcon(perm.key) }}</mat-icon>
-                      <span class="permission-name">{{ perm.name }}</span>
-                    </div>
-                    <div class="permission-status" [ngClass]="{ 'permission-granted': hasPermission(perm.key), 'permission-denied': !hasPermission(perm.key) }">
-                      <mat-icon>{{ hasPermission(perm.key) ? 'check_circle' : 'cancel' }}</mat-icon>
-                      <span>{{ hasPermission(perm.key) ? 'Granted' : 'Not Granted' }}</span>
-                    </div>
-                    <p class="permission-description">{{ perm.description }}</p>
-                  </div>
-                </div>
-              </div>
-
-              <div class="permissions-category">
-                <h3>Financial & Reports</h3>
-                <div class="permission-group">
-                  <div class="permission-item" *ngFor="let perm of permissionList | slice : 8 : 13">
-                    <div class="permission-header">
-                      <mat-icon>{{ getPermissionIcon(perm.key) }}</mat-icon>
-                      <span class="permission-name">{{ perm.name }}</span>
-                    </div>
-                    <div class="permission-status" [ngClass]="{ 'permission-granted': hasPermission(perm.key), 'permission-denied': !hasPermission(perm.key) }">
-                      <mat-icon>{{ hasPermission(perm.key) ? 'check_circle' : 'cancel' }}</mat-icon>
-                      <span>{{ hasPermission(perm.key) ? 'Granted' : 'Not Granted' }}</span>
-                    </div>
-                    <p class="permission-description">{{ perm.description }}</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </mat-card>
-      </div>
-
-      <div *ngSwitchCase="'notes'" class="notes-tab">
-        <mat-card class="notes-section">
-          <div class="section-header">
-            <h2>Driver Notes</h2>
-            <button mat-flat-button color="primary" (click)="addNote()" *ngIf="hasEditPermission">
-              <mat-icon>add</mat-icon>
-              Add Note
-            </button>
-          </div>
-
-          <div class="notes-timeline" *ngIf="driverNotes.length > 0">
-            <div class="note-item" *ngFor="let note of driverNotes">
-              <div class="note-header">
-                <div class="note-author">
-                  <span class="author-avatar">{{ getInitials(note.authorName) }}</span>
-                  <div class="author-details">
-                    <span class="author-name">{{ note.authorName }}</span>
-                    <span class="note-date">{{ note.date | date : 'medium' }}</span>
-                  </div>
-                </div>
-                <button mat-icon-button [matMenuTriggerFor]="noteMenu" *ngIf="hasEditPermission">
-                  <mat-icon>more_vert</mat-icon>
-                </button>
-                <mat-menu #noteMenu="matMenu">
-                  <button mat-menu-item (click)="editNote(note)">
-                    <mat-icon>edit</mat-icon>
-                    <span>Edit</span>
-                  </button>
-                  <button mat-menu-item (click)="deleteNote(note)">
-                    <mat-icon>delete</mat-icon>
-                    <span>Delete</span>
-                  </button>
-                </mat-menu>
-              </div>
-              <div class="note-content">
-                <p>{{ note.content }}</p>
-              </div>
-            </div>
-          </div>
-
-          <div class="empty-notes" *ngIf="driverNotes.length === 0">
-            <mat-icon>note</mat-icon>
-            <h3>No Notes</h3>
-            <p>There are no notes for this driver yet.</p>
-            <button mat-flat-button color="primary" (click)="addNote()" *ngIf="hasEditPermission">
-              <mat-icon>add</mat-icon>
-              Add First Note
-            </button>
-          </div>
-        </mat-card>
+        </div>
       </div>
     </div>
-  </mat-card-content>
+  </div>
 </mat-card>
 
 <ng-template #permissionsDialog>

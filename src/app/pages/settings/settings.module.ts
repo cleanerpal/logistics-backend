@@ -1,11 +1,12 @@
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ReactiveFormsModule } from '@angular/forms';
+import { ReactiveFormsModule, FormsModule } from '@angular/forms';
 
 import { SettingsRoutingModule } from './settings-routing.module';
 import { MaterialModule } from '../../material.module';
 
 import { SettingsComponent } from './settings.component';
+import { CalendarSettingsComponent } from './calendar-settings/calendar-settings.component';
 import { VehicleMakesComponent } from './vehicle-makes/vehicle-makes.component';
 import { VehicleModelsComponent } from './vehicle-models/vehicle-models.component';
 import { UserRolesComponent } from './user-roles/user-roles.component';
@@ -17,6 +18,7 @@ import { UserRoleDialogComponent } from './user-roles/user-role-dialog/user-role
 @NgModule({
   declarations: [
     SettingsComponent,
+    CalendarSettingsComponent,
     VehicleMakesComponent,
     VehicleModelsComponent,
     UserRolesComponent,
@@ -25,6 +27,6 @@ import { UserRoleDialogComponent } from './user-roles/user-role-dialog/user-role
     VehicleModelDialogComponent,
     UserRoleDialogComponent,
   ],
-  imports: [CommonModule, SettingsRoutingModule, MaterialModule, ReactiveFormsModule],
+  imports: [CommonModule, SettingsRoutingModule, MaterialModule, ReactiveFormsModule, FormsModule],
 })
 export class SettingsModule {}

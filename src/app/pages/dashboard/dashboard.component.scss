@@ -11,10 +11,27 @@
     color: var(--primary-color, #3f51b5);
   }
 
-  button {
+  .header-actions {
     display: flex;
+    gap: 12px;
     align-items: center;
-    gap: 8px;
+
+    button {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 500;
+      transition: all 0.2s ease;
+
+      &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+
+      mat-spinner {
+        margin-right: 4px;
+      }
+    }
   }
 
   @media (max-width: 768px) {
@@ -24,6 +41,16 @@
 
     .dashboard-title {
       font-size: 1.5rem;
+    }
+
+    .header-actions {
+      flex-direction: column;
+      gap: 8px;
+
+      button {
+        width: 100%;
+        justify-content: center;
+      }
     }
   }
 }
@@ -1043,6 +1070,13 @@
       font-size: 1.25rem;
       color: var(--text-primary);
     }
+
+    .subtitle {
+      margin: 4px 0 0;
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+      opacity: 0.8;
+    }
   }
 
   .driver-grid {
@@ -1201,22 +1235,46 @@
 .status-filter {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 8px;
   margin-bottom: 16px;
+
+  .filter-label {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    margin-right: 8px;
+  }
 
   .status-chip {
     cursor: pointer;
     transition: all 0.2s;
     background-color: rgba(0, 0, 0, 0.05);
     color: var(--text-secondary);
+    padding: 6px 12px;
+    border-radius: 16px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    border: 1px solid transparent;
 
     &:hover {
       background-color: rgba(0, 0, 0, 0.08);
+      border-color: rgba(0, 0, 0, 0.1);
     }
 
     &.active {
       background-color: var(--primary-color);
       color: white;
+      border-color: var(--primary-color);
+    }
+
+    .driver-count {
+      font-size: 0.75rem;
+      opacity: 0.8;
+      font-weight: 400;
     }
   }
 }
@@ -1249,6 +1307,17 @@
 
   .driver-grid {
     grid-template-columns: 1fr !important;
+  }
+
+  .drivers-list-container .status-filter {
+    .filter-label {
+      display: none;
+    }
+
+    .status-chip {
+      font-size: 0.75rem;
+      padding: 4px 8px;
+    }
   }
 }
 

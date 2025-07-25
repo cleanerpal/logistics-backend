@@ -1,5 +1,5 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
-import { FormBuilder, FormGroup, FormArray, Validators } from '@angular/forms';
+import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { CustomerService } from '../../../services/customer.service';
@@ -8,7 +8,7 @@ import { Location } from '@angular/common';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatDialog } from '@angular/material/dialog';
 import { ConfirmationDialogComponent } from '../../../dialogs/confirmation-dialog.component';
-import { Customer, CustomerSize, CustomerStatus, CustomerContact } from '../../../interfaces/customer.interface';
+import { Customer, CustomerStatus, CustomerContact } from '../../../interfaces/customer.interface';
 
 @Component({
   selector: 'app-customer-create',
@@ -22,29 +22,8 @@ export class CustomerCreateComponent implements OnInit, OnDestroy {
   isEditMode = false;
   isSubmitting = false;
   isLoading = false;
+  isLookingUpPostcode = false;
   hasChanges = false;
-
-  industries = [
-    'Technology',
-    'Manufacturing',
-    'Healthcare',
-    'Finance',
-    'Retail',
-    'Education',
-    'Construction',
-    'Transportation',
-    'Energy',
-    'Telecommunications',
-    'Agriculture',
-    'Entertainment',
-    'Hospitality',
-    'Media',
-    'Professional Services',
-    'Real Estate',
-    'Other',
-  ];
-
-  customerSizes = [CustomerSize.SMALL, CustomerSize.MEDIUM, CustomerSize.LARGE, CustomerSize.ENTERPRISE];
 
   customerStatuses = [CustomerStatus.ACTIVE, CustomerStatus.INACTIVE, CustomerStatus.PENDING];
 
@@ -84,28 +63,76 @@ export class CustomerCreateComponent implements OnInit, OnDestroy {
   private createForm(): void {
     this.customerForm = this.fb.group({
       name: ['', [Validators.required]],
-      industry: ['', [Validators.required]],
-      size: [CustomerSize.SMALL, [Validators.required]],
       status: [CustomerStatus.ACTIVE, [Validators.required]],
-      address: ['', [Validators.required]],
-      city: [''],
-      postcode: [''],
-      country: [''],
-      website: [''],
-      description: [''],
-      contacts: this.fb.array([this.createContactFormGroup(true)]),
-      notes: [''],
+      address: this.fb.group({
+        street: ['', [Validators.required]],
+        street2: [''],
+        city: ['', [Validators.required]],
+        county: [''],
+        postcode: ['', [Validators.required]],
+        country: ['United Kingdom'],
+      }),
+      primaryContact: this.fb.group({
+        name: [''],
+        email: ['', [Validators.email]],
+        phone: [''],
+      }),
     });
   }
 
-  private createContactFormGroup(isPrimary: boolean = false): FormGroup {
-    return this.fb.group({
-      id: [''],
-      name: ['', [Validators.required]],
-      position: [''],
-      email: ['', [Validators.required, Validators.email]],
-      phone: [''],
-      isPrimary: [isPrimary],
+  async lookupPostcode(): Promise<void> {
+    const postcode = this.customerForm.get('address.postcode')?.value;
+    if (!postcode) {
+      this.snackBar.open('Please enter a postcode first', 'Close', { duration: 3000 });
+      return;
+    }
+
+    this.isLookingUpPostcode = true;
+
+    try {
+      // For now, we'll use a simple UK postcode API
+      // You can replace this with Google Places API or other preferred service
+      const response = await fetch(`https://api.postcodes.io/postcodes/${encodeURIComponent(postcode)}`);
+
+      if (response.ok) {
+        const data = await response.json();
+
+        if (data.status === 200 && data.result) {
+          const result = data.result;
+
+          // Auto-fill the address fields
+          this.customerForm.patchValue({
+            address: {
+              city: result.admin_district || result.admin_county || '',
+              county: result.admin_county || '',
+              country: result.country || 'United Kingdom',
+            },
+          });
+
+          this.notificationService.addNotification({
+            type: 'success',
+            title: 'Postcode Found',
+            message: `Address details updated for ${postcode}`,
+          });
+        } else {
+          this.showPostcodeError('Postcode not found. Please check and try again.');
+        }
+      } else {
+        this.showPostcodeError('Unable to lookup postcode. Please enter address manually.');
+      }
+    } catch (error) {
+      console.error('Postcode lookup error:', error);
+      this.showPostcodeError('Postcode lookup service unavailable. Please enter address manually.');
+    } finally {
+      this.isLookingUpPostcode = false;
+    }
+  }
+
+  private showPostcodeError(message: string): void {
+    this.notificationService.addNotification({
+      type: 'warning',
+      title: 'Postcode Lookup',
+      message,
     });
   }
 
@@ -148,75 +175,52 @@ export class CustomerCreateComponent implements OnInit, OnDestroy {
   }
 
   private populateForm(customer: Customer): void {
-    while (this.contactsFormArray.length) {
-      this.contactsFormArray.removeAt(0);
+    // Find the primary contact or use the first contact if available
+    let primaryContact = null;
+    if (customer.contacts && customer.contacts.length > 0) {
+      primaryContact = customer.contacts.find((contact) => contact.isPrimary) || customer.contacts[0];
     }
 
-    if (customer.contacts && customer.contacts.length > 0) {
-      customer.contacts.forEach((contact) => {
-        this.contactsFormArray.push(
-          this.fb.group({
-            id: [contact.id],
-            name: [contact.name, [Validators.required]],
-            position: [contact.position || ''],
-            email: [contact.email, [Validators.required, Validators.email]],
-            phone: [contact.phone || ''],
-            isPrimary: [contact.isPrimary],
-          })
-        );
-      });
-    } else {
-      this.contactsFormArray.push(this.createContactFormGroup(true));
+    // Parse the existing address if it's a string, or use the structured address
+    let addressData = {
+      street: '',
+      street2: '',
+      city: '',
+      county: '',
+      postcode: '',
+      country: 'United Kingdom',
+    };
+
+    if (customer.address) {
+      if (typeof customer.address === 'string') {
+        // If address is a string, put it in the street field
+        addressData.street = customer.address;
+      } else if (typeof customer.address === 'object') {
+        // If address is already structured, use it with proper type assertion
+        const structuredAddress = customer.address as any;
+        addressData = {
+          street: structuredAddress.street || '',
+          street2: structuredAddress.street2 || '',
+          city: structuredAddress.city || '',
+          county: structuredAddress.county || '',
+          postcode: structuredAddress.postcode || '',
+          country: structuredAddress.country || 'United Kingdom',
+        };
+      }
     }
 
     this.customerForm.patchValue({
       name: customer.name,
-      industry: customer.industry,
-      size: customer.size,
       status: customer.status,
-      address: customer.address,
-      city: customer.city || '',
-      postcode: customer.postcode || '',
-      country: customer.country || '',
-      website: customer.website || '',
-      description: customer.description || '',
-      notes: customer.notes || '',
+      address: addressData,
+      primaryContact: {
+        name: primaryContact?.name || '',
+        email: primaryContact?.email || '',
+        phone: primaryContact?.phone || '',
+      },
     });
 
     this.hasChanges = false;
-  }
-
-  get contactsFormArray(): FormArray {
-    return this.customerForm.get('contacts') as FormArray;
-  }
-
-  addContact(): void {
-    this.contactsFormArray.push(this.createContactFormGroup());
-  }
-
-  removeContact(index: number): void {
-    if (this.contactsFormArray.length > 1) {
-      const removedContact = this.contactsFormArray.at(index);
-      const wasPrimary = removedContact.get('isPrimary')?.value;
-
-      this.contactsFormArray.removeAt(index);
-
-      if (wasPrimary && this.contactsFormArray.length > 0) {
-        this.contactsFormArray.at(0).get('isPrimary')?.setValue(true);
-      }
-    } else {
-      this.snackBar.open('At least one contact is required.', 'Close', {
-        duration: 3000,
-      });
-    }
-  }
-
-  setPrimaryContact(index: number): void {
-    for (let i = 0; i < this.contactsFormArray.length; i++) {
-      this.contactsFormArray.at(i).get('isPrimary')?.setValue(false);
-    }
-
-    this.contactsFormArray.at(index).get('isPrimary')?.setValue(true);
   }
 
   getErrorMessage(controlName: string, formGroup?: FormGroup): string {
@@ -246,12 +250,6 @@ export class CustomerCreateComponent implements OnInit, OnDestroy {
         panelClass: ['error-snackbar'],
       });
       return;
-    }
-
-    const hasPrimary = this.contactsFormArray.controls.some((contact) => contact.get('isPrimary')?.value);
-
-    if (!hasPrimary && this.contactsFormArray.length > 0) {
-      this.contactsFormArray.at(0).get('isPrimary')?.setValue(true);
     }
 
     this.isSubmitting = true;
@@ -314,28 +312,40 @@ export class CustomerCreateComponent implements OnInit, OnDestroy {
   private prepareFormData(): Partial<Customer> {
     const formValue = this.customerForm.getRawValue();
 
-    const contacts: CustomerContact[] = formValue.contacts.map((contact: any) => ({
-      id: contact.id || Date.now().toString(36) + Math.random().toString(36).substr(2),
-      name: contact.name,
-      position: contact.position || undefined,
-      email: contact.email,
-      phone: contact.phone || undefined,
-      isPrimary: contact.isPrimary,
-    }));
+    // Create a formatted address string from the structured data
+    const addressParts = [
+      formValue.address.street,
+      formValue.address.street2,
+      formValue.address.city,
+      formValue.address.county,
+      formValue.address.postcode,
+      formValue.address.country,
+    ].filter((part) => part && part.trim() !== '');
+
+    const formattedAddress = addressParts.join(', ');
+
+    // Create the primary contact only if at least one field is provided
+    const contacts: CustomerContact[] = [];
+    const contactData = formValue.primaryContact;
+
+    if (contactData.name || contactData.email || contactData.phone) {
+      const primaryContact: CustomerContact = {
+        id: Date.now().toString(36) + Math.random().toString(36).substr(2),
+        name: contactData.name,
+        email: contactData.email,
+        phone: contactData.phone,
+        isPrimary: true,
+      };
+      contacts.push(primaryContact);
+    }
 
     return {
       name: formValue.name,
-      industry: formValue.industry,
-      size: formValue.size,
       status: formValue.status,
-      address: formValue.address,
-      city: formValue.city || undefined,
-      postcode: formValue.postcode || undefined,
-      country: formValue.country || undefined,
-      website: formValue.website || undefined,
-      description: formValue.description || undefined,
+      address: formattedAddress, // Store as formatted string for compatibility
+      // Also store structured address data if your interface supports it
+      // addressStructured: formValue.address,
       contacts: contacts,
-      notes: formValue.notes || undefined,
     };
   }
 
@@ -372,14 +382,6 @@ export class CustomerCreateComponent implements OnInit, OnDestroy {
 
       if (control instanceof FormGroup) {
         this.markFormGroupTouched(control);
-      } else if (control instanceof FormArray) {
-        control.controls.forEach((arrayControl) => {
-          if (arrayControl instanceof FormGroup) {
-            this.markFormGroupTouched(arrayControl);
-          } else {
-            arrayControl.markAsTouched();
-          }
-        });
       }
     });
   }

@@ -112,7 +112,7 @@ export class CustomerDetailsComponent implements OnInit, OnDestroy {
   }
 
   getStatusClass(status: string | undefined): string {
-    if (!status) return 'status-gray';
+    if (!status) return 'status-grey';
 
     switch (status.toLowerCase()) {
       case 'active':

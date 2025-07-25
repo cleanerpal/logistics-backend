@@ -521,7 +521,7 @@ export class DriverDetailsComponent implements OnInit, OnDestroy {
   }
 
   getStatusClass(status: string | undefined): string {
-    if (!status) return 'status-gray';
+    if (!status) return 'status-grey';
 
     switch (status.toLowerCase()) {
       case 'active':
@@ -530,7 +530,7 @@ export class DriverDetailsComponent implements OnInit, OnDestroy {
         return 'status-orange';
       case 'inactive':
       default:
-        return 'status-gray';
+        return 'status-grey';
     }
   }
 
@@ -567,7 +567,7 @@ export class DriverDetailsComponent implements OnInit, OnDestroy {
   }
 
   getJobStatusClass(status: string | undefined): string {
-    if (!status) return 'status-gray';
+    if (!status) return 'status-grey';
 
     switch (status.toLowerCase()) {
       case 'allocated':
@@ -579,9 +579,9 @@ export class DriverDetailsComponent implements OnInit, OnDestroy {
       case 'completed':
         return 'status-green';
       case 'unallocated':
-        return 'status-gray';
+        return 'status-grey';
       default:
-        return 'status-gray';
+        return 'status-grey';
     }
   }
 

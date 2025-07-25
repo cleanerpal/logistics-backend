@@ -1,243 +1,226 @@
-<mat-card class="mat-elevation-z3">
-  <div class="loading-overlay" *ngIf="isLoading">
-    <mat-spinner diameter="40"></mat-spinner>
-    <span>Loading customer details...</span>
-  </div>
-
+<mat-card class="mat-elevation-z3 customer-details-card">
   <div class="header-wrapper">
     <div class="header-title">
-      <button mat-icon-button (click)="goBack()">
+      <button mat-icon-button (click)="goBack()" class="back-button">
         <mat-icon>arrow_back</mat-icon>
       </button>
       <div class="title-content">
-        <h1>{{ customer?.name }}</h1>
-        <div class="customer-status" *ngIf="customer">
-          <span class="status-chip small" [ngClass]="getStatusClass(customer.status)">
+        <h1>{{ customer?.name || 'Customer Details' }}</h1>
+        <p class="subtitle" *ngIf="customer">
+          <span class="status-chip" [ngClass]="getStatusClass(customer.status)">
             {{ customer.status || 'Unknown' }}
           </span>
-        </div>
+        </p>
       </div>
     </div>
-    <div class="header-actions">
-      <button mat-stroked-button (click)="deleteCustomer()" *ngIf="hasEditPermission">
+    <div class="actions-group" *ngIf="customer">
+      <button mat-stroked-button (click)="deleteCustomer()" *ngIf="hasEditPermission" class="delete-button">
         <mat-icon>delete</mat-icon>
         Delete Customer
       </button>
-      <button mat-flat-button color="primary" (click)="editCustomer()" *ngIf="hasEditPermission">
+      <button mat-flat-button color="primary" (click)="editCustomer()" *ngIf="hasEditPermission" class="create-button">
         <mat-icon>edit</mat-icon>
         Edit Customer
       </button>
     </div>
   </div>
 
-  <div class="tab-navigation">
-    <button [class.active]="activeTab === 'details'" (click)="setActiveTab('details')">Details</button>
-    <button [class.active]="activeTab === 'jobs'" (click)="setActiveTab('jobs')">Jobs</button>
-    <button [class.active]="activeTab === 'notes'" (click)="setActiveTab('notes')">Notes</button>
+  <div *ngIf="isLoading" class="loading-overlay">
+    <mat-spinner></mat-spinner>
+    <p>Loading customer details...</p>
   </div>
 
-  <mat-card-content class="content-wrapper" *ngIf="customer">
-    <div [ngSwitch]="activeTab">
-      <div *ngSwitchCase="'details'" class="details-tab">
-        <div class="details-grid">
-          <mat-card class="details-section">
-            <h2>Customer Information</h2>
-            <div class="info-grid">
-              <div class="info-item">
-                <label>Industry</label>
-                <div class="value-with-icon">
-                  <mat-icon>{{ getIndustryIcon(customer.industry || '') }}</mat-icon>
-                  <span>{{ customer.industry || 'Not specified' }}</span>
+  <div *ngIf="!isLoading && customer" class="customer-content">
+    <div class="tab-navigation">
+      <button [class.active]="activeTab === 'details'" (click)="setActiveTab('details')">Details</button>
+      <button [class.active]="activeTab === 'jobs'" (click)="setActiveTab('jobs')">Jobs</button>
+      <button [class.active]="activeTab === 'notes'" (click)="setActiveTab('notes')">Notes</button>
+    </div>
+
+    <mat-card class="main-content-card">
+      <div class="tab-content" [ngSwitch]="activeTab">
+        <div *ngSwitchCase="'details'" class="details-tab">
+          <div class="content-grid">
+            <div class="info-section">
+              <div class="section-header">
+                <mat-icon>info</mat-icon>
+                <h3>Customer Information</h3>
+              </div>
+              <div class="info-grid">
+                <div class="info-item">
+                  <span class="label">Industry</span>
+                  <div class="value-with-icon">
+                    <mat-icon>{{ getIndustryIcon(customer.industry || '') }}</mat-icon>
+                    <span class="value">{{ customer.industry || 'Not specified' }}</span>
+                  </div>
+                </div>
+                <div class="info-item">
+                  <span class="label">Size</span>
+                  <span class="value">{{ customer.size || 'Not specified' }}</span>
+                </div>
+                <div class="info-item">
+                  <span class="label">Website</span>
+                  <a *ngIf="customer.website" [href]="customer.website" target="_blank" rel="noopener noreferrer" class="value">
+                    {{ customer.website }}
+                  </a>
+                  <span *ngIf="!customer.website" class="value">Not provided</span>
+                </div>
+                <div class="info-item">
+                  <span class="label">Created</span>
+                  <span class="value">{{ customer.createdAt | date }}</span>
+                </div>
+                <div class="info-item full-width">
+                  <span class="label">Description</span>
+                  <p class="value">{{ customer.description || 'No description provided' }}</p>
                 </div>
               </div>
-              <div class="info-item">
-                <label>Size</label>
-                <span>{{ customer.size }}</span>
-              </div>
-              <div class="info-item">
-                <label>Status</label>
-                <span class="status-chip small" [ngClass]="getStatusClass(customer.status)">
-                  {{ customer.status }}
-                </span>
-              </div>
-              <div class="info-item">
-                <label>Website</label>
-                <a *ngIf="customer.website" [href]="customer.website" target="_blank" rel="noopener noreferrer">
-                  {{ customer.website }}
-                </a>
-                <span *ngIf="!customer.website">Not provided</span>
-              </div>
-              <div class="info-item full-width">
-                <label>Description</label>
-                <p>{{ customer.description || 'No description provided' }}</p>
-              </div>
-              <div class="info-item">
-                <label>Created</label>
-                <span>{{ customer.createdAt | date }}</span>
-              </div>
-              <div class="info-item">
-                <label>Last Updated</label>
-                <span>{{ customer.updatedAt | date }}</span>
-              </div>
-              <div class="info-item" *ngIf="customer.lastContact">
-                <label>Last Contact</label>
-                <span>{{ customer.lastContact | date }}</span>
-              </div>
             </div>
-          </mat-card>
 
-          <mat-card class="details-section">
-            <h2>Address</h2>
-            <div class="info-grid">
-              <div class="info-item full-width">
-                <label>Street Address</label>
-                <p class="address">{{ customer.address }}</p>
+            <div class="info-section">
+              <div class="section-header">
+                <mat-icon>location_on</mat-icon>
+                <h3>Address</h3>
               </div>
-              <div class="info-item">
-                <label>City</label>
-                <span>{{ customer.city || 'Not provided' }}</span>
-              </div>
-              <div class="info-item">
-                <label>Postcode</label>
-                <span>{{ customer.postcode || 'Not provided' }}</span>
-              </div>
-              <div class="info-item">
-                <label>Country</label>
-                <span>{{ customer.country || 'Not provided' }}</span>
+              <div class="info-grid">
+                <div class="info-item full-width">
+                  <span class="label">Address</span>
+                  <p class="value address">{{ customer.address || 'No address provided' }}</p>
+                </div>
               </div>
             </div>
-          </mat-card>
+          </div>
+
+          <div class="contacts-section">
+            <div class="section-header">
+              <mat-icon>contacts</mat-icon>
+              <h3>Contacts</h3>
+            </div>
+            <div class="contacts-grid">
+              <div *ngFor="let contact of customer.contacts" class="contact-card">
+                <div class="contact-header">
+                  <div class="contact-name">{{ contact.name }}</div>
+                  <div class="contact-badge" *ngIf="contact.isPrimary">Primary</div>
+                </div>
+                <div class="contact-position" *ngIf="contact.position">{{ contact.position }}</div>
+                <div class="contact-details">
+                  <div class="contact-item">
+                    <mat-icon>email</mat-icon>
+                    <a [href]="'mailto:' + contact.email">{{ contact.email }}</a>
+                  </div>
+                  <div class="contact-item" *ngIf="contact.phone">
+                    <mat-icon>phone</mat-icon>
+                    <a [href]="'tel:' + contact.phone">{{ contact.phone }}</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
-        <mat-card class="contacts-section">
-          <h2>Contacts</h2>
-          <div class="contacts-grid">
-            <div *ngFor="let contact of customer.contacts" class="contact-card">
-              <div class="contact-header">
-                <div class="contact-name">{{ contact.name }}</div>
-                <div class="contact-badge" *ngIf="contact.isPrimary">Primary</div>
-              </div>
-              <div class="contact-position" *ngIf="contact.position">{{ contact.position }}</div>
-              <div class="contact-details">
-                <div class="contact-item">
-                  <mat-icon>email</mat-icon>
-                  <a [href]="'mailto:' + contact.email">{{ contact.email }}</a>
-                </div>
-                <div class="contact-item" *ngIf="contact.phone">
-                  <mat-icon>phone</mat-icon>
-                  <a [href]="'tel:' + contact.phone">{{ contact.phone }}</a>
-                </div>
-              </div>
-            </div>
-          </div>
-        </mat-card>
-      </div>
-
-      <div *ngSwitchCase="'jobs'" class="jobs-tab">
-        <mat-card class="jobs-section">
-          <div class="section-header">
-            <h2>Job History</h2>
-            <button mat-stroked-button color="primary" [routerLink]="['/jobs/new']" [queryParams]="{ customerId: customer.id }">
-              <mat-icon>add</mat-icon>
-              New Job
-            </button>
-          </div>
-
-          <div class="loading-overlay" *ngIf="isJobsLoading">
-            <mat-spinner diameter="30"></mat-spinner>
-            <span>Loading jobs...</span>
-          </div>
-
-          <div class="table-container">
-            <table mat-table [dataSource]="jobsDataSource" class="jobs-table">
-              <ng-container matColumnDef="id">
-                <th mat-header-cell *matHeaderCellDef>Job ID</th>
-                <td mat-cell *matCellDef="let job">{{ job.id }}</td>
-              </ng-container>
-
-              <ng-container matColumnDef="status">
-                <th mat-header-cell *matHeaderCellDef>Status</th>
-                <td mat-cell *matCellDef="let job">
-                  <span class="status-chip small" [ngClass]="getStatusClass(job.status)">
-                    {{ job.status || 'Unknown' }}
-                  </span>
-                </td>
-              </ng-container>
-
-              <ng-container matColumnDef="vehicleType">
-                <th mat-header-cell *matHeaderCellDef>Vehicle Type</th>
-                <td mat-cell *matCellDef="let job">{{ job.vehicleType || 'N/A' }}</td>
-              </ng-container>
-
-              <ng-container matColumnDef="registration">
-                <th mat-header-cell *matHeaderCellDef>Registration</th>
-                <td mat-cell *matCellDef="let job">{{ job.registration || 'N/A' }}</td>
-              </ng-container>
-
-              <ng-container matColumnDef="collection">
-                <th mat-header-cell *matHeaderCellDef>Collection</th>
-                <td mat-cell *matCellDef="let job">
-                  {{ job.collectionAddress ? (job.collectionAddress | slice : 0 : 30) + (job.collectionAddress.length > 30 ? '...' : '') : 'N/A' }}
-                </td>
-              </ng-container>
-
-              <ng-container matColumnDef="delivery">
-                <th mat-header-cell *matHeaderCellDef>Delivery</th>
-                <td mat-cell *matCellDef="let job">
-                  {{ job.deliveryAddress ? (job.deliveryAddress | slice : 0 : 30) + (job.deliveryAddress.length > 30 ? '...' : '') : 'N/A' }}
-                </td>
-              </ng-container>
-
-              <ng-container matColumnDef="actions">
-                <th mat-header-cell *matHeaderCellDef></th>
-                <td mat-cell *matCellDef="let job">
-                  <button mat-icon-button [matMenuTriggerFor]="menu">
-                    <mat-icon>more_vert</mat-icon>
-                  </button>
-                  <mat-menu #menu="matMenu" xPosition="before">
-                    <button mat-menu-item (click)="viewJobDetails(job.id)">
-                      <mat-icon>visibility</mat-icon>
-                      <span>View Details</span>
-                    </button>
-                  </mat-menu>
-                </td>
-              </ng-container>
-
-              <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-              <tr mat-row *matRowDef="let row; columns: displayedColumns" (click)="viewJobDetails(row.id)" class="job-row"></tr>
-            </table>
-
-            <div class="empty-state" *ngIf="!isJobsLoading && jobsDataSource.data.length === 0">
-              <mat-icon>work_off</mat-icon>
-              <h3>No Jobs Found</h3>
-              <p>This customer doesn't have any jobs yet.</p>
-              <button mat-flat-button color="primary" [routerLink]="['/jobs/new']" [queryParams]="{ customerId: customer.id }">
+        <div *ngSwitchCase="'jobs'" class="jobs-tab">
+          <div class="jobs-section">
+            <div class="section-header">
+              <mat-icon>work</mat-icon>
+              <h3>Job History</h3>
+              <button mat-stroked-button color="primary" [routerLink]="['/jobs/new']" [queryParams]="{ customerId: customer.id }" class="header-action-btn">
                 <mat-icon>add</mat-icon>
-                Create First Job
+                New Job
               </button>
             </div>
-          </div>
-        </mat-card>
-      </div>
 
-      <div *ngSwitchCase="'notes'" class="notes-tab">
-        <mat-card class="notes-section">
-          <h2>Customer Notes</h2>
-          <div class="notes-content">
-            <div class="note" *ngIf="customer.notes">
-              <p>{{ customer.notes }}</p>
+            <div *ngIf="isJobsLoading" class="loading-overlay">
+              <mat-spinner diameter="30"></mat-spinner>
+              <p>Loading jobs...</p>
             </div>
-            <div class="empty-notes" *ngIf="!customer.notes">
-              <mat-icon>note</mat-icon>
-              <p>No notes available for this customer</p>
-              <button mat-stroked-button color="primary" (click)="editCustomer()" *ngIf="hasEditPermission">
-                <mat-icon>edit</mat-icon>
-                Add Notes
-              </button>
+
+            <div class="table-container">
+              <table mat-table [dataSource]="jobsDataSource" class="jobs-table">
+                <ng-container matColumnDef="id">
+                  <th mat-header-cell *matHeaderCellDef>Job ID</th>
+                  <td mat-cell *matCellDef="let job">{{ job.id }}</td>
+                </ng-container>
+
+                <ng-container matColumnDef="status">
+                  <th mat-header-cell *matHeaderCellDef>Status</th>
+                  <td mat-cell *matCellDef="let job">
+                    <span class="status-chip small" [ngClass]="getStatusClass(job.status)">
+                      {{ job.status || 'Unknown' }}
+                    </span>
+                  </td>
+                </ng-container>
+
+                <ng-container matColumnDef="vehicleType">
+                  <th mat-header-cell *matHeaderCellDef>Vehicle Type</th>
+                  <td mat-cell *matCellDef="let job">{{ job.vehicleType || 'N/A' }}</td>
+                </ng-container>
+
+                <ng-container matColumnDef="registration">
+                  <th mat-header-cell *matHeaderCellDef>Registration</th>
+                  <td mat-cell *matCellDef="let job">{{ job.registration || 'N/A' }}</td>
+                </ng-container>
+
+                <ng-container matColumnDef="collection">
+                  <th mat-header-cell *matHeaderCellDef>Collection</th>
+                  <td mat-cell *matCellDef="let job">
+                    {{ job.collectionAddress ? (job.collectionAddress | slice : 0 : 30) + (job.collectionAddress.length > 30 ? '...' : '') : 'N/A' }}
+                  </td>
+                </ng-container>
+
+                <ng-container matColumnDef="delivery">
+                  <th mat-header-cell *matHeaderCellDef>Delivery</th>
+                  <td mat-cell *matCellDef="let job">
+                    {{ job.deliveryAddress ? (job.deliveryAddress | slice : 0 : 30) + (job.deliveryAddress.length > 30 ? '...' : '') : 'N/A' }}
+                  </td>
+                </ng-container>
+
+                <ng-container matColumnDef="actions">
+                  <th mat-header-cell *matHeaderCellDef></th>
+                  <td mat-cell *matCellDef="let job">
+                    <button mat-icon-button (click)="viewJobDetails(job.id)">
+                      <mat-icon>visibility</mat-icon>
+                    </button>
+                  </td>
+                </ng-container>
+
+                <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+                <tr mat-row *matRowDef="let row; columns: displayedColumns" (click)="viewJobDetails(row.id)" class="job-row"></tr>
+              </table>
+
+              <div class="empty-state" *ngIf="!isJobsLoading && jobsDataSource.data.length === 0">
+                <mat-icon>work_off</mat-icon>
+                <h3>No Jobs Found</h3>
+                <p>This customer doesn't have any jobs yet.</p>
+                <button mat-raised-button color="primary" [routerLink]="['/jobs/new']" [queryParams]="{ customerId: customer.id }">
+                  <mat-icon>add</mat-icon>
+                  Create First Job
+                </button>
+              </div>
             </div>
           </div>
-        </mat-card>
+        </div>
+
+        <div *ngSwitchCase="'notes'" class="notes-tab">
+          <div class="notes-section">
+            <div class="section-header">
+              <mat-icon>notes</mat-icon>
+              <h3>Customer Notes</h3>
+            </div>
+            <div class="notes-content">
+              <div class="note" *ngIf="customer.notes">
+                <p>{{ customer.notes }}</p>
+              </div>
+              <div class="empty-notes" *ngIf="!customer.notes">
+                <mat-icon>note</mat-icon>
+                <p>No notes available for this customer</p>
+                <button mat-stroked-button color="primary" (click)="editCustomer()" *ngIf="hasEditPermission">
+                  <mat-icon>edit</mat-icon>
+                  Add Notes
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
-    </div>
-  </mat-card-content>
+    </mat-card>
+  </div>
 </mat-card>
