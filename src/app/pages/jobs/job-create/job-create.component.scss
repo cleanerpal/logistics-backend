@@ -185,6 +185,22 @@
   }
 }
 
+.form-row {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+
+  mat-form-field {
+    flex: 1;
+    min-width: 0; // Prevents overflow
+  }
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+    gap: 8px;
+  }
+}
+
 .mat-mdc-form-field {
   width: 100%;
 

@@ -58,12 +58,27 @@
       <mat-card-content>
         <div class="form-grid">
           <div class="vehicle-registration-section">
-            <mat-form-field appearance="outline" class="registration-field">
-              <mat-label>Vehicle Registration *</mat-label>
-              <input matInput formControlName="vehicleRegistration" placeholder="e.g., AB12 CDE" style="text-transform: uppercase" autocomplete="off" />
-              <mat-error *ngIf="vehicleInfoForm.get('vehicleRegistration')?.hasError('required')"> Vehicle registration is required </mat-error>
-              <mat-error *ngIf="vehicleInfoForm.get('vehicleRegistration')?.hasError('invalidRegistration')"> Please enter a valid UK registration number </mat-error>
-            </mat-form-field>
+            <!-- Row 1: Type and Registration -->
+            <div class="form-row">
+              <mat-form-field appearance="outline">
+                <mat-label>Vehicle Type *</mat-label>
+                <mat-select formControlName="vehicleType">
+                  <mat-option *ngFor="let type of vehicleTypes" [value]="type">
+                    {{ type }}
+                  </mat-option>
+                </mat-select>
+                <mat-error>Vehicle type is required</mat-error>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="registration-field">
+                <mat-label>Vehicle Registration</mat-label>
+                <input matInput formControlName="vehicleRegistration" placeholder="e.g., AB12 CDE" style="text-transform: uppercase" autocomplete="off" />
+                <mat-icon matSuffix *ngIf="isValidRegistration(vehicleInfoForm.get('vehicleRegistration')?.value) && !isLoadingDvla" color="accent"
+                  >auto_awesome</mat-icon
+                >
+                <mat-hint *ngIf="isValidRegistration(vehicleInfoForm.get('vehicleRegistration')?.value) && !isLoadingDvla">Auto-lookup will start soon...</mat-hint>
+              </mat-form-field>
+            </div>
 
             <button type="button" mat-raised-button color="accent" [disabled]="!canPerformDvlaLookup" (click)="onDvlaLookupClick()" class="dvla-search-button">
               <mat-spinner diameter="20" *ngIf="isLoadingDvla"></mat-spinner>
@@ -71,71 +86,70 @@
               <mat-icon *ngIf="!isLoadingDvla && dvlaLookupCompleted" color="primary">check_circle</mat-icon>
               {{ dvlaButtonText }}
             </button>
+
+            <div class="dvla-status" *ngIf="dvlaLookupCompleted && !isLoadingDvla">
+              <mat-icon color="primary">verified</mat-icon>
+              <span>Vehicle details loaded from DVLA</span>
+            </div>
           </div>
 
-          <div class="dvla-status" *ngIf="dvlaLookupCompleted && !isLoadingDvla">
-            <mat-icon color="primary">verified</mat-icon>
-            <span>Vehicle details loaded from DVLA</span>
+          <!-- Row 2: Make and Model -->
+          <div class="form-row">
+            <mat-form-field appearance="outline">
+              <mat-label>Make</mat-label>
+              <mat-select formControlName="vehicleMake" required (selectionChange)="onMakeChange()">
+                <mat-option *ngFor="let make of filteredMakes" [value]="make['docId']">
+                  <img
+                    *ngIf="make['icon']"
+                    [src]="'/assets/images/car-logos/' + make['icon']"
+                    alt="{{ make.displayName }} logo"
+                    style="width: 24px; height: 24px; object-fit: contain; margin-right: 8px; vertical-align: middle" />
+                  {{ make.displayName }}
+                </mat-option>
+              </mat-select>
+              <mat-error *ngIf="vehicleInfoForm.get('vehicleMake')?.hasError('required')"> Make is required </mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Model</mat-label>
+              <mat-select formControlName="vehicleModel" required (selectionChange)="onModelChange()">
+                <mat-option *ngFor="let model of filteredModels" [value]="model.id">
+                  {{ model.displayName }}
+                </mat-option>
+              </mat-select>
+              <mat-error *ngIf="vehicleInfoForm.get('vehicleModel')?.hasError('required')"> Model is required </mat-error>
+            </mat-form-field>
           </div>
 
-          <mat-form-field appearance="outline">
-            <mat-label>Vehicle Type *</mat-label>
-            <mat-select formControlName="vehicleType">
-              <mat-option *ngFor="let type of vehicleTypes" [value]="type">
-                {{ type }}
-              </mat-option>
-            </mat-select>
-            <mat-error>Vehicle type is required</mat-error>
-          </mat-form-field>
+          <!-- Row 3: Color and Year -->
+          <div class="form-row">
+            <mat-form-field appearance="outline">
+              <mat-label>Color</mat-label>
+              <input matInput formControlName="vehicleColor" autocomplete="off" />
+            </mat-form-field>
 
-          <mat-form-field appearance="outline">
-            <mat-label>Make</mat-label>
-            <mat-select formControlName="vehicleMake" required (selectionChange)="onMakeChange()">
-              <mat-option *ngFor="let make of filteredMakes" [value]="make['docId']">
-                <img
-                  *ngIf="make['icon']"
-                  [src]="'/assets/images/car-logos/' + make['icon']"
-                  alt="{{ make.displayName }} logo"
-                  style="width: 24px; height: 24px; object-fit: contain; margin-right: 8px; vertical-align: middle" />
-                {{ make.displayName }}
-              </mat-option>
-            </mat-select>
-            <mat-error *ngIf="vehicleInfoForm.get('vehicleMake')?.hasError('required')"> Make is required </mat-error>
-          </mat-form-field>
+            <mat-form-field appearance="outline">
+              <mat-label>Year</mat-label>
+              <input matInput type="number" formControlName="vehicleYear" [min]="1900" [max]="maxYear" />
+            </mat-form-field>
+          </div>
 
-          <mat-form-field appearance="outline">
-            <mat-label>Model</mat-label>
-            <mat-select formControlName="vehicleModel" required (selectionChange)="onModelChange()">
-              <mat-option *ngFor="let model of filteredModels" [value]="model.id">
-                {{ model.displayName }}
-              </mat-option>
-            </mat-select>
-            <mat-error *ngIf="vehicleInfoForm.get('vehicleModel')?.hasError('required')"> Model is required </mat-error>
-          </mat-form-field>
+          <!-- Row 4: Chassis and Fuel -->
+          <div class="form-row">
+            <mat-form-field appearance="outline">
+              <mat-label>Chassis Number</mat-label>
+              <input matInput formControlName="chassisNumber" autocomplete="off" />
+            </mat-form-field>
 
-          <mat-form-field appearance="outline">
-            <mat-label>Color</mat-label>
-            <input matInput formControlName="vehicleColor" autocomplete="off" />
-          </mat-form-field>
-
-          <mat-form-field appearance="outline">
-            <mat-label>Year</mat-label>
-            <input matInput type="number" formControlName="vehicleYear" [min]="1900" [max]="maxYear" />
-          </mat-form-field>
-
-          <mat-form-field appearance="outline">
-            <mat-label>Chassis Number</mat-label>
-            <input matInput formControlName="chassisNumber" autocomplete="off" />
-          </mat-form-field>
-
-          <mat-form-field appearance="outline">
-            <mat-label>Fuel Type</mat-label>
-            <mat-select formControlName="vehicleFuelType">
-              <mat-option *ngFor="let fuel of fuelTypes" [value]="fuel">
-                {{ fuel }}
-              </mat-option>
-            </mat-select>
-          </mat-form-field>
+            <mat-form-field appearance="outline">
+              <mat-label>Fuel Type</mat-label>
+              <mat-select formControlName="vehicleFuelType">
+                <mat-option *ngFor="let fuel of fuelTypes" [value]="fuel">
+                  {{ fuel }}
+                </mat-option>
+              </mat-select>
+            </mat-form-field>
+          </div>
         </div>
       </mat-card-content>
     </mat-card>
@@ -192,7 +206,7 @@
         <div class="form-grid">
           <mat-form-field appearance="outline">
             <mat-label>Select Saved Address</mat-label>
-            <mat-select formControlName="savedAddressId">
+            <mat-select formControlName="savedAddressId" (selectionChange)="onCollectionAddressSelect($event.value)">
               <mat-option value="">Enter address manually</mat-option>
               <mat-option *ngFor="let address of getFilteredAddresses('collection')" [value]="address.id">
                 {{ address.name }} - {{ address.address }}, {{ address.city }}
@@ -202,12 +216,6 @@
           </mat-form-field>
 
           <div class="address-divider"></div>
-
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Collection Address *</mat-label>
-            <textarea matInput formControlName="collectionAddress" rows="2" autocomplete="off"> </textarea>
-            <mat-error>Collection address is required</mat-error>
-          </mat-form-field>
 
           <mat-form-field appearance="outline">
             <mat-label>City *</mat-label>
@@ -430,7 +438,7 @@
         <div class="form-grid">
           <mat-form-field appearance="outline">
             <mat-label>Select Saved Address</mat-label>
-            <mat-select formControlName="savedAddressId">
+            <mat-select formControlName="savedAddressId" (selectionChange)="onDeliveryAddressSelect($event.value)">
               <mat-option value="">Enter address manually</mat-option>
               <mat-option *ngFor="let address of getFilteredAddresses('delivery')" [value]="address.id">
                 {{ address.name }} - {{ address.address }}, {{ address.city }}
@@ -440,12 +448,6 @@
           </mat-form-field>
 
           <div class="address-divider"></div>
-
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Delivery Address *</mat-label>
-            <textarea matInput formControlName="deliveryAddress" rows="2" autocomplete="off"> </textarea>
-            <mat-error>Delivery address is required</mat-error>
-          </mat-form-field>
 
           <mat-form-field appearance="outline">
             <mat-label>City *</mat-label>

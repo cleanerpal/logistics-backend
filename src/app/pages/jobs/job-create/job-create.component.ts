@@ -81,6 +81,8 @@ export class JobCreateComponent implements OnInit, OnDestroy {
   isDeliveryFormValid = false;
 
   private destroy$ = new Subject<void>();
+  private lookupTimeout: any;
+  private readonly LOOKUP_DELAY = 1500;
 
   constructor(
     private fb: FormBuilder,
@@ -101,24 +103,30 @@ export class JobCreateComponent implements OnInit, OnDestroy {
     this.setupFormValidation();
     this.setupVehicleTypeChange();
     this.setupMakeChange();
+    this.setupAutoLookup();
   }
 
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+    if (this.lookupTimeout) {
+      clearTimeout(this.lookupTimeout);
+    }
   }
 
   private createForm(): void {
     this.jobForm = this.fb.group({
-      jobType: ['standard', Validators.required],
+      // Job basic info - restore jobType, remove priority
+      jobType: ['', Validators.required],
 
+      // Vehicle information
       vehicleInfo: this.fb.group({
-        vehicleRegistration: ['', [Validators.required, this.registrationValidator]],
+        vehicleRegistration: [''],
         vehicleType: ['', Validators.required],
         vehicleMake: [{ value: '', disabled: true }],
         vehicleModel: [{ value: '', disabled: true }],
         vehicleColor: [''],
-        vehicleYear: ['', [Validators.min(1900), Validators.max(this.maxYear)]],
+        vehicleYear: [''],
         chassisNumber: [''],
         vehicleFuelType: [''],
       }),
@@ -130,9 +138,10 @@ export class JobCreateComponent implements OnInit, OnDestroy {
         shippingReference: [''],
       }),
 
+      // Collection details
       collectionDetails: this.fb.group({
         savedAddressId: [''], // For selecting saved addresses
-        collectionAddress: ['', Validators.required],
+        collectionAddress: [''],
         collectionCity: ['', Validators.required],
         collectionPostcode: ['', Validators.required],
         collectionContactName: ['', Validators.required],
@@ -142,9 +151,10 @@ export class JobCreateComponent implements OnInit, OnDestroy {
         collectionNotes: [''],
       }),
 
+      // Delivery details
       deliveryDetails: this.fb.group({
         savedAddressId: [''], // For selecting saved addresses
-        deliveryAddress: ['', Validators.required],
+        deliveryAddress: [''],
         deliveryCity: ['', Validators.required],
         deliveryPostcode: ['', Validators.required],
         deliveryContactName: ['', Validators.required],
@@ -412,15 +422,23 @@ export class JobCreateComponent implements OnInit, OnDestroy {
   }
 
   private populateVehicleDetails(dvlaData: DvlaVehicleInfo): void {
+    console.log('DVLA data returned:', dvlaData);
+
     const updateData: any = {};
     let autoFilledCount = 0;
 
-    if (dvlaData.make) {
-      const matchingMake = this.makes.find((m) => m.name.toLowerCase() === dvlaData.make?.toLowerCase());
-      if (matchingMake) {
-        updateData.vehicleMake = matchingMake.id;
+    // Auto-select make if found (search in all makes, not just filtered ones)
+    if (typeof dvlaData?.make === 'string' && dvlaData.make) {
+      const foundMake = this.makes.find(
+        (make) => make.displayName?.toLowerCase() === dvlaData.make!.toLowerCase() || make.name?.toLowerCase() === dvlaData.make!.toLowerCase()
+      );
+      if (foundMake) {
+        console.log('Found make:', foundMake);
+        updateData.vehicleMake = foundMake['docId'] || foundMake.id;
         this.autoFilledFields.add('vehicleMake');
         autoFilledCount++;
+      } else {
+        console.log('Make not found in database:', dvlaData.make);
       }
     }
 
@@ -437,17 +455,25 @@ export class JobCreateComponent implements OnInit, OnDestroy {
     }
 
     if (dvlaData.fuelType) {
+      console.log('DVLA fuel type:', dvlaData.fuelType);
       const fuelTypeMapping: { [key: string]: string } = {
         PETROL: 'Petrol',
         DIESEL: 'Diesel',
         ELECTRIC: 'Electric',
         'HYBRID ELECTRIC': 'Hybrid',
+        HYBRID: 'Hybrid',
       };
       const mappedFuelType = fuelTypeMapping[dvlaData.fuelType.toUpperCase()] || dvlaData.fuelType;
+      console.log('Mapped fuel type:', mappedFuelType);
+      console.log('Available fuel types:', this.fuelTypes);
+
       if (this.fuelTypes.includes(mappedFuelType)) {
         updateData.vehicleFuelType = mappedFuelType;
         this.autoFilledFields.add('vehicleFuelType');
         autoFilledCount++;
+        console.log('Fuel type set to:', mappedFuelType);
+      } else {
+        console.log('Fuel type not found in available options:', mappedFuelType);
       }
     }
 
@@ -460,15 +486,15 @@ export class JobCreateComponent implements OnInit, OnDestroy {
       }
     }
 
-    this.jobForm.patchValue(
-      {
-        vehicleInfo: updateData,
-      },
-      { emitEvent: false }
-    );
+    // Apply the updates to the form
+    if (Object.keys(updateData).length > 0) {
+      this.vehicleInfoForm.patchValue(updateData, { emitEvent: false });
 
-    if (updateData.vehicleMake) {
-      this.loadModelsByMake(updateData.vehicleMake);
+      // If make was set, trigger the make change to load models
+      if (updateData.vehicleMake) {
+        // Use setValue with emitEvent: true to trigger the valueChanges subscription
+        this.vehicleInfoForm.get('vehicleMake')?.setValue(updateData.vehicleMake, { emitEvent: true });
+      }
     }
 
     if (autoFilledCount > 0) {
@@ -593,7 +619,38 @@ export class JobCreateComponent implements OnInit, OnDestroy {
       this.jobForm.patchValue({
         customerInfo: {
           customerName: customer.name,
-          customerId: customer.id,
+        },
+      });
+    }
+  }
+
+  onCollectionAddressSelect(addressId: string): void {
+    const address = this.savedAddresses.find((a) => a.id === addressId);
+    if (address) {
+      this.jobForm.patchValue({
+        collectionDetails: {
+          collectionAddress: address.address,
+          collectionCity: address.city,
+          collectionPostcode: address.postcode,
+          collectionContactName: address.contactName || '',
+          collectionContactPhone: address.contactPhone || '',
+          collectionContactEmail: address.contactEmail || '',
+        },
+      });
+    }
+  }
+
+  onDeliveryAddressSelect(addressId: string): void {
+    const address = this.savedAddresses.find((a) => a.id === addressId);
+    if (address) {
+      this.jobForm.patchValue({
+        deliveryDetails: {
+          deliveryAddress: address.address,
+          deliveryCity: address.city,
+          deliveryPostcode: address.postcode,
+          deliveryContactName: address.contactName || '',
+          deliveryContactPhone: address.contactPhone || '',
+          deliveryContactEmail: address.contactEmail || '',
         },
       });
     }
@@ -666,18 +723,58 @@ export class JobCreateComponent implements OnInit, OnDestroy {
   }
 
   async onSubmit(): Promise<void> {
-    if (this.jobForm.invalid) {
-      this.markFormGroupTouched(this.jobForm);
-      this.showError('Please fill in all required fields correctly');
-      return;
-    }
+    if (this.submitting) return;
 
+    // Mark all fields as touched to show validation errors
+    this.markFormGroupTouched(this.jobForm);
+
+    // Update validation status for all form groups
+    this.updateFormValidationStatus();
+
+    if (this.jobForm.valid) {
+      this.submitting = true;
+      await this.createJob();
+    } else {
+      this.showError('Please fill in all required fields');
+      this.scrollToFirstError();
+    }
+  }
+
+  private markFormGroupTouched(formGroup: any): void {
+    Object.keys(formGroup.controls).forEach((key) => {
+      const control = formGroup.get(key);
+      control?.markAsTouched();
+
+      if (control instanceof FormGroup) {
+        this.markFormGroupTouched(control);
+      }
+    });
+  }
+
+  private updateFormValidationStatus(): void {
+    // Force validation update for all sections
+    this.jobForm.get('vehicleInfo')?.updateValueAndValidity();
+    this.jobForm.get('collectionDetails')?.updateValueAndValidity();
+    this.jobForm.get('deliveryDetails')?.updateValueAndValidity();
+    if (this.isSplitJourney) {
+      this.jobForm.get('firstDropoffDetails')?.updateValueAndValidity();
+      this.jobForm.get('secondCollectionDetails')?.updateValueAndValidity();
+    }
+  }
+
+  private scrollToFirstError(): void {
+    const firstError = document.querySelector('.mat-form-field-invalid');
+    if (firstError) {
+      firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }
+
+  private async createJob(): Promise<void> {
     if (!this.currentUser) {
       this.showError('User authentication required');
+      this.submitting = false;
       return;
     }
-
-    this.submitting = true;
 
     try {
       const formValue = this.jobForm.value;
@@ -789,15 +886,6 @@ export class JobCreateComponent implements OnInit, OnDestroy {
     };
   }
 
-  private markFormGroupTouched(formGroup: FormGroup): void {
-    Object.values(formGroup.controls).forEach((control) => {
-      control.markAsTouched();
-      if (control instanceof FormGroup) {
-        this.markFormGroupTouched(control);
-      }
-    });
-  }
-
   onCancel(): void {
     this.router.navigate(['/jobs']);
   }
@@ -842,5 +930,41 @@ export class JobCreateComponent implements OnInit, OnDestroy {
 
   get isSplitJourney(): boolean {
     return this.jobForm.get('isSplitJourney')?.value || false;
+  }
+
+  private setupAutoLookup(): void {
+    this.vehicleInfoForm
+      .get('vehicleRegistration')
+      ?.valueChanges.pipe(takeUntil(this.destroy$))
+      .subscribe((regValue: string) => {
+        if (this.lookupTimeout) {
+          clearTimeout(this.lookupTimeout);
+        }
+
+        if (regValue && regValue.trim() && this.isValidRegistration(regValue)) {
+          this.lookupTimeout = setTimeout(() => {
+            this.performAutoLookup();
+          }, this.LOOKUP_DELAY);
+        }
+      });
+  }
+
+  isValidRegistration(regValue: string): boolean {
+    if (!regValue) return false;
+
+    const patterns = [
+      /^[A-Z]{2}\d{2}\s?[A-Z]{3}$/i, // Current format: AB12 CDE
+      /^[A-Z]\d{1,3}\s?[A-Z]{3}$/i, // Older format: A123 BCD
+      /^[A-Z]{1,3}\d{1,4}[A-Z]?$/i, // Personal plates: ABC123, A1
+    ];
+
+    return patterns.some((pattern) => pattern.test(regValue.trim()));
+  }
+
+  private performAutoLookup(): void {
+    const regValue = this.vehicleInfoForm.get('vehicleRegistration')?.value;
+    if (regValue && this.isValidRegistration(regValue) && !this.isLoadingDvla) {
+      this.onDvlaLookupClick();
+    }
   }
 }

@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
-import { Observable, BehaviorSubject, of, throwError } from 'rxjs';
-import { map, switchMap, catchError } from 'rxjs/operators';
+import { Observable, BehaviorSubject, of, throwError, firstValueFrom } from 'rxjs';
+import { map, switchMap, catchError, take } from 'rxjs/operators';
 import { collection, doc, addDoc, updateDoc, deleteDoc, getDocs, getDoc, query, where, orderBy, Timestamp, writeBatch } from 'firebase/firestore';
 import { Firestore } from '@angular/fire/firestore';
 import { Invoice, InvoiceItem, InvoiceStatus, PaymentStatus, InvoiceItemCategory, JobBilling } from '../interfaces/invoice.interface';
@@ -91,8 +91,8 @@ export class InvoiceService {
     }
   ): Promise<Invoice> {
     try {
-      const currentUser = this.authService.getCurrentUser();
-      if (!currentUser) {
+      const currentUser = await firstValueFrom(this.authService.getCurrentUser().pipe(take(1)));
+      if (!currentUser?.id) {
         throw new Error('User not authenticated');
       }
 
@@ -142,7 +142,7 @@ export class InvoiceService {
         paymentStatus: PaymentStatus.OUTSTANDING,
         invoiceDate: now,
         dueDate,
-        createdBy: currentUser.uid,
+        createdBy: currentUser.id,
         createdAt: now,
         updatedAt: now,
       };
@@ -180,8 +180,8 @@ export class InvoiceService {
 
   async updateInvoiceStatus(invoiceId: string, status: InvoiceStatus): Promise<void> {
     try {
-      const currentUser = this.authService.getCurrentUser();
-      if (!currentUser) {
+      const currentUser = await firstValueFrom(this.authService.getCurrentUser().pipe(take(1)));
+      if (!currentUser?.id) {
         throw new Error('User not authenticated');
       }
 
@@ -192,7 +192,7 @@ export class InvoiceService {
       };
 
       if (status === InvoiceStatus.APPROVED) {
-        updateData.approvedBy = currentUser.uid;
+        updateData.approvedBy = currentUser.id;
         updateData.approvedAt = Timestamp.fromDate(new Date());
       }
 
@@ -266,15 +266,15 @@ export class InvoiceService {
 
   async markAsPrinted(invoiceId: string): Promise<void> {
     try {
-      const currentUser = this.authService.getCurrentUser();
-      if (!currentUser) {
+      const currentUser = await firstValueFrom(this.authService.getCurrentUser().pipe(take(1)));
+      if (!currentUser?.id) {
         throw new Error('User not authenticated');
       }
 
       const invoiceRef = doc(this.firestore, this.INVOICES_COLLECTION, invoiceId);
       const updateData = {
         printedAt: Timestamp.fromDate(new Date()),
-        printedBy: currentUser.uid,
+        printedBy: currentUser.id,
         updatedAt: Timestamp.fromDate(new Date()),
       };
 
