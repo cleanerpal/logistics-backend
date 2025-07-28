@@ -1,16 +1,31 @@
 :host {
   display: block;
-  padding: 24px;
-  background-color: #f5f5f5;
+  padding: 16px;
+  background-color: #f5f7fa;
   min-height: 100vh;
-  margin-left: 250px;
-  padding-top: 88px;
+  padding-top: 56px; // Reduced top padding
+
+  @media (max-width: 768px) {
+    padding: 12px;
+    padding-top: 48px; // Reduced mobile top padding
+  }
+
+  &.with-topbar {
+    padding-top: calc(var(--topbar-height, 64px) - 8px);
+  }
 }
 
 .driver-edit-container {
   max-width: 1200px;
   margin: 0 auto;
   position: relative;
+}
+
+.mat-elevation-z3.driver-edit-card {
+  margin-bottom: 24px;
+  background-color: white;
+  border-radius: 8px;
+  padding: 0;
 }
 
 .loading-overlay {
@@ -27,49 +42,98 @@
   z-index: 1000;
   gap: 16px;
 
-  span {
-    color: rgba(0, 0, 0, 0.6);
+  p {
+    color: #64748b;
     font-size: 14px;
-    margin-top: 8px;
   }
 }
 
-.content-wrapper {
+.header-wrapper {
   display: flex;
-  flex-direction: column;
-  gap: 24px;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 24px 24px 0 24px;
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+    gap: 16px;
+  }
 }
 
-.page-header {
+.header-title {
   display: flex;
   align-items: center;
   gap: 16px;
-  margin-bottom: 8px;
 
   .back-button {
-    background-color: white;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    transition: transform 0.2s;
+    background: white;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    color: #6b7280;
+    border-radius: 50%;
+    width: 44px;
+    height: 44px;
+    margin-right: 8px;
 
     &:hover {
-      transform: translateX(-3px);
+      background: #f9fafb;
+      color: #374151;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     }
   }
 
-  .header-content {
+  .title-content {
     h1 {
       margin: 0;
       font-size: 28px;
       font-weight: 600;
-      color: var(--primary-color);
+      color: #1e293b;
+
+      @media (max-width: 768px) {
+        font-size: 24px;
+      }
     }
 
     .subtitle {
       margin: 4px 0 0;
-      color: rgba(0, 0, 0, 0.6);
-      font-size: 16px;
+      color: #64748b;
+      font-size: 14px;
     }
   }
+}
+
+.actions-group {
+  display: flex;
+  gap: 12px;
+  flex-shrink: 0;
+
+  .save-button,
+  .cancel-button {
+    height: 40px;
+    padding: 0 20px;
+    font-weight: 500;
+
+    mat-icon {
+      margin-right: 8px;
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+    }
+  }
+
+  @media (max-width: 768px) {
+    justify-content: stretch;
+
+    .save-button,
+    .cancel-button {
+      flex: 1;
+      justify-content: center;
+    }
+  }
+}
+
+.driver-content {
+  padding: 24px;
 }
 
 .form-grid {

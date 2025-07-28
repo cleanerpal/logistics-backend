@@ -3,15 +3,15 @@
   padding: 24px;
   background-color: #f5f7fa;
   min-height: 100vh;
-  padding-top: 88px; // Account for top navigation bar
+  padding-top: 72px; // Account for top navigation bar
 
   @media (max-width: 768px) {
     padding: 16px;
-    padding-top: 80px;
+    padding-top: 64px;
   }
 
   &.with-topbar {
-    padding-top: calc(var(--topbar-height, 64px) + 24px);
+    padding-top: calc(var(--topbar-height, 64px) + 8px);
   }
 }
 
