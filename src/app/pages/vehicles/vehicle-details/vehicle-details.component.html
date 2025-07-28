@@ -1,381 +1,146 @@
-<div class="vehicle-details-container">
-  <div class="loading-state" *ngIf="loading">
-    <mat-spinner diameter="40"></mat-spinner>
-    <span>Loading vehicle details...</span>
-  </div>
-
-  <div class="error-state" *ngIf="error">
-    <span class="material-icons">error</span>
-    {{ error }}
-    <button class="retry-button" (click)="loadVehicleDetails(vehicleId)">Retry</button>
-  </div>
-
-  <ng-container *ngIf="!loading && !error && vehicle">
-    <header class="details-header">
-      <div class="breadcrumb">
-        <a routerLink="/vehicles">Vehicles</a>
-        <span class="material-icons">chevron_right</span>
-        <span>{{ vehicle.registration }}</span>
-      </div>
-
-      <div class="header-content">
-        <div class="vehicle-info">
-          <h1>{{ vehicle.makeName }} {{ vehicle.modelName }}</h1>
-          <div class="vehicle-meta">
-            <span class="registration-badge">{{ vehicle.registration }}</span>
-            <span class="year">{{ vehicle.year }}</span>
-            <span class="colour-badge" [style.background]="getColorHex(vehicle.color)">
-              {{ vehicle.color }}
-            </span>
-          </div>
-        </div>
-
-        <div class="header-actions" *ngIf="hasEditPermission">
-          <button class="edit-button" (click)="editVehicle()">
-            <span class="material-icons">edit</span>
-            Edit
-          </button>
-        </div>
-      </div>
-    </header>
-
-    <nav class="tabs">
-      <button *ngFor="let tab of ['overview', 'photos', 'history', 'reports']" [class.active]="activeTab === tab" class="tab-button" (click)="setActiveTab(tab)">
-        {{ tab | titlecase }}
+<mat-card class="mat-elevation-z3 vehicle-details-card">
+  <div class="header-wrapper">
+    <div class="header-title">
+      <button mat-icon-button (click)="goBack()" class="back-button">
+        <mat-icon>arrow_back</mat-icon>
       </button>
-    </nav>
+      <div class="title-content">
+        <h1>{{ vehicle?.registration || 'Vehicle Details' }}</h1>
+        <p class="subtitle" *ngIf="vehicle">{{ vehicle.makeName }} {{ vehicle.modelName }} ({{ vehicle.year }})</p>
+      </div>
+    </div>
+    <div class="actions-group" *ngIf="vehicle">
+      <button mat-flat-button color="primary" (click)="editVehicle()" *ngIf="hasEditPermission" class="create-button">
+        <mat-icon>edit</mat-icon>
+        Edit Vehicle
+      </button>
+    </div>
+  </div>
 
-    <div class="tab-content" [ngSwitch]="activeTab">
-      <div *ngSwitchCase="'overview'" class="overview-tab">
-        <div class="two-column-layout">
-          <div class="left-column">
-            <div class="info-card">
-              <h2>Vehicle Details</h2>
-              <div class="card-content">
-                <div class="info-row">
+  <div *ngIf="loading" class="loading-overlay">
+    <mat-spinner></mat-spinner>
+    <p>Loading vehicle details...</p>
+  </div>
+
+  <div *ngIf="!loading && vehicle" class="vehicle-content">
+    <!-- Main Vehicle Status & Driver Log Section -->
+    <div class="main-content-card">
+      <div class="tab-content">
+        <div class="content-grid">
+          <!-- Vehicle Status Column -->
+          <div class="info-section">
+            <div class="section-header">
+              <mat-icon>directions_car</mat-icon>
+              <h3>Vehicle Status</h3>
+            </div>
+
+            <div class="status-overview">
+              <div class="status-badge-large" [ngClass]="currentDriver ? 'status-assigned' : 'status-available'">
+                <mat-icon>{{ currentDriver ? 'person' : 'person_off' }}</mat-icon>
+                <span class="status-text">{{ currentDriver ? 'Assigned' : 'Available' }}</span>
+              </div>
+
+              <div class="quick-info">
+                <div class="info-item">
                   <span class="label">Registration</span>
                   <span class="value">{{ vehicle.registration }}</span>
                 </div>
-                <div class="info-row">
-                  <span class="label">Make</span>
-                  <span class="value">{{ vehicle.makeName }}</span>
+                <div class="info-item">
+                  <span class="label">Vehicle</span>
+                  <span class="value">{{ vehicle.makeName }} {{ vehicle.modelName }}</span>
                 </div>
-                <div class="info-row">
-                  <span class="label">Model</span>
-                  <span class="value">{{ vehicle.modelName }}</span>
-                </div>
-                <div class="info-row">
+                <div class="info-item">
                   <span class="label">Type</span>
                   <span class="value">{{ vehicle.type }}</span>
                 </div>
-                <div class="info-row">
+                <div class="info-item">
+                  <span class="label">Year</span>
+                  <span class="value">{{ vehicle.year }}</span>
+                </div>
+                <div class="info-item">
                   <span class="label">Colour</span>
                   <span class="value">
                     <span class="colour-chip" [style.background]="getColorHex(vehicle.color)"></span>
                     {{ vehicle.color }}
                   </span>
                 </div>
-                <div class="info-row">
-                  <span class="label">Year</span>
-                  <span class="value">{{ vehicle.year }}</span>
-                </div>
               </div>
-            </div>
 
-            <div class="info-card">
-              <h2>Technical Details</h2>
-              <div class="card-content">
-                <div class="info-row">
-                  <span class="label">Chassis Number</span>
-                  <span class="value">{{ vehicle.chassisNumber || 'Not recorded' }}</span>
-                </div>
-                <div class="info-row">
-                  <span class="label">VIN</span>
-                  <span class="value">{{ vehicle.vin || 'Not recorded' }}</span>
-                </div>
-                <div class="info-row">
-                  <span class="label">Engine Size</span>
-                  <span class="value">{{ vehicle.engineSize || 'Not recorded' }}</span>
-                </div>
-                <div class="info-row">
-                  <span class="label">Fuel Type</span>
-                  <span class="value">{{ vehicle.fuelType || 'Not recorded' }}</span>
-                </div>
-                <div class="info-row">
-                  <span class="label">Transmission</span>
-                  <span class="value">{{ vehicle.transmission || 'Not recorded' }}</span>
-                </div>
-                <div class="info-row">
-                  <span class="label">Last Recorded Mileage</span>
-                  <span class="value">{{ vehicle.mileage | number }} miles</span>
-                </div>
+              <div class="status-actions" *ngIf="hasEditPermission">
+                <button mat-flat-button color="primary" (click)="assignDriver()" *ngIf="!currentDriver">
+                  <mat-icon>person_add</mat-icon>
+                  Assign Driver
+                </button>
+                <button mat-stroked-button (click)="changeDriverAssignment()" *ngIf="currentDriver">
+                  <mat-icon>swap_horiz</mat-icon>
+                  Change Driver
+                </button>
+                <button mat-stroked-button (click)="unassignDriver()" *ngIf="currentDriver" color="warn">
+                  <mat-icon>person_remove</mat-icon>
+                  Unassign
+                </button>
               </div>
             </div>
           </div>
 
-          <div class="right-column">
-            <div class="info-card stats-card">
-              <h2>Activity Summary</h2>
-              <div class="card-content">
-                <div class="stats-grid">
-                  <div class="stat-item">
-                    <span class="stat-value">{{ vehicle.jobCount }}</span>
-                    <span class="stat-label">Total Jobs</span>
-                  </div>
-                  <div class="stat-item">
-                    <span class="stat-value">{{ formatDate(vehicle.firstProcessedDate) }}</span>
-                    <span class="stat-label">First Processed</span>
-                  </div>
-                  <div class="stat-item">
-                    <span class="stat-value">{{ formatDate(vehicle.lastProcessedDate) }}</span>
-                    <span class="stat-label">Last Processed</span>
-                  </div>
-                </div>
-              </div>
+          <!-- Driver Assignment Log Column -->
+          <div class="info-section">
+            <div class="section-header">
+              <mat-icon>assignment</mat-icon>
+              <h3>Driver Assignment Log</h3>
             </div>
 
-            <div class="info-card photo-card" *ngIf="latestPhoto">
-              <h2>Primary Photo</h2>
-              <div class="card-content">
-                <div class="primary-photo">
-                  <img [src]="latestPhoto.url" [alt]="vehicle.registration + ' photo'" />
-                  <div class="photo-meta">
-                    <div class="photo-info">
-                      <span class="photo-date">{{ formatDate(latestPhoto.takenAt) }}</span>
-                      <span class="photo-job">Job: {{ getJobReference(latestPhoto.jobId) }}</span>
-                    </div>
-                    <button class="view-all-button" (click)="setActiveTab('photos')">View All Photos</button>
-                  </div>
-                </div>
+            <div class="assignment-log">
+              <div class="table-container" *ngIf="driverAssignments.length > 0">
+                <table class="assignment-table">
+                  <thead>
+                    <tr>
+                      <th>Date</th>
+                      <th>Driver</th>
+                      <th>Status</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let assignment of driverAssignments" [class]="assignment.endDate ? 'previous-assignment' : 'current-assignment'">
+                      <td class="date-cell">
+                        <div class="date-info">
+                          <span class="start-date">{{ formatDate(assignment.startDate) }}</span>
+                          <span class="date-separator" *ngIf="assignment.endDate">-</span>
+                          <span class="end-date" *ngIf="assignment.endDate">{{ formatDate(assignment.endDate) }}</span>
+                          <span class="current-indicator" *ngIf="!assignment.endDate">- Present</span>
+                        </div>
+                      </td>
+                      <td class="driver-cell">
+                        <div class="driver-info">
+                          <span class="driver-name">{{ assignment.driverName }}</span>
+                          <span class="duration" *ngIf="assignment.endDate"> ({{ calculateDuration(assignment.startDate, assignment.endDate) }}) </span>
+                        </div>
+                      </td>
+                      <td class="status-cell">
+                        <span [class]="'status-badge ' + (assignment.endDate ? 'status-completed' : 'status-active')">
+                          {{ assignment.endDate ? 'Previous' : 'Current' }}
+                        </span>
+                      </td>
+                      <td class="action-cell">
+                        <button mat-icon-button (click)="viewDriver(assignment.driverId)" class="view-driver-btn">
+                          <mat-icon>visibility</mat-icon>
+                        </button>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
-            </div>
 
-            <div class="info-card" *ngIf="latestJob">
-              <h2>Latest Job</h2>
-              <div class="card-content">
-                <div class="job-preview">
-                  <div class="job-preview-header">
-                    <span class="job-id">{{ latestJob.id }}</span>
-                    <span [class]="'status-badge status-' + latestJob.status">
-                      {{ latestJob.status | titlecase }}
-                    </span>
-                  </div>
-                  <div class="job-preview-content">
-                    <div class="info-row">
-                      <span class="label">Collection</span>
-                      <span class="value">{{ latestJob.collectionAddress }}</span>
-                    </div>
-                    <div class="info-row">
-                      <span class="label">Delivery</span>
-                      <span class="value">{{ latestJob.deliveryAddress }}</span>
-                    </div>
-                    <div class="info-row">
-                      <span class="label">Date</span>
-                      <span class="value">{{ formatDate(latestJob.createdAt) }}</span>
-                    </div>
-                  </div>
-                  <button class="view-job-button" (click)="viewJob(latestJob.id)">View Job Details</button>
-                </div>
+              <div class="empty-log" *ngIf="driverAssignments.length === 0">
+                <mat-icon>assignment</mat-icon>
+                <p>No assignment history available</p>
+                <p class="sub-message">Driver assignments will appear here when the vehicle is assigned</p>
               </div>
             </div>
           </div>
         </div>
       </div>
-
-      <div *ngSwitchCase="'photos'" class="photos-tab">
-        <div class="photos-wrapper">
-          <div class="photos-header">
-            <h2>Vehicle Photos</h2>
-            <div class="photos-filter">
-              <mat-form-field appearance="outline">
-                <mat-label>Filter by Job</mat-label>
-                <mat-select [(value)]="selectedJobFilter" (selectionChange)="filterPhotos()">
-                  <mat-option value="all">All Jobs</mat-option>
-                  <mat-option *ngFor="let job of jobsWithPhotos" [value]="job.id"> {{ job.id }} - {{ formatDate(job.createdAt) }} </mat-option>
-                </mat-select>
-              </mat-form-field>
-              <mat-form-field appearance="outline">
-                <mat-label>Sort by</mat-label>
-                <mat-select [(value)]="photosSort" (selectionChange)="sortPhotos()">
-                  <mat-option value="newest">Newest First</mat-option>
-                  <mat-option value="oldest">Oldest First</mat-option>
-                </mat-select>
-              </mat-form-field>
-            </div>
-          </div>
-
-          <div class="photos-grid" *ngIf="filteredPhotos.length > 0">
-            <div class="photo-item" *ngFor="let photo of filteredPhotos" (click)="openPhotoViewer(photo)">
-              <div class="photo-thumbnail">
-                <img [src]="photo.url" [alt]="'Photo of ' + vehicle.registration" />
-              </div>
-              <div class="photo-info">
-                <span class="photo-date">{{ formatDate(photo.takenAt) }}</span>
-                <span class="photo-type">{{ photo.type | titlecase }}</span>
-              </div>
-            </div>
-          </div>
-
-          <div class="empty-photos" *ngIf="filteredPhotos.length === 0">
-            <mat-icon>photo_library</mat-icon>
-            <p>No photos available for this vehicle</p>
-            <p class="sub-message">Photos will be added when processing jobs</p>
-          </div>
-        </div>
-      </div>
-
-      <div *ngSwitchCase="'history'" class="history-tab">
-        <div class="history-wrapper">
-          <div class="history-header">
-            <h2>Job History</h2>
-            <button class="view-all-jobs-button" (click)="viewAllJobs()" *ngIf="jobs.length > 0">View All Jobs</button>
-          </div>
-
-          <div class="job-timeline" *ngIf="jobs.length > 0">
-            <div class="job-entry" *ngFor="let job of jobs">
-              <div class="timeline-marker">
-                <div class="timeline-line"></div>
-                <div class="timeline-dot" [ngClass]="'status-' + job.status"></div>
-              </div>
-              <div class="job-card" (click)="viewJob(job.id)">
-                <div class="job-header">
-                  <span class="job-id">{{ job.id }}</span>
-                  <span [class]="'status-badge status-' + job.status">
-                    {{ job.status | titlecase }}
-                  </span>
-                </div>
-                <div class="job-details">
-                  <div class="job-route">
-                    <div class="route-point collection">
-                      <span class="material-icons">location_on</span>
-                      <span class="location">{{ job.collectionAddress }}</span>
-                    </div>
-                    <div class="route-arrow">
-                      <span class="material-icons">arrow_downward</span>
-                    </div>
-                    <div class="route-point delivery">
-                      <span class="material-icons">flag</span>
-                      <span class="location">{{ job.deliveryAddress }}</span>
-                    </div>
-                  </div>
-                  <div class="job-meta">
-                    <span class="job-date">{{ formatDate(job.createdAt) }}</span>
-                    <span class="job-driver" *ngIf="getJobProperty(job, 'driverName')">Driver: {{ getJobProperty(job, 'driverName') }}</span>
-                    <span class="job-mileage" *ngIf="getJobProperty(job, 'deliveryMileage') && getJobProperty(job, 'collectionMileage')">
-                      Mileage: {{ getJobProperty(job, 'collectionMileage') }} →
-                      {{ getJobProperty(job, 'deliveryMileage') }}
-                      ({{ getJobProperty(job, 'deliveryMileage') - getJobProperty(job, 'collectionMileage') }} miles)
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="empty-history" *ngIf="jobs.length === 0">
-            <mat-icon>history</mat-icon>
-            <p>No job history available for this vehicle</p>
-          </div>
-        </div>
-      </div>
-
-      <div *ngSwitchCase="'reports'" class="reports-tab">
-        <div class="reports-wrapper">
-          <div class="reports-header">
-            <h2>Condition Reports</h2>
-          </div>
-
-          <div class="reports-timeline" *ngIf="vehicle.conditionReports && vehicle.conditionReports.length > 0">
-            <div class="report-entry" *ngFor="let report of vehicle.conditionReports">
-              <div class="timeline-marker">
-                <div class="timeline-line"></div>
-                <div class="timeline-dot"></div>
-              </div>
-              <div class="report-card">
-                <div class="report-header">
-                  <span class="report-job">Job: {{ getJobReference(report.jobId) }}</span>
-                  <span class="report-date">{{ formatDate(report.createdAt) }}</span>
-                </div>
-                <div class="report-content">
-                  <div class="report-column">
-                    <div class="report-item">
-                      <span class="report-label">Mileage</span>
-                      <span class="report-value">{{ report.mileage | number }} miles</span>
-                    </div>
-                    <div class="report-item">
-                      <span class="report-label">Fuel Level</span>
-                      <span class="report-value">{{ report.fuelLevel }}</span>
-                    </div>
-                    <div class="report-item">
-                      <span class="report-label">Cleanliness</span>
-                      <span class="report-value">{{ report.cleanliness }}</span>
-                    </div>
-                  </div>
-                  <div class="report-column">
-                    <div class="report-item">
-                      <span class="report-label">Interior</span>
-                      <span class="report-value">{{ report.interiorCondition }}</span>
-                    </div>
-                    <div class="report-item">
-                      <span class="report-label">Exterior</span>
-                      <span class="report-value">{{ report.exteriorCondition }}</span>
-                    </div>
-                  </div>
-                </div>
-                <div class="report-notes" *ngIf="report.damageNotes">
-                  <span class="report-label">Damage Notes:</span>
-                  <span class="report-notes-text">{{ report.damageNotes }}</span>
-                </div>
-                <div class="report-notes" *ngIf="report.additionalNotes">
-                  <span class="report-label">Additional Notes:</span>
-                  <span class="report-notes-text">{{ report.additionalNotes }}</span>
-                </div>
-                <div class="report-footer">
-                  <span class="report-author">Recorded by: {{ getReportAuthorName(report.createdBy) }}</span>
-                  <button class="view-job-button" (click)="viewJob(report.jobId)">View Job</button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="empty-reports" *ngIf="!vehicle.conditionReports || vehicle.conditionReports.length === 0">
-            <mat-icon>description</mat-icon>
-            <p>No condition reports available for this vehicle</p>
-            <p class="sub-message">Reports will be added when processing jobs</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  </ng-container>
-</div>
-
-<ng-template #photoViewerDialog>
-  <div class="photo-viewer">
-    <div class="photo-viewer-header">
-      <h2>{{ selectedPhoto?.type | titlecase }} Photo</h2>
-      <button mat-icon-button (click)="closePhotoViewer()">
-        <mat-icon>close</mat-icon>
-      </button>
-    </div>
-    <div class="photo-viewer-content">
-      <img [src]="selectedPhoto?.url" [alt]="'Photo of ' + vehicle?.registration" />
-    </div>
-    <div class="photo-viewer-footer">
-      <div class="photo-info">
-        <div class="info-item">
-          <span class="label">Date:</span>
-          <span class="value">{{ formatDate(selectedPhoto?.takenAt) }}</span>
-        </div>
-        <div class="info-item">
-          <span class="label">Job:</span>
-          <span class="value">{{ getJobReference(selectedPhoto?.jobId) }}</span>
-        </div>
-        <div class="info-item" *ngIf="selectedPhoto?.notes">
-          <span class="label">Notes:</span>
-          <span class="value">{{ selectedPhoto?.notes }}</span>
-        </div>
-      </div>
-      <button mat-flat-button color="primary" (click)="viewJob(selectedPhoto?.jobId)">View Job</button>
     </div>
   </div>
-</ng-template>
+</mat-card>

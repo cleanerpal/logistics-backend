@@ -1,9 +1,527 @@
-.vehicle-details-container {
+:host {
+  display: block;
   padding: 24px;
-  max-width: 1600px;
+  background-color: #f5f7fa;
+  min-height: 100vh;
+  padding-top: 72px; // Account for top navigation bar
+
+  @media (max-width: 768px) {
+    padding: 16px;
+    padding-top: 64px;
+  }
+
+  &.with-topbar {
+    padding-top: calc(var(--topbar-height, 64px) + 8px);
+  }
+}
+
+// Main vehicle details card
+.mat-elevation-z3.vehicle-details-card {
+  margin-bottom: 24px;
+  background-color: white;
+  border-radius: 8px;
+  padding: 0;
+}
+
+// Loading overlay
+.loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.9);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  gap: 16px;
+
+  p {
+    color: #64748b;
+    font-size: 14px;
+  }
+}
+
+// Vehicle content
+.vehicle-content {
+  padding: 24px;
+  max-width: 1400px;
   margin: 0 auto;
-  margin-left: 250px;
-  padding-top: 88px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+// Header section
+.header-wrapper {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 24px 24px 0 24px;
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+    gap: 16px;
+  }
+}
+
+.header-title {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+
+  .back-button {
+    background: white;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    color: #6b7280;
+    border-radius: 50%;
+    width: 44px;
+    height: 44px;
+    margin-right: 8px;
+
+    &:hover {
+      background: #f9fafb;
+      color: #374151;
+    }
+  }
+
+  .title-content {
+    h1 {
+      margin: 0 0 4px 0;
+      font-size: 28px;
+      font-weight: 600;
+      color: #111827;
+      line-height: 1.2;
+    }
+
+    .subtitle {
+      margin: 0;
+      font-size: 16px;
+      color: #6b7280;
+      font-weight: 400;
+    }
+  }
+}
+
+.actions-group {
+  display: flex;
+  gap: 12px;
+  flex-shrink: 0;
+
+  .create-button {
+    height: 40px;
+    padding: 0 20px;
+    font-weight: 500;
+
+    mat-icon {
+      margin-right: 8px;
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+    }
+  }
+
+  @media (max-width: 768px) {
+    justify-content: stretch;
+
+    .create-button {
+      flex: 1;
+      justify-content: center;
+    }
+  }
+}
+
+// Main content area
+.main-content-card {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 24px;
+
+  .tab-content {
+    padding: 24px;
+  }
+
+  .content-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+
+    @media (max-width: 968px) {
+      grid-template-columns: 1fr;
+      gap: 24px;
+    }
+  }
+}
+
+// Info sections
+.info-section {
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 24px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #e5e7eb;
+
+    mat-icon {
+      color: #3b82f6;
+      font-size: 20px;
+      width: 20px;
+      height: 20px;
+    }
+
+    h3 {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 600;
+      color: #111827;
+    }
+  }
+
+  .info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+
+    @media (max-width: 768px) {
+      grid-template-columns: 1fr;
+      gap: 16px;
+    }
+  }
+
+  .info-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+
+    .label {
+      font-size: 13px;
+      font-weight: 500;
+      color: #6b7280;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .value {
+      font-size: 15px;
+      color: #111827;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+
+      .colour-chip {
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        border: 2px solid #e5e7eb;
+        display: inline-block;
+      }
+    }
+  }
+}
+
+// Vehicle Status Overview
+.status-overview {
+  .status-badge-large {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 20px;
+    border-radius: 12px;
+    margin-bottom: 24px;
+    border: 2px solid;
+
+    &.status-assigned {
+      background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+      border-color: #10b981;
+      color: #065f46;
+    }
+
+    &.status-available {
+      background: linear-gradient(135deg, #fef3c7, #fed7aa);
+      border-color: #f59e0b;
+      color: #92400e;
+    }
+
+    mat-icon {
+      font-size: 24px;
+      width: 24px;
+      height: 24px;
+    }
+
+    .status-text {
+      font-size: 18px;
+      font-weight: 600;
+    }
+  }
+
+  .quick-info {
+    margin-bottom: 24px;
+
+    .info-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 0;
+      border-bottom: 1px solid #f3f4f6;
+
+      &:last-child {
+        border-bottom: none;
+      }
+
+      .label {
+        font-size: 14px;
+        color: #6b7280;
+        font-weight: 500;
+      }
+
+      .value {
+        font-size: 14px;
+        color: #111827;
+        font-weight: 600;
+      }
+    }
+  }
+
+  .status-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+
+    button {
+      height: 40px;
+      justify-content: flex-start;
+
+      mat-icon {
+        margin-right: 8px;
+      }
+    }
+  }
+}
+
+// Driver Preview
+.driver-preview {
+  .driver-card {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 20px;
+
+    .driver-info {
+      margin-bottom: 16px;
+
+      h4 {
+        margin: 0 0 12px 0;
+        font-size: 18px;
+        font-weight: 600;
+        color: #111827;
+      }
+
+      .contact-info {
+        margin-bottom: 16px;
+
+        .contact-item {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          margin-bottom: 8px;
+          font-size: 14px;
+          color: #6b7280;
+
+          &:last-child {
+            margin-bottom: 0;
+          }
+
+          mat-icon {
+            font-size: 16px;
+            width: 16px;
+            height: 16px;
+            color: #9ca3af;
+          }
+        }
+      }
+
+      .assignment-info {
+        padding-top: 12px;
+        border-top: 1px solid #e2e8f0;
+
+        .assignment-label {
+          display: block;
+          font-size: 12px;
+          color: #6b7280;
+          font-weight: 500;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          margin-bottom: 4px;
+        }
+
+        .assignment-date {
+          font-size: 14px;
+          color: #111827;
+          font-weight: 600;
+        }
+      }
+    }
+
+    .driver-actions {
+      button {
+        width: 100%;
+        height: 40px;
+
+        mat-icon {
+          margin-right: 8px;
+        }
+      }
+    }
+  }
+}
+
+// Available State
+.available-state {
+  .available-message {
+    text-align: center;
+    padding: 32px 16px;
+    color: #6b7280;
+
+    mat-icon {
+      font-size: 48px;
+      width: 48px;
+      height: 48px;
+      margin-bottom: 16px;
+      color: #d1d5db;
+    }
+
+    p {
+      margin: 0;
+      font-size: 16px;
+      line-height: 1.5;
+    }
+  }
+}
+
+// Assignment Timeline (for history section)
+.assignment-timeline {
+  .assignment-entry {
+    display: flex;
+    margin-bottom: 24px;
+    position: relative;
+
+    &:last-child {
+      margin-bottom: 0;
+
+      .timeline-connector::after {
+        display: none;
+      }
+    }
+
+    .timeline-connector {
+      position: relative;
+      margin-right: 16px;
+
+      &::after {
+        content: '';
+        position: absolute;
+        top: 32px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 2px;
+        height: calc(100% + 24px);
+        background-color: #e5e7eb;
+      }
+
+      .timeline-dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        margin-top: 6px;
+
+        &.status-active {
+          background-color: #10b981;
+          box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.2);
+        }
+
+        &.status-completed {
+          background-color: #6b7280;
+          box-shadow: 0 0 0 4px rgba(107, 114, 128, 0.1);
+        }
+      }
+    }
+
+    .assignment-card {
+      flex: 1;
+      background: white;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 16px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+
+      &:hover {
+        border-color: #d1d5db;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        transform: translateY(-1px);
+      }
+
+      .assignment-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+
+        .driver-name {
+          font-weight: 600;
+          font-size: 16px;
+          color: #111827;
+        }
+
+        .assignment-badge {
+          padding: 4px 12px;
+          border-radius: 20px;
+          font-size: 12px;
+          font-weight: 500;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+
+          &.status-active {
+            background-color: #d1fae5;
+            color: #065f46;
+          }
+
+          &.status-completed {
+            background-color: #f3f4f6;
+            color: #6b7280;
+          }
+        }
+      }
+
+      .assignment-details {
+        .assignment-period,
+        .assignment-duration {
+          display: flex;
+          align-items: center;
+          margin-bottom: 8px;
+          font-size: 14px;
+          color: #6b7280;
+
+          mat-icon {
+            margin-right: 8px;
+            font-size: 16px;
+            width: 16px;
+            height: 16px;
+          }
+
+          &:last-child {
+            margin-bottom: 0;
+          }
+        }
+      }
+    }
+  }
 }
 
 .loading-state,
@@ -1068,5 +1586,687 @@
   }
   to {
     transform: rotate(360deg);
+  }
+}
+
+// Add styles for the simplified layout
+.driver-actions {
+  margin-top: 24px;
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+
+  .change-driver-btn,
+  .unassign-driver-btn,
+  .assign-driver-btn {
+    height: 40px;
+
+    mat-icon {
+      margin-right: 8px;
+    }
+  }
+
+  .unassign-driver-btn {
+    border-color: #dc2626;
+    color: #dc2626;
+
+    &:hover {
+      background-color: #fef2f2;
+      border-color: #b91c1c;
+    }
+  }
+}
+
+.unassigned-state {
+  text-align: center;
+  padding: 32px;
+  color: #6b7280;
+
+  p {
+    margin-bottom: 24px;
+    font-size: 16px;
+  }
+
+  .assign-driver-btn {
+    height: 48px;
+    padding: 0 24px;
+    font-size: 16px;
+    font-weight: 500;
+
+    mat-icon {
+      margin-right: 8px;
+    }
+  }
+}
+
+// Assignment Timeline (for history section)
+.assignment-timeline {
+  .assignment-entry {
+    display: flex;
+    margin-bottom: 24px;
+    position: relative;
+
+    &:last-child {
+      margin-bottom: 0;
+
+      .timeline-connector::after {
+        display: none;
+      }
+    }
+
+    .timeline-connector {
+      position: relative;
+      margin-right: 16px;
+
+      &::after {
+        content: '';
+        position: absolute;
+        top: 32px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 2px;
+        height: calc(100% + 24px);
+        background-color: #e5e7eb;
+      }
+
+      .timeline-dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        margin-top: 6px;
+
+        &.status-active {
+          background-color: #10b981;
+          box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.2);
+        }
+
+        &.status-completed {
+          background-color: #6b7280;
+          box-shadow: 0 0 0 4px rgba(107, 114, 128, 0.1);
+        }
+      }
+    }
+
+    .assignment-card {
+      flex: 1;
+      background: white;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 16px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+
+      &:hover {
+        border-color: #d1d5db;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        transform: translateY(-1px);
+      }
+
+      .assignment-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+
+        .driver-name {
+          font-weight: 600;
+          font-size: 16px;
+          color: #111827;
+        }
+
+        .assignment-badge {
+          padding: 4px 12px;
+          border-radius: 20px;
+          font-size: 12px;
+          font-weight: 500;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+
+          &.status-active {
+            background-color: #d1fae5;
+            color: #065f46;
+          }
+
+          &.status-completed {
+            background-color: #f3f4f6;
+            color: #6b7280;
+          }
+        }
+      }
+
+      .assignment-details {
+        .assignment-period,
+        .assignment-duration {
+          display: flex;
+          align-items: center;
+          margin-bottom: 8px;
+          font-size: 14px;
+          color: #6b7280;
+
+          mat-icon {
+            margin-right: 8px;
+            font-size: 16px;
+            width: 16px;
+            height: 16px;
+          }
+
+          &:last-child {
+            margin-bottom: 0;
+          }
+        }
+      }
+    }
+  }
+}
+
+.empty-history {
+  text-align: center;
+  padding: 48px 24px;
+  color: #6b7280;
+
+  mat-icon {
+    font-size: 48px;
+    width: 48px;
+    height: 48px;
+    margin-bottom: 16px;
+    color: #d1d5db;
+  }
+
+  p {
+    font-size: 16px;
+    margin-bottom: 8px;
+
+    &.sub-message {
+      font-size: 14px;
+      margin-bottom: 0;
+    }
+  }
+}
+
+// Responsive design
+@media (max-width: 768px) {
+  .status-overview {
+    .status-actions {
+      button {
+        justify-content: center;
+      }
+    }
+  }
+
+  .assignment-timeline {
+    .assignment-entry {
+      .assignment-card {
+        .assignment-header {
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 8px;
+        }
+      }
+    }
+  }
+}
+
+// Vehicle Status Section
+.status-section {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 24px;
+
+  .status-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+
+    mat-icon {
+      font-size: 24px;
+      width: 24px;
+      height: 24px;
+    }
+
+    h3 {
+      margin: 0;
+      font-size: 20px;
+      font-weight: 600;
+    }
+  }
+
+  .status-content {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+
+    .status-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+
+      .status-label {
+        font-size: 14px;
+        font-weight: 500;
+        opacity: 0.9;
+      }
+
+      .status-chip {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 16px;
+        border-radius: 20px;
+        font-size: 14px;
+        font-weight: 600;
+
+        &.status-assigned {
+          background: rgba(16, 185, 129, 0.2);
+          color: #d1fae5;
+          border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        &.status-available {
+          background: rgba(251, 191, 36, 0.2);
+          color: #fef3c7;
+          border: 1px solid rgba(251, 191, 36, 0.3);
+        }
+
+        mat-icon {
+          font-size: 16px;
+          width: 16px;
+          height: 16px;
+        }
+      }
+
+      .driver-info {
+        text-align: right;
+
+        strong {
+          display: block;
+          font-size: 16px;
+        }
+
+        .assignment-date {
+          font-size: 12px;
+          opacity: 0.8;
+        }
+      }
+    }
+
+    .status-actions {
+      display: flex;
+      gap: 12px;
+      margin-top: 8px;
+      flex-wrap: wrap;
+
+      button {
+        background: rgba(255, 255, 255, 0.1);
+        color: white;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+
+        &:hover {
+          background: rgba(255, 255, 255, 0.2);
+          border-color: rgba(255, 255, 255, 0.3);
+        }
+
+        &.unassign-btn {
+          border-color: rgba(239, 68, 68, 0.3);
+
+          &:hover {
+            background: rgba(239, 68, 68, 0.2);
+            border-color: rgba(239, 68, 68, 0.4);
+          }
+        }
+
+        mat-icon {
+          margin-right: 8px;
+        }
+      }
+    }
+  }
+
+  @media (max-width: 768px) {
+    .status-content {
+      .status-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+      }
+
+      .status-actions {
+        justify-content: stretch;
+
+        button {
+          flex: 1;
+          justify-content: center;
+        }
+      }
+    }
+  }
+}
+
+// Section Cards
+.section-card {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  margin-bottom: 24px;
+  padding: 24px;
+  transition: box-shadow 0.2s ease;
+
+  &:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 2px solid #f3f4f6;
+
+    mat-icon {
+      color: #3b82f6;
+      font-size: 22px;
+      width: 22px;
+      height: 22px;
+    }
+
+    h3 {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 600;
+      color: #111827;
+    }
+  }
+
+  .info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 24px;
+
+    @media (max-width: 768px) {
+      grid-template-columns: 1fr;
+      gap: 20px;
+    }
+  }
+
+  .info-item {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+
+    .label {
+      font-size: 13px;
+      font-weight: 600;
+      color: #6b7280;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .value {
+      font-size: 16px;
+      color: #111827;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+
+      .colour-chip {
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        border: 2px solid #e5e7eb;
+        display: inline-block;
+      }
+    }
+  }
+
+  .driver-actions {
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 1px solid #f3f4f6;
+
+    .view-driver-btn {
+      height: 44px;
+      padding: 0 24px;
+      font-weight: 500;
+
+      mat-icon {
+        margin-right: 8px;
+      }
+    }
+  }
+}
+
+// Assignment Log (Table View)
+.assignment-log {
+  .table-container {
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    overflow: hidden;
+    background: white;
+
+    .assignment-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+
+      thead {
+        background: #f9fafb;
+        border-bottom: 1px solid #e5e7eb;
+
+        th {
+          padding: 12px 16px;
+          text-align: left;
+          font-weight: 600;
+          color: #374151;
+          font-size: 13px;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          border-bottom: 1px solid #e5e7eb;
+
+          &:first-child {
+            width: 30%;
+          }
+          &:nth-child(2) {
+            width: 35%;
+          }
+          &:nth-child(3) {
+            width: 20%;
+          }
+          &:last-child {
+            width: 15%;
+            text-align: center;
+          }
+        }
+      }
+
+      tbody {
+        tr {
+          border-bottom: 1px solid #f3f4f6;
+          transition: background-color 0.2s ease;
+
+          &:hover {
+            background-color: #f9fafb;
+          }
+
+          &:last-child {
+            border-bottom: none;
+          }
+
+          &.current-assignment {
+            background-color: #f0fdf4;
+            border-left: 3px solid #10b981;
+
+            &:hover {
+              background-color: #dcfce7;
+            }
+          }
+
+          &.previous-assignment {
+            opacity: 0.8;
+          }
+
+          td {
+            padding: 12px 16px;
+            vertical-align: middle;
+
+            &.date-cell {
+              .date-info {
+                display: flex;
+                flex-direction: column;
+                gap: 2px;
+
+                .start-date,
+                .end-date {
+                  font-size: 13px;
+                  color: #374151;
+                  font-weight: 500;
+                }
+
+                .date-separator {
+                  color: #6b7280;
+                  margin: 0 4px;
+                }
+
+                .current-indicator {
+                  font-size: 12px;
+                  color: #10b981;
+                  font-weight: 600;
+                }
+              }
+            }
+
+            &.driver-cell {
+              .driver-info {
+                .driver-name {
+                  display: block;
+                  font-weight: 600;
+                  color: #111827;
+                  margin-bottom: 2px;
+                }
+
+                .duration {
+                  display: block;
+                  font-size: 12px;
+                  color: #6b7280;
+                  font-style: italic;
+                }
+              }
+            }
+
+            &.status-cell {
+              .status-badge {
+                display: inline-flex;
+                align-items: center;
+                padding: 4px 12px;
+                border-radius: 16px;
+                font-size: 11px;
+                font-weight: 600;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+
+                &.status-active {
+                  background-color: #d1fae5;
+                  color: #065f46;
+                  border: 1px solid #a7f3d0;
+                }
+
+                &.status-completed {
+                  background-color: #f3f4f6;
+                  color: #6b7280;
+                  border: 1px solid #d1d5db;
+                }
+              }
+            }
+
+            &.action-cell {
+              text-align: center;
+
+              .view-driver-btn {
+                width: 32px;
+                height: 32px;
+                line-height: 32px;
+                color: #6b7280;
+
+                &:hover {
+                  background-color: #f3f4f6;
+                  color: #374151;
+                }
+
+                mat-icon {
+                  font-size: 16px;
+                  width: 16px;
+                  height: 16px;
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  .empty-log {
+    text-align: center;
+    padding: 48px 24px;
+    color: #6b7280;
+    border: 2px dashed #e5e7eb;
+    border-radius: 8px;
+
+    mat-icon {
+      font-size: 48px;
+      width: 48px;
+      height: 48px;
+      margin-bottom: 16px;
+      color: #d1d5db;
+    }
+
+    p {
+      font-size: 16px;
+      margin-bottom: 8px;
+
+      &.sub-message {
+        font-size: 14px;
+        margin-bottom: 0;
+      }
+    }
+  }
+}
+
+// Responsive design for table
+@media (max-width: 768px) {
+  .assignment-log {
+    .table-container {
+      .assignment-table {
+        font-size: 12px;
+
+        thead th {
+          padding: 8px 12px;
+          font-size: 11px;
+        }
+
+        tbody td {
+          padding: 8px 12px;
+
+          &.date-cell .date-info {
+            .start-date,
+            .end-date {
+              font-size: 11px;
+            }
+          }
+
+          &.driver-cell .driver-info {
+            .driver-name {
+              font-size: 13px;
+            }
+            .duration {
+              font-size: 11px;
+            }
+          }
+        }
+      }
+    }
   }
 }

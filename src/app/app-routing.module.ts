@@ -116,6 +116,12 @@ const routes: Routes = [
         data: { permissions: ['canManageUsers', 'isAdmin'] },
       },
       { path: ':id', component: VehicleDetailsComponent },
+      {
+        path: ':id/edit',
+        component: VehicleCreateComponent,
+        canActivate: [RoleGuard],
+        data: { permissions: ['canManageUsers', 'isAdmin'] },
+      },
     ],
   },
   {

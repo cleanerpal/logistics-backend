@@ -1,3 +1,7 @@
+:host {
+  display: block;
+}
+
 .card-wrapper {
   padding: 24px 24px 24px 24px;
 }
@@ -8,14 +12,8 @@
   }
 }
 
-:host {
-  display: block;
-}
-
-.main-card {
-  margin-bottom: 24px;
-  background-color: white;
-  border-radius: 8px;
+.mat-elevation-z3 {
+  padding: 0;
 }
 
 .header-wrapper {
@@ -25,13 +23,13 @@
 .header-title h1 {
   margin: 0;
   font-size: 24px;
-  font-weight: 600;
+  font-weight: 500;
   color: var(--primary-color);
 }
 
 .header-title .subtitle {
   margin: 4px 0 0;
-  color: rgba(0, 0, 0, 0.6);
+  color: var(--text-secondary);
   font-size: 14px;
 }
 
@@ -41,7 +39,7 @@
   justify-content: space-between;
   align-items: flex-start;
   gap: 24px;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+  border-bottom: 1px solid var(--border-color);
 }
 
 .filters-section {
@@ -49,7 +47,6 @@
   flex: 1;
   gap: 16px;
   align-items: flex-start;
-  flex-direction: column;
 }
 
 .search-field {

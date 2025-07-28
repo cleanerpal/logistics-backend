@@ -37,7 +37,7 @@
       <button [class.active]="activeTab === 'notes'" (click)="setActiveTab('notes')">Notes</button>
     </div>
 
-    <mat-card class="main-content-card">
+    <div class="main-content-card">
       <div class="tab-content" [ngSwitch]="activeTab">
         <div *ngSwitchCase="'details'" class="details-tab">
           <div class="content-grid">
@@ -221,6 +221,6 @@
           </div>
         </div>
       </div>
-    </mat-card>
+    </div>
   </div>
 </mat-card>

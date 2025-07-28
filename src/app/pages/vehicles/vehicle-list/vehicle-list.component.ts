@@ -1,14 +1,20 @@
-import { Component, OnInit, ViewChild, AfterViewInit, OnDestroy } from '@angular/core';
-import { Router } from '@angular/router';
+import { Component, OnInit, OnDestroy, ViewChild } from '@angular/core';
+import { FormBuilder, FormControl, FormGroup } from '@angular/forms';
 import { MatTableDataSource } from '@angular/material/table';
-import { MatSort } from '@angular/material/sort';
 import { MatPaginator } from '@angular/material/paginator';
-import { FormControl, FormGroup } from '@angular/forms';
-import { Subscription } from 'rxjs';
-import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
-import { MatSnackBar } from '@angular/material/snack-bar';
-import { AuthService } from '../../../services/auth.service';
+import { MatSort } from '@angular/material/sort';
+import { Router } from '@angular/router';
+import { Subscription, combineLatest, debounceTime, distinctUntilChanged } from 'rxjs';
 import { VehicleService, Vehicle } from '../../../services/vehicle.service';
+import { AuthService } from '../../../services/auth.service';
+import { NotificationService } from '../../../services/notification.service';
+
+interface Driver {
+  id: string;
+  name: string;
+  email: string;
+  phoneNumber?: string;
+}
 
 @Component({
   selector: 'app-vehicle-list',
@@ -16,20 +22,23 @@ import { VehicleService, Vehicle } from '../../../services/vehicle.service';
   styleUrls: ['./vehicle-list.component.scss'],
   standalone: false,
 })
-export class VehicleListComponent implements OnInit, AfterViewInit, OnDestroy {
-  displayedColumns: string[] = ['registration', 'make', 'model', 'type', 'color', 'lastProcessedDate', 'jobCount', 'actions'];
-
-  isLoading = false;
-  dataSource = new MatTableDataSource<Vehicle>([]);
-  hasCreatePermission = false;
-  hasEditPermission = false;
+export class VehicleListComponent implements OnInit, OnDestroy {
+  displayedColumns: string[] = ['registration', 'details', 'currentDriver', 'assignmentStatus', 'lastActivity', 'actions'];
+  dataSource = new MatTableDataSource<Vehicle>();
 
   searchControl = new FormControl('');
   filterForm: FormGroup;
 
   makes: string[] = [];
-  vehicleTypes: string[] = [];
-  colors: string[] = [];
+  types: string[] = [];
+
+  // Driver assignment data (mock for now)
+  driverAssignments: { [vehicleId: string]: { driver: Driver; assignedDate: Date } } = {};
+
+  @ViewChild(MatPaginator) paginator!: MatPaginator;
+  @ViewChild(MatSort) sort!: MatSort;
+
+  private subscriptions: Subscription[] = [];
 
   colorMap: { [key: string]: string } = {
     Black: '#333333',
@@ -43,189 +52,216 @@ export class VehicleListComponent implements OnInit, AfterViewInit, OnDestroy {
     Brown: '#A52A2A',
     Orange: '#FFA500',
     Purple: '#800080',
-    Gold: '#FFD700',
-    Beige: '#F5F5DC',
   };
 
-  private subscriptions: Subscription[] = [];
-
-  @ViewChild(MatSort) sort!: MatSort;
-  @ViewChild(MatPaginator) paginator!: MatPaginator;
-
-  constructor(private router: Router, private vehicleService: VehicleService, private authService: AuthService, private snackBar: MatSnackBar) {
-    this.filterForm = new FormGroup({
-      make: new FormControl('All'),
-      type: new FormControl('All'),
-      color: new FormControl('All'),
+  constructor(
+    private vehicleService: VehicleService,
+    private authService: AuthService,
+    private notificationService: NotificationService,
+    private router: Router,
+    private fb: FormBuilder
+  ) {
+    this.filterForm = this.fb.group({
+      make: ['All'],
+      type: ['All'],
+      assignmentStatus: ['All'],
     });
   }
 
-  ngOnInit(): void {
-    this.checkPermissions();
+  ngOnInit() {
+    this.setupDataSource();
+    this.setupFilters();
     this.loadVehicles();
-    this.setupFilterListeners();
+    this.loadFilterOptions();
   }
 
-  ngAfterViewInit(): void {
-    this.dataSource.sort = this.sort;
-    this.dataSource.paginator = this.paginator;
-    this.setupCustomFilter();
-  }
-
-  ngOnDestroy(): void {
+  ngOnDestroy() {
     this.subscriptions.forEach((sub) => sub.unsubscribe());
   }
 
-  private checkPermissions(): void {
-    const authSub = this.authService.getUserProfile().subscribe((user) => {
-      this.hasCreatePermission = user?.permissions?.canManageUsers || user?.permissions?.isAdmin || false;
-      this.hasEditPermission = user?.permissions?.canManageUsers || user?.permissions?.isAdmin || false;
-    });
-    this.subscriptions.push(authSub);
-  }
+  setupDataSource() {
+    this.dataSource.paginator = this.paginator;
+    this.dataSource.sort = this.sort;
 
-  private setupFilterListeners(): void {
-    const searchSub = this.searchControl.valueChanges.pipe(debounceTime(300), distinctUntilChanged()).subscribe((value) => {
-      this.applyFilter(value || '');
-    });
-    this.subscriptions.push(searchSub);
-
-    const filterSub = this.filterForm.valueChanges.subscribe(() => {
-      this.applyFilters();
-    });
-    this.subscriptions.push(filterSub);
-  }
-
-  private setupCustomFilter(): void {
     this.dataSource.filterPredicate = (data: Vehicle, filter: string) => {
-      const searchStr = filter.toLowerCase();
-
-      const makeFilter = this.filterForm.get('make')?.value;
-      if (makeFilter !== 'All' && data.makeName !== makeFilter) {
-        return false;
-      }
-
-      const typeFilter = this.filterForm.get('type')?.value;
-      if (typeFilter !== 'All' && data.type !== typeFilter) {
-        return false;
-      }
-
-      const colorFilter = this.filterForm.get('color')?.value;
-      if (colorFilter !== 'All' && data.color !== colorFilter) {
-        return false;
-      }
-
+      const searchTerm = filter.toLowerCase();
       return (
-        data.registration?.toLowerCase().includes(searchStr) ||
-        data.chassisNumber?.toLowerCase().includes(searchStr) ||
-        data.makeName?.toLowerCase().includes(searchStr) ||
-        data.modelName?.toLowerCase().includes(searchStr) ||
-        data.vin?.toLowerCase().includes(searchStr) ||
-        data.color?.toLowerCase().includes(searchStr) ||
-        (data.year?.toString() || '').includes(searchStr)
+        data.registration.toLowerCase().includes(searchTerm) ||
+        data.makeName.toLowerCase().includes(searchTerm) ||
+        data.modelName.toLowerCase().includes(searchTerm) ||
+        data.chassisNumber.toLowerCase().includes(searchTerm)
       );
     };
   }
 
-  applyFilter(filterValue: string): void {
-    this.dataSource.filter = filterValue.trim().toLowerCase();
+  setupFilters() {
+    const searchSub = this.searchControl.valueChanges.pipe(debounceTime(300), distinctUntilChanged()).subscribe((value) => {
+      this.dataSource.filter = value?.trim().toLowerCase() || '';
+    });
 
-    if (this.dataSource.paginator) {
-      this.dataSource.paginator.firstPage();
-    }
+    const filterSub = this.filterForm.valueChanges.subscribe(() => {
+      this.applyFilters();
+    });
+
+    this.subscriptions.push(searchSub, filterSub);
   }
 
-  applyFilters(): void {
-    const currentFilter = this.dataSource.filter || ' ';
-    this.dataSource.filter = '';
-    this.dataSource.filter = currentFilter;
-  }
-
-  loadVehicles(): void {
-    this.isLoading = true;
-
-    const vehiclesSub = this.vehicleService.getVehicles().subscribe({
+  loadVehicles() {
+    this.vehicleService.getVehicles().subscribe({
       next: (vehicles) => {
         this.dataSource.data = vehicles;
-        this.extractFilterOptions(vehicles);
-        this.isLoading = false;
+        this.loadMockDriverAssignments(vehicles);
       },
       error: (error) => {
         console.error('Error loading vehicles:', error);
-        this.showSnackbar('Error loading vehicles. Please try again.');
-        this.isLoading = false;
-      },
-    });
-
-    this.subscriptions.push(vehiclesSub);
-  }
-
-  private extractFilterOptions(vehicles: Vehicle[]): void {
-    const makesSet = new Set<string>();
-    const typesSet = new Set<string>();
-    const colorsSet = new Set<string>();
-
-    vehicles.forEach((vehicle) => {
-      if (vehicle.makeName) makesSet.add(vehicle.makeName);
-      if (vehicle.type) typesSet.add(vehicle.type);
-      if (vehicle.color) colorsSet.add(vehicle.color);
-    });
-
-    this.makes = Array.from(makesSet).sort();
-    this.vehicleTypes = Array.from(typesSet).sort();
-    this.colors = Array.from(colorsSet).sort();
-  }
-
-  refreshVehicles(): void {
-    this.loadVehicles();
-  }
-
-  createNewVehicle(): void {
-    this.router.navigate(['/vehicles/new']);
-  }
-
-  viewVehicleDetails(vehicle: Vehicle): void {
-    this.router.navigate(['/vehicles', vehicle.registration]);
-  }
-
-  editVehicle(vehicle: Vehicle, event: Event): void {
-    event.stopPropagation(); // Prevent row click event
-    this.router.navigate(['/vehicles', vehicle.registration, 'edit']);
-  }
-
-  viewVehicleJobs(vehicle: Vehicle, event: Event): void {
-    event.stopPropagation(); // Prevent row click event
-    this.router.navigate(['/jobs'], {
-      queryParams: {
-        registration: vehicle.registration,
+        this.notificationService.addNotification({
+          type: 'error',
+          title: 'Error',
+          message: 'Failed to load vehicles',
+        });
       },
     });
   }
 
-  formatDate(date: Date | undefined): string {
+  loadFilterOptions() {
+    // Extract unique makes and types from loaded vehicles
+    const vehicles = this.dataSource.data;
+    this.makes = [...new Set(vehicles.map((v) => v.makeName))];
+    this.types = [...new Set(vehicles.map((v) => v.type))];
+  }
+
+  loadMockDriverAssignments(vehicles: Vehicle[]) {
+    // Mock driver assignments - replace with real data loading
+    vehicles.forEach((vehicle, index) => {
+      if (index % 3 === 0) {
+        // Assign every 3rd vehicle
+        this.driverAssignments[vehicle.id] = {
+          driver: {
+            id: `driver-${index}`,
+            name: `Driver ${index + 1}`,
+            email: `driver${index + 1}@company.com`,
+            phoneNumber: `+44 ${1000 + index} ${123456 + index}`,
+          },
+          assignedDate: new Date(Date.now() - Math.random() * 90 * 24 * 60 * 60 * 1000), // Random date within last 90 days
+        };
+      }
+    });
+  }
+
+  applyFilters() {
+    const filters = this.filterForm.value;
+
+    this.dataSource.filterPredicate = (data: Vehicle, filter: string) => {
+      const searchTerm = filter.toLowerCase();
+      const matchesSearch =
+        data.registration.toLowerCase().includes(searchTerm) || data.makeName.toLowerCase().includes(searchTerm) || data.modelName.toLowerCase().includes(searchTerm);
+
+      const matchesMake = filters.make === 'All' || data.makeName === filters.make;
+      const matchesType = filters.type === 'All' || data.type === filters.type;
+
+      const hasDriver = this.getAssignedDriver(data) !== null;
+      const matchesAssignment =
+        filters.assignmentStatus === 'All' || (filters.assignmentStatus === 'Assigned' && hasDriver) || (filters.assignmentStatus === 'Available' && !hasDriver);
+
+      return matchesSearch && matchesMake && matchesType && matchesAssignment;
+    };
+
+    // Trigger filter update
+    this.dataSource.filter = this.searchControl.value?.trim().toLowerCase() || '';
+  }
+
+  // Driver assignment methods
+  getAssignedDriver(vehicle: Vehicle): Driver | null {
+    return this.driverAssignments[vehicle.id]?.driver || null;
+  }
+
+  getAssignmentDate(vehicle: Vehicle): Date | null {
+    return this.driverAssignments[vehicle.id]?.assignedDate || null;
+  }
+
+  getAssignmentStatus(vehicle: Vehicle): string {
+    return this.getAssignedDriver(vehicle) ? 'Assigned' : 'Available';
+  }
+
+  getAssignmentStatusClass(vehicle: Vehicle): string {
+    return this.getAssignedDriver(vehicle) ? 'status-assigned' : 'status-available';
+  }
+
+  // Vehicle actions
+  viewVehicleDetails(vehicle: Vehicle) {
+    this.router.navigate(['/vehicles', vehicle.id]);
+  }
+
+  editVehicle(vehicle: Vehicle, event?: Event) {
+    if (event) {
+      event.stopPropagation();
+    }
+    this.router.navigate(['/vehicles', vehicle.id, 'edit']);
+  }
+
+  // Driver assignment actions
+  assignDriver(vehicle: Vehicle) {
+    console.log('Assign driver to vehicle:', vehicle.registration);
+    // Implement driver assignment dialog
+    this.notificationService.addNotification({
+      type: 'info',
+      title: 'Feature Coming Soon',
+      message: 'Driver assignment feature coming soon',
+    });
+  }
+
+  changeDriver(vehicle: Vehicle) {
+    console.log('Change driver for vehicle:', vehicle.registration);
+    // Implement driver change dialog
+    this.notificationService.addNotification({
+      type: 'info',
+      title: 'Feature Coming Soon',
+      message: 'Driver change feature coming soon',
+    });
+  }
+
+  unassignDriver(vehicle: Vehicle) {
+    console.log('Unassign driver from vehicle:', vehicle.registration);
+    // Implement driver unassignment
+    delete this.driverAssignments[vehicle.id];
+    this.notificationService.addNotification({
+      type: 'success',
+      title: 'Success',
+      message: 'Driver unassigned successfully',
+    });
+  }
+
+  exportVehicles() {
+    console.log('Export fleet data');
+    // Implement CSV export
+    this.notificationService.addNotification({
+      type: 'info',
+      title: 'Feature Coming Soon',
+      message: 'Export feature coming soon',
+    });
+  }
+
+  // Utility methods
+  formatDate(date: any): string {
     if (!date) return 'N/A';
 
-    if (typeof date === 'string') {
-      date = new Date(date);
+    let dateObj: Date;
+    if (date.toDate && typeof date.toDate === 'function') {
+      dateObj = date.toDate();
+    } else if (date instanceof Date) {
+      dateObj = date;
+    } else {
+      dateObj = new Date(date);
     }
 
-    if (date && typeof date === 'object' && 'toDate' in date) {
-      const timestamp = date as unknown as { toDate: () => Date };
-      date = timestamp.toDate();
-    }
-
-    return date.toLocaleDateString();
+    return dateObj.toLocaleDateString('en-GB', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    });
   }
 
   getColorHex(colorName: string): string {
-    return this.colorMap[colorName] || '#CCCCCC'; // Default grey if not found
-  }
-
-  showSnackbar(message: string): void {
-    this.snackBar.open(message, 'Close', {
-      duration: 5000,
-      horizontalPosition: 'center',
-      verticalPosition: 'bottom',
-    });
+    return this.colorMap[colorName] || '#CCCCCC'; // Default grey
   }
 }

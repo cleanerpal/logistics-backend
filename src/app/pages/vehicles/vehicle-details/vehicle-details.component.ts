@@ -1,16 +1,26 @@
-import { Component, OnInit, OnDestroy, ViewChild, TemplateRef } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Subscription, forkJoin, of } from 'rxjs';
-import { switchMap, catchError, finalize } from 'rxjs/operators';
+import { finalize } from 'rxjs/operators';
 import { AuthService } from '../../../services/auth.service';
-import { VehicleService, Vehicle, VehiclePhoto, ConditionReport } from '../../../services/vehicle.service';
-import { JobService } from '../../../services/job.service';
+import { VehicleService, Vehicle } from '../../../services/vehicle.service';
+import { DriverService } from '../../../services/driver.service';
 
-import { Job as JobInterface } from '../../../interfaces/job.interface';
+interface Driver {
+  id: string;
+  name: string;
+  email: string;
+  phoneNumber?: string;
+}
 
-type VehicleJob = JobInterface;
+interface DriverAssignment {
+  id: string;
+  driverId: string;
+  driverName: string;
+  startDate: Date;
+  endDate?: Date;
+}
 
 @Component({
   selector: 'app-vehicle-details',
@@ -21,20 +31,15 @@ type VehicleJob = JobInterface;
 export class VehicleDetailsComponent implements OnInit, OnDestroy {
   vehicleId: string = '';
   vehicle: Vehicle | null = null;
-  activeTab: 'overview' | 'photos' | 'history' | 'reports' = 'overview';
   loading = false;
   error: string | null = null;
   hasEditPermission = false;
 
-  filteredPhotos: VehiclePhoto[] = [];
-  selectedJobFilter: string = 'all';
-  photosSort: 'newest' | 'oldest' = 'newest';
-  jobsWithPhotos: { id: string; createdAt: Date }[] = [];
-
-  jobs: VehicleJob[] = [];
-
-  selectedPhoto: VehiclePhoto | null = null;
-  @ViewChild('photoViewerDialog') photoViewerDialog!: TemplateRef<any>;
+  // Driver assignment properties
+  currentDriver: Driver | null = null;
+  currentAssignmentDate: Date | null = null;
+  driverAssignments: DriverAssignment[] = [];
+  driverAssignmentCount = 0;
 
   colorMap: { [key: string]: string } = {
     Black: '#333333',
@@ -48,8 +53,6 @@ export class VehicleDetailsComponent implements OnInit, OnDestroy {
     Brown: '#A52A2A',
     Orange: '#FFA500',
     Purple: '#800080',
-    Gold: '#FFD700',
-    Beige: '#F5F5DC',
   };
 
   private subscriptions: Subscription[] = [];
@@ -58,202 +61,152 @@ export class VehicleDetailsComponent implements OnInit, OnDestroy {
     private route: ActivatedRoute,
     private router: Router,
     private vehicleService: VehicleService,
-    private jobService: JobService,
+    private driverService: DriverService,
     private authService: AuthService,
-    private dialog: MatDialog,
     private snackBar: MatSnackBar
   ) {}
 
-  ngOnInit(): void {
+  ngOnInit() {
     this.checkPermissions();
-
-    const routeSub = this.route.params.subscribe((params) => {
+    this.route.params.subscribe((params) => {
       this.vehicleId = params['id'];
-      this.loadVehicleDetails(this.vehicleId);
+      if (this.vehicleId) {
+        this.loadVehicleDetails(this.vehicleId);
+      }
     });
-
-    this.subscriptions.push(routeSub);
   }
 
-  ngOnDestroy(): void {
+  ngOnDestroy() {
     this.subscriptions.forEach((sub) => sub.unsubscribe());
   }
 
-  private checkPermissions(): void {
-    const authSub = this.authService.getUserProfile().subscribe((user) => {
-      this.hasEditPermission = user?.permissions?.canManageUsers || user?.permissions?.isAdmin || false;
+  checkPermissions() {
+    this.authService.hasPermission('canManageCompanies').subscribe((hasPermission) => {
+      this.hasEditPermission = hasPermission;
     });
-    this.subscriptions.push(authSub);
   }
 
-  loadVehicleDetails(vehicleId: string): void {
+  loadVehicleDetails(id: string) {
     this.loading = true;
     this.error = null;
 
-    const vehicleSub = this.vehicleService
-      .getVehicleById(vehicleId)
-      .pipe(
-        switchMap((vehicle) => {
-          if (!vehicle) {
-            throw new Error('Vehicle not found');
+    const vehicle$ = this.vehicleService.getVehicleById(id);
+    const assignments$ = this.loadDriverAssignments(id);
+
+    forkJoin({
+      vehicle: vehicle$,
+      assignments: assignments$,
+    })
+      .pipe(finalize(() => (this.loading = false)))
+      .subscribe({
+        next: (data) => {
+          this.vehicle = data.vehicle;
+          this.driverAssignments = data.assignments;
+          this.driverAssignmentCount = data.assignments.length;
+
+          // Check if vehicle has assignedDriverId (from interface)
+          const vehicleWithDriver = this.vehicle as any;
+          if (vehicleWithDriver?.assignedDriverId) {
+            this.loadCurrentDriver(vehicleWithDriver.assignedDriverId);
           }
-
-          this.vehicle = vehicle;
-
-          return forkJoin({
-            jobs: this.jobService.getJobsByVehicle(vehicleId),
-          });
-        }),
-        catchError((error) => {
-          this.error = error.message || 'Failed to load vehicle details';
+        },
+        error: (error: any) => {
+          this.error = 'Failed to load vehicle details';
           console.error('Error loading vehicle details:', error);
-          return of({ jobs: [] });
-        }),
-        finalize(() => {
-          this.loading = false;
-        })
-      )
-      .subscribe((result) => {
-        if (this.vehicle) {
-          this.jobs = result.jobs || [];
-
-          this.setupPhotosData();
-        }
+        },
       });
-
-    this.subscriptions.push(vehicleSub);
   }
 
-  private setupPhotosData(): void {
-    if (!this.vehicle || !this.vehicle.photos) return;
-
-    this.filteredPhotos = [...this.vehicle.photos];
-
-    this.sortPhotos();
-
-    const jobsMap = new Map<string, Date>();
-
-    this.vehicle.photos.forEach((photo) => {
-      if (!photo.jobId) return; // Skip photos without jobId
-
-      const job = this.jobs.find((j) => j.id === photo.jobId);
-      if (job) {
-        jobsMap.set(photo.jobId, job.createdAt);
-      } else {
-        jobsMap.set(photo.jobId, photo.takenAt);
-      }
-    });
-
-    this.jobsWithPhotos = Array.from(jobsMap.entries()).map(([id, createdAt]) => ({
-      id,
-      createdAt,
-    }));
-
-    this.jobsWithPhotos.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-  }
-
-  filterPhotos(): void {
-    if (!this.vehicle || !this.vehicle.photos) return;
-
-    if (this.selectedJobFilter === 'all') {
-      this.filteredPhotos = [...this.vehicle.photos];
-    } else {
-      this.filteredPhotos = this.vehicle.photos.filter((photo) => photo.jobId === this.selectedJobFilter);
-    }
-
-    this.sortPhotos();
-  }
-
-  sortPhotos(): void {
-    this.filteredPhotos.sort((a, b) => {
-      const dateA = new Date(a.takenAt).getTime();
-      const dateB = new Date(b.takenAt).getTime();
-
-      return this.photosSort === 'newest'
-        ? dateB - dateA // Newest first
-        : dateA - dateB; // Oldest first
-    });
-  }
-
-  setActiveTab(tab: string): void {
-    this.activeTab = tab as 'overview' | 'photos' | 'history' | 'reports';
-  }
-
-  editVehicle(): void {
-    this.router.navigate(['/vehicles', this.vehicleId, 'edit']);
-  }
-
-  viewJob(jobId?: string): void {
-    if (jobId) {
-      this.router.navigate(['/jobs', jobId]);
-    }
-  }
-
-  viewAllJobs(): void {
-    this.router.navigate(['/jobs'], {
-      queryParams: {
-        registration: this.vehicle?.registration,
+  loadCurrentDriver(driverId: string) {
+    this.driverService.getDriverById(driverId).subscribe({
+      next: (driver: any) => {
+        this.currentDriver = driver;
+        // Find current assignment date
+        const currentAssignment = this.driverAssignments.find((a) => !a.endDate);
+        this.currentAssignmentDate = currentAssignment?.startDate || null;
+      },
+      error: (error: any) => {
+        console.error('Error loading current driver:', error);
       },
     });
   }
 
-  get latestPhoto(): VehiclePhoto | undefined {
-    if (!this.vehicle || !this.vehicle.photos || this.vehicle.photos.length === 0) {
-      return undefined;
-    }
-
-    return [...this.vehicle.photos].sort((a, b) => new Date(b.takenAt).getTime() - new Date(a.takenAt).getTime())[0];
+  loadDriverAssignments(vehicleId: string) {
+    // This would typically load from a driver assignments collection
+    // For now, return empty array - implement based on your data structure
+    return of([]);
   }
 
-  get latestJob(): VehicleJob | undefined {
-    if (!this.jobs || this.jobs.length === 0) {
-      return undefined;
-    }
-
-    return [...this.jobs].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
+  goBack() {
+    this.router.navigate(['/vehicles']);
   }
 
-  openPhotoViewer(photo: VehiclePhoto): void {
-    this.selectedPhoto = photo;
-    this.dialog.open(this.photoViewerDialog, {
-      width: '800px',
-      maxWidth: '95vw',
-      panelClass: 'photo-viewer-dialog',
+  editVehicle() {
+    if (this.vehicle) {
+      this.router.navigate(['/vehicles', this.vehicle.id, 'edit']);
+    }
+  }
+
+  // Driver assignment methods
+  assignDriver() {
+    this.showSnackbar('Driver assignment feature will be implemented');
+    console.log('Assign driver to vehicle');
+  }
+
+  changeDriverAssignment() {
+    this.showSnackbar('Driver change feature will be implemented');
+    console.log('Change driver assignment');
+  }
+
+  unassignDriver() {
+    this.showSnackbar('Driver unassignment feature will be implemented');
+    console.log('Unassign driver from vehicle');
+  }
+
+  viewDriver(driverId: string) {
+    this.router.navigate(['/drivers', driverId]);
+  }
+
+  // Utility methods
+  formatDate(date: any): string {
+    if (!date) return 'N/A';
+
+    let dateObj: Date;
+    if (date.toDate && typeof date.toDate === 'function') {
+      dateObj = date.toDate();
+    } else if (date instanceof Date) {
+      dateObj = date;
+    } else {
+      dateObj = new Date(date);
+    }
+
+    return dateObj.toLocaleDateString('en-GB', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
     });
   }
 
-  closePhotoViewer(): void {
-    this.dialog.closeAll();
-  }
+  calculateDuration(startDate: Date, endDate: Date): string {
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const diffTime = Math.abs(end.getTime() - start.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
-  getJobReference(jobId?: string): string {
-    if (!jobId) return 'Unknown';
-
-    const job = this.jobs.find((j) => j.id === jobId);
-    return job ? job.id : jobId;
-  }
-
-  getReportAuthorName(authorId: string): string {
-    return authorId || 'Unknown';
-  }
-
-  formatDate(date: Date | undefined): string {
-    if (!date) return 'N/A';
-
-    if (typeof date === 'string') {
-      date = new Date(date);
+    if (diffDays < 30) {
+      return `${diffDays} days`;
+    } else if (diffDays < 365) {
+      const months = Math.floor(diffDays / 30);
+      return `${months} month${months > 1 ? 's' : ''}`;
+    } else {
+      const years = Math.floor(diffDays / 365);
+      const remainingMonths = Math.floor((diffDays % 365) / 30);
+      return `${years} year${years > 1 ? 's' : ''}${remainingMonths > 0 ? ` ${remainingMonths} month${remainingMonths > 1 ? 's' : ''}` : ''}`;
     }
-
-    if (date && typeof date === 'object' && 'toDate' in date) {
-      const timestamp = date as unknown as { toDate: () => Date };
-      date = timestamp.toDate();
-    }
-
-    return date.toLocaleDateString();
   }
 
   getColorHex(colorName: string): string {
-    return this.colorMap[colorName] || '#CCCCCC'; // Default grey if not found
+    return this.colorMap[colorName] || '#CCCCCC'; // Default grey
   }
 
   showSnackbar(message: string): void {
@@ -262,10 +215,5 @@ export class VehicleDetailsComponent implements OnInit, OnDestroy {
       horizontalPosition: 'center',
       verticalPosition: 'bottom',
     });
-  }
-
-  getJobProperty(job: VehicleJob | undefined, property: string): any {
-    if (!job) return undefined;
-    return (job as any)[property];
   }
 }
