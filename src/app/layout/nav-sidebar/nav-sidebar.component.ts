@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, HostListener } from '@angular/core';
 import { AuthService } from '../../services/auth.service';
 
 interface NavItem {
@@ -49,14 +49,26 @@ export class NavSidebarComponent implements OnInit {
 
   isAdmin = false;
   visibleNavItems: NavItem[] = [];
+  isCollapsed = false;
 
-  constructor(private authService: AuthService) {}
+  constructor(private authService: AuthService) {
+    this.checkScreenSize();
+  }
 
   ngOnInit(): void {
     this.authService.isAdmin().subscribe((isAdmin) => {
       this.isAdmin = isAdmin;
       this.updateVisibleNavItems();
     });
+  }
+
+  @HostListener('window:resize', ['$event'])
+  onResize(event: any) {
+    this.checkScreenSize();
+  }
+
+  private checkScreenSize(): void {
+    this.isCollapsed = window.innerWidth <= 1024;
   }
 
   private updateVisibleNavItems(): void {

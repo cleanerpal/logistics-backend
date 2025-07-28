@@ -1,10 +1,9 @@
-.job-details-container {
+:host {
+  display: block;
   padding: 24px;
-  padding-top: 72px; // Account for top navigation bar
-  max-width: 1400px;
-  margin: 0 auto;
-  min-height: 100vh;
   background-color: #f5f7fa;
+  min-height: 100vh;
+  padding-top: 72px; // Account for top navigation bar
 
   @media (max-width: 768px) {
     padding: 16px;
@@ -14,6 +13,18 @@
   &.with-topbar {
     padding-top: calc(var(--topbar-height, 64px) + 8px);
   }
+}
+
+.job-details-container {
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.mat-elevation-z3.job-details-card {
+  margin-bottom: 24px;
+  background-color: white;
+  border-radius: 8px;
+  padding: 0;
 }
 
 .page-header {
@@ -3152,13 +3163,6 @@
   .report-progress-card {
     display: none;
   }
-}
-
-.mat-elevation-z3.job-details-card {
-  margin-bottom: 24px;
-  background-color: white;
-  border-radius: 8px;
-  padding: 0;
 }
 
 .header-wrapper {
