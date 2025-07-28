@@ -3,15 +3,9 @@
   padding: 16px;
   background-color: #f5f7fa;
   min-height: 100vh;
-  padding-top: 56px; // Reduced top padding
 
   @media (max-width: 768px) {
-    padding: 12px;
-    padding-top: 48px; // Reduced mobile top padding
-  }
-
-  &.with-topbar {
-    padding-top: calc(var(--topbar-height, 64px) - 8px);
+    padding: 16px;
   }
 }
 
@@ -357,7 +351,6 @@
 
 @media (max-width: 768px) {
   :host {
-    margin-left: 60px;
     padding-top: 80px;
     padding: 16px;
   }

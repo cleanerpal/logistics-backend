@@ -1,19 +1,22 @@
 .card-wrapper {
   max-width: 1400px;
   margin: 0 auto;
-  padding: 24px 0 24px 0;
+  padding: 24px 0;
   width: 100%;
 }
 
 @media (max-width: 768px) {
   .card-wrapper {
-    padding: 12px 0 12px 0;
+    padding: 12px 0;
   }
 }
 
 .billing-dashboard-container {
   background-color: #f8f9fa;
   min-height: 100vh;
+  // Layout now handled by global CSS - padding-top for topbar applied automatically
+  // Page content margins for sidebar applied automatically via global CSS
+  padding: 24px;
 }
 
 .page-header {
@@ -419,7 +422,7 @@
 
 @media (max-width: 768px) {
   .billing-dashboard-container {
-    padding: 16px;
+    padding: 16px; // Only adjust content padding, not layout spacing
   }
 
   .page-header {

@@ -122,11 +122,6 @@
       <mat-icon>{{ isDarkTheme ? 'light_mode' : 'dark_mode' }}</mat-icon>
       <span>{{ isDarkTheme ? 'Light Theme' : 'Dark Theme' }}</span>
     </button>
-    <mat-divider></mat-divider>
-    <button mat-menu-item (click)="openHelp()">
-      <mat-icon>help_outline</mat-icon>
-      <span>Help & Support</span>
-    </button>
   </div>
 </mat-menu>
 
@@ -148,9 +143,15 @@
       <mat-icon>person_outline</mat-icon>
       <span>My Profile</span>
     </button>
+
     <button mat-menu-item (click)="openPreferences()">
-      <mat-icon>settings</mat-icon>
+      <mat-icon>tune</mat-icon>
       <span>Preferences</span>
+    </button>
+
+    <button mat-menu-item (click)="openAppSettings()">
+      <mat-icon>settings</mat-icon>
+      <span>App Settings</span>
     </button>
 
     <mat-divider></mat-divider>

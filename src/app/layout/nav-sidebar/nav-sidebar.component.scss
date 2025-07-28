@@ -1,5 +1,5 @@
 .sidebar {
-  width: 250px;
+  width: var(--sidebar-width-expanded);
   height: 100vh;
   background-color: var(--primary-color);
   color: white;
@@ -10,20 +10,20 @@
   flex-direction: column;
   box-shadow: 2px 0 5px rgba(0, 0, 0, 0.15);
   z-index: 1000;
-  transition: width 0.3s ease;
+  transition: width var(--sidebar-transition);
 }
 
 .logo-container {
   padding: 24px 20px;
   text-align: center;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  transition: padding 0.3s ease;
+  transition: padding var(--sidebar-transition);
 }
 
 .logo {
   max-width: 120px;
   height: auto;
-  transition: max-width 0.3s ease;
+  transition: max-width var(--sidebar-transition);
 }
 
 .nav-list {
@@ -54,7 +54,7 @@
   cursor: pointer;
   border-left: 4px solid transparent;
   color: rgba(255, 255, 255, 0.85);
-  transition: all 0.3s ease;
+  transition: all var(--sidebar-transition);
   position: relative;
 }
 
@@ -78,23 +78,24 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: margin 0.3s ease;
+  transition: all var(--sidebar-transition);
+  flex-shrink: 0;
 }
 
 .nav-label {
   font-size: 14px;
   font-weight: 500;
   letter-spacing: 0.1px;
-  transition: opacity 0.3s ease;
+  transition: opacity var(--sidebar-transition);
   white-space: nowrap;
   overflow: hidden;
+  flex: 1;
 }
 
 // Collapsed state for tablets and smaller screens (1024px and below)
 @media (max-width: 1024px) {
   .sidebar {
-    width: 70px;
-    overflow: visible; // Allow tooltips to show
+    width: var(--sidebar-width-collapsed);
   }
 
   .logo-container {
@@ -108,54 +109,78 @@
   .nav-label {
     opacity: 0;
     pointer-events: none;
+    width: 0;
   }
 
   .nav-item {
-    padding: 16px 0;
-    justify-content: center;
-    border-left: none;
-    border-right: 4px solid transparent;
+    margin: 8px 0; // Add vertical spacing instead
+    justify-content: center; // Center the content
+    align-items: center;
+    border: none; // Remove all borders
+    min-height: 48px;
+    width: 100%; // Take full width
+    position: relative;
   }
 
   .nav-item.active {
-    border-left: none;
-    border-right: 4px solid var(--secondary-color);
+    background-color: rgba(255, 255, 255, 0.15);
+    border: none; // No borders at all
+  }
+
+  .nav-item.active::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 4px;
+    height: 24px;
+    background-color: var(--secondary-color);
+    border-radius: 2px 0 0 2px;
   }
 
   .nav-item:hover {
-    transform: translateX(0);
+    transform: none; // Remove translateX in collapsed state
     background-color: rgba(255, 255, 255, 0.15);
   }
 
   .nav-icon {
-    margin-right: 0;
+    margin: 0; // Remove all margins
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
   }
 }
 
 // Even smaller screens (mobile)
 @media (max-width: 768px) {
   .sidebar {
-    width: 60px;
+    width: var(--sidebar-width-mobile);
   }
 
   .nav-item {
-    padding: 14px 0;
+    padding: 0; // Remove all padding
+    margin: 6px 0; // Smaller vertical spacing for mobile
+    min-height: 44px;
+    justify-content: center; // Ensure centering
+    width: 100%; // Take full width
+    border: none; // Remove all borders
+  }
+
+  .nav-item.active::after {
+    width: 3px;
+    height: 20px;
   }
 
   .nav-icon {
     font-size: 18px;
     width: 18px;
     height: 18px;
+    margin: 0; // Remove all margins
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
   }
-}
-
-// Custom tooltip styles
-::ng-deep .sidebar-tooltip {
-  background-color: rgba(0, 0, 0, 0.9) !important;
-  color: white !important;
-  font-size: 12px !important;
-  padding: 8px 12px !important;
-  border-radius: 6px !important;
-  margin-left: 8px !important;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
 }

@@ -322,9 +322,7 @@ table.loading {
 }
 
 @media screen and (max-width: 768px) {
-  :host {
-    margin-left: 60px;
-  }
+  // Removed hardcoded margin-left and padding-top - now handled by global CSS
 }
 
 @media screen and (max-width: 600px) {

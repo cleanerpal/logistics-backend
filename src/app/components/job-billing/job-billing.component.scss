@@ -2,6 +2,7 @@
   padding: 20px;
   background-color: #f8f9fa;
   min-height: 100vh;
+  // Layout spacing (topbar/sidebar) now handled by global CSS
 
   .loading-container {
     display: flex;
@@ -398,9 +399,11 @@
   }
 }
 
+// Update responsive styles to work with global layout system
 @media (max-width: 768px) {
   .job-billing-container {
-    padding: 16px;
+    padding: 16px; // Only adjust content padding
+    // Topbar and sidebar spacing handled by global CSS
   }
 
   .billing-summary {

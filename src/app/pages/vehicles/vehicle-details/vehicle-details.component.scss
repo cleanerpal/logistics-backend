@@ -3,15 +3,9 @@
   padding: 24px;
   background-color: #f5f7fa;
   min-height: 100vh;
-  padding-top: 72px; // Account for top navigation bar
 
   @media (max-width: 768px) {
     padding: 16px;
-    padding-top: 64px;
-  }
-
-  &.with-topbar {
-    padding-top: calc(var(--topbar-height, 64px) + 8px);
   }
 }
 
@@ -1521,7 +1515,6 @@
 @media screen and (max-width: 768px) {
   .vehicle-details-container {
     padding: 16px;
-    margin-left: 60px;
     padding-top: 80px;
   }
 

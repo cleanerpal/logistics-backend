@@ -1,6 +1,5 @@
 .job-edit-container {
   padding: 24px;
-  padding-top: 72px; // Account for top navigation bar
   max-width: 1200px;
   margin: 0 auto;
   min-height: 100vh;
@@ -8,11 +7,6 @@
 
   @media (max-width: 768px) {
     padding: 16px;
-    padding-top: 64px; // Adjust for smaller screens
-  }
-
-  &.with-topbar {
-    padding-top: calc(var(--topbar-height, 64px) + 8px);
   }
 }
 

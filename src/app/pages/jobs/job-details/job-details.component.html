@@ -1,700 +1,661 @@
 <div class="job-details-container">
-<mat-card class="mat-elevation-z3 job-details-card">
-  <div class="header-wrapper">
-    <div class="header-title">
-      <button mat-icon-button (click)="goBack()" class="back-button">
-        <mat-icon>arrow_back</mat-icon>
-      </button>
-      <div class="title-content">
-        <h1>Job Details</h1>
-        <p class="subtitle" *ngIf="job">{{ getVehicleInfo() }}</p>
+  <mat-card class="mat-elevation-z3 job-details-card">
+    <div class="header-wrapper">
+      <div class="header-title">
+        <button mat-icon-button (click)="goBack()" class="back-button">
+          <mat-icon>arrow_back</mat-icon>
+        </button>
+        <div class="title-content">
+          <h1>Job Details</h1>
+          <p class="subtitle" *ngIf="job">{{ getVehicleInfo() }}</p>
+        </div>
+      </div>
+      <div class="actions-group" *ngIf="job">
+        <button mat-stroked-button (click)="refreshJob()" class="export-button">
+          <mat-icon>refresh</mat-icon>
+          Refresh
+        </button>
+        <button mat-flat-button color="primary" (click)="editJob()" *ngIf="canEditJobs" class="create-button">
+          <mat-icon>edit</mat-icon>
+          Edit Job
+        </button>
+        <button *ngIf="job.status === 'delivered'" mat-flat-button class="create-button success-button" (click)="setJobToCompleted()">
+          <mat-icon>check_circle</mat-icon>
+          Set to Complete
+        </button>
+
+        <button *ngIf="job.status === 'completed'" mat-flat-button class="create-button reopen-button" (click)="reopenJob()">
+          <mat-icon>undo</mat-icon>
+          Reopen Job
+        </button>
+        <button *ngIf="job.status === 'completed'" mat-stroked-button class="create-button archive-button" (click)="archiveJob()">
+          <mat-icon>archive</mat-icon>
+          Archive
+        </button>
+        <button *ngIf="job.status === 'completed'" mat-stroked-button class="create-button delete-button" (click)="deleteJob()">
+          <mat-icon>delete</mat-icon>
+          Delete
+        </button>
+        <button mat-stroked-button class="create-button add-note-button" (click)="openAddNoteDialog()">
+          <mat-icon>note_add</mat-icon>
+          Add Note
+        </button>
       </div>
     </div>
-    <div class="actions-group" *ngIf="job">
-      <button mat-stroked-button (click)="refreshJob()" class="export-button">
-        <mat-icon>refresh</mat-icon>
-        Refresh
-      </button>
-      <button mat-flat-button color="primary" (click)="editJob()" *ngIf="canEditJobs" class="create-button">
-        <mat-icon>edit</mat-icon>
-        Edit Job
-      </button>
-      <button *ngIf="job.status === 'delivered'" mat-flat-button class="create-button success-button" (click)="setJobToCompleted()">
-        <mat-icon>check_circle</mat-icon>
-        Set to Complete
-      </button>
 
-      <button *ngIf="job.status === 'completed'" mat-flat-button class="create-button reopen-button" (click)="reopenJob()">
-        <mat-icon>undo</mat-icon>
-        Reopen Job
-      </button>
-      <button *ngIf="job.status === 'completed'" mat-stroked-button class="create-button archive-button" (click)="archiveJob()">
-        <mat-icon>archive</mat-icon>
-        Archive
-      </button>
-      <button *ngIf="job.status === 'completed'" mat-stroked-button class="create-button delete-button" (click)="deleteJob()">
-        <mat-icon>delete</mat-icon>
-        Delete
-      </button>
-      <button mat-stroked-button class="create-button add-note-button" (click)="openAddNoteDialog()">
-        <mat-icon>note_add</mat-icon>
-        Add Note
+    <div *ngIf="loading" class="loading-overlay">
+      <mat-spinner></mat-spinner>
+      <p>Loading job details...</p>
+    </div>
+
+    <div *ngIf="error && !loading" class="empty-state">
+      <mat-icon class="empty-icon" color="warn">error</mat-icon>
+      <h3>{{ error }}</h3>
+      <button mat-flat-button color="primary" (click)="goBack()">
+        <mat-icon>arrow_back</mat-icon>
+        Back to Jobs
       </button>
     </div>
-  </div>
 
-  <div *ngIf="loading" class="loading-overlay">
-    <mat-spinner></mat-spinner>
-    <p>Loading job details...</p>
-  </div>
-
-  <div *ngIf="error && !loading" class="empty-state">
-    <mat-icon class="empty-icon" color="warn">error</mat-icon>
-    <h3>{{ error }}</h3>
-    <button mat-flat-button color="primary" (click)="goBack()">
-      <mat-icon>arrow_back</mat-icon>
-      Back to Jobs
-    </button>
-  </div>
-
-  <div *ngIf="job && !loading && !error" class="job-content">
-    <mat-card class="status-overview-card">
-      <mat-card-content>
-        <div class="status-header">
-          <div class="status-info">
-            <div class="status-badge-group">
-              <div class="status-badge" [ngClass]="'status-' + getStatusColor(job.status)">
-                <mat-icon>{{ getStatusIcon(job.status) }}</mat-icon>
-                <span>{{ job.status | titlecase }}</span>
+    <div *ngIf="job && !loading && !error" class="job-content">
+      <div class="status-overview-card">
+        <div class="card-content">
+          <div class="status-header">
+            <div class="status-info">
+              <div class="status-badge-group">
+                <div class="status-badge" [ngClass]="'status-' + getStatusColor(job.status)">
+                  <mat-icon>{{ getStatusIcon(job.status) }}</mat-icon>
+                  <span>{{ job.status | titlecase }}</span>
+                </div>
+              </div>
+              <div class="customer-info" *ngIf="job.customerName">
+                <mat-icon>business</mat-icon>
+                <span>{{ job.customerName }}</span>
               </div>
             </div>
-            <div class="customer-info" *ngIf="job.customerName">
-              <mat-icon>business</mat-icon>
-              <span>{{ job.customerName }}</span>
+
+            <div class="dates-info">
+              <div class="date-item" *ngIf="job.collectionScheduledTime">
+                <span class="label">Collection</span>
+                <span class="value">{{ formatDateTime(job.collectionScheduledTime) }}</span>
+              </div>
+              <div class="date-item" *ngIf="job.deliveryScheduledTime">
+                <span class="label">Delivery</span>
+                <span class="value">{{ formatDateTime(job.deliveryScheduledTime) }}</span>
+              </div>
             </div>
           </div>
 
-          <div class="dates-info">
-            <div class="date-item" *ngIf="job.collectionScheduledTime">
-              <span class="label">Collection</span>
-              <span class="value">{{ formatDateTime(job.collectionScheduledTime) }}</span>
-            </div>
-            <div class="date-item" *ngIf="job.deliveryScheduledTime">
-              <span class="label">Delivery</span>
-              <span class="value">{{ formatDateTime(job.deliveryScheduledTime) }}</span>
-            </div>
+          <div class="progress-section">
+            <div class="progress-label">Job Progress</div>
+            <mat-progress-bar mode="determinate" [value]="getStatusProgress()" [color]="getStatusColor(job.status)"> </mat-progress-bar>
+            <div class="progress-text">{{ getStatusProgress() | number : '1.0-0' }}% Complete</div>
           </div>
-        </div>
 
-        <div class="progress-section">
-          <div class="progress-label">Job Progress</div>
-          <mat-progress-bar mode="determinate" [value]="getStatusProgress()" [color]="getStatusColor(job.status)"> </mat-progress-bar>
-          <div class="progress-text">{{ getStatusProgress() | number : '1.0-0' }}% Complete</div>
-        </div>
+          <div class="report-actions" *ngIf="canViewReports">
+            <button
+              mat-raised-button
+              color="accent"
+              class="report-button"
+              *ngIf="job?.status === 'collected' || job?.status === 'in-transit' || job?.status === 'delivered' || job?.status === 'completed'"
+              (click)="generateCollectionReport()"
+              [disabled]="generatingReport">
+              <mat-icon>description</mat-icon>
+              POC Report
+            </button>
 
-        <div class="report-actions" *ngIf="canViewReports">
-          <button
-            mat-raised-button
-            color="accent"
-            class="report-button"
-            *ngIf="job?.status === 'collected' || job?.status === 'in-transit' || job?.status === 'delivered' || job?.status === 'completed'"
-            (click)="generateCollectionReport()"
-            [disabled]="generatingReport">
-            <mat-icon>description</mat-icon>
-            POC Report
-          </button>
+            <button
+              mat-raised-button
+              color="accent"
+              class="report-button"
+              *ngIf="job?.status === 'delivered' || job?.status === 'completed'"
+              (click)="generateDeliveryReport()"
+              [disabled]="generatingReport">
+              <mat-icon>description</mat-icon>
+              POD Report
+            </button>
+          </div>
 
-          <button
-            mat-raised-button
-            color="accent"
-            class="report-button"
-            *ngIf="job?.status === 'delivered' || job?.status === 'completed'"
-            (click)="generateDeliveryReport()"
-            [disabled]="generatingReport">
-            <mat-icon>description</mat-icon>
-            POD Report
-          </button>
-        </div>
-
-        <mat-card *ngIf="generatingReport" class="report-progress-card">
-          <mat-card-content>
+          <div class="report-progress-card">
             <div class="report-progress">
               <mat-spinner diameter="24"></mat-spinner>
               <span>Generating {{ currentReportType }} report...</span>
             </div>
-          </mat-card-content>
-        </mat-card>
-      </mat-card-content>
-    </mat-card>
-
-    <mat-card class="main-content-card">
-      <mat-tab-group [(selectedIndex)]="selectedTabIndex" (selectedTabChange)="onTabChange($event.index)" class="job-tabs">
-        <mat-tab label="Overview">
-          <div class="tab-content">
-            <div class="content-grid">
-              <div class="info-section">
-                <div class="section-header">
-                  <mat-icon>directions_car</mat-icon>
-                  <h3>Vehicle Information</h3>
-                </div>
-                <div class="info-grid">
-                  <div class="info-item">
-                    <span class="label">Registration</span>
-                    <span class="value vehicle-reg">{{ job.vehicleRegistration || 'Not specified' }}</span>
-                  </div>
-                  <div class="info-item" *ngFor="let spec of getVehicleSpecs()">
-                    <span class="label">{{ spec.label }}</span>
-                    <span class="value">{{ spec.value }}</span>
-                  </div>
-                </div>
-              </div>
-
-              <div class="info-section">
-                <div class="section-header">
-                  <mat-icon>business</mat-icon>
-                  <h3>Customer Information</h3>
-                </div>
-                <div class="info-grid">
-                  <div class="info-item">
-                    <span class="label">Customer Name</span>
-                    <span class="value">{{ job.customerName || 'Not specified' }}</span>
-                  </div>
-                  <div class="info-item" *ngIf="job.customerJobNumber">
-                    <span class="label">Job Number</span>
-                    <span class="value">{{ job.customerJobNumber }}</span>
-                  </div>
-                  <div class="info-item" *ngIf="job.shippingReference">
-                    <span class="label">Shipping Reference</span>
-                    <span class="value">{{ job.shippingReference }}</span>
-                  </div>
-                </div>
-              </div>
-
-              <div class="info-section">
-                <div class="section-header">
-                  <mat-icon>info</mat-icon>
-                  <h3>Job Information</h3>
-                </div>
-                <div class="info-grid">
-                  <div class="info-item">
-                    <span class="label">Job Type</span>
-                    <span class="value">{{ isSplitJourney ? 'Split Journey' : 'Standard Delivery' }}</span>
-                  </div>
-                  <div class="info-item">
-                    <span class="label">Created</span>
-                    <span class="value">{{ formatDateTime(job.createdAt) }}</span>
-                  </div>
-                  <div class="info-item">
-                    <span class="label">Created By</span>
-                    <span class="value">{{ job.createdBy }}</span>
-                  </div>
-                  <div class="info-item" *ngIf="job.driverId">
-                    <span class="label">Assigned Driver</span>
-                    <span class="value">{{ job['driverName'] || 'Assigned' }}</span>
-                  </div>
-                </div>
-              </div>
-
-              <div class="info-section" *ngIf="job.driverId">
-                <div class="section-header">
-                  <mat-icon>person</mat-icon>
-                  <h3>Driver Assignment</h3>
-                </div>
-                <div class="info-grid">
-                  <div class="info-item">
-                    <span class="label">Driver</span>
-                    <span class="value">{{ job['driverName'] || 'Assigned Driver' }}</span>
-                  </div>
-                  <div class="info-item" *ngIf="job.allocatedAt">
-                    <span class="label">Allocated At</span>
-                    <span class="value">{{ formatDateTime(job.allocatedAt) }}</span>
-                  </div>
-                </div>
-              </div>
-
-              <div class="info-section" *ngIf="vehicleCondition?.collection || vehicleCondition?.delivery">
-                <div class="section-header">
-                  <mat-icon>assessment</mat-icon>
-                  <h3>Vehicle Condition Summary</h3>
-                </div>
-                <div class="condition-grid">
-                  <div class="condition-section" *ngIf="vehicleCondition?.collection">
-                    <h4>Collection</h4>
-                    <div class="condition-items">
-                      <div class="condition-item" *ngIf="vehicleCondition.collection.mileage !== undefined">
-                        <mat-icon>speed</mat-icon>
-                        <span>{{ vehicleCondition.collection.mileage }} miles</span>
-                      </div>
-                      <div class="condition-item" *ngIf="vehicleCondition.collection.fuelLevel !== undefined">
-                        <mat-icon>local_gas_station</mat-icon>
-                        <span>{{ vehicleCondition.collection.fuelLevel }}% {{ getEnergyLevelLabel(vehicleCondition.collection.energyType) }}</span>
-                      </div>
-                      <div class="condition-item" *ngIf="vehicleCondition.collection.energyType">
-                        <mat-icon>power</mat-icon>
-                        <span>{{ getEnergyTypeLabel(vehicleCondition.collection.energyType) }}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div class="condition-section" *ngIf="vehicleCondition?.delivery">
-                    <h4>Delivery</h4>
-                    <div class="condition-items">
-                      <div class="condition-item" *ngIf="vehicleCondition.delivery.mileage !== undefined">
-                        <mat-icon>speed</mat-icon>
-                        <span>{{ vehicleCondition.delivery.mileage }} miles</span>
-                      </div>
-                      <div class="condition-item" *ngIf="vehicleCondition.delivery.fuelLevel !== undefined">
-                        <mat-icon>local_gas_station</mat-icon>
-                        <span>{{ vehicleCondition.delivery.fuelLevel }}% {{ getEnergyLevelLabel(vehicleCondition.delivery.energyType) }}</span>
-                      </div>
-                      <div class="condition-item" *ngIf="vehicleCondition.delivery.energyType">
-                        <mat-icon>power</mat-icon>
-                        <span>{{ getEnergyTypeLabel(vehicleCondition.delivery.energyType) }}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div class="journey-summary" *ngIf="getMileageDifference() !== null || getEnergyUsed() !== null">
-                    <h4>Journey Summary</h4>
-                    <div class="summary-items">
-                      <div class="summary-item" *ngIf="getMileageDifference() !== null">
-                        <mat-icon>straighten</mat-icon>
-                        <span>{{ getMileageDifference() }} miles traveled</span>
-                      </div>
-                      <div class="summary-item" *ngIf="getEnergyUsed() !== null">
-                        <mat-icon>trending_down</mat-icon>
-                        <span>{{ getEnergyUsed() }}% {{ getEnergyLevelLabel(vehicleCondition?.collection?.energyType) }} used</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div class="info-section" *ngIf="damageReports_old?.overall || damageReports_old?.collection || damageReports_old?.delivery">
-                <div class="section-header">
-                  <mat-icon [class.warning-icon]="damageReports_old.overall">warning</mat-icon>
-                  <h3>Damage Reports</h3>
-                </div>
-                <div class="damage-grid">
-                  <div class="damage-item" [class.damage-reported]="damageReports_old.overall">
-                    <mat-icon>{{ damageReports_old.overall ? 'warning' : 'check_circle' }}</mat-icon>
-                    <span>Overall Job Damage: {{ damageReports_old.overall ? 'Reported' : 'None' }}</span>
-                  </div>
-                  <div class="damage-item" [class.damage-reported]="damageReports_old.collection">
-                    <mat-icon>{{ damageReports_old.collection ? 'warning' : 'check_circle' }}</mat-icon>
-                    <span>Collection Damage: {{ damageReports_old.collection ? 'Reported' : 'None' }}</span>
-                  </div>
-                  <div class="damage-item" [class.damage-reported]="damageReports_old.delivery">
-                    <mat-icon>{{ damageReports_old.delivery ? 'warning' : 'check_circle' }}</mat-icon>
-                    <span>Delivery Damage: {{ damageReports_old.delivery ? 'Reported' : 'None' }}</span>
-                  </div>
-                </div>
-              </div>
-
-              <div class="info-section" *ngIf="processContacts?.collection || processContacts?.delivery">
-                <div class="section-header">
-                  <mat-icon>contacts</mat-icon>
-                  <h3>Process Contacts</h3>
-                </div>
-                <div class="contacts-grid">
-                  <div class="contact-section" *ngIf="processContacts?.collection">
-                    <h4>Collection Contact</h4>
-                    <div class="contact-details">
-                      <div class="contact-item">
-                        <mat-icon>person</mat-icon>
-                        <span>{{ processContacts.collection.name }}</span>
-                      </div>
-                      <div class="contact-item" *ngIf="processContacts.collection.position">
-                        <mat-icon>work</mat-icon>
-                        <span>{{ processContacts.collection.position }}</span>
-                      </div>
-                      <div class="contact-item" *ngIf="processContacts.collection.phone">
-                        <mat-icon>phone</mat-icon>
-                        <span>{{ processContacts.collection.phone }}</span>
-                      </div>
-                      <div class="contact-item" *ngIf="processContacts.collection.email">
-                        <mat-icon>email</mat-icon>
-                        <span>{{ processContacts.collection.email }}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div class="contact-section" *ngIf="processContacts?.delivery">
-                    <h4>Delivery Contact</h4>
-                    <div class="contact-details">
-                      <div class="contact-item">
-                        <mat-icon>person</mat-icon>
-                        <span>{{ processContacts.delivery.name }}</span>
-                      </div>
-                      <div class="contact-item" *ngIf="processContacts.delivery.position">
-                        <mat-icon>work</mat-icon>
-                        <span>{{ processContacts.delivery.position }}</span>
-                      </div>
-                      <div class="contact-item" *ngIf="processContacts.delivery.phone">
-                        <mat-icon>phone</mat-icon>
-                        <span>{{ processContacts.delivery.phone }}</span>
-                      </div>
-                      <div class="contact-item" *ngIf="processContacts.delivery.email">
-                        <mat-icon>email</mat-icon>
-                        <span>{{ processContacts.delivery.email }}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
           </div>
-        </mat-tab>
+        </div>
+      </div>
 
-        <mat-tab label="Journey Details">
-          <div class="tab-content">
-            <div class="journey-section" *ngIf="isStandardJourney">
-              <div class="journey-flow">
-                <div class="journey-step">
-                  <div class="step-header">
-                    <mat-icon class="step-icon collection">location_on</mat-icon>
-                    <h3>Collection</h3>
+      <div class="main-content-card">
+        <mat-tab-group [(selectedIndex)]="selectedTabIndex" (selectedTabChange)="onTabChange($event.index)" class="job-tabs">
+          <mat-tab label="Overview">
+            <div class="tab-content">
+              <div class="content-grid">
+                <div class="info-section">
+                  <div class="section-header">
+                    <mat-icon>directions_car</mat-icon>
+                    <h3>Vehicle Information</h3>
                   </div>
-                  <div class="step-content">
-                    <div class="address-card">
-                      <div class="address-header">
-                        <mat-icon>place</mat-icon>
-                        <strong>{{ getFullAddress(job.collectionAddress, job.collectionCity, job.collectionPostcode) }}</strong>
-                      </div>
-                      <div class="contact-info">
-                        <mat-icon>person</mat-icon>
-                        <span>{{ getContactInfo(job.collectionContactName, job.collectionContactPhone, job.collectionContactEmail) }}</span>
-                      </div>
-                      <div class="schedule-info" *ngIf="job.collectionScheduledTime">
-                        <mat-icon>schedule</mat-icon>
-                        <span>Scheduled: {{ formatDateTime(job.collectionScheduledTime) }}</span>
-                      </div>
-                      <div class="actual-times" *ngIf="job.collectionActualStartTime || job.collectionActualCompleteTime">
-                        <div *ngIf="job.collectionActualStartTime">
-                          <mat-icon>play_arrow</mat-icon>
-                          <span>Started: {{ formatDateTime(job.collectionActualStartTime) }}</span>
+                  <div class="info-grid">
+                    <div class="info-item">
+                      <span class="label">Registration</span>
+                      <span class="value vehicle-reg">{{ job.vehicleRegistration || 'Not specified' }}</span>
+                    </div>
+                    <div class="info-item" *ngFor="let spec of getVehicleSpecs()">
+                      <span class="label">{{ spec.label }}</span>
+                      <span class="value">{{ spec.value }}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="info-section">
+                  <div class="section-header">
+                    <mat-icon>business</mat-icon>
+                    <h3>Customer Information</h3>
+                  </div>
+                  <div class="info-grid">
+                    <div class="info-item">
+                      <span class="label">Customer Name</span>
+                      <span class="value">{{ job.customerName || 'Not specified' }}</span>
+                    </div>
+                    <div class="info-item" *ngIf="job.customerJobNumber">
+                      <span class="label">Job Number</span>
+                      <span class="value">{{ job.customerJobNumber }}</span>
+                    </div>
+                    <div class="info-item" *ngIf="job.shippingReference">
+                      <span class="label">Shipping Reference</span>
+                      <span class="value">{{ job.shippingReference }}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="info-section">
+                  <div class="section-header">
+                    <mat-icon>info</mat-icon>
+                    <h3>Job Information</h3>
+                  </div>
+                  <div class="info-grid">
+                    <div class="info-item">
+                      <span class="label">Job Type</span>
+                      <span class="value">{{ isSplitJourney ? 'Split Journey' : 'Standard Delivery' }}</span>
+                    </div>
+                    <div class="info-item">
+                      <span class="label">Created</span>
+                      <span class="value">{{ formatDateTime(job.createdAt) }}</span>
+                    </div>
+                    <div class="info-item">
+                      <span class="label">Created By</span>
+                      <span class="value">{{ job.createdBy }}</span>
+                    </div>
+                    <div class="info-item" *ngIf="job.driverId">
+                      <span class="label">Assigned Driver</span>
+                      <span class="value">{{ job['driverName'] || 'Assigned' }}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="info-section" *ngIf="job.driverId">
+                  <div class="section-header">
+                    <mat-icon>person</mat-icon>
+                    <h3>Driver Assignment</h3>
+                  </div>
+                  <div class="info-grid">
+                    <div class="info-item">
+                      <span class="label">Driver</span>
+                      <span class="value">{{ job['driverName'] || 'Assigned Driver' }}</span>
+                    </div>
+                    <div class="info-item" *ngIf="job.allocatedAt">
+                      <span class="label">Allocated At</span>
+                      <span class="value">{{ formatDateTime(job.allocatedAt) }}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="info-section" *ngIf="vehicleCondition?.collection || vehicleCondition?.delivery">
+                  <div class="section-header">
+                    <mat-icon>assessment</mat-icon>
+                    <h3>Vehicle Condition Summary</h3>
+                  </div>
+                  <div class="condition-grid">
+                    <div class="condition-section" *ngIf="vehicleCondition?.collection">
+                      <h4>Collection</h4>
+                      <div class="condition-items">
+                        <div class="condition-item" *ngIf="vehicleCondition.collection.mileage !== undefined">
+                          <mat-icon>speed</mat-icon>
+                          <span>{{ vehicleCondition.collection.mileage }} miles</span>
                         </div>
-                        <div *ngIf="job.collectionActualCompleteTime">
-                          <mat-icon>check_circle</mat-icon>
-                          <span>Completed: {{ formatDateTime(job.collectionActualCompleteTime) }}</span>
+                        <div class="condition-item" *ngIf="vehicleCondition.collection.fuelLevel !== undefined">
+                          <mat-icon>local_gas_station</mat-icon>
+                          <span>{{ vehicleCondition.collection.fuelLevel }}% {{ getEnergyLevelLabel(vehicleCondition.collection.energyType) }}</span>
+                        </div>
+                        <div class="condition-item" *ngIf="vehicleCondition.collection.energyType">
+                          <mat-icon>power</mat-icon>
+                          <span>{{ getEnergyTypeLabel(vehicleCondition.collection.energyType) }}</span>
                         </div>
                       </div>
-                      <div class="notes" *ngIf="job.collectionNotes">
-                        <mat-icon>note</mat-icon>
-                        <p>{{ job.collectionNotes }}</p>
+                    </div>
+
+                    <div class="condition-section" *ngIf="vehicleCondition?.delivery">
+                      <h4>Delivery</h4>
+                      <div class="condition-items">
+                        <div class="condition-item" *ngIf="vehicleCondition.delivery.mileage !== undefined">
+                          <mat-icon>speed</mat-icon>
+                          <span>{{ vehicleCondition.delivery.mileage }} miles</span>
+                        </div>
+                        <div class="condition-item" *ngIf="vehicleCondition.delivery.fuelLevel !== undefined">
+                          <mat-icon>local_gas_station</mat-icon>
+                          <span>{{ vehicleCondition.delivery.fuelLevel }}% {{ getEnergyLevelLabel(vehicleCondition.delivery.energyType) }}</span>
+                        </div>
+                        <div class="condition-item" *ngIf="vehicleCondition.delivery.energyType">
+                          <mat-icon>power</mat-icon>
+                          <span>{{ getEnergyTypeLabel(vehicleCondition.delivery.energyType) }}</span>
+                        </div>
                       </div>
-                      <div class="process-notes" *ngIf="jobProcessData?.collection?.notes">
-                        <mat-icon>assignment</mat-icon>
-                        <p><strong>Process Notes:</strong> {{ jobProcessData?.collection?.notes }}</p>
+                    </div>
+
+                    <div class="journey-summary" *ngIf="getMileageDifference() !== null || getEnergyUsed() !== null">
+                      <h4>Journey Summary</h4>
+                      <div class="summary-items">
+                        <div class="summary-item" *ngIf="getMileageDifference() !== null">
+                          <mat-icon>straighten</mat-icon>
+                          <span>{{ getMileageDifference() }} miles traveled</span>
+                        </div>
+                        <div class="summary-item" *ngIf="getEnergyUsed() !== null">
+                          <mat-icon>trending_down</mat-icon>
+                          <span>{{ getEnergyUsed() }}% {{ getEnergyLevelLabel(vehicleCondition?.collection?.energyType) }} used</span>
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
 
-                <div class="journey-arrow">
-                  <mat-icon>arrow_downward</mat-icon>
-                </div>
-
-                <div class="journey-step">
-                  <div class="step-header">
-                    <mat-icon class="step-icon delivery">flag</mat-icon>
-                    <h3>Delivery</h3>
+                <div class="info-section" *ngIf="damageReports_old?.overall || damageReports_old?.collection || damageReports_old?.delivery">
+                  <div class="section-header">
+                    <mat-icon [class.warning-icon]="damageReports_old.overall">warning</mat-icon>
+                    <h3>Damage Reports</h3>
                   </div>
-                  <div class="step-content">
-                    <div class="address-card">
-                      <div class="address-header">
-                        <mat-icon>place</mat-icon>
-                        <strong>{{ getFullAddress(job.deliveryAddress, job.deliveryCity, job.deliveryPostcode) }}</strong>
-                      </div>
-                      <div class="contact-info">
-                        <mat-icon>person</mat-icon>
-                        <span>{{ getContactInfo(job.deliveryContactName, job.deliveryContactPhone, job.deliveryContactEmail) }}</span>
-                      </div>
-                      <div class="schedule-info" *ngIf="job.deliveryScheduledTime">
-                        <mat-icon>schedule</mat-icon>
-                        <span>Scheduled: {{ formatDateTime(job.deliveryScheduledTime) }}</span>
-                      </div>
-                      <div class="actual-times" *ngIf="job.deliveryActualStartTime || job.deliveryActualCompleteTime">
-                        <div *ngIf="job.deliveryActualStartTime">
-                          <mat-icon>play_arrow</mat-icon>
-                          <span>Started: {{ formatDateTime(job.deliveryActualStartTime) }}</span>
-                        </div>
-                        <div *ngIf="job.deliveryActualCompleteTime">
-                          <mat-icon>check_circle</mat-icon>
-                          <span>Completed: {{ formatDateTime(job.deliveryActualCompleteTime) }}</span>
-                        </div>
-                      </div>
-                      <div class="notes" *ngIf="job.deliveryNotes">
-                        <mat-icon>note</mat-icon>
-                        <p>{{ job.deliveryNotes }}</p>
-                      </div>
-                      <div class="process-notes" *ngIf="jobProcessData?.delivery?.notes">
-                        <mat-icon>assignment</mat-icon>
-                        <p><strong>Process Notes:</strong> {{ jobProcessData?.delivery?.notes }}</p>
-                      </div>
+                  <div class="damage-grid">
+                    <div class="damage-item" [class.damage-reported]="damageReports_old.overall">
+                      <mat-icon>{{ damageReports_old.overall ? 'warning' : 'check_circle' }}</mat-icon>
+                      <span>Overall Job Damage: {{ damageReports_old.overall ? 'Reported' : 'None' }}</span>
                     </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div class="journey-section" *ngIf="isSplitJourney">
-              <div class="split-journey-flow">
-                <div class="journey-step">
-                  <div class="step-header">
-                    <mat-icon class="step-icon collection">location_on</mat-icon>
-                    <h3>Primary Collection</h3>
-                  </div>
-                  <div class="step-content">
-                    <div class="address-card">
-                      <div class="address-header">
-                        <mat-icon>place</mat-icon>
-                        <strong>{{ getFullAddress(job.collectionAddress, job.collectionCity, job.collectionPostcode) }}</strong>
-                      </div>
-                      <div class="contact-info">
-                        <mat-icon>person</mat-icon>
-                        <span>{{ getContactInfo(job.collectionContactName, job.collectionContactPhone, job.collectionContactEmail) }}</span>
-                      </div>
-                      <div class="schedule-info" *ngIf="job.collectionScheduledTime">
-                        <mat-icon>schedule</mat-icon>
-                        <span>Scheduled: {{ formatDateTime(job.collectionScheduledTime) }}</span>
-                      </div>
-                      <div class="actual-times" *ngIf="job.collectionActualStartTime || job.collectionActualCompleteTime">
-                        <div *ngIf="job.collectionActualStartTime">
-                          <mat-icon>play_arrow</mat-icon>
-                          <span>Started: {{ formatDateTime(job.collectionActualStartTime) }}</span>
-                        </div>
-                        <div *ngIf="job.collectionActualCompleteTime">
-                          <mat-icon>check_circle</mat-icon>
-                          <span>Completed: {{ formatDateTime(job.collectionActualCompleteTime) }}</span>
-                        </div>
-                      </div>
-                      <div class="notes" *ngIf="job.collectionNotes">
-                        <mat-icon>note</mat-icon>
-                        <p>{{ job.collectionNotes }}</p>
-                      </div>
-                      <div class="process-notes" *ngIf="jobProcessData?.collection?.notes">
-                        <mat-icon>assignment</mat-icon>
-                        <p><strong>Process Notes:</strong> {{ jobProcessData?.collection?.notes }}</p>
-                      </div>
+                    <div class="damage-item" [class.damage-reported]="damageReports_old.collection">
+                      <mat-icon>{{ damageReports_old.collection ? 'warning' : 'check_circle' }}</mat-icon>
+                      <span>Collection Damage: {{ damageReports_old.collection ? 'Reported' : 'None' }}</span>
+                    </div>
+                    <div class="damage-item" [class.damage-reported]="damageReports_old.delivery">
+                      <mat-icon>{{ damageReports_old.delivery ? 'warning' : 'check_circle' }}</mat-icon>
+                      <span>Delivery Damage: {{ damageReports_old.delivery ? 'Reported' : 'None' }}</span>
                     </div>
                   </div>
                 </div>
 
-                <div class="journey-arrow">
-                  <mat-icon>arrow_downward</mat-icon>
-                </div>
-
-                <div class="journey-step" *ngIf="job.secondaryCollectionAddress">
-                  <div class="step-header">
-                    <mat-icon class="step-icon secondary">add_location</mat-icon>
-                    <h3>Secondary Collection</h3>
+                <div class="info-section" *ngIf="processContacts?.collection || processContacts?.delivery">
+                  <div class="section-header">
+                    <mat-icon>contacts</mat-icon>
+                    <h3>Process Contacts</h3>
                   </div>
-                  <div class="step-content">
-                    <div class="address-card">
-                      <div class="address-header">
-                        <mat-icon>place</mat-icon>
-                        <strong>{{ getFullAddress(job.secondaryCollectionAddress, job.secondaryCollectionCity, job.secondaryCollectionPostcode) }}</strong>
-                      </div>
-                      <div class="contact-info">
-                        <mat-icon>person</mat-icon>
-                        <span>{{ getContactInfo(job.secondaryCollectionContactName, job.secondaryCollectionContactPhone, job.secondaryCollectionContactEmail) }}</span>
-                      </div>
-                      <div class="schedule-info" *ngIf="job.secondaryCollectionScheduledTime">
-                        <mat-icon>schedule</mat-icon>
-                        <span>Scheduled: {{ formatDateTime(job.secondaryCollectionScheduledTime) }}</span>
-                      </div>
-                      <div class="actual-times" *ngIf="job.secondaryCollectionActualStartTime || job.secondaryCollectionActualCompleteTime">
-                        <div *ngIf="job.secondaryCollectionActualStartTime">
-                          <mat-icon>play_arrow</mat-icon>
-                          <span>Started: {{ formatDateTime(job.secondaryCollectionActualStartTime) }}</span>
+                  <div class="contacts-grid">
+                    <div class="contact-section" *ngIf="processContacts?.collection">
+                      <h4>Collection Contact</h4>
+                      <div class="contact-details">
+                        <div class="contact-item">
+                          <mat-icon>person</mat-icon>
+                          <span>{{ processContacts.collection.name }}</span>
                         </div>
-                        <div *ngIf="job.secondaryCollectionActualCompleteTime">
-                          <mat-icon>check_circle</mat-icon>
-                          <span>Completed: {{ formatDateTime(job.secondaryCollectionActualCompleteTime) }}</span>
+                        <div class="contact-item" *ngIf="processContacts.collection.position">
+                          <mat-icon>work</mat-icon>
+                          <span>{{ processContacts.collection.position }}</span>
                         </div>
-                      </div>
-                      <div class="notes" *ngIf="job.secondaryCollectionNotes">
-                        <mat-icon>note</mat-icon>
-                        <p>{{ job.secondaryCollectionNotes }}</p>
-                      </div>
-                      <div class="process-notes" *ngIf="jobProcessData?.secondaryCollection?.notes">
-                        <mat-icon>assignment</mat-icon>
-                        <p><strong>Process Notes:</strong> {{ jobProcessData?.secondaryCollection?.notes }}</p>
+                        <div class="contact-item" *ngIf="processContacts.collection.phone">
+                          <mat-icon>phone</mat-icon>
+                          <span>{{ processContacts.collection.phone }}</span>
+                        </div>
+                        <div class="contact-item" *ngIf="processContacts.collection.email">
+                          <mat-icon>email</mat-icon>
+                          <span>{{ processContacts.collection.email }}</span>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </div>
 
-                <div class="journey-arrow" *ngIf="job.secondaryCollectionAddress">
-                  <mat-icon>arrow_downward</mat-icon>
-                </div>
-
-                <div class="journey-step" *ngIf="job.firstDeliveryAddress">
-                  <div class="step-header">
-                    <mat-icon class="step-icon first-delivery">flag</mat-icon>
-                    <h3>First Delivery</h3>
-                  </div>
-                  <div class="step-content">
-                    <div class="address-card">
-                      <div class="address-header">
-                        <mat-icon>place</mat-icon>
-                        <strong>{{ getFullAddress(job.firstDeliveryAddress, job.firstDeliveryCity, job.firstDeliveryPostcode) }}</strong>
-                      </div>
-                      <div class="contact-info">
-                        <mat-icon>person</mat-icon>
-                        <span>{{ getContactInfo(job.firstDeliveryContactName, job.firstDeliveryContactPhone, job.firstDeliveryContactEmail) }}</span>
-                      </div>
-                      <div class="schedule-info" *ngIf="job.firstDeliveryScheduledTime">
-                        <mat-icon>schedule</mat-icon>
-                        <span>Scheduled: {{ formatDateTime(job.firstDeliveryScheduledTime) }}</span>
-                      </div>
-                      <div class="actual-times" *ngIf="job.firstDeliveryActualStartTime || job.firstDeliveryActualCompleteTime">
-                        <div *ngIf="job.firstDeliveryActualStartTime">
-                          <mat-icon>play_arrow</mat-icon>
-                          <span>Started: {{ formatDateTime(job.firstDeliveryActualStartTime) }}</span>
+                    <div class="contact-section" *ngIf="processContacts?.delivery">
+                      <h4>Delivery Contact</h4>
+                      <div class="contact-details">
+                        <div class="contact-item">
+                          <mat-icon>person</mat-icon>
+                          <span>{{ processContacts.delivery.name }}</span>
                         </div>
-                        <div *ngIf="job.firstDeliveryActualCompleteTime">
-                          <mat-icon>check_circle</mat-icon>
-                          <span>Completed: {{ formatDateTime(job.firstDeliveryActualCompleteTime) }}</span>
+                        <div class="contact-item" *ngIf="processContacts.delivery.position">
+                          <mat-icon>work</mat-icon>
+                          <span>{{ processContacts.delivery.position }}</span>
                         </div>
-                      </div>
-                      <div class="notes" *ngIf="job.firstDeliveryNotes">
-                        <mat-icon>note</mat-icon>
-                        <p>{{ job.firstDeliveryNotes }}</p>
-                      </div>
-                      <div class="process-notes" *ngIf="jobProcessData?.firstDelivery?.notes">
-                        <mat-icon>assignment</mat-icon>
-                        <p><strong>Process Notes:</strong> {{ jobProcessData?.firstDelivery?.notes }}</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div class="journey-arrow" *ngIf="job.firstDeliveryAddress">
-                  <mat-icon>arrow_downward</mat-icon>
-                </div>
-
-                <div class="journey-step">
-                  <div class="step-header">
-                    <mat-icon class="step-icon final-delivery">outlined_flag</mat-icon>
-                    <h3>Final Delivery</h3>
-                  </div>
-                  <div class="step-content">
-                    <div class="address-card">
-                      <div class="address-header">
-                        <mat-icon>place</mat-icon>
-                        <strong>{{ getFullAddress(job.deliveryAddress, job.deliveryCity, job.deliveryPostcode) }}</strong>
-                      </div>
-                      <div class="contact-info">
-                        <mat-icon>person</mat-icon>
-                        <span>{{ getContactInfo(job.deliveryContactName, job.deliveryContactPhone, job.deliveryContactEmail) }}</span>
-                      </div>
-                      <div class="schedule-info" *ngIf="job.deliveryScheduledTime">
-                        <mat-icon>schedule</mat-icon>
-                        <span>Scheduled: {{ formatDateTime(job.deliveryScheduledTime) }}</span>
-                      </div>
-                      <div class="actual-times" *ngIf="job.deliveryActualStartTime || job.deliveryActualCompleteTime">
-                        <div *ngIf="job.deliveryActualStartTime">
-                          <mat-icon>play_arrow</mat-icon>
-                          <span>Started: {{ formatDateTime(job.deliveryActualStartTime) }}</span>
+                        <div class="contact-item" *ngIf="processContacts.delivery.phone">
+                          <mat-icon>phone</mat-icon>
+                          <span>{{ processContacts.delivery.phone }}</span>
                         </div>
-                        <div *ngIf="job.deliveryActualCompleteTime">
-                          <mat-icon>check_circle</mat-icon>
-                          <span>Completed: {{ formatDateTime(job.deliveryActualCompleteTime) }}</span>
+                        <div class="contact-item" *ngIf="processContacts.delivery.email">
+                          <mat-icon>email</mat-icon>
+                          <span>{{ processContacts.delivery.email }}</span>
                         </div>
-                      </div>
-                      <div class="notes" *ngIf="job.deliveryNotes">
-                        <mat-icon>note</mat-icon>
-                        <p>{{ job.deliveryNotes }}</p>
-                      </div>
-                      <div class="process-notes" *ngIf="jobProcessData?.delivery?.notes">
-                        <mat-icon>assignment</mat-icon>
-                        <p><strong>Process Notes:</strong> {{ jobProcessData?.delivery?.notes }}</p>
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
-        </mat-tab>
+          </mat-tab>
 
-        <mat-tab label="Timeline">
-          <div class="tab-content">
-            <div class="timeline-section">
-              <div class="timeline-header">
-                <mat-icon>timeline</mat-icon>
-                <h3>Job Timeline</h3>
-              </div>
-
-              <div class="timeline-content">
-                <div class="timeline-item" *ngFor="let event of getJobTimeline(); let last = last">
-                  <div class="timeline-marker" [ngClass]="'marker-' + event.color">
-                    <mat-icon>{{ event.icon }}</mat-icon>
-                  </div>
-                  <div class="timeline-content-item">
-                    <div class="timeline-title">{{ event.status }}</div>
-                    <div class="timeline-date">{{ formatDateTime(event.date) }}</div>
-                  </div>
-                  <div class="timeline-line" *ngIf="!last"></div>
-                </div>
-
-                <div class="timeline-empty" *ngIf="getJobTimeline().length === 0">
-                  <mat-icon>event_note</mat-icon>
-                  <p>No timeline events recorded yet</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </mat-tab>
-
-        <mat-tab label="Notes">
-          <div class="tab-content">
-            <div class="notes-section" *ngIf="job.collectionNotes?.length">
-              <div class="notes-header">
-                <mat-icon>note</mat-icon>
-                <h3>Collection Notes</h3>
-              </div>
-              <div class="notes-list">
-                <div class="note-item" *ngFor="let note of job.collectionNotes">
-                  <ng-container *ngIf="isNoteObject(note)">
-                    <div class="note-content">{{ note.content }}</div>
-                    <div class="note-meta-row">
-                      <span class="note-author">{{ note.authorName }}</span>
-                      <span class="note-date">{{ formatNoteDate(note.createdAt) }}</span>
+          <mat-tab label="Journey Details">
+            <div class="tab-content">
+              <div class="journey-section" *ngIf="isStandardJourney">
+                <div class="journey-flow">
+                  <div class="journey-step">
+                    <div class="step-header">
+                      <mat-icon class="step-icon collection">location_on</mat-icon>
+                      <h3>Collection</h3>
                     </div>
-                  </ng-container>
-                </div>
-              </div>
-            </div>
-
-            <div class="notes-section" *ngIf="!isSplitJourney && job.deliveryNotes?.length">
-              <div class="notes-header">
-                <mat-icon>flag</mat-icon>
-                <h3>Final Delivery Notes</h3>
-              </div>
-              <div class="notes-list">
-                <div class="note-item" *ngFor="let note of job.deliveryNotes">
-                  <ng-container *ngIf="isNoteObject(note)">
-                    <div class="note-content">{{ note.content }}</div>
-                    <div class="note-meta-row">
-                      <span class="note-author">{{ note.authorName }}</span>
-                      <span class="note-date">{{ formatNoteDate(note.createdAt) }}</span>
+                    <div class="step-content">
+                      <div class="address-card">
+                        <div class="address-header">
+                          <mat-icon>place</mat-icon>
+                          <strong>{{ getFullAddress(job.collectionAddress, job.collectionCity, job.collectionPostcode) }}</strong>
+                        </div>
+                        <div class="contact-info">
+                          <mat-icon>person</mat-icon>
+                          <span>{{ getContactInfo(job.collectionContactName, job.collectionContactPhone, job.collectionContactEmail) }}</span>
+                        </div>
+                        <div class="schedule-info" *ngIf="job.collectionScheduledTime">
+                          <mat-icon>schedule</mat-icon>
+                          <span>Scheduled: {{ formatDateTime(job.collectionScheduledTime) }}</span>
+                        </div>
+                        <div class="actual-times" *ngIf="job.collectionActualStartTime || job.collectionActualCompleteTime">
+                          <div *ngIf="job.collectionActualStartTime">
+                            <mat-icon>play_arrow</mat-icon>
+                            <span>Started: {{ formatDateTime(job.collectionActualStartTime) }}</span>
+                          </div>
+                          <div *ngIf="job.collectionActualCompleteTime">
+                            <mat-icon>check_circle</mat-icon>
+                            <span>Completed: {{ formatDateTime(job.collectionActualCompleteTime) }}</span>
+                          </div>
+                        </div>
+                        <div class="notes" *ngIf="job.collectionNotes">
+                          <mat-icon>note</mat-icon>
+                          <p>{{ job.collectionNotes }}</p>
+                        </div>
+                        <div class="process-notes" *ngIf="jobProcessData?.collection?.notes">
+                          <mat-icon>assignment</mat-icon>
+                          <p><strong>Process Notes:</strong> {{ jobProcessData?.collection?.notes }}</p>
+                        </div>
+                      </div>
                     </div>
-                  </ng-container>
+                  </div>
+
+                  <div class="journey-arrow">
+                    <mat-icon>arrow_downward</mat-icon>
+                  </div>
+
+                  <div class="journey-step">
+                    <div class="step-header">
+                      <mat-icon class="step-icon delivery">flag</mat-icon>
+                      <h3>Delivery</h3>
+                    </div>
+                    <div class="step-content">
+                      <div class="address-card">
+                        <div class="address-header">
+                          <mat-icon>place</mat-icon>
+                          <strong>{{ getFullAddress(job.deliveryAddress, job.deliveryCity, job.deliveryPostcode) }}</strong>
+                        </div>
+                        <div class="contact-info">
+                          <mat-icon>person</mat-icon>
+                          <span>{{ getContactInfo(job.deliveryContactName, job.deliveryContactPhone, job.deliveryContactEmail) }}</span>
+                        </div>
+                        <div class="schedule-info" *ngIf="job.deliveryScheduledTime">
+                          <mat-icon>schedule</mat-icon>
+                          <span>Scheduled: {{ formatDateTime(job.deliveryScheduledTime) }}</span>
+                        </div>
+                        <div class="actual-times" *ngIf="job.deliveryActualStartTime || job.deliveryActualCompleteTime">
+                          <div *ngIf="job.deliveryActualStartTime">
+                            <mat-icon>play_arrow</mat-icon>
+                            <span>Started: {{ formatDateTime(job.deliveryActualStartTime) }}</span>
+                          </div>
+                          <div *ngIf="job.deliveryActualCompleteTime">
+                            <mat-icon>check_circle</mat-icon>
+                            <span>Completed: {{ formatDateTime(job.deliveryActualCompleteTime) }}</span>
+                          </div>
+                        </div>
+                        <div class="notes" *ngIf="job.deliveryNotes">
+                          <mat-icon>note</mat-icon>
+                          <p>{{ job.deliveryNotes }}</p>
+                        </div>
+                        <div class="process-notes" *ngIf="jobProcessData?.delivery?.notes">
+                          <mat-icon>assignment</mat-icon>
+                          <p><strong>Process Notes:</strong> {{ jobProcessData?.delivery?.notes }}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="journey-section" *ngIf="isSplitJourney">
+                <div class="split-journey-flow">
+                  <div class="journey-step">
+                    <div class="step-header">
+                      <mat-icon class="step-icon collection">location_on</mat-icon>
+                      <h3>Primary Collection</h3>
+                    </div>
+                    <div class="step-content">
+                      <div class="address-card">
+                        <div class="address-header">
+                          <mat-icon>place</mat-icon>
+                          <strong>{{ getFullAddress(job.collectionAddress, job.collectionCity, job.collectionPostcode) }}</strong>
+                        </div>
+                        <div class="contact-info">
+                          <mat-icon>person</mat-icon>
+                          <span>{{ getContactInfo(job.collectionContactName, job.collectionContactPhone, job.collectionContactEmail) }}</span>
+                        </div>
+                        <div class="schedule-info" *ngIf="job.collectionScheduledTime">
+                          <mat-icon>schedule</mat-icon>
+                          <span>Scheduled: {{ formatDateTime(job.collectionScheduledTime) }}</span>
+                        </div>
+                        <div class="actual-times" *ngIf="job.collectionActualStartTime || job.collectionActualCompleteTime">
+                          <div *ngIf="job.collectionActualStartTime">
+                            <mat-icon>play_arrow</mat-icon>
+                            <span>Started: {{ formatDateTime(job.collectionActualStartTime) }}</span>
+                          </div>
+                          <div *ngIf="job.collectionActualCompleteTime">
+                            <mat-icon>check_circle</mat-icon>
+                            <span>Completed: {{ formatDateTime(job.collectionActualCompleteTime) }}</span>
+                          </div>
+                        </div>
+                        <div class="notes" *ngIf="job.collectionNotes">
+                          <mat-icon>note</mat-icon>
+                          <p>{{ job.collectionNotes }}</p>
+                        </div>
+                        <div class="process-notes" *ngIf="jobProcessData?.collection?.notes">
+                          <mat-icon>assignment</mat-icon>
+                          <p><strong>Process Notes:</strong> {{ jobProcessData?.collection?.notes }}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="journey-arrow">
+                    <mat-icon>arrow_downward</mat-icon>
+                  </div>
+
+                  <div class="journey-step" *ngIf="job.secondaryCollectionAddress">
+                    <div class="step-header">
+                      <mat-icon class="step-icon secondary">add_location</mat-icon>
+                      <h3>Secondary Collection</h3>
+                    </div>
+                    <div class="step-content">
+                      <div class="address-card">
+                        <div class="address-header">
+                          <mat-icon>place</mat-icon>
+                          <strong>{{ getFullAddress(job.secondaryCollectionAddress, job.secondaryCollectionCity, job.secondaryCollectionPostcode) }}</strong>
+                        </div>
+                        <div class="contact-info">
+                          <mat-icon>person</mat-icon>
+                          <span>{{ getContactInfo(job.secondaryCollectionContactName, job.secondaryCollectionContactPhone, job.secondaryCollectionContactEmail) }}</span>
+                        </div>
+                        <div class="schedule-info" *ngIf="job.secondaryCollectionScheduledTime">
+                          <mat-icon>schedule</mat-icon>
+                          <span>Scheduled: {{ formatDateTime(job.secondaryCollectionScheduledTime) }}</span>
+                        </div>
+                        <div class="actual-times" *ngIf="job.secondaryCollectionActualStartTime || job.secondaryCollectionActualCompleteTime">
+                          <div *ngIf="job.secondaryCollectionActualStartTime">
+                            <mat-icon>play_arrow</mat-icon>
+                            <span>Started: {{ formatDateTime(job.secondaryCollectionActualStartTime) }}</span>
+                          </div>
+                          <div *ngIf="job.secondaryCollectionActualCompleteTime">
+                            <mat-icon>check_circle</mat-icon>
+                            <span>Completed: {{ formatDateTime(job.secondaryCollectionActualCompleteTime) }}</span>
+                          </div>
+                        </div>
+                        <div class="notes" *ngIf="job.secondaryCollectionNotes">
+                          <mat-icon>note</mat-icon>
+                          <p>{{ job.secondaryCollectionNotes }}</p>
+                        </div>
+                        <div class="process-notes" *ngIf="jobProcessData?.secondaryCollection?.notes">
+                          <mat-icon>assignment</mat-icon>
+                          <p><strong>Process Notes:</strong> {{ jobProcessData?.secondaryCollection?.notes }}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="journey-arrow" *ngIf="job.secondaryCollectionAddress">
+                    <mat-icon>arrow_downward</mat-icon>
+                  </div>
+
+                  <div class="journey-step" *ngIf="job.firstDeliveryAddress">
+                    <div class="step-header">
+                      <mat-icon class="step-icon first-delivery">flag</mat-icon>
+                      <h3>First Delivery</h3>
+                    </div>
+                    <div class="step-content">
+                      <div class="address-card">
+                        <div class="address-header">
+                          <mat-icon>place</mat-icon>
+                          <strong>{{ getFullAddress(job.firstDeliveryAddress, job.firstDeliveryCity, job.firstDeliveryPostcode) }}</strong>
+                        </div>
+                        <div class="contact-info">
+                          <mat-icon>person</mat-icon>
+                          <span>{{ getContactInfo(job.firstDeliveryContactName, job.firstDeliveryContactPhone, job.firstDeliveryContactEmail) }}</span>
+                        </div>
+                        <div class="schedule-info" *ngIf="job.firstDeliveryScheduledTime">
+                          <mat-icon>schedule</mat-icon>
+                          <span>Scheduled: {{ formatDateTime(job.firstDeliveryScheduledTime) }}</span>
+                        </div>
+                        <div class="actual-times" *ngIf="job.firstDeliveryActualStartTime || job.firstDeliveryActualCompleteTime">
+                          <div *ngIf="job.firstDeliveryActualStartTime">
+                            <mat-icon>play_arrow</mat-icon>
+                            <span>Started: {{ formatDateTime(job.firstDeliveryActualStartTime) }}</span>
+                          </div>
+                          <div *ngIf="job.firstDeliveryActualCompleteTime">
+                            <mat-icon>check_circle</mat-icon>
+                            <span>Completed: {{ formatDateTime(job.firstDeliveryActualCompleteTime) }}</span>
+                          </div>
+                        </div>
+                        <div class="notes" *ngIf="job.firstDeliveryNotes">
+                          <mat-icon>note</mat-icon>
+                          <p>{{ job.firstDeliveryNotes }}</p>
+                        </div>
+                        <div class="process-notes" *ngIf="jobProcessData?.firstDelivery?.notes">
+                          <mat-icon>assignment</mat-icon>
+                          <p><strong>Process Notes:</strong> {{ jobProcessData?.firstDelivery?.notes }}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="journey-arrow" *ngIf="job.firstDeliveryAddress">
+                    <mat-icon>arrow_downward</mat-icon>
+                  </div>
+
+                  <div class="journey-step">
+                    <div class="step-header">
+                      <mat-icon class="step-icon final-delivery">outlined_flag</mat-icon>
+                      <h3>Final Delivery</h3>
+                    </div>
+                    <div class="step-content">
+                      <div class="address-card">
+                        <div class="address-header">
+                          <mat-icon>place</mat-icon>
+                          <strong>{{ getFullAddress(job.deliveryAddress, job.deliveryCity, job.deliveryPostcode) }}</strong>
+                        </div>
+                        <div class="contact-info">
+                          <mat-icon>person</mat-icon>
+                          <span>{{ getContactInfo(job.deliveryContactName, job.deliveryContactPhone, job.deliveryContactEmail) }}</span>
+                        </div>
+                        <div class="schedule-info" *ngIf="job.deliveryScheduledTime">
+                          <mat-icon>schedule</mat-icon>
+                          <span>Scheduled: {{ formatDateTime(job.deliveryScheduledTime) }}</span>
+                        </div>
+                        <div class="actual-times" *ngIf="job.deliveryActualStartTime || job.deliveryActualCompleteTime">
+                          <div *ngIf="job.deliveryActualStartTime">
+                            <mat-icon>play_arrow</mat-icon>
+                            <span>Started: {{ formatDateTime(job.deliveryActualStartTime) }}</span>
+                          </div>
+                          <div *ngIf="job.deliveryActualCompleteTime">
+                            <mat-icon>check_circle</mat-icon>
+                            <span>Completed: {{ formatDateTime(job.deliveryActualCompleteTime) }}</span>
+                          </div>
+                        </div>
+                        <div class="notes" *ngIf="job.deliveryNotes">
+                          <mat-icon>note</mat-icon>
+                          <p>{{ job.deliveryNotes }}</p>
+                        </div>
+                        <div class="process-notes" *ngIf="jobProcessData?.delivery?.notes">
+                          <mat-icon>assignment</mat-icon>
+                          <p><strong>Process Notes:</strong> {{ jobProcessData?.delivery?.notes }}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
+          </mat-tab>
 
-            <div *ngIf="isSplitJourney">
-              <div class="notes-section" *ngIf="job.firstDeliveryNotes?.length">
+          <mat-tab label="Timeline">
+            <div class="tab-content">
+              <div class="timeline-section">
+                <div class="timeline-header">
+                  <mat-icon>timeline</mat-icon>
+                  <h3>Job Timeline</h3>
+                </div>
+
+                <div class="timeline-content">
+                  <div class="timeline-item" *ngFor="let event of getJobTimeline(); let last = last">
+                    <div class="timeline-marker" [ngClass]="'marker-' + event.color">
+                      <mat-icon>{{ event.icon }}</mat-icon>
+                    </div>
+                    <div class="timeline-content-item">
+                      <div class="timeline-title">{{ event.status }}</div>
+                      <div class="timeline-date">{{ formatDateTime(event.date) }}</div>
+                    </div>
+                    <div class="timeline-line" *ngIf="!last"></div>
+                  </div>
+
+                  <div class="timeline-empty" *ngIf="getJobTimeline().length === 0">
+                    <mat-icon>event_note</mat-icon>
+                    <p>No timeline events recorded yet</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </mat-tab>
+
+          <mat-tab label="Notes">
+            <div class="tab-content">
+              <div class="notes-section" *ngIf="job.collectionNotes?.length">
                 <div class="notes-header">
-                  <mat-icon>flag</mat-icon>
-                  <h3>First Delivery Notes</h3>
+                  <mat-icon>note</mat-icon>
+                  <h3>Collection Notes</h3>
                 </div>
                 <div class="notes-list">
-                  <div class="note-item" *ngFor="let note of job.firstDeliveryNotes">
+                  <div class="note-item" *ngFor="let note of job.collectionNotes">
                     <ng-container *ngIf="isNoteObject(note)">
                       <div class="note-content">{{ note.content }}</div>
                       <div class="note-meta-row">
@@ -706,31 +667,13 @@
                 </div>
               </div>
 
-              <div class="notes-section" *ngIf="job.secondaryCollectionNotes?.length">
-                <div class="notes-header">
-                  <mat-icon>location_on</mat-icon>
-                  <h3>Second Collection Notes</h3>
-                </div>
-                <div class="notes-list">
-                  <div class="note-item" *ngFor="let note of job.secondaryCollectionNotes">
-                    <ng-container *ngIf="isNoteObject(note)">
-                      <div class="note-content">{{ note.content }}</div>
-                      <div class="note-meta-row">
-                        <span class="note-author">{{ note.authorName }}</span>
-                        <span class="note-date">{{ formatNoteDate(note.createdAt) }}</span>
-                      </div>
-                    </ng-container>
-                  </div>
-                </div>
-              </div>
-
-              <div class="notes-section" *ngIf="job['finalDeliveryNotes']?.length">
+              <div class="notes-section" *ngIf="!isSplitJourney && job.deliveryNotes?.length">
                 <div class="notes-header">
                   <mat-icon>flag</mat-icon>
                   <h3>Final Delivery Notes</h3>
                 </div>
                 <div class="notes-list">
-                  <div class="note-item" *ngFor="let note of job['finalDeliveryNotes']">
+                  <div class="note-item" *ngFor="let note of job.deliveryNotes">
                     <ng-container *ngIf="isNoteObject(note)">
                       <div class="note-content">{{ note.content }}</div>
                       <div class="note-meta-row">
@@ -741,826 +684,883 @@
                   </div>
                 </div>
               </div>
-            </div>
 
-            <div class="notes-section" *ngIf="job.generalNotes?.length">
-              <div class="notes-header">
-                <mat-icon>notes</mat-icon>
-                <h3>General Notes</h3>
-              </div>
-              <div class="notes-list">
-                <div class="note-item" *ngFor="let note of job.generalNotes">
-                  <ng-container *ngIf="isNoteObject(note)">
-                    <div class="note-content">{{ note.content }}</div>
-                    <div class="note-meta-row">
-                      <span class="note-author">{{ note.authorName }}</span>
-                      <span class="note-date">{{ formatNoteDate(note.createdAt) }}</span>
-                    </div>
-                  </ng-container>
-                </div>
-              </div>
-            </div>
-
-            <div
-              class="notes-empty"
-              *ngIf="
-                job.collectionNotes?.length === 0 &&
-                job.deliveryNotes?.length === 0 &&
-                (isSplitJourney ? job.secondaryCollectionNotes?.length === 0 && job.firstDeliveryNotes?.length === 0 : true) &&
-                job['finalDeliveryNotes']?.length === 0
-              ">
-              <mat-icon>note_add</mat-icon>
-              <p>No notes added to this job yet</p>
-            </div>
-          </div>
-        </mat-tab>
-
-        <mat-tab label="Documents">
-          <div class="tab-content">
-            <div class="documents-section">
-              <div class="admin-documents-section">
-                <div class="admin-documents-header">
-                  <mat-icon>upload_file</mat-icon>
-                  <h3>Admin Uploaded Documents</h3>
-                </div>
-                <div class="admin-upload-row">
-                  <input type="file" (change)="onAdminFileSelected($event)" [disabled]="adminUploading" />
-                  <button mat-stroked-button color="primary" (click)="uploadAdminDocument()" [disabled]="!adminSelectedFile || adminUploading">
-                    <mat-icon>cloud_upload</mat-icon>
-                    Upload
-                  </button>
-                  <mat-progress-spinner *ngIf="adminUploading" diameter="24" mode="indeterminate"></mat-progress-spinner>
-                </div>
-                <div class="admin-documents-list" *ngIf="adminDocuments.length > 0">
-                  <div class="admin-document-item" *ngFor="let doc of adminDocuments">
-                    <mat-icon>description</mat-icon>
-                    <span class="doc-name">{{ doc.fileName }}</span>
-                    <span class="doc-meta">{{ formatFileSize(doc.size) }} • {{ formatDateTime(doc.uploadedAt) }}</span>
-                    <button mat-icon-button (click)="viewDocument(doc)" matTooltip="View"><mat-icon>visibility</mat-icon></button>
-                    <button mat-icon-button (click)="downloadDocument(doc)" matTooltip="Download"><mat-icon>download</mat-icon></button>
-                  </div>
-                </div>
-                <div *ngIf="!adminDocuments.length" class="admin-documents-empty">
-                  <mat-icon>info</mat-icon>
-                  <span>No admin documents uploaded yet.</span>
-                </div>
-                <mat-divider style="margin: 24px 0"></mat-divider>
-              </div>
-              <div class="documents-header">
-                <mat-icon>folder</mat-icon>
-                <h3>Job Documents</h3>
-                <div class="documents-stats" *ngIf="hasAnyDocuments()">
-                  <span class="stat-item">
-                    <mat-icon>photo_library</mat-icon>
-                    {{ getPhotoCount() }} Photos
-                  </span>
-                  <span class="stat-item">
-                    <mat-icon>draw</mat-icon>
-                    {{ getSignatureCount() }} Signatures
-                  </span>
-                  <span class="stat-item" *ngIf="hasDamageDocuments()">
-                    <mat-icon>warning</mat-icon>
-                    {{ getDamageDocumentCount() }} Damage Items
-                  </span>
-                </div>
-              </div>
-
-              <div *ngIf="documentsLoading" class="documents-loading">
-                <mat-spinner></mat-spinner>
-                <p>Loading documents...</p>
-              </div>
-
-              <div *ngIf="documentsError" class="documents-error">
-                <mat-icon>error</mat-icon>
-                <p>{{ documentsError }}</p>
-                <button mat-raised-button color="primary" (click)="loadJobDocuments(job.id)">
-                  <mat-icon>refresh</mat-icon>
-                  Retry
-                </button>
-              </div>
-
-              <div class="documents-content" *ngIf="hasAnyDocuments() && !documentsLoading && !documentsError">
-                <div class="document-category" *ngIf="hasCollectionDocuments()">
-                  <h4>
-                    <mat-icon>location_on</mat-icon>
-                    Collection Documents ({{ collectionPhotos.length + collectionSignatures.length }})
-                  </h4>
-
-                  <div class="photo-group" *ngIf="collectionPhotos.length > 0">
-                    <h5>Collection Photos ({{ collectionPhotos.length }})</h5>
-                    <div class="photos-grid">
-                      <div class="photo-item" *ngFor="let photo of collectionPhotos">
-                        <div class="photo-thumbnail" (click)="viewDocument(photo)">
-                          <img [src]="photo.url" [alt]="photo.description" loading="lazy" />
-                          <div class="photo-overlay">
-                            <mat-icon>zoom_in</mat-icon>
-                          </div>
-                        </div>
-                        <div class="photo-info">
-                          <div class="photo-description">{{ photo.description }}</div>
-                          <div class="photo-meta">
-                            <small>{{ formatFileSize(photo.size) }} • {{ formatDateTime(photo.uploadedAt) }}</small>
-                          </div>
-                          <div class="photo-actions">
-                            <button mat-icon-button (click)="viewDocument(photo)" matTooltip="View">
-                              <mat-icon>visibility</mat-icon>
-                            </button>
-                            <button mat-icon-button (click)="downloadDocument(photo)" matTooltip="Download">
-                              <mat-icon>download</mat-icon>
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div class="signature-group" *ngIf="collectionSignatures.length > 0">
-                    <h5>Collection Signatures ({{ collectionSignatures.length }})</h5>
-                    <div class="signatures-grid">
-                      <div class="signature-item" *ngFor="let signature of collectionSignatures">
-                        <div class="signature-preview" (click)="viewDocument(signature)">
-                          <img [src]="signature.url" [alt]="signature.description" loading="lazy" />
-                          <div class="signature-overlay">
-                            <mat-icon>zoom_in</mat-icon>
-                          </div>
-                        </div>
-                        <div class="signature-info">
-                          <div class="signature-title">{{ signature.description }}</div>
-                          <div class="signature-meta">
-                            <small>{{ formatFileSize(signature.size) }} • {{ formatDateTime(signature.uploadedAt) }}</small>
-                          </div>
-                          <div class="signature-actions">
-                            <button mat-icon-button (click)="viewDocument(signature)" matTooltip="View">
-                              <mat-icon>visibility</mat-icon>
-                            </button>
-                            <button mat-icon-button (click)="downloadDocument(signature)" matTooltip="Download">
-                              <mat-icon>download</mat-icon>
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div class="document-category" *ngIf="hasDeliveryDocuments()">
-                  <h4>
+              <div *ngIf="isSplitJourney">
+                <div class="notes-section" *ngIf="job.firstDeliveryNotes?.length">
+                  <div class="notes-header">
                     <mat-icon>flag</mat-icon>
-                    Delivery Documents ({{ deliveryPhotos.length + deliverySignatures.length }})
-                  </h4>
-
-                  <div class="photo-group" *ngIf="deliveryPhotos.length > 0">
-                    <h5>Delivery Photos ({{ deliveryPhotos.length }})</h5>
-                    <div class="photos-grid">
-                      <div class="photo-item" *ngFor="let photo of deliveryPhotos">
-                        <div class="photo-thumbnail" (click)="viewDocument(photo)">
-                          <img [src]="photo.url" [alt]="photo.description" loading="lazy" />
-                          <div class="photo-overlay">
-                            <mat-icon>zoom_in</mat-icon>
-                          </div>
-                        </div>
-                        <div class="photo-info">
-                          <div class="photo-description">{{ photo.description }}</div>
-                          <div class="photo-meta">
-                            <small>{{ formatFileSize(photo.size) }} • {{ formatDateTime(photo.uploadedAt) }}</small>
-                          </div>
-                          <div class="photo-actions">
-                            <button mat-icon-button (click)="viewDocument(photo)" matTooltip="View">
-                              <mat-icon>visibility</mat-icon>
-                            </button>
-                            <button mat-icon-button (click)="downloadDocument(photo)" matTooltip="Download">
-                              <mat-icon>download</mat-icon>
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
+                    <h3>First Delivery Notes</h3>
                   </div>
-
-                  <div class="signature-group" *ngIf="deliverySignatures.length > 0">
-                    <h5>Delivery Signatures ({{ deliverySignatures.length }})</h5>
-                    <div class="signatures-grid">
-                      <div class="signature-item" *ngFor="let signature of deliverySignatures">
-                        <div class="signature-preview" (click)="viewDocument(signature)">
-                          <img [src]="signature.url" [alt]="signature.description" loading="lazy" />
-                          <div class="signature-overlay">
-                            <mat-icon>zoom_in</mat-icon>
-                          </div>
+                  <div class="notes-list">
+                    <div class="note-item" *ngFor="let note of job.firstDeliveryNotes">
+                      <ng-container *ngIf="isNoteObject(note)">
+                        <div class="note-content">{{ note.content }}</div>
+                        <div class="note-meta-row">
+                          <span class="note-author">{{ note.authorName }}</span>
+                          <span class="note-date">{{ formatNoteDate(note.createdAt) }}</span>
                         </div>
-                        <div class="signature-info">
-                          <div class="signature-title">{{ signature.description }}</div>
-                          <div class="signature-meta">
-                            <small>{{ formatFileSize(signature.size) }} • {{ formatDateTime(signature.uploadedAt) }}</small>
-                          </div>
-                          <div class="signature-actions">
-                            <button mat-icon-button (click)="viewDocument(signature)" matTooltip="View">
-                              <mat-icon>visibility</mat-icon>
-                            </button>
-                            <button mat-icon-button (click)="downloadDocument(signature)" matTooltip="Download">
-                              <mat-icon>download</mat-icon>
-                            </button>
-                          </div>
-                        </div>
-                      </div>
+                      </ng-container>
                     </div>
                   </div>
                 </div>
 
-                <div class="document-category" *ngIf="isSplitJourney && (secondaryCollectionPhotos.length > 0 || secondaryCollectionSignatures.length > 0)">
-                  <h4>
-                    <mat-icon>add_location</mat-icon>
-                    Secondary Collection Documents ({{ secondaryCollectionPhotos.length + secondaryCollectionSignatures.length }})
-                  </h4>
-
-                  <div class="photo-group" *ngIf="secondaryCollectionPhotos.length > 0">
-                    <h5>Secondary Collection Photos ({{ secondaryCollectionPhotos.length }})</h5>
-                    <div class="photos-grid">
-                      <div class="photo-item" *ngFor="let photo of secondaryCollectionPhotos">
-                        <div class="photo-thumbnail" (click)="viewDocument(photo)">
-                          <img [src]="photo.url" [alt]="photo.description" loading="lazy" />
-                          <div class="photo-overlay">
-                            <mat-icon>zoom_in</mat-icon>
-                          </div>
-                        </div>
-                        <div class="photo-info">
-                          <div class="photo-description">{{ photo.description }}</div>
-                          <div class="photo-meta">
-                            <small>{{ formatFileSize(photo.size) }} • {{ formatDateTime(photo.uploadedAt) }}</small>
-                          </div>
-                          <div class="photo-actions">
-                            <button mat-icon-button (click)="viewDocument(photo)" matTooltip="View">
-                              <mat-icon>visibility</mat-icon>
-                            </button>
-                            <button mat-icon-button (click)="downloadDocument(photo)" matTooltip="Download">
-                              <mat-icon>download</mat-icon>
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
+                <div class="notes-section" *ngIf="job.secondaryCollectionNotes?.length">
+                  <div class="notes-header">
+                    <mat-icon>location_on</mat-icon>
+                    <h3>Second Collection Notes</h3>
                   </div>
-
-                  <div class="signature-group" *ngIf="secondaryCollectionSignatures.length > 0">
-                    <h5>Secondary Collection Signatures ({{ secondaryCollectionSignatures.length }})</h5>
-                    <div class="signatures-grid">
-                      <div class="signature-item" *ngFor="let signature of secondaryCollectionSignatures">
-                        <div class="signature-preview" (click)="viewDocument(signature)">
-                          <img [src]="signature.url" [alt]="signature.description" loading="lazy" />
-                          <div class="signature-overlay">
-                            <mat-icon>zoom_in</mat-icon>
-                          </div>
+                  <div class="notes-list">
+                    <div class="note-item" *ngFor="let note of job.secondaryCollectionNotes">
+                      <ng-container *ngIf="isNoteObject(note)">
+                        <div class="note-content">{{ note.content }}</div>
+                        <div class="note-meta-row">
+                          <span class="note-author">{{ note.authorName }}</span>
+                          <span class="note-date">{{ formatNoteDate(note.createdAt) }}</span>
                         </div>
-                        <div class="signature-info">
-                          <div class="signature-title">{{ signature.description }}</div>
-                          <div class="signature-meta">
-                            <small>{{ formatFileSize(signature.size) }} • {{ formatDateTime(signature.uploadedAt) }}</small>
-                          </div>
-                          <div class="signature-actions">
-                            <button mat-icon-button (click)="viewDocument(signature)" matTooltip="View">
-                              <mat-icon>visibility</mat-icon>
-                            </button>
-                            <button mat-icon-button (click)="downloadDocument(signature)" matTooltip="Download">
-                              <mat-icon>download</mat-icon>
-                            </button>
-                          </div>
-                        </div>
-                      </div>
+                      </ng-container>
                     </div>
                   </div>
                 </div>
 
-                <div class="document-category" *ngIf="isSplitJourney && (firstDeliveryPhotos.length > 0 || firstDeliverySignatures.length > 0)">
-                  <h4>
-                    <mat-icon>flag_outlined</mat-icon>
-                    First Delivery Documents ({{ firstDeliveryPhotos.length + firstDeliverySignatures.length }})
-                  </h4>
-
-                  <div class="photo-group" *ngIf="firstDeliveryPhotos.length > 0">
-                    <h5>First Delivery Photos ({{ firstDeliveryPhotos.length }})</h5>
-                    <div class="photos-grid">
-                      <div class="photo-item" *ngFor="let photo of firstDeliveryPhotos">
-                        <div class="photo-thumbnail" (click)="viewDocument(photo)">
-                          <img [src]="photo.url" [alt]="photo.description" loading="lazy" />
-                          <div class="photo-overlay">
-                            <mat-icon>zoom_in</mat-icon>
-                          </div>
-                        </div>
-                        <div class="photo-info">
-                          <div class="photo-description">{{ photo.description }}</div>
-                          <div class="photo-meta">
-                            <small>{{ formatFileSize(photo.size) }} • {{ formatDateTime(photo.uploadedAt) }}</small>
-                          </div>
-                          <div class="photo-actions">
-                            <button mat-icon-button (click)="viewDocument(photo)" matTooltip="View">
-                              <mat-icon>visibility</mat-icon>
-                            </button>
-                            <button mat-icon-button (click)="downloadDocument(photo)" matTooltip="Download">
-                              <mat-icon>download</mat-icon>
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
+                <div class="notes-section" *ngIf="job['finalDeliveryNotes']?.length">
+                  <div class="notes-header">
+                    <mat-icon>flag</mat-icon>
+                    <h3>Final Delivery Notes</h3>
                   </div>
-
-                  <div class="signature-group" *ngIf="firstDeliverySignatures.length > 0">
-                    <h5>First Delivery Signatures ({{ firstDeliverySignatures.length }})</h5>
-                    <div class="signatures-grid">
-                      <div class="signature-item" *ngFor="let signature of firstDeliverySignatures">
-                        <div class="signature-preview" (click)="viewDocument(signature)">
-                          <img [src]="signature.url" [alt]="signature.description" loading="lazy" />
-                          <div class="signature-overlay">
-                            <mat-icon>zoom_in</mat-icon>
-                          </div>
+                  <div class="notes-list">
+                    <div class="note-item" *ngFor="let note of job['finalDeliveryNotes']">
+                      <ng-container *ngIf="isNoteObject(note)">
+                        <div class="note-content">{{ note.content }}</div>
+                        <div class="note-meta-row">
+                          <span class="note-author">{{ note.authorName }}</span>
+                          <span class="note-date">{{ formatNoteDate(note.createdAt) }}</span>
                         </div>
-                        <div class="signature-info">
-                          <div class="signature-title">{{ signature.description }}</div>
-                          <div class="signature-meta">
-                            <small>{{ formatFileSize(signature.size) }} • {{ formatDateTime(signature.uploadedAt) }}</small>
-                          </div>
-                          <div class="signature-actions">
-                            <button mat-icon-button (click)="viewDocument(signature)" matTooltip="View">
-                              <mat-icon>visibility</mat-icon>
-                            </button>
-                            <button mat-icon-button (click)="downloadDocument(signature)" matTooltip="Download">
-                              <mat-icon>download</mat-icon>
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div class="document-category" *ngIf="hasDamageDocuments() || damageReports.length > 0">
-                  <h4>
-                    <mat-icon>warning</mat-icon>
-                    Damage Reports & Documentation ({{ getDamageDocumentCount() + damageReports.length }})
-                  </h4>
-
-                  <div class="damage-reports" *ngIf="damageReports.length > 0">
-                    <h5>Damage Reports ({{ damageReports.length }})</h5>
-                    <div class="damage-reports-list">
-                      <div class="damage-report-item" *ngFor="let report of damageReports">
-                        <div class="damage-report-header">
-                          <div class="damage-severity">
-                            <mat-icon [color]="getDamageSeverityColor(report.severity)">
-                              {{ getDamageSeverityIcon(report.severity) }}
-                            </mat-icon>
-                            <span class="severity-label" [class]="'severity-' + report.severity">
-                              {{ report.severity | titlecase }}
-                            </span>
-                          </div>
-                          <div class="damage-date">
-                            {{ formatDateTime(report.reportedAt) }}
-                          </div>
-                        </div>
-                        <div class="damage-report-content">
-                          <div class="damage-description">
-                            <strong>{{ report.description }}</strong>
-                          </div>
-                          <div class="damage-details">
-                            <span class="damage-location">
-                              <mat-icon>place</mat-icon>
-                              Location: {{ report.location | titlecase }}
-                            </span>
-                            <span class="damage-reporter">
-                              <mat-icon>person</mat-icon>
-                              Reported by: {{ report.reportedByName }}
-                            </span>
-                          </div>
-                          <div class="damage-notes" *ngIf="report.notes">
-                            <mat-icon>note</mat-icon>
-                            <span>{{ report.notes }}</span>
-                          </div>
-                          <div class="damage-estimate" *ngIf="report.repairEstimate">
-                            <mat-icon>attach_money</mat-icon>
-                            <span>Estimated Repair Cost: £{{ report.repairEstimate.toFixed(2) }}</span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div class="photo-group" *ngIf="damagePhotos.length > 0">
-                    <h5>Damage Photos ({{ damagePhotos.length }})</h5>
-                    <div class="photos-grid">
-                      <div class="photo-item damage-photo" *ngFor="let photo of damagePhotos">
-                        <div class="photo-thumbnail" (click)="viewDocument(photo)">
-                          <img [src]="photo.url" [alt]="photo.description" loading="lazy" />
-                          <div class="photo-overlay damage-overlay">
-                            <mat-icon>warning</mat-icon>
-                          </div>
-                        </div>
-                        <div class="photo-info">
-                          <div class="photo-description">{{ photo.description }}</div>
-                          <div class="photo-meta">
-                            <small>{{ formatFileSize(photo.size) }} • {{ formatDateTime(photo.uploadedAt) }}</small>
-                          </div>
-                          <div class="photo-actions">
-                            <button mat-icon-button (click)="viewDocument(photo)" matTooltip="View">
-                              <mat-icon>visibility</mat-icon>
-                            </button>
-                            <button mat-icon-button (click)="downloadDocument(photo)" matTooltip="Download">
-                              <mat-icon>download</mat-icon>
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div class="diagram-group" *ngIf="damageDiagrams.length > 0">
-                    <h5>Damage Diagrams ({{ damageDiagrams.length }})</h5>
-                    <div class="diagrams-grid">
-                      <div class="diagram-item" *ngFor="let diagram of damageDiagrams">
-                        <div class="diagram-preview" (click)="viewDocument(diagram)">
-                          <img [src]="diagram.url" [alt]="diagram.description" loading="lazy" />
-                          <div class="diagram-overlay">
-                            <mat-icon>zoom_in</mat-icon>
-                          </div>
-                        </div>
-                        <div class="diagram-info">
-                          <div class="diagram-description">{{ diagram.description }}</div>
-                          <div class="diagram-meta">
-                            <small>{{ formatFileSize(diagram.size) }} • {{ formatDateTime(diagram.uploadedAt) }}</small>
-                          </div>
-                          <div class="diagram-actions">
-                            <button mat-icon-button (click)="viewDocument(diagram)" matTooltip="View">
-                              <mat-icon>visibility</mat-icon>
-                            </button>
-                            <button mat-icon-button (click)="downloadDocument(diagram)" matTooltip="Download">
-                              <mat-icon>download</mat-icon>
-                            </button>
-                          </div>
-                        </div>
-                      </div>
+                      </ng-container>
                     </div>
                   </div>
                 </div>
               </div>
 
-              <div *ngIf="!hasAnyDocuments() && !documentsLoading && !documentsError" class="documents-empty">
-                <mat-icon>description</mat-icon>
-                <p>No documents available for this job</p>
-                <small>Photos, signatures, and damage reports will appear here once the collection and delivery processes are completed</small>
+              <div class="notes-section" *ngIf="job.generalNotes?.length">
+                <div class="notes-header">
+                  <mat-icon>notes</mat-icon>
+                  <h3>General Notes</h3>
+                </div>
+                <div class="notes-list">
+                  <div class="note-item" *ngFor="let note of job.generalNotes">
+                    <ng-container *ngIf="isNoteObject(note)">
+                      <div class="note-content">{{ note.content }}</div>
+                      <div class="note-meta-row">
+                        <span class="note-author">{{ note.authorName }}</span>
+                        <span class="note-date">{{ formatNoteDate(note.createdAt) }}</span>
+                      </div>
+                    </ng-container>
+                  </div>
+                </div>
+              </div>
+
+              <div
+                class="notes-empty"
+                *ngIf="
+                  job.collectionNotes?.length === 0 &&
+                  job.deliveryNotes?.length === 0 &&
+                  (isSplitJourney ? job.secondaryCollectionNotes?.length === 0 && job.firstDeliveryNotes?.length === 0 : true) &&
+                  job['finalDeliveryNotes']?.length === 0
+                ">
+                <mat-icon>note_add</mat-icon>
+                <p>No notes added to this job yet</p>
               </div>
             </div>
-          </div>
-        </mat-tab>
+          </mat-tab>
 
-        <mat-tab label="Billing" *ngIf="canManageBilling">
-          <div class="tab-content">
-            <div class="billing-section" *ngIf="!isLoadingBilling && jobBilling">
-              <div class="billing-header">
-                <div class="billing-title">
-                  <mat-icon>receipt_long</mat-icon>
-                  <h3>Job Billing & Invoicing</h3>
+          <mat-tab label="Documents">
+            <div class="tab-content">
+              <div class="documents-section">
+                <div class="admin-documents-section">
+                  <div class="admin-documents-header">
+                    <mat-icon>upload_file</mat-icon>
+                    <h3>Admin Uploaded Documents</h3>
+                  </div>
+                  <div class="admin-upload-row">
+                    <input type="file" (change)="onAdminFileSelected($event)" [disabled]="adminUploading" />
+                    <button mat-stroked-button color="primary" (click)="uploadAdminDocument()" [disabled]="!adminSelectedFile || adminUploading">
+                      <mat-icon>cloud_upload</mat-icon>
+                      Upload
+                    </button>
+                    <mat-progress-spinner *ngIf="adminUploading" diameter="24" mode="indeterminate"></mat-progress-spinner>
+                  </div>
+                  <div class="admin-documents-list" *ngIf="adminDocuments.length > 0">
+                    <div class="admin-document-item" *ngFor="let doc of adminDocuments">
+                      <mat-icon>description</mat-icon>
+                      <span class="doc-name">{{ doc.fileName }}</span>
+                      <span class="doc-meta">{{ formatFileSize(doc.size) }} • {{ formatDateTime(doc.uploadedAt) }}</span>
+                      <button mat-icon-button (click)="viewDocument(doc)" matTooltip="View"><mat-icon>visibility</mat-icon></button>
+                      <button mat-icon-button (click)="downloadDocument(doc)" matTooltip="Download"><mat-icon>download</mat-icon></button>
+                    </div>
+                  </div>
+                  <div *ngIf="!adminDocuments.length" class="admin-documents-empty">
+                    <mat-icon>info</mat-icon>
+                    <span>No admin documents uploaded yet.</span>
+                  </div>
+                  <mat-divider style="margin: 24px 0"></mat-divider>
+                </div>
+                <div class="documents-header">
+                  <mat-icon>folder</mat-icon>
+                  <h3>Job Documents</h3>
+                  <div class="documents-stats" *ngIf="hasAnyDocuments()">
+                    <span class="stat-item">
+                      <mat-icon>photo_library</mat-icon>
+                      {{ getPhotoCount() }} Photos
+                    </span>
+                    <span class="stat-item">
+                      <mat-icon>draw</mat-icon>
+                      {{ getSignatureCount() }} Signatures
+                    </span>
+                    <span class="stat-item" *ngIf="hasDamageDocuments()">
+                      <mat-icon>warning</mat-icon>
+                      {{ getDamageDocumentCount() }} Damage Items
+                    </span>
+                  </div>
                 </div>
 
-                <div class="billing-actions">
-                  <button mat-stroked-button (click)="generatePDFInvoice()" class="invoice-button">
-                    <mat-icon>picture_as_pdf</mat-icon>
-                    Generate Invoice PDF
+                <div *ngIf="documentsLoading" class="documents-loading">
+                  <mat-spinner></mat-spinner>
+                  <p>Loading documents...</p>
+                </div>
+
+                <div *ngIf="documentsError" class="documents-error">
+                  <mat-icon>error</mat-icon>
+                  <p>{{ documentsError }}</p>
+                  <button mat-raised-button color="primary" (click)="loadJobDocuments(job.id)">
+                    <mat-icon>refresh</mat-icon>
+                    Retry
                   </button>
                 </div>
-              </div>
 
-              <div class="billing-summary-grid">
-                <mat-card class="summary-card">
-                  <mat-card-header>
-                    <mat-card-title>
-                      <mat-icon>attach_money</mat-icon>
-                      Total Invoice
-                    </mat-card-title>
-                  </mat-card-header>
-                  <mat-card-content>
-                    <div class="summary-amount">£{{ jobBilling.totalAmount.toFixed(2) }}</div>
-                    <div class="summary-label">Including VAT</div>
-                  </mat-card-content>
-                </mat-card>
+                <div class="documents-content" *ngIf="hasAnyDocuments() && !documentsLoading && !documentsError">
+                  <div class="document-category" *ngIf="hasCollectionDocuments()">
+                    <h4>
+                      <mat-icon>location_on</mat-icon>
+                      Collection Documents ({{ collectionPhotos.length + collectionSignatures.length }})
+                    </h4>
 
-                <mat-card class="summary-card">
-                  <mat-card-header>
-                    <mat-card-title>
-                      <mat-icon>account_balance</mat-icon>
-                      Customer Chargeable
-                    </mat-card-title>
-                  </mat-card-header>
-                  <mat-card-content>
-                    <div class="summary-amount">£{{ (jobBilling.customerChargeableTotal || jobBilling.subtotal).toFixed(2) }}</div>
-                    <div class="summary-label">Chargeable to Customer</div>
-                  </mat-card-content>
-                </mat-card>
-
-                <mat-card class="summary-card">
-                  <mat-card-header>
-                    <mat-card-title>
-                      <mat-icon>receipt</mat-icon>
-                      Total Expenses
-                    </mat-card-title>
-                  </mat-card-header>
-                  <mat-card-content>
-                    <div class="summary-amount">£{{ getTotalApprovedExpenses().toFixed(2) }}</div>
-                    <div class="summary-label">Approved Expenses</div>
-                  </mat-card-content>
-                </mat-card>
-
-                <mat-card class="summary-card">
-                  <mat-card-header>
-                    <mat-card-title>
-                      <mat-icon>business</mat-icon>
-                      Internal Costs
-                    </mat-card-title>
-                  </mat-card-header>
-                  <mat-card-content>
-                    <div class="summary-amount">£{{ getTotalInternalExpenses().toFixed(2) }}</div>
-                    <div class="summary-label">Non-chargeable</div>
-                  </mat-card-content>
-                </mat-card>
-              </div>
-
-              <mat-card class="billing-card">
-                <mat-card-header>
-                  <mat-card-title>
-                    <mat-icon>payments</mat-icon>
-                    Initial Job Cost
-                  </mat-card-title>
-                </mat-card-header>
-                <mat-card-content>
-                  <div class="base-price-section">
-                    <mat-form-field appearance="outline">
-                      <mat-label>Base Job Price</mat-label>
-                      <input matInput type="number" [(ngModel)]="jobBilling.basePrice" (blur)="updateBasePrice()" min="0" step="0.01" />
-                      <span matTextPrefix>£</span>
-                    </mat-form-field>
-                    <p class="base-price-description">This is the initial cost for the job before any additional services or expenses.</p>
-                  </div>
-                </mat-card-content>
-              </mat-card>
-
-              <mat-card class="billing-card">
-                <mat-card-header>
-                  <mat-card-title>
-                    <mat-icon>add_shopping_cart</mat-icon>
-                    Additional Services & Items
-                  </mat-card-title>
-                </mat-card-header>
-                <mat-card-content>
-                  <div class="quick-add-services">
-                    <h4>Quick Add Standard Services:</h4>
-                    <div class="service-chips">
-                      <mat-chip-row *ngFor="let service of standardPricingItems" (click)="addStandardPricingItem(service)" class="service-chip">
-                        <mat-icon matChipAvatar>{{
-                          service.name === 'Collection Service'
-                            ? 'departure_board'
-                            : service.name === 'Delivery Service'
-                            ? 'local_shipping'
-                            : service.name === 'Storage (per day)'
-                            ? 'storage'
-                            : service.name === 'Washing Service'
-                            ? 'local_car_wash'
-                            : service.name === 'Express Service'
-                            ? 'flash_on'
-                            : service.name === 'Mileage (per mile)'
-                            ? 'route'
-                            : service.name === 'Cleaning Service'
-                            ? 'cleaning_services'
-                            : 'build'
-                        }}</mat-icon>
-                        {{ service.name }} - £{{ service.price.toFixed(2) }}
-                      </mat-chip-row>
-                    </div>
-                  </div>
-
-                  <div class="add-item-form">
-                    <h4>Add Custom Service/Item:</h4>
-                    <div class="item-form-grid">
-                      <mat-form-field appearance="outline">
-                        <mat-label>Service/Item Name</mat-label>
-                        <input matInput [(ngModel)]="newPricingItem.name" placeholder="e.g., Special handling fee" />
-                      </mat-form-field>
-
-                      <mat-form-field appearance="outline">
-                        <mat-label>Description</mat-label>
-                        <input matInput [(ngModel)]="newPricingItem.description" placeholder="Service description" />
-                      </mat-form-field>
-
-                      <mat-form-field appearance="outline">
-                        <mat-label>Price</mat-label>
-                        <input matInput type="number" [(ngModel)]="newPricingItem.price" min="0" step="0.01" />
-                        <span matTextPrefix>£</span>
-                      </mat-form-field>
-
-                      <mat-form-field appearance="outline">
-                        <mat-label>Quantity</mat-label>
-                        <input matInput type="number" [(ngModel)]="newPricingItem.quantity" min="1" />
-                      </mat-form-field>
-
-                      <button mat-raised-button color="primary" (click)="addPricingItem()" [disabled]="!newPricingItem.name || newPricingItem.price <= 0">
-                        <mat-icon>add</mat-icon>
-                        Add Item
-                      </button>
-                    </div>
-                  </div>
-
-                  <div class="items-list" *ngIf="jobBilling.additionalItems.length > 0">
-                    <h4>Added Items</h4>
-                    <div class="items-table">
-                      <div class="item-row header">
-                        <span>Item</span>
-                        <span>Price</span>
-                        <span>Qty</span>
-                        <span>Total</span>
-                        <span>Actions</span>
-                      </div>
-                      <div *ngFor="let item of jobBilling.additionalItems" class="item-row">
-                        <div class="item-info">
-                          <strong>{{ item.name }}</strong>
-                          <small>{{ item.description }}</small>
-                          <mat-chip *ngIf="!item.isCustom" class="standard-chip">Standard</mat-chip>
-                        </div>
-                        <span>£{{ item.price.toFixed(2) }}</span>
-                        <span>{{ item.quantity }}</span>
-                        <span>£{{ item.total.toFixed(2) }}</span>
-                        <button mat-icon-button color="warn" (click)="removePricingItem(item.id)" matTooltip="Remove item">
-                          <mat-icon>delete</mat-icon>
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </mat-card-content>
-              </mat-card>
-
-              <mat-card class="billing-card">
-                <mat-card-header>
-                  <mat-card-title>
-                    <mat-icon>receipt</mat-icon>
-                    Job Expenses
-                  </mat-card-title>
-                </mat-card-header>
-                <mat-card-content>
-                  <div class="add-expense-form">
-                    <h4>Add New Expense:</h4>
-                    <div class="expense-form-grid">
-                      <mat-form-field appearance="outline">
-                        <mat-label>Expense Type</mat-label>
-                        <mat-select [(ngModel)]="newExpense.type">
-                          <mat-option *ngFor="let type of expenseTypes" [value]="type.value">
-                            <mat-icon>{{ type.icon }}</mat-icon>
-                            {{ type.label }}
-                          </mat-option>
-                        </mat-select>
-                      </mat-form-field>
-
-                      <mat-form-field appearance="outline">
-                        <mat-label>Description</mat-label>
-                        <input matInput [(ngModel)]="newExpense.description" placeholder="e.g., Fuel for collection journey" />
-                      </mat-form-field>
-
-                      <mat-form-field appearance="outline">
-                        <mat-label>Amount</mat-label>
-                        <input matInput type="number" [(ngModel)]="newExpense.amount" min="0" step="0.01" />
-                        <span matTextPrefix>£</span>
-                      </mat-form-field>
-
-                      <mat-form-field appearance="outline" *ngIf="getExpenseTypeRequiresLiters(newExpense.type)">
-                        <mat-label>Liters</mat-label>
-                        <input matInput type="number" [(ngModel)]="newExpense.liters" min="0" step="0.1" />
-                        <span matTextSuffix>L</span>
-                      </mat-form-field>
-
-                      <mat-form-field appearance="outline">
-                        <mat-label>Receipt URL (optional)</mat-label>
-                        <input matInput [(ngModel)]="newExpense.receiptUrl" placeholder="https://..." />
-                      </mat-form-field>
-
-                      <mat-form-field appearance="outline">
-                        <mat-label>Notes (optional)</mat-label>
-                        <textarea matInput [(ngModel)]="newExpense.notes" rows="2" placeholder="Additional notes..."></textarea>
-                      </mat-form-field>
-                    </div>
-
-                    <div class="expense-options">
-                      <mat-checkbox [(ngModel)]="newExpense.isChargeable"> Chargeable to Customer </mat-checkbox>
-                      <mat-hint>If unchecked, this will be an internal cost only</mat-hint>
-                    </div>
-
-                    <button mat-raised-button color="accent" (click)="addExpense()" [disabled]="!newExpense.description || newExpense.amount <= 0">
-                      <mat-icon>add</mat-icon>
-                      Add Expense
-                    </button>
-                  </div>
-
-                  <div class="expenses-list" *ngIf="jobBilling.expenses.length > 0">
-                    <h4>Recorded Expenses:</h4>
-
-                    <div class="expense-stats">
-                      <div class="stat-item approved">
-                        <span class="label">Approved</span>
-                        <span class="value">£{{ getTotalApprovedExpenses().toFixed(2) }}</span>
-                      </div>
-                      <div class="stat-item pending">
-                        <span class="label">Pending</span>
-                        <span class="value">£{{ getTotalPendingExpenses().toFixed(2) }}</span>
-                      </div>
-                      <div class="stat-item chargeable">
-                        <span class="label">Chargeable</span>
-                        <span class="value">£{{ getTotalChargeableExpenses().toFixed(2) }}</span>
-                      </div>
-                      <div class="stat-item internal">
-                        <span class="label">Internal</span>
-                        <span class="value">£{{ getTotalInternalExpenses().toFixed(2) }}</span>
-                      </div>
-                    </div>
-
-                    <div class="expenses-table">
-                      <div class="expense-row header">
-                        <span>Type</span>
-                        <span>Description</span>
-                        <span>Amount</span>
-                        <span>Date</span>
-                        <span>Status</span>
-                        <span>Actions</span>
-                      </div>
-                      <div
-                        *ngFor="let expense of jobBilling.expenses"
-                        class="expense-row"
-                        [class.approved]="expense.isApproved"
-                        [class.chargeable]="expense.isChargeable">
-                        <div class="expense-type">
-                          <mat-icon>{{ getExpenseTypeIcon(expense.type) }}</mat-icon>
-                          <div>
-                            <span>{{ getExpenseTypeLabel(expense.type) }}</span>
-                            <div class="expense-badges">
-                              <mat-chip *ngIf="expense.isChargeable" class="chargeable-chip">Chargeable</mat-chip>
-                              <mat-chip *ngIf="!expense.isChargeable" class="internal-chip">Internal</mat-chip>
-                              <mat-chip *ngIf="expense.liters" class="liters-chip">{{ expense.liters }}L</mat-chip>
+                    <div class="photo-group" *ngIf="collectionPhotos.length > 0">
+                      <h5>Collection Photos ({{ collectionPhotos.length }})</h5>
+                      <div class="photos-grid">
+                        <div class="photo-item" *ngFor="let photo of collectionPhotos">
+                          <div class="photo-thumbnail" (click)="viewDocument(photo)">
+                            <img [src]="photo.url" [alt]="photo.description" loading="lazy" />
+                            <div class="photo-overlay">
+                              <mat-icon>zoom_in</mat-icon>
+                            </div>
+                          </div>
+                          <div class="photo-info">
+                            <div class="photo-description">{{ photo.description }}</div>
+                            <div class="photo-meta">
+                              <small>{{ formatFileSize(photo.size) }} • {{ formatDateTime(photo.uploadedAt) }}</small>
+                            </div>
+                            <div class="photo-actions">
+                              <button mat-icon-button (click)="viewDocument(photo)" matTooltip="View">
+                                <mat-icon>visibility</mat-icon>
+                              </button>
+                              <button mat-icon-button (click)="downloadDocument(photo)" matTooltip="Download">
+                                <mat-icon>download</mat-icon>
+                              </button>
                             </div>
                           </div>
                         </div>
-                        <div class="expense-description">
-                          <strong>{{ expense.description }}</strong>
-                          <small>Added by {{ expense.addedByName }}</small>
-                          <small *ngIf="expense.notes" class="notes">{{ expense.notes }}</small>
+                      </div>
+                    </div>
+
+                    <div class="signature-group" *ngIf="collectionSignatures.length > 0">
+                      <h5>Collection Signatures ({{ collectionSignatures.length }})</h5>
+                      <div class="signatures-grid">
+                        <div class="signature-item" *ngFor="let signature of collectionSignatures">
+                          <div class="signature-preview" (click)="viewDocument(signature)">
+                            <img [src]="signature.url" [alt]="signature.description" loading="lazy" />
+                            <div class="signature-overlay">
+                              <mat-icon>zoom_in</mat-icon>
+                            </div>
+                          </div>
+                          <div class="signature-info">
+                            <div class="signature-title">{{ signature.description }}</div>
+                            <div class="signature-meta">
+                              <small>{{ formatFileSize(signature.size) }} • {{ formatDateTime(signature.uploadedAt) }}</small>
+                            </div>
+                            <div class="signature-actions">
+                              <button mat-icon-button (click)="viewDocument(signature)" matTooltip="View">
+                                <mat-icon>visibility</mat-icon>
+                              </button>
+                              <button mat-icon-button (click)="downloadDocument(signature)" matTooltip="Download">
+                                <mat-icon>download</mat-icon>
+                              </button>
+                            </div>
+                          </div>
                         </div>
-                        <span class="expense-amount">£{{ expense.amount.toFixed(2) }}</span>
-                        <span>{{ formatDate(expense.date) }}</span>
-                        <div class="expense-status">
-                          <span class="status-badge" [ngClass]="expense.isApproved ? 'approved' : 'pending'">
-                            {{ expense.isApproved ? 'Approved' : 'Pending' }}
-                          </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="document-category" *ngIf="hasDeliveryDocuments()">
+                    <h4>
+                      <mat-icon>flag</mat-icon>
+                      Delivery Documents ({{ deliveryPhotos.length + deliverySignatures.length }})
+                    </h4>
+
+                    <div class="photo-group" *ngIf="deliveryPhotos.length > 0">
+                      <h5>Delivery Photos ({{ deliveryPhotos.length }})</h5>
+                      <div class="photos-grid">
+                        <div class="photo-item" *ngFor="let photo of deliveryPhotos">
+                          <div class="photo-thumbnail" (click)="viewDocument(photo)">
+                            <img [src]="photo.url" [alt]="photo.description" loading="lazy" />
+                            <div class="photo-overlay">
+                              <mat-icon>zoom_in</mat-icon>
+                            </div>
+                          </div>
+                          <div class="photo-info">
+                            <div class="photo-description">{{ photo.description }}</div>
+                            <div class="photo-meta">
+                              <small>{{ formatFileSize(photo.size) }} • {{ formatDateTime(photo.uploadedAt) }}</small>
+                            </div>
+                            <div class="photo-actions">
+                              <button mat-icon-button (click)="viewDocument(photo)" matTooltip="View">
+                                <mat-icon>visibility</mat-icon>
+                              </button>
+                              <button mat-icon-button (click)="downloadDocument(photo)" matTooltip="Download">
+                                <mat-icon>download</mat-icon>
+                              </button>
+                            </div>
+                          </div>
                         </div>
-                        <div class="expense-actions">
-                          <button
-                            *ngIf="!expense.isApproved && canManageBilling"
-                            mat-icon-button
-                            color="primary"
-                            (click)="approveExpense(expense.id)"
-                            matTooltip="Approve expense">
-                            <mat-icon>check</mat-icon>
-                          </button>
-                          <button *ngIf="expense.receiptUrl" mat-icon-button (click)="openReceipt(expense.receiptUrl)" matTooltip="View receipt">
-                            <mat-icon>attachment</mat-icon>
-                          </button>
-                          <button mat-icon-button color="warn" (click)="removeExpense(expense.id)" matTooltip="Remove expense">
+                      </div>
+                    </div>
+
+                    <div class="signature-group" *ngIf="deliverySignatures.length > 0">
+                      <h5>Delivery Signatures ({{ deliverySignatures.length }})</h5>
+                      <div class="signatures-grid">
+                        <div class="signature-item" *ngFor="let signature of deliverySignatures">
+                          <div class="signature-preview" (click)="viewDocument(signature)">
+                            <img [src]="signature.url" [alt]="signature.description" loading="lazy" />
+                            <div class="signature-overlay">
+                              <mat-icon>zoom_in</mat-icon>
+                            </div>
+                          </div>
+                          <div class="signature-info">
+                            <div class="signature-title">{{ signature.description }}</div>
+                            <div class="signature-meta">
+                              <small>{{ formatFileSize(signature.size) }} • {{ formatDateTime(signature.uploadedAt) }}</small>
+                            </div>
+                            <div class="signature-actions">
+                              <button mat-icon-button (click)="viewDocument(signature)" matTooltip="View">
+                                <mat-icon>visibility</mat-icon>
+                              </button>
+                              <button mat-icon-button (click)="downloadDocument(signature)" matTooltip="Download">
+                                <mat-icon>download</mat-icon>
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="document-category" *ngIf="isSplitJourney && (secondaryCollectionPhotos.length > 0 || secondaryCollectionSignatures.length > 0)">
+                    <h4>
+                      <mat-icon>add_location</mat-icon>
+                      Secondary Collection Documents ({{ secondaryCollectionPhotos.length + secondaryCollectionSignatures.length }})
+                    </h4>
+
+                    <div class="photo-group" *ngIf="secondaryCollectionPhotos.length > 0">
+                      <h5>Secondary Collection Photos ({{ secondaryCollectionPhotos.length }})</h5>
+                      <div class="photos-grid">
+                        <div class="photo-item" *ngFor="let photo of secondaryCollectionPhotos">
+                          <div class="photo-thumbnail" (click)="viewDocument(photo)">
+                            <img [src]="photo.url" [alt]="photo.description" loading="lazy" />
+                            <div class="photo-overlay">
+                              <mat-icon>zoom_in</mat-icon>
+                            </div>
+                          </div>
+                          <div class="photo-info">
+                            <div class="photo-description">{{ photo.description }}</div>
+                            <div class="photo-meta">
+                              <small>{{ formatFileSize(photo.size) }} • {{ formatDateTime(photo.uploadedAt) }}</small>
+                            </div>
+                            <div class="photo-actions">
+                              <button mat-icon-button (click)="viewDocument(photo)" matTooltip="View">
+                                <mat-icon>visibility</mat-icon>
+                              </button>
+                              <button mat-icon-button (click)="downloadDocument(photo)" matTooltip="Download">
+                                <mat-icon>download</mat-icon>
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="signature-group" *ngIf="secondaryCollectionSignatures.length > 0">
+                      <h5>Secondary Collection Signatures ({{ secondaryCollectionSignatures.length }})</h5>
+                      <div class="signatures-grid">
+                        <div class="signature-item" *ngFor="let signature of secondaryCollectionSignatures">
+                          <div class="signature-preview" (click)="viewDocument(signature)">
+                            <img [src]="signature.url" [alt]="signature.description" loading="lazy" />
+                            <div class="signature-overlay">
+                              <mat-icon>zoom_in</mat-icon>
+                            </div>
+                          </div>
+                          <div class="signature-info">
+                            <div class="signature-title">{{ signature.description }}</div>
+                            <div class="signature-meta">
+                              <small>{{ formatFileSize(signature.size) }} • {{ formatDateTime(signature.uploadedAt) }}</small>
+                            </div>
+                            <div class="signature-actions">
+                              <button mat-icon-button (click)="viewDocument(signature)" matTooltip="View">
+                                <mat-icon>visibility</mat-icon>
+                              </button>
+                              <button mat-icon-button (click)="downloadDocument(signature)" matTooltip="Download">
+                                <mat-icon>download</mat-icon>
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="document-category" *ngIf="isSplitJourney && (firstDeliveryPhotos.length > 0 || firstDeliverySignatures.length > 0)">
+                    <h4>
+                      <mat-icon>flag_outlined</mat-icon>
+                      First Delivery Documents ({{ firstDeliveryPhotos.length + firstDeliverySignatures.length }})
+                    </h4>
+
+                    <div class="photo-group" *ngIf="firstDeliveryPhotos.length > 0">
+                      <h5>First Delivery Photos ({{ firstDeliveryPhotos.length }})</h5>
+                      <div class="photos-grid">
+                        <div class="photo-item" *ngFor="let photo of firstDeliveryPhotos">
+                          <div class="photo-thumbnail" (click)="viewDocument(photo)">
+                            <img [src]="photo.url" [alt]="photo.description" loading="lazy" />
+                            <div class="photo-overlay">
+                              <mat-icon>zoom_in</mat-icon>
+                            </div>
+                          </div>
+                          <div class="photo-info">
+                            <div class="photo-description">{{ photo.description }}</div>
+                            <div class="photo-meta">
+                              <small>{{ formatFileSize(photo.size) }} • {{ formatDateTime(photo.uploadedAt) }}</small>
+                            </div>
+                            <div class="photo-actions">
+                              <button mat-icon-button (click)="viewDocument(photo)" matTooltip="View">
+                                <mat-icon>visibility</mat-icon>
+                              </button>
+                              <button mat-icon-button (click)="downloadDocument(photo)" matTooltip="Download">
+                                <mat-icon>download</mat-icon>
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="signature-group" *ngIf="firstDeliverySignatures.length > 0">
+                      <h5>First Delivery Signatures ({{ firstDeliverySignatures.length }})</h5>
+                      <div class="signatures-grid">
+                        <div class="signature-item" *ngFor="let signature of firstDeliverySignatures">
+                          <div class="signature-preview" (click)="viewDocument(signature)">
+                            <img [src]="signature.url" [alt]="signature.description" loading="lazy" />
+                            <div class="signature-overlay">
+                              <mat-icon>zoom_in</mat-icon>
+                            </div>
+                          </div>
+                          <div class="signature-info">
+                            <div class="signature-title">{{ signature.description }}</div>
+                            <div class="signature-meta">
+                              <small>{{ formatFileSize(signature.size) }} • {{ formatDateTime(signature.uploadedAt) }}</small>
+                            </div>
+                            <div class="signature-actions">
+                              <button mat-icon-button (click)="viewDocument(signature)" matTooltip="View">
+                                <mat-icon>visibility</mat-icon>
+                              </button>
+                              <button mat-icon-button (click)="downloadDocument(signature)" matTooltip="Download">
+                                <mat-icon>download</mat-icon>
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="document-category" *ngIf="hasDamageDocuments() || damageReports.length > 0">
+                    <h4>
+                      <mat-icon>warning</mat-icon>
+                      Damage Reports & Documentation ({{ getDamageDocumentCount() + damageReports.length }})
+                    </h4>
+
+                    <div class="damage-reports" *ngIf="damageReports.length > 0">
+                      <h5>Damage Reports ({{ damageReports.length }})</h5>
+                      <div class="damage-reports-list">
+                        <div class="damage-report-item" *ngFor="let report of damageReports">
+                          <div class="damage-report-header">
+                            <div class="damage-severity">
+                              <mat-icon [color]="getDamageSeverityColor(report.severity)">
+                                {{ getDamageSeverityIcon(report.severity) }}
+                              </mat-icon>
+                              <span class="severity-label" [class]="'severity-' + report.severity">
+                                {{ report.severity | titlecase }}
+                              </span>
+                            </div>
+                            <div class="damage-date">
+                              {{ formatDateTime(report.reportedAt) }}
+                            </div>
+                          </div>
+                          <div class="damage-report-content">
+                            <div class="damage-description">
+                              <strong>{{ report.description }}</strong>
+                            </div>
+                            <div class="damage-details">
+                              <span class="damage-location">
+                                <mat-icon>place</mat-icon>
+                                Location: {{ report.location | titlecase }}
+                              </span>
+                              <span class="damage-reporter">
+                                <mat-icon>person</mat-icon>
+                                Reported by: {{ report.reportedByName }}
+                              </span>
+                            </div>
+                            <div class="damage-notes" *ngIf="report.notes">
+                              <mat-icon>note</mat-icon>
+                              <span>{{ report.notes }}</span>
+                            </div>
+                            <div class="damage-estimate" *ngIf="report.repairEstimate">
+                              <mat-icon>attach_money</mat-icon>
+                              <span>Estimated Repair Cost: £{{ report.repairEstimate.toFixed(2) }}</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="photo-group" *ngIf="damagePhotos.length > 0">
+                      <h5>Damage Photos ({{ damagePhotos.length }})</h5>
+                      <div class="photos-grid">
+                        <div class="photo-item damage-photo" *ngFor="let photo of damagePhotos">
+                          <div class="photo-thumbnail" (click)="viewDocument(photo)">
+                            <img [src]="photo.url" [alt]="photo.description" loading="lazy" />
+                            <div class="photo-overlay damage-overlay">
+                              <mat-icon>warning</mat-icon>
+                            </div>
+                          </div>
+                          <div class="photo-info">
+                            <div class="photo-description">{{ photo.description }}</div>
+                            <div class="photo-meta">
+                              <small>{{ formatFileSize(photo.size) }} • {{ formatDateTime(photo.uploadedAt) }}</small>
+                            </div>
+                            <div class="photo-actions">
+                              <button mat-icon-button (click)="viewDocument(photo)" matTooltip="View">
+                                <mat-icon>visibility</mat-icon>
+                              </button>
+                              <button mat-icon-button (click)="downloadDocument(photo)" matTooltip="Download">
+                                <mat-icon>download</mat-icon>
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="diagram-group" *ngIf="damageDiagrams.length > 0">
+                      <h5>Damage Diagrams ({{ damageDiagrams.length }})</h5>
+                      <div class="diagrams-grid">
+                        <div class="diagram-item" *ngFor="let diagram of damageDiagrams">
+                          <div class="diagram-preview" (click)="viewDocument(diagram)">
+                            <img [src]="diagram.url" [alt]="diagram.description" loading="lazy" />
+                            <div class="diagram-overlay">
+                              <mat-icon>zoom_in</mat-icon>
+                            </div>
+                          </div>
+                          <div class="diagram-info">
+                            <div class="diagram-description">{{ diagram.description }}</div>
+                            <div class="diagram-meta">
+                              <small>{{ formatFileSize(diagram.size) }} • {{ formatDateTime(diagram.uploadedAt) }}</small>
+                            </div>
+                            <div class="diagram-actions">
+                              <button mat-icon-button (click)="viewDocument(diagram)" matTooltip="View">
+                                <mat-icon>visibility</mat-icon>
+                              </button>
+                              <button mat-icon-button (click)="downloadDocument(diagram)" matTooltip="Download">
+                                <mat-icon>download</mat-icon>
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div *ngIf="!hasAnyDocuments() && !documentsLoading && !documentsError" class="documents-empty">
+                  <mat-icon>description</mat-icon>
+                  <p>No documents available for this job</p>
+                  <small>Photos, signatures, and damage reports will appear here once the collection and delivery processes are completed</small>
+                </div>
+              </div>
+            </div>
+          </mat-tab>
+
+          <mat-tab label="Billing" *ngIf="canManageBilling">
+            <div class="tab-content">
+              <div class="billing-section" *ngIf="!isLoadingBilling && jobBilling">
+                <div class="billing-header">
+                  <div class="billing-title">
+                    <mat-icon>receipt_long</mat-icon>
+                    <h3>Job Billing & Invoicing</h3>
+                  </div>
+
+                  <div class="billing-actions">
+                    <button mat-stroked-button (click)="generatePDFInvoice()" class="invoice-button">
+                      <mat-icon>picture_as_pdf</mat-icon>
+                      Generate Invoice PDF
+                    </button>
+                  </div>
+                </div>
+
+                <div class="billing-summary-grid">
+                  <div class="summary-card">
+                    <div class="card-header">
+                      <div class="card-title">
+                        <mat-icon>attach_money</mat-icon>
+                        Total Invoice
+                      </div>
+                    </div>
+                    <div class="card-content">
+                      <div class="summary-amount">£{{ jobBilling.totalAmount.toFixed(2) }}</div>
+                      <div class="summary-label">Including VAT</div>
+                    </div>
+                  </div>
+
+                  <div class="summary-card">
+                    <div class="card-header">
+                      <div class="card-title">
+                        <mat-icon>account_balance</mat-icon>
+                        Customer Chargeable
+                      </div>
+                    </div>
+                    <div class="card-content">
+                      <div class="summary-amount">£{{ (jobBilling.customerChargeableTotal || jobBilling.subtotal).toFixed(2) }}</div>
+                      <div class="summary-label">Chargeable to Customer</div>
+                    </div>
+                  </div>
+
+                  <div class="summary-card">
+                    <div class="card-header">
+                      <div class="card-title">
+                        <mat-icon>receipt</mat-icon>
+                        Total Expenses
+                      </div>
+                    </div>
+                    <div class="card-content">
+                      <div class="summary-amount">£{{ getTotalApprovedExpenses().toFixed(2) }}</div>
+                      <div class="summary-label">Approved Expenses</div>
+                    </div>
+                  </div>
+
+                  <div class="summary-card">
+                    <div class="card-header">
+                      <div class="card-title">
+                        <mat-icon>business</mat-icon>
+                        Internal Costs
+                      </div>
+                    </div>
+                    <div class="card-content">
+                      <div class="summary-amount">£{{ getTotalInternalExpenses().toFixed(2) }}</div>
+                      <div class="summary-label">Non-chargeable</div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="billing-card">
+                  <div class="card-header">
+                    <div class="card-title">
+                      <mat-icon>payments</mat-icon>
+                      Initial Job Cost
+                    </div>
+                  </div>
+                  <div class="card-content">
+                    <div class="base-price-section">
+                      <mat-form-field appearance="outline">
+                        <mat-label>Base Job Price</mat-label>
+                        <input matInput type="number" [(ngModel)]="jobBilling.basePrice" (blur)="updateBasePrice()" min="0" step="0.01" />
+                        <span matTextPrefix>£</span>
+                      </mat-form-field>
+                      <p class="base-price-description">This is the initial cost for the job before any additional services or expenses.</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="billing-card">
+                  <div class="card-header">
+                    <div class="card-title">
+                      <mat-icon>add_shopping_cart</mat-icon>
+                      Additional Services & Items
+                    </div>
+                  </div>
+                  <div class="card-content">
+                    <div class="quick-add-services">
+                      <h4>Quick Add Standard Services:</h4>
+                      <div class="service-chips">
+                        <mat-chip-row *ngFor="let service of standardPricingItems" (click)="addStandardPricingItem(service)" class="service-chip">
+                          <mat-icon matChipAvatar>{{
+                            service.name === 'Collection Service'
+                              ? 'departure_board'
+                              : service.name === 'Delivery Service'
+                              ? 'local_shipping'
+                              : service.name === 'Storage (per day)'
+                              ? 'storage'
+                              : service.name === 'Washing Service'
+                              ? 'local_car_wash'
+                              : service.name === 'Express Service'
+                              ? 'flash_on'
+                              : service.name === 'Mileage (per mile)'
+                              ? 'route'
+                              : service.name === 'Cleaning Service'
+                              ? 'cleaning_services'
+                              : 'build'
+                          }}</mat-icon>
+                          {{ service.name }} - £{{ service.price.toFixed(2) }}
+                        </mat-chip-row>
+                      </div>
+                    </div>
+
+                    <div class="add-item-form">
+                      <h4>Add Custom Service/Item:</h4>
+                      <div class="item-form-grid">
+                        <mat-form-field appearance="outline">
+                          <mat-label>Service/Item Name</mat-label>
+                          <input matInput [(ngModel)]="newPricingItem.name" placeholder="e.g., Special handling fee" />
+                        </mat-form-field>
+
+                        <mat-form-field appearance="outline">
+                          <mat-label>Description</mat-label>
+                          <input matInput [(ngModel)]="newPricingItem.description" placeholder="Service description" />
+                        </mat-form-field>
+
+                        <mat-form-field appearance="outline">
+                          <mat-label>Price</mat-label>
+                          <input matInput type="number" [(ngModel)]="newPricingItem.price" min="0" step="0.01" />
+                          <span matTextPrefix>£</span>
+                        </mat-form-field>
+
+                        <mat-form-field appearance="outline">
+                          <mat-label>Quantity</mat-label>
+                          <input matInput type="number" [(ngModel)]="newPricingItem.quantity" min="1" />
+                        </mat-form-field>
+
+                        <button mat-raised-button color="primary" (click)="addPricingItem()" [disabled]="!newPricingItem.name || newPricingItem.price <= 0">
+                          <mat-icon>add</mat-icon>
+                          Add Item
+                        </button>
+                      </div>
+                    </div>
+
+                    <div class="items-list" *ngIf="jobBilling.additionalItems.length > 0">
+                      <h4>Added Items</h4>
+                      <div class="items-table">
+                        <div class="item-row header">
+                          <span>Item</span>
+                          <span>Price</span>
+                          <span>Qty</span>
+                          <span>Total</span>
+                          <span>Actions</span>
+                        </div>
+                        <div *ngFor="let item of jobBilling.additionalItems" class="item-row">
+                          <div class="item-info">
+                            <strong>{{ item.name }}</strong>
+                            <small>{{ item.description }}</small>
+                            <mat-chip *ngIf="!item.isCustom" class="standard-chip">Standard</mat-chip>
+                          </div>
+                          <span>£{{ item.price.toFixed(2) }}</span>
+                          <span>{{ item.quantity }}</span>
+                          <span>£{{ item.total.toFixed(2) }}</span>
+                          <button mat-icon-button color="warn" (click)="removePricingItem(item.id)" matTooltip="Remove item">
                             <mat-icon>delete</mat-icon>
                           </button>
                         </div>
                       </div>
                     </div>
                   </div>
-                </mat-card-content>
-              </mat-card>
+                </div>
 
-              <mat-card class="billing-card">
-                <mat-card-header>
-                  <mat-card-title>
-                    <mat-icon>note</mat-icon>
-                    Invoice Notes
-                  </mat-card-title>
-                </mat-card-header>
-                <mat-card-content>
-                  <mat-form-field appearance="outline" class="full-width">
-                    <mat-label>Additional notes for invoice</mat-label>
-                    <textarea matInput [(ngModel)]="jobBilling.notes" rows="3" placeholder="Any additional notes to include on the invoice..."></textarea>
-                  </mat-form-field>
-                </mat-card-content>
-              </mat-card>
-            </div>
+                <div class="billing-card">
+                  <div class="card-header">
+                    <div class="card-title">
+                      <mat-icon>receipt</mat-icon>
+                      Job Expenses
+                    </div>
+                  </div>
+                  <div class="card-content">
+                    <div class="add-expense-form">
+                      <h4>Add New Expense:</h4>
+                      <div class="expense-form-grid">
+                        <mat-form-field appearance="outline">
+                          <mat-label>Expense Type</mat-label>
+                          <mat-select [(ngModel)]="newExpense.type">
+                            <mat-option *ngFor="let type of expenseTypes" [value]="type.value">
+                              <mat-icon>{{ type.icon }}</mat-icon>
+                              {{ type.label }}
+                            </mat-option>
+                          </mat-select>
+                        </mat-form-field>
 
-            <div *ngIf="isLoadingBilling" class="billing-loading">
-              <mat-spinner></mat-spinner>
-              <p>Loading billing information...</p>
-            </div>
+                        <mat-form-field appearance="outline">
+                          <mat-label>Description</mat-label>
+                          <input matInput [(ngModel)]="newExpense.description" placeholder="e.g., Fuel for collection journey" />
+                        </mat-form-field>
 
-            <div *ngIf="!canManageBilling" class="no-billing-access">
-              <mat-icon>lock</mat-icon>
-              <h3>Access Restricted</h3>
-              <p>You don't have permission to view billing information.</p>
+                        <mat-form-field appearance="outline">
+                          <mat-label>Amount</mat-label>
+                          <input matInput type="number" [(ngModel)]="newExpense.amount" min="0" step="0.01" />
+                          <span matTextPrefix>£</span>
+                        </mat-form-field>
+
+                        <mat-form-field appearance="outline" *ngIf="getExpenseTypeRequiresLiters(newExpense.type)">
+                          <mat-label>Liters</mat-label>
+                          <input matInput type="number" [(ngModel)]="newExpense.liters" min="0" step="0.1" />
+                          <span matTextSuffix>L</span>
+                        </mat-form-field>
+
+                        <mat-form-field appearance="outline">
+                          <mat-label>Receipt URL (optional)</mat-label>
+                          <input matInput [(ngModel)]="newExpense.receiptUrl" placeholder="https://..." />
+                        </mat-form-field>
+
+                        <mat-form-field appearance="outline">
+                          <mat-label>Notes (optional)</mat-label>
+                          <textarea matInput [(ngModel)]="newExpense.notes" rows="2" placeholder="Additional notes..."></textarea>
+                        </mat-form-field>
+                      </div>
+
+                      <div class="expense-options">
+                        <mat-checkbox [(ngModel)]="newExpense.isChargeable"> Chargeable to Customer </mat-checkbox>
+                        <mat-hint>If unchecked, this will be an internal cost only</mat-hint>
+                      </div>
+
+                      <button mat-raised-button color="accent" (click)="addExpense()" [disabled]="!newExpense.description || newExpense.amount <= 0">
+                        <mat-icon>add</mat-icon>
+                        Add Expense
+                      </button>
+                    </div>
+
+                    <div class="expenses-list" *ngIf="jobBilling.expenses.length > 0">
+                      <h4>Recorded Expenses:</h4>
+
+                      <div class="expense-stats">
+                        <div class="stat-item approved">
+                          <span class="label">Approved</span>
+                          <span class="value">£{{ getTotalApprovedExpenses().toFixed(2) }}</span>
+                        </div>
+                        <div class="stat-item pending">
+                          <span class="label">Pending</span>
+                          <span class="value">£{{ getTotalPendingExpenses().toFixed(2) }}</span>
+                        </div>
+                        <div class="stat-item chargeable">
+                          <span class="label">Chargeable</span>
+                          <span class="value">£{{ getTotalChargeableExpenses().toFixed(2) }}</span>
+                        </div>
+                        <div class="stat-item internal">
+                          <span class="label">Internal</span>
+                          <span class="value">£{{ getTotalInternalExpenses().toFixed(2) }}</span>
+                        </div>
+                      </div>
+
+                      <div class="expenses-table">
+                        <div class="expense-row header">
+                          <span>Type</span>
+                          <span>Description</span>
+                          <span>Amount</span>
+                          <span>Date</span>
+                          <span>Status</span>
+                          <span>Actions</span>
+                        </div>
+                        <div
+                          *ngFor="let expense of jobBilling.expenses"
+                          class="expense-row"
+                          [class.approved]="expense.isApproved"
+                          [class.chargeable]="expense.isChargeable">
+                          <div class="expense-type">
+                            <mat-icon>{{ getExpenseTypeIcon(expense.type) }}</mat-icon>
+                            <div>
+                              <span>{{ getExpenseTypeLabel(expense.type) }}</span>
+                              <div class="expense-badges">
+                                <mat-chip *ngIf="expense.isChargeable" class="chargeable-chip">Chargeable</mat-chip>
+                                <mat-chip *ngIf="!expense.isChargeable" class="internal-chip">Internal</mat-chip>
+                                <mat-chip *ngIf="expense.liters" class="liters-chip">{{ expense.liters }}L</mat-chip>
+                              </div>
+                            </div>
+                          </div>
+                          <div class="expense-description">
+                            <strong>{{ expense.description }}</strong>
+                            <small>Added by {{ expense.addedByName }}</small>
+                            <small *ngIf="expense.notes" class="notes">{{ expense.notes }}</small>
+                          </div>
+                          <span class="expense-amount">£{{ expense.amount.toFixed(2) }}</span>
+                          <span>{{ formatDate(expense.date) }}</span>
+                          <div class="expense-status">
+                            <span class="status-badge" [ngClass]="expense.isApproved ? 'approved' : 'pending'">
+                              {{ expense.isApproved ? 'Approved' : 'Pending' }}
+                            </span>
+                          </div>
+                          <div class="expense-actions">
+                            <button
+                              *ngIf="!expense.isApproved && canManageBilling"
+                              mat-icon-button
+                              color="primary"
+                              (click)="approveExpense(expense.id)"
+                              matTooltip="Approve expense">
+                              <mat-icon>check</mat-icon>
+                            </button>
+                            <button *ngIf="expense.receiptUrl" mat-icon-button (click)="openReceipt(expense.receiptUrl)" matTooltip="View receipt">
+                              <mat-icon>attachment</mat-icon>
+                            </button>
+                            <button mat-icon-button color="warn" (click)="removeExpense(expense.id)" matTooltip="Remove expense">
+                              <mat-icon>delete</mat-icon>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="billing-card">
+                  <div class="card-header">
+                    <div class="card-title">
+                      <mat-icon>note</mat-icon>
+                      Invoice Notes
+                    </div>
+                  </div>
+                  <div class="card-content">
+                    <mat-form-field appearance="outline" class="full-width">
+                      <mat-label>Additional notes for invoice</mat-label>
+                      <textarea matInput [(ngModel)]="jobBilling.notes" rows="3" placeholder="Any additional notes to include on the invoice..."></textarea>
+                    </mat-form-field>
+                  </div>
+                </div>
+              </div>
+
+              <div *ngIf="isLoadingBilling" class="billing-loading">
+                <mat-spinner></mat-spinner>
+                <p>Loading billing information...</p>
+              </div>
+
+              <div *ngIf="!canManageBilling" class="no-billing-access">
+                <mat-icon>lock</mat-icon>
+                <h3>Access Restricted</h3>
+                <p>You don't have permission to view billing information.</p>
+              </div>
             </div>
-          </div>
-        </mat-tab>
-      </mat-tab-group>
-    </mat-card>
+          </mat-tab>
+        </mat-tab-group>
+      </div>
+    </div>
+  </mat-card>
 </div>

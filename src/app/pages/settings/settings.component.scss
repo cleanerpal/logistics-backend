@@ -1,22 +1,24 @@
 :host {
   display: block;
   padding: 24px;
-  padding-top: 88px; // Account for top navigation bar
   min-height: 100vh;
   background-color: #f5f7fa;
 
   @media (max-width: 768px) {
     padding: 16px;
-    padding-top: 80px; // Adjust for smaller screens
   }
 }
 
 .settings-container {
-  display: flex;
-  max-width: 1400px;
+  padding: 24px;
+  max-width: 1200px;
   margin: 0 auto;
-  width: 100%;
-  gap: 24px;
+  min-height: 100vh;
+  background-color: #f5f7fa;
+
+  @media (max-width: 768px) {
+    padding: 16px;
+  }
 }
 
 .settings-sidebar {

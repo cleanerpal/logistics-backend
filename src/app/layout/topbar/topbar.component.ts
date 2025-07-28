@@ -233,19 +233,23 @@ export class TopbarComponent implements OnInit, OnDestroy {
   }
 
   viewProfile(): void {
-    this.router.navigate(['/profile']);
+    // Navigate to driver details for the current user
+    this.authService.getUserProfile().subscribe((profile) => {
+      if (profile && profile.id) {
+        this.router.navigate(['/drivers', profile.id]);
+      } else {
+        // Fallback to settings if no profile ID
+        this.router.navigate(['/settings/system-preferences']);
+      }
+    });
   }
 
   openPreferences(): void {
-    this.router.navigate(['/preferences']);
+    this.router.navigate(['/settings/system-preferences']);
   }
 
   openAppSettings(): void {
     this.router.navigate(['/settings']);
-  }
-
-  openHelp(): void {
-    window.open('/help', '_blank');
   }
 
   toggleSidebar(): void {

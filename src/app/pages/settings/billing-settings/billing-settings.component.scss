@@ -4,6 +4,7 @@
   min-height: 100vh;
   max-width: 1200px;
   margin: 0 auto;
+  // Layout spacing (topbar/sidebar) now handled by global CSS
 }
 
 .page-header {
@@ -344,9 +345,11 @@ button {
   }
 }
 
+// Update responsive styles to work with global layout system
 @media (max-width: 768px) {
   .billing-settings-container {
-    padding: 16px;
+    padding: 16px; // Only adjust content padding
+    // Topbar and sidebar spacing handled by global CSS
   }
 
   .page-header {
@@ -404,7 +407,7 @@ button {
 
 @media (max-width: 480px) {
   .billing-settings-container {
-    padding: 12px;
+    padding: 12px; // Only adjust content padding
   }
 
   .settings-section {

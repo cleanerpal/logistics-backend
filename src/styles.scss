@@ -1,15 +1,18 @@
-/* Import Angular Material */
-@use '@angular/material' as mat;
-
-/* Include core styles */
-@include mat.core();
-
-/* CSS Custom Properties (Variables) */
+/* Global Sidebar & Topbar Responsive Behavior */
 :root {
+  --sidebar-width-expanded: 250px;
+  --sidebar-width-collapsed: 70px;
+  --sidebar-width-mobile: 60px;
+  --sidebar-transition: 0.3s ease;
+
+  --topbar-height: 64px;
+  --topbar-height-mobile: 56px;
+  --topbar-z-index: 999;
+  --topbar-transition: 0.3s ease;
+
   --primary-color: #4b3e21;
   --secondary-color: #9e7520;
   --tertiary-color: #6e4e0a;
-
   --background-color: #f8f9fa;
   --card-background: #ffffff;
   --text-primary: rgba(0, 0, 0, 0.87);
@@ -21,6 +24,169 @@
   --success-color: #4caf50;
   --warning-color: #ff9800;
   --info-color: #2196f3;
+}
+
+/* Global topbar responsive behavior */
+.top-nav {
+  height: var(--topbar-height);
+  background-color: white;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 24px;
+  position: fixed;
+  top: 0;
+  right: 0;
+  left: var(--sidebar-width-expanded);
+  z-index: var(--topbar-z-index);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  transition: left var(--topbar-transition);
+}
+
+/* Topbar adjustments for different sidebar states */
+@media (max-width: 1024px) {
+  .top-nav {
+    left: var(--sidebar-width-collapsed);
+  }
+}
+
+@media (max-width: 768px) {
+  .top-nav {
+    left: var(--sidebar-width-mobile);
+    height: var(--topbar-height-mobile);
+    padding: 0 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .top-nav {
+    padding: 0 12px;
+  }
+}
+
+/* Global sidebar responsive behavior */
+.sidebar {
+  width: var(--sidebar-width-expanded);
+  transition: width var(--sidebar-transition);
+}
+
+/* Tablet and small desktop - collapsed sidebar */
+@media (max-width: 1024px) {
+  .sidebar {
+    width: var(--sidebar-width-collapsed);
+  }
+
+  /* Adjust content for collapsed sidebar */
+  app-nav-sidebar + * {
+    margin-left: var(--sidebar-width-collapsed);
+  }
+}
+
+/* Mobile - extra compact sidebar */
+@media (max-width: 768px) {
+  .sidebar {
+    width: var(--sidebar-width-mobile);
+  }
+
+  /* Adjust content for mobile sidebar */
+  app-nav-sidebar + * {
+    margin-left: var(--sidebar-width-mobile);
+  }
+}
+
+/* Desktop - expanded sidebar */
+@media (min-width: 1025px) {
+  .sidebar {
+    width: var(--sidebar-width-expanded);
+  }
+
+  /* Adjust content for expanded sidebar */
+  app-nav-sidebar + * {
+    margin-left: var(--sidebar-width-expanded);
+  }
+}
+
+/* Global page content adjustments */
+.page-content,
+.page-container {
+  transition: margin-left var(--sidebar-transition);
+  margin-left: var(--sidebar-width-expanded);
+  padding-top: var(--topbar-height);
+
+  @media (max-width: 1024px) {
+    margin-left: var(--sidebar-width-collapsed);
+  }
+
+  @media (max-width: 768px) {
+    margin-left: var(--sidebar-width-mobile);
+    padding-top: var(--topbar-height-mobile);
+  }
+}
+
+/* Material Dialog adjustments for sidebar */
+.mat-mdc-dialog-container {
+  @media (min-width: 1025px) {
+    margin-left: var(--sidebar-width-expanded);
+  }
+
+  @media (max-width: 1024px) and (min-width: 769px) {
+    margin-left: var(--sidebar-width-collapsed);
+  }
+
+  @media (max-width: 768px) {
+    margin-left: var(--sidebar-width-mobile);
+  }
+}
+
+/* Ensure tooltips work properly with collapsed sidebar */
+.mat-mdc-tooltip {
+  z-index: 1001;
+}
+
+/* Mobile responsiveness for dialogs */
+@media (max-width: 599px) {
+  .mat-mdc-dialog-container {
+    max-width: 100vw !important;
+    width: 100vw !important;
+    margin: 0 !important;
+    border-radius: 0;
+  }
+
+  .custom-dialog-container .mat-mdc-dialog-surface {
+    border-radius: 0;
+  }
+
+  .mat-mdc-dialog-container .mdc-dialog__surface {
+    border-radius: 0 !important;
+  }
+}
+
+/* Material Snackbar Custom Styling */
+::ng-deep .mat-mdc-snack-bar-container {
+  &.info-snackbar {
+    --mat-snack-bar-button-color: #2196f3;
+    --mdc-snackbar-container-color: #e3f2fd;
+    --mdc-snackbar-supporting-text-color: #1976d2;
+  }
+
+  &.error-snackbar {
+    --mat-snack-bar-button-color: #f44336;
+    --mdc-snackbar-container-color: #ffebee;
+    --mdc-snackbar-supporting-text-color: #d32f2f;
+  }
+
+  &.success-snackbar {
+    --mat-snack-bar-button-color: #4caf50;
+    --mdc-snackbar-container-color: #e8f5e8;
+    --mdc-snackbar-supporting-text-color: #388e3c;
+  }
+
+  &.warning-snackbar {
+    --mat-snack-bar-button-color: #ff9800;
+    --mdc-snackbar-container-color: #fff3e0;
+    --mdc-snackbar-supporting-text-color: #f57c00;
+  }
 }
 
 /* Font Definitions */
@@ -56,410 +222,16 @@
   font-display: swap;
 }
 
-/* Base Styles */
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
-html,
+/* Global typography */
 body {
-  font-family: 'UberMove', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-  font-size: 16px;
-  line-height: 1.5;
-  color: var(--text-primary);
-  background-color: #f5f7fa;
-}
-
-.main-content {
-  margin-left: 250px;
-  min-height: 100vh;
-  padding: 24px 0 0 0;
-  padding-top: 64px;
-  background-color: #f5f7fa;
-}
-
-@media (max-width: 768px) {
-  .main-content {
-    margin-left: 60px;
-    padding: 16px 0 0 0;
-    padding-top: 56px;
-  }
-}
-
-/* Typography */
-h1,
-h2,
-h3,
-h4,
-h5,
-h6 {
-  font-family: 'UberMove', sans-serif;
-  font-weight: 500;
-  line-height: 1.2;
-  color: var(--primary-color);
-  margin-bottom: 0.5em;
-}
-
-h1 {
-  font-size: 24px;
-  font-weight: 700;
-}
-
-h2 {
-  font-size: 20px;
-  font-weight: 600;
-}
-
-/* Form elements */
-input,
-select,
-textarea,
-button {
-  font-family: 'UberMove', sans-serif;
-  font-size: 14px;
-}
-
-/* Links */
-a {
-  color: var(--secondary-color);
-  text-decoration: none;
-  transition: color 0.2s ease;
-}
-
-a:hover {
-  color: var(--tertiary-color);
-  text-decoration: underline;
-}
-
-/* Font utility classes */
-.font-light {
-  font-weight: 300;
-}
-.font-regular {
-  font-weight: 400;
-}
-.font-medium {
-  font-weight: 500;
-}
-.font-semibold {
-  font-weight: 600;
-}
-.font-bold {
-  font-weight: 700;
-}
-
-/* Text size utility classes */
-.text-sm {
-  font-size: 14px;
-}
-.text-base {
-  font-size: 16px;
-}
-.text-lg {
-  font-size: 18px;
-}
-.text-xl {
-  font-size: 20px;
-}
-
-/* Line height utility classes */
-.leading-tight {
-  line-height: 1.25;
-}
-.leading-normal {
-  line-height: 1.5;
-}
-.leading-relaxed {
-  line-height: 1.75;
-}
-
-/* Letter spacing utility classes */
-.tracking-tight {
-  letter-spacing: -0.025em;
-}
-.tracking-normal {
-  letter-spacing: 0;
-}
-.tracking-wide {
-  letter-spacing: 0.025em;
-}
-
-/* Status chip colors */
-.status-chip.status-active,
-.status-chip.status-approved,
-.status-chip.status-completed,
-.status-chip.status-success,
-.status-chip.status-green {
-  background-color: rgba(76, 175, 80, 0.12);
-  color: #4caf50;
-}
-
-.status-chip.status-inactive,
-.status-chip.status-default,
-.status-chip.status-grey {
-  background-color: rgba(97, 97, 97, 0.12);
-  color: #616161;
-}
-
-.status-chip.status-pending,
-.status-chip.status-allocated,
-.status-chip.status-warning,
-.status-chip.status-orange {
-  background-color: rgba(255, 152, 0, 0.12);
-  color: #ff9800;
-}
-
-.status-chip.status-rejected,
-.status-chip.status-error,
-.status-chip.status-red,
-.status-chip.status-cancelled {
-  background-color: rgba(244, 67, 54, 0.12);
-  color: #f44336;
-}
-
-.status-chip.status-delivered,
-.status-chip.status-collected,
-.status-chip.status-info {
-  background-color: rgba(33, 150, 243, 0.12);
-  color: #2196f3;
-}
-
-/* Material customizations */
-.mat-mdc-card {
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
-  overflow: hidden;
-}
-
-/* Snackbar styles */
-.success-snackbar {
-  background-color: #4caf50;
-  color: white;
-}
-
-.error-snackbar {
-  background-color: #f44336;
-  color: white;
-}
-
-.info-snackbar {
-  background-color: #2196f3;
-  color: white;
-}
-
-.warning-snackbar {
-  background-color: #ff9800;
-  color: white;
-}
-
-/* Dialog Styles */
-.mat-mdc-dialog-container {
-  --mdc-dialog-container-color: white;
-  border-radius: 8px;
-  overflow: hidden;
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15) !important;
-}
-
-.custom-dialog-container .mat-mdc-dialog-surface {
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-.custom-dialog-container .mat-mdc-dialog-container {
-  padding: 0;
-}
-
-.mat-mdc-dialog-container .mdc-dialog__surface {
-  border-radius: 8px !important;
-}
-
-/* Collection dialog */
-.collection-dialog .dialog-header {
-  background-color: #fff8e1;
-}
-
-/* Delivery dialog */
-.delivery-dialog .dialog-header {
-  background-color: #e8f5e9;
-}
-
-/* Warning dialog */
-.warning-dialog .dialog-header {
-  background-color: #ffebee;
-}
-
-/* Allocation dialog */
-.allocation-dialog .dialog-header {
-  background-color: #e1f5fe;
-}
-
-/* Duplication dialog */
-.duplication-dialog .dialog-header {
-  background-color: #e8eaf6;
-}
-
-.duplication-dialog .dialog-header mat-icon {
-  color: #3f51b5;
-}
-
-/* Duplicate button styling */
-.action-btn:has(.material-icons) mat-icon:contains('content_copy') {
-  color: #3f51b5;
-}
-
-.action-btn:has(.material-icons:contains('content_copy')) {
-  border-color: #3f51b5;
-  color: #3f51b5;
-}
-
-.action-btn:has(.material-icons:contains('content_copy')):hover {
-  background-color: #e8eaf6;
-}
-
-/* Fallback for browsers that don't support :has() */
-.action-btn .material-icons.content_copy {
-  color: #3f51b5;
-}
-
-/* Fade in animation for dialogs */
-.mat-mdc-dialog-container.mdc-dialog__container {
-  animation: dialogFadeIn 0.2s ease-out;
-}
-
-@keyframes dialogFadeIn {
-  from {
-    opacity: 0;
-    transform: scale(0.95);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-/* Driver Selection Dialog */
-.driver-selection-dialog {
-  min-width: 350px;
-}
-
-.driver-selection-dialog .dialog-content {
-  padding: 0 !important;
-  max-height: 350px;
-  overflow-y: auto;
-}
-
-.driver-list {
-  list-style: none;
-  padding: 0;
+  font-family: 'UberMove', 'Roboto', sans-serif;
   margin: 0;
+  padding: 0;
+  background-color: var(--background-color);
+  color: var(--text-primary);
 }
 
-.driver-item {
-  padding: 12px 24px;
-  border-bottom: 1px solid #f0f0f0;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.driver-item:hover {
-  background-color: #f5f9fd;
-}
-
-.driver-item:last-child {
-  border-bottom: none;
-}
-
-.driver-avatar {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background-color: #e1f5fe;
-  color: #0288d1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 500;
-  font-size: 16px;
-}
-
-.driver-info {
-  flex: 1;
-}
-
-.driver-name {
-  font-weight: 500;
-  color: #333;
-  margin-bottom: 4px;
-}
-
-.driver-details {
-  font-size: 13px;
-  color: #666;
-}
-
-.driver-actions {
-  display: flex;
-  align-items: center;
-}
-
-/* Mobile responsiveness for dialogs */
-@media (max-width: 599px) {
-  .mat-mdc-dialog-container {
-    max-width: 100vw !important;
-    width: 100vw !important;
-    margin: 0;
-    border-radius: 0;
-  }
-
-  .custom-dialog-container .mat-mdc-dialog-surface {
-    border-radius: 0;
-  }
-
-  .mat-mdc-dialog-container .mdc-dialog__surface {
-    border-radius: 0 !important;
-  }
-
-  .duplication-dialog .mat-dialog-container {
-    padding: 16px;
-  }
-
-  .duplicate-dialog .dialog-content {
-    padding: 0 16px;
-    font-size: 14px;
-  }
-
-  .duplicate-dialog .dialog-actions {
-    padding: 8px 16px 16px;
-    flex-direction: column-reverse;
-  }
-
-  .duplicate-dialog .dialog-actions button {
-    width: 100%;
-    margin-left: 0 !important;
-    margin-right: 0 !important;
-    margin-bottom: 8px;
-  }
-}
-
-/* Account for sidebar when positioning dialog */
-@media (min-width: 600px) {
-  .duplication-dialog {
-    margin-left: 60px; /* For collapsed sidebar */
-  }
-}
-
-@media (min-width: 1200px) {
-  .duplication-dialog {
-    margin-left: 250px; /* For expanded sidebar */
-  }
-}
-
-/* Mobile optimization */
+/* Global responsive typography */
 @media (max-width: 768px) {
   html,
   body {
@@ -475,7 +247,7 @@ a:hover {
   }
 }
 
-/* Print styles - hide duplication button when printing */
+/* Print styles */
 @media print {
   .action-btn:has(.material-icons:contains('content_copy')),
   .action-btn:has(.material-icons.content_copy) {

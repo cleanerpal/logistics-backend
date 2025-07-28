@@ -3,16 +3,14 @@
   padding: 24px;
   background-color: #f5f7fa;
   min-height: 100vh;
-  padding-top: 72px; // Account for top navigation bar
+  // Removed hardcoded padding-top - now handled by global CSS
 
   @media (max-width: 768px) {
     padding: 16px;
-    padding-top: 64px;
+    // Removed hardcoded padding-top - now handled by global CSS
   }
 
-  &.with-topbar {
-    padding-top: calc(var(--topbar-height, 64px) + 8px);
-  }
+  // Removed with-topbar override - now handled by global CSS
 }
 
 .job-details-container {
@@ -196,13 +194,14 @@
 }
 
 .status-overview-card {
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-  border: 1px solid #e5e7eb;
   background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  margin-bottom: 24px;
+  overflow: hidden;
 
-  .mat-mdc-card-content {
-    padding: 24px !important;
+  .card-content {
+    padding: 24px;
   }
 
   .status-header {
@@ -384,6 +383,10 @@
   background: var(--ion-color-light);
   border: 1px solid #e3f2fd;
   border-radius: 12px;
+
+  .card-content {
+    padding: 0;
+  }
 
   .report-progress {
     display: flex;
@@ -3447,6 +3450,37 @@
     mat-icon {
       font-size: 20px;
       color: #9ca3af;
+    }
+  }
+}
+
+// Additional styles for converted card elements
+.card-content {
+  padding: 16px;
+  &:last-child {
+    padding-bottom: 16px;
+  }
+}
+
+.card-header {
+  padding: 16px 16px 0 16px;
+  display: flex;
+  align-items: center;
+
+  .card-title {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 500;
+    color: #1e293b;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    mat-icon {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+      color: #6b7280;
     }
   }
 }
