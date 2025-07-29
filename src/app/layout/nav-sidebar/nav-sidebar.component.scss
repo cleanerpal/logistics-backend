@@ -14,22 +14,28 @@
 }
 
 .logo-container {
-  padding: 24px 20px;
-  text-align: center;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  transition: padding var(--sidebar-transition);
+  height: var(--topbar-height); // Match topbar height exactly
+  padding: 0 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: white; // White background
+  border-bottom: 1px solid var(--border-color);
+  transition: all var(--sidebar-transition);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); // Subtle shadow for separation
 }
 
 .logo {
   max-width: 120px;
   height: auto;
-  transition: max-width var(--sidebar-transition);
+  max-height: 40px; // Constrain height to fit in topbar alignment
+  transition: all var(--sidebar-transition);
 }
 
 .nav-list {
   list-style: none;
   padding: 0;
-  margin: 16px 0;
+  margin: 24px 0;
   flex: 1;
   overflow-y: auto;
 }
@@ -50,7 +56,8 @@
 .nav-item {
   display: flex;
   align-items: center;
-  padding: 12px 20px;
+  padding: 20px 28px 16px 28px;
+  margin-bottom: 8px;
   cursor: pointer;
   border-left: 4px solid transparent;
   color: rgba(255, 255, 255, 0.85);
@@ -71,10 +78,10 @@
 }
 
 .nav-icon {
-  margin-right: 16px;
-  font-size: 20px;
-  width: 20px;
-  height: 20px;
+  margin-right: 20px;
+  font-size: 24px;
+  width: 24px;
+  height: 24px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -83,9 +90,9 @@
 }
 
 .nav-label {
-  font-size: 14px;
-  font-weight: 500;
-  letter-spacing: 0.1px;
+  font-size: 16px;
+  font-weight: 400;
+  letter-spacing: 0.2px;
   transition: opacity var(--sidebar-transition);
   white-space: nowrap;
   overflow: hidden;
@@ -99,11 +106,14 @@
   }
 
   .logo-container {
-    padding: 16px 10px;
+    height: var(--topbar-height); // Keep same height as topbar
+    padding: 0 10px; // Reduced padding for narrow sidebar
+    background-color: white; // Maintain white background
   }
 
   .logo {
     max-width: 40px;
+    max-height: 32px; // Slightly smaller for collapsed state
   }
 
   .nav-label {
@@ -157,6 +167,17 @@
 @media (max-width: 768px) {
   .sidebar {
     width: var(--sidebar-width-mobile);
+  }
+
+  .logo-container {
+    height: var(--topbar-height-mobile); // Use mobile topbar height
+    padding: 0 8px; // Even more compact padding
+    background-color: white; // Maintain white background
+  }
+
+  .logo {
+    max-width: 32px; // Even smaller for mobile
+    max-height: 28px;
   }
 
   .nav-item {

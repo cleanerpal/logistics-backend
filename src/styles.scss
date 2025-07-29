@@ -1,6 +1,6 @@
 /* Global Sidebar & Topbar Responsive Behavior */
 :root {
-  --sidebar-width-expanded: 250px;
+  --sidebar-width-expanded: 240px;
   --sidebar-width-collapsed: 70px;
   --sidebar-width-mobile: 60px;
   --sidebar-transition: 0.3s ease;
@@ -24,6 +24,152 @@
   --success-color: #4caf50;
   --warning-color: #ff9800;
   --info-color: #2196f3;
+}
+
+/* Global body layout - ensures all content accounts for sidebar and topbar */
+body {
+  margin: 0;
+  padding: 0;
+  font-family: 'UberMove', 'Roboto', sans-serif;
+}
+
+/* Main app container layout */
+app-root {
+  display: block;
+  min-height: 100vh;
+}
+
+/* Layout debugging utilities - remove in production */
+.debug-layout {
+  outline: 2px solid red !important;
+
+  &::before {
+    content: 'Layout Applied: ML=' attr(data-margin-left) ' PT=' attr(data-padding-top);
+    position: absolute;
+    top: 0;
+    left: 0;
+    background: red;
+    color: white;
+    padding: 2px 4px;
+    font-size: 10px;
+    z-index: 9999;
+  }
+}
+
+/* Utility classes for manual layout control if needed */
+.force-layout {
+  margin-left: var(--sidebar-width-expanded) !important;
+  padding-top: var(--topbar-height) !important;
+
+  @media (max-width: 1024px) {
+    margin-left: var(--sidebar-width-collapsed) !important;
+  }
+
+  @media (max-width: 768px) {
+    margin-left: var(--sidebar-width-mobile) !important;
+    padding-top: var(--topbar-height-mobile) !important;
+  }
+}
+
+.no-layout {
+  margin-left: 0 !important;
+  padding-top: 0 !important;
+}
+
+/* Auth pages should take full screen - no sidebar/topbar spacing */
+app-auth-layout,
+.auth-layout,
+.auth-container {
+  margin-left: 0 !important;
+  padding-top: 0 !important;
+  width: 100% !important;
+  position: relative !important;
+}
+
+/* Print styles - disable layout for printing */
+@media print {
+  * {
+    margin-left: 0 !important;
+    padding-top: 0 !important;
+  }
+
+  .sidebar,
+  .top-nav {
+    display: none !important;
+  }
+}
+
+/* Ensure sidebar and topbar maintain proper positioning */
+.sidebar,
+app-nav-sidebar {
+  position: fixed !important;
+  left: 0 !important;
+  top: 0 !important;
+  z-index: 1000 !important;
+  margin-left: 0 !important;
+  padding-top: 0 !important;
+}
+
+.top-nav,
+app-topbar {
+  position: fixed !important;
+  top: 0 !important;
+  z-index: 999 !important;
+  margin-left: 0 !important;
+  padding-top: 0 !important;
+}
+
+/* Ensure sidebar content stays within sidebar */
+.sidebar *,
+app-nav-sidebar *,
+.logo-container,
+.nav-list,
+.nav-item,
+.nav-icon,
+.nav-label {
+  margin-left: 0 !important;
+  padding-top: 0 !important;
+  position: relative !important;
+}
+
+/* CONSERVATIVE: Simple global layout for main content only */
+router-outlet + *:not(app-nav-sidebar):not(app-topbar):not(app-auth-layout) {
+  // margin-left: var(--sidebar-width-expanded);
+  padding-top: var(--topbar-height);
+  transition: margin-left var(--sidebar-transition);
+  min-height: calc(100vh - var(--topbar-height));
+  box-sizing: border-box;
+
+  @media (max-width: 1024px) {
+    margin-left: var(--sidebar-width-collapsed);
+  }
+
+  @media (max-width: 768px) {
+    margin-left: var(--sidebar-width-mobile);
+    padding-top: var(--topbar-height-mobile);
+    min-height: calc(100vh - var(--topbar-height-mobile));
+  }
+}
+
+/* Specific page containers that need layout */
+.page-content:not(.sidebar):not(.top-nav):not(.auth-layout),
+.page-container:not(.sidebar):not(.top-nav):not(.auth-layout),
+.main-content:not(.sidebar):not(.top-nav):not(.auth-layout) {
+  margin-left: var(--sidebar-width-expanded);
+  padding-top: var(--topbar-height);
+  transition: margin-left var(--sidebar-transition);
+  min-height: calc(100vh - var(--topbar-height));
+  box-sizing: border-box;
+
+  @media (max-width: 1024px) {
+    margin-left: var(--sidebar-width-collapsed);
+  }
+
+  @media (max-width: 768px) {
+    margin-left: var(--sidebar-width-mobile);
+    padding-top: var(--topbar-height-mobile);
+    min-height: calc(100vh - var(--topbar-height-mobile));
+  }
 }
 
 /* Global topbar responsive behavior */
@@ -76,11 +222,6 @@
   .sidebar {
     width: var(--sidebar-width-collapsed);
   }
-
-  /* Adjust content for collapsed sidebar */
-  app-nav-sidebar + * {
-    margin-left: var(--sidebar-width-collapsed);
-  }
 }
 
 /* Mobile - extra compact sidebar */
@@ -88,39 +229,12 @@
   .sidebar {
     width: var(--sidebar-width-mobile);
   }
-
-  /* Adjust content for mobile sidebar */
-  app-nav-sidebar + * {
-    margin-left: var(--sidebar-width-mobile);
-  }
 }
 
 /* Desktop - expanded sidebar */
 @media (min-width: 1025px) {
   .sidebar {
     width: var(--sidebar-width-expanded);
-  }
-
-  /* Adjust content for expanded sidebar */
-  app-nav-sidebar + * {
-    margin-left: var(--sidebar-width-expanded);
-  }
-}
-
-/* Global page content adjustments */
-.page-content,
-.page-container {
-  transition: margin-left var(--sidebar-transition);
-  margin-left: var(--sidebar-width-expanded);
-  padding-top: var(--topbar-height);
-
-  @media (max-width: 1024px) {
-    margin-left: var(--sidebar-width-collapsed);
-  }
-
-  @media (max-width: 768px) {
-    margin-left: var(--sidebar-width-mobile);
-    padding-top: var(--topbar-height-mobile);
   }
 }
 
